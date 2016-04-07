@@ -23,13 +23,13 @@ simple.  In verse, we have
 *)
 
 
-Inductive endian : Type := big | little | host.
+Inductive endian : Type := bigE | littleE | hostE.
 
 (** The abstract syntax of verse types *)
-Inductive typeSyn : Type :=
-  | word       : nat  -> typeSyn
-  | array      : nat  -> endian -> typeSyn -> typeSyn
-  | sequence   : typeSyn -> typeSyn.
+Inductive type : Type :=
+  | word       : nat  -> type
+  | array      : nat  -> endian -> type -> type
+  | sequence   : type -> type.
 
 
 (**
@@ -38,40 +38,34 @@ Not all types are valid. The next
 
  *)
 
-Definition Word8Syn  : typeSyn := word 8.
-Definition ByteSyn   : typeSyn := Word8Syn.
-Definition Word16Syn : typeSyn := word 16.
-Definition Word32Syn : typeSyn := word 32.
+Definition Word8  : type := word 8.
+Definition Byte   : type := Word8.
+Definition Word16 : type := word 16.
+Definition Word32 : type := word 32.
 
 Module Properties.
 
-Inductive Scalar : typeSyn -> Prop :=
+Inductive Scalar : type -> Prop :=
   | ScalarWord {n : nat} : Scalar (word n).
 
-Inductive Bounded          : typeSyn -> Prop :=
-  | BoundedScalar {t : typeSyn}: Scalar t -> Bounded t
+Inductive Bounded          : type -> Prop :=
+  | BoundedScalar {t : type}: Scalar t -> Bounded t
   | BoundedArray  {n : nat }
-                  {t : typeSyn}
+                  {t : type}
                   {e : endian}
     : Scalar t -> Bounded (array n e t).
 
-Inductive WellFormed : typeSyn -> Prop :=
-  | WFBound    {t : typeSyn} : Bounded t -> WellFormed t
-  | WFSeq      {t : typeSyn} : Bounded t -> WellFormed (sequence t).
+Inductive WellFormed      : type -> Prop :=
+  | WFBound    {t : type} : Bounded t -> WellFormed t
+  | WFSeq      {t : type} : Bounded t -> WellFormed (sequence t).
 
 End Properties.
-
-Import Properties.
 
 (**
 
 Some common types.
 
-*)
-Definition scalar  : Type := { t : typeSyn | Scalar  t   }.
-Definition bounded : Type := { t : typeSyn | Bounded t   }.
-Definition type    : Type := { t : typeSyn | WellFormed t}.
-
+ *)
 
 (**
 
@@ -89,13 +83,7 @@ Module Tactics.
 
    *)
 
-
-  Ltac simplify_type_obligations :=
-    match goal with
-      | [ |- context[Scalar  _] ] => compute
-      | [ |- context[Bounded _] ] => compute
-      | [ |- context[WellFormed _]] => compute
-    end.
+  Import Properties.
 
   Ltac discharge_scalar_obligations := exact ScalarWord.
 
@@ -127,13 +115,3 @@ Module Tactics.
     end.
 
 End Tactics.
-
-Export Tactics.
-
-Definition mytype := array 8 big ByteSyn.
-
-
-Lemma lemma : WellFormed mytype.
-Proof.
-  types.
-Qed.
