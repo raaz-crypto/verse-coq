@@ -2,19 +2,29 @@
 
 (**
 
-The tactic ensures that a given assertion is true at a point
-trivially.
+ Use this tactic for goals of the form A \/ B \/ C.
 
- *)
+*)
 
-Ltac ensure ass tac :=
-  (
-    let H := fresh "eHyp" in
-    (
-      assert (H:ass) by (tac; fail "ensure " ass "failed");
-      clear H
-    )
-  ).
+Ltac ors t :=
+  match goal with
+    | [ |- ?A \/ ?B ]
+      => first [ apply or_introl; ors t | apply or_intror; ors t ]
+    | _               => t
+  end.
 
-(** Ensure that the given assertion is provable trivially *)
-Ltac trivially ass := ensure ass trivial.
+(**
+
+This tactic makes an assertion and tries to solve it with the tactic tact.
+If it succeeds it clears assertion, otherwise leaves the
+
+Ltac ensure p tact
+
+**)
+
+(* Dispose and run given tactic. *)
+Ltac dispose :=
+  match goal with
+    | [ H : ?G |- ?G      ] => assumption
+    | _                     => fail "dispose failed"
+  end.

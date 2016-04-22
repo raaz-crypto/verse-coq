@@ -1,144 +1,151 @@
-(**
+Require Import Verse.Tactics.
 
-* Types in verse.
+(** * Types in verse.
 
-Most cryptographic primitives use datatypes that are relatively
-simple.  In verse, we have
+The assembly language supported by verse is typed. We have the word
+type, array types and the type of sequences.
 
-1. Word types.
+** Words.
 
-2. Array types
+The type [word n] denotes [n] byte long words. Word types are also
+called scalars. They are also bounded in the sense that the memory
+used is fixed at compilation time.
 
-3. Sequence types.
+** Arrays.
+
+Arrays are abstractions to contiguous memory locations in the machine
+each of which can store a scalar.  Therefore, modification to the
+contents of an array in a function changes the contents
+globally. Arrays also required to specify the endianness of the values
+as it matters when loading or storing into memory.
+
+The dimensions of the arrays are fixed at compile time. Hence, they too
+are bounded.
+
+** Sequences.
+
+Cryptographic primitives like block cipher often process a stream of
+blocks or values. A sequence abstracts this. The stream type is
+unbounded and its length is not known at compile time. As a result,
+verse does not allow nested streams.
 
 *)
 
+Inductive typeS : Type :=
+| word       : nat  -> typeS   (** word n is words of 2^n bytes *)
+| array      : nat  -> endian -> typeS -> typeS
+| sequence   : typeS -> typeS
 
-Require Import Verse.Tactics.
-
-Inductive endian : Type := bigE | littleE | hostE.
+with endian : Type := bigE | littleE | hostE.
 
 
-(** The abstract syntax of verse types *)
+(** Property asserting that a type is a scalar   *)
 
-Inductive type : Type :=
-  | word       : nat  -> type
-  | array      : nat  -> endian -> type -> type
-  | sequence   : type -> type.
+Definition isValue (t : typeS) : Prop := exists (n : nat), t = word n.
 
-(**
+Definition isArrayOf (t s : typeS) : Prop :=
+  exists (n : nat)(e : endian), t = array n e s.
 
-Some common types are defined below.
+Definition isBounded (t : typeS) : Prop
+  := isValue t \/ exists (n : nat)(e : endian)(s : typeS),
+                    isValue s /\ t = array n e s.
+
+
+(** Property that asserts that a type is well formed *)
+Definition isWellformed (t : typeS) : Prop
+  := isBounded t \/ exists (s : typeS), t = sequence s /\ isBounded s.
+
+Definition type := { t : typeS | isWellformed t }.
+
+(** * Type tactics.
+
+Proving properties of types can get tedious. Here are some tactics
+to automate these.
 
  *)
 
-Definition Word8  : type := word 8.
-Definition Byte   : type := Word8.
-Definition Word16 : type := word 16.
-Definition Word32 : type := word 32.
-
-(** ** Properties of types.
-
-This module contains various properties of types.
-
-
-*)
-
-Module Properties.
-
-(** Propertie asserting that a given type is a scalar *)
-Inductive Scalar : type -> Prop :=
-  | ScalarWord {n : nat} : Scalar (word n).
-
-(** Property asserting that a given type is a vector *)
-Inductive Bounded          : type -> Prop :=
-  | BoundedScalar {t : type}: Scalar t -> Bounded t
-  | BoundedArray  {n : nat }
-                  {t : type}
-                  {e : endian}
-    : Scalar t -> Bounded (array n e t).
-
-(** Property asserting that a given type is well formed *)
-Inductive WellFormed      : type -> Prop :=
-  | WFBound    {t : type} : Bounded t -> WellFormed t
-  | WFSeq      {t : type} : Bounded t -> WellFormed (sequence t).
-
-End Properties.
-
-(**
-
-** Type tactics.
-
-Often during proof developement, we need to prove various properties
-about types. The tactics [scalar], [bounded] and [wellformed] are
-precisely for this. The tactics [types] is a generic tactic that
-proves all the above properties.
-
-
-Often we only want to ensure that a type has a given property; the
-[ensure_]family of tactics are for this purpose. Like the tactic
-[ensure], these tactic do not leave the associated assertions in the
-hypothesis. They are mostly for asserting property and moving on.
-
-
-*)
 
 Module Tactics.
-  Import Properties.
 
-  (** Proves that a type is a scalar *)
-
-  Ltac scalar :=
-    idtac;(* For some mysterious reason idtac is required *)
+  (* Handle value assertions *)
+  Ltac value :=
+    repeat dispose;
     match goal with
-      | [ |- context[Scalar (word _)] ] => exact ScalarWord
-      | [ |- context[Scalar _] ]        => compute; scalar
-      | _                               => fail 0 "scalar type"
+      | [ |- isValue (word ?N)              ]
+        => exists N; trivial
+      | [ |- isValue (array _ _ _ _)        ]
+        => fail 1 "array is not a value type"
+      | [ |- isValue (sequence _)           ]
+        => fail 1 "sequence not a value type"
+      | [ |- isValue ?T                     ]
+        => try (unfold T); value
     end.
-
-  (** Proves that a type is bounded *)
 
   Ltac bounded :=
-    idtac; (* For some mysterious reason idtac is required *)
+    repeat dispose;
     match goal with
-      | [ |- Bounded (array _ _ _) ]
-        => apply BoundedArray; scalar
-      | [ |- Bounded (word _)      ]
-        => apply BoundedScalar; scalar
-      | [ |- Bounded _ ] => compute ; bounded
-      | _ => fail 1 "bounded type"
+      | [ |- isBounded (word  _) ]
+        => apply or_introl; value
+      | [ |- isBounded (array ?n ?e ?s) ]
+        => let H := fresh "HypVal" in
+           assert (H:isValue s) by value;
+             apply or_intror;
+             exists n;
+             exists e;
+             exists s; exact (H,eq_refl)
+      | [ |- isBounded (sequence _) ]
+        => fail 1 "sequence is not a bounded type"
+      (* From stronger assumptions *)
+      | [ H : isValue ?T   |- isBounded ?T  ]
+        => apply or_introl; exact H
+      | [ |- isBounded ?T ] => try (unfold T); bounded
     end.
 
-  (** Proves that a type is well formed *)
   Ltac wellformed :=
-    idtac;(* For some mysterious reason idtac is required *)
+    repeat dispose;
     match goal with
-      | [ |- WellFormed (sequence _) ] => apply WFSeq; bounded
-      | [ |- WellFormed (array _ _ _)] => apply WFBound; bounded
-      | [ |- WellFormed (word  _)    ] => apply WFBound; bounded
-      | [ |- WellFormed _           ] => compute ; wellformed
-      | _                              => fail 1 "wellformed type"
+      | [ |- isWellformed (word _) ]
+        => apply or_introl; bounded
+      | [ |- isWellformed (array _ _ _ _) ]
+        => apply or_introl; bounded
+      | [ |- isWellformed (sequence ?T)]
+        => let H := fresh "HypVal" in
+           assert (H:isBounded T) by bounded;
+             apply or_intror;
+             exists T;
+             exact (H,eq_refl)
+      (* From stronger assumptions *)
+      | [ _ : isValue   ?T |- isWellformed ?T ]
+        => apply or_introl; bounded
+      | [ H : isBounded ?T |- isWellformed ?T ]
+        => apply or_introl; exact H
+      (* Try unfolding and continue *)
+      | [ |- isWellformed ?T ] => try (unfold T); wellformed
     end.
 
-  (** Proves all properties about goals *)
-  Ltac types :=
-    idtac;(* For some mysterious reason idtac is required *)
-    match goal with
-      (*| [ ?S : type, ?T : type |- context[ S = T] ] => idtac*)
-      | [ |- context[ Scalar  _] ]
-        => scalar
-      | [ |- context[ Bounded _] ]
-        => bounded
-      | [ |- context[ WellFormed _]]
-        => wellformed
-    end.
-
-  (**
-
+  (** Make a word type. The proof obligations are automatically
+   handled.
    *)
+  Ltac mkWord n
+    := exists (word n)
+              ; assert (isWellformed (word n)) by wellformed
+              ; trivial.
 
-  Ltac ensure_scalar  t    := ensure (Scalar     t) scalar.
-  Ltac ensure_bounded t    := ensure (Bounded    t) bounded.
-  Ltac ensure_wellformed t := ensure (WellFormed t) wellformed.
+
 
 End Tactics.
+Import Tactics.
+
+(** Some common word types *)
+
+Definition Byte   : type.
+  mkWord 1.
+Qed.
+
+Definition Word16 : type.
+  mkWord 2.
+Qed.
+
+Definition Word32 : type.
+  mkWord 4.
+Qed.
