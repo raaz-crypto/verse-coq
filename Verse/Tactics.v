@@ -15,12 +15,28 @@ Ltac ors t :=
 
 (**
 
+Let T be any type and P Q : T -> Prop such that P -> Q.
+In many cases, we want an object of the subclass { t : T | Q t }, but what
+we have as assumption is { t : T | P t}. This tactic resolves such cases.
+
+ *)
+
+
+(**
+
 This tactic makes an assertion and tries to solve it with the tactic tact.
 If it succeeds it clears assertion, otherwise leaves the
 
 Ltac ensure p tact
 
 **)
+
+(* generate a proof term from assumptions *)
+
+Ltac useAssumption typ :=
+  match goal with
+    | [H : typ |- _ ] => exact t
+  end.
 
 (* Dispose and run given tactic. *)
 Ltac dispose :=
