@@ -35,7 +35,7 @@ Ltac ensure p tact
 
 Ltac useAssumption typ :=
   match goal with
-    | [H : typ |- _ ] => exact t
+    | [H : typ |- _ ] => exact typ
   end.
 
 (* Dispose and run given tactic. *)
