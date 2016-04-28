@@ -1,17 +1,17 @@
+Require Vector.
 Require Import Verse.Tactics.
 
 (**
 
 * Types in verse.
 
-The assembly language supported by verse is typed. We have the word
-type, array types and the type of sequences.
+The assembly language supported by verse is typed. We have the
+multi-word, array types and the type of sequences.
 
-** Words.
+** Words and vectors.
 
-The type [word n] denotes [n] byte long words. Word types are also
-called scalars. They are also bounded in the sense that the memory
-used is fixed at compilation time.
+The type [word n] denotes words of [2^n] bytes. A [vector m n] denotes
+a vector of [2^m] words of size [2^n] bytes each.
 
 ** Arrays.
 
@@ -33,46 +33,43 @@ verse does not allow nested streams.
 
 *)
 
-(** The abstract syntax is specified in this module *)
-Inductive typeS : Type :=
-| word       : nat  -> typeS         (** word n is words of n bytes *)
-| array      : nat  -> endian -> typeS -> typeS
-| sequence   : typeS -> typeS
-
-with endian : Type := bigE | littleE | hostE.
-
-(**
-
-Not all elements expressed by typeS are valid. We now formulate
-properties which assert various well formedness properties for types.
-
-*)
-
-(** Asserts that a type is a value type *)
-Inductive Value : typeS -> Prop :=
-| WordIsValue {n : nat} : Value (word n).
-
-(** Asserts that a type is bounded      *)
-Inductive Bounded : typeS -> Prop :=
-| ValueIsBounded {t : typeS} :  Value t -> Bounded t
-| ArrayIsBounded {n : nat}{e : endian}{s : typeS}
-  : Value s -> Bounded (array n e s).
-
-Inductive Wellformed  : typeS -> Prop :=
-| BoundedIsWellformed  {t : typeS} : Bounded t -> Wellformed t
-| SequenceIsWellformed {t : typeS} : Bounded t -> Wellformed (sequence t)
+Inductive kind :=
+| bounded   : nat -> kind
+| unbounded : kind
 .
 
-Definition type (P : typeS -> Prop) := { t : typeS | P t }.
-Definition wellformedType := type Wellformed.
-Definition valueType      := type Value.
-Definition boundedType    := type Bounded.
+Definition value := bounded 0.
+(** The abstract syntax is specified in this module *)
+Inductive type       : kind -> Type :=
+| vector             : nat -> nat  -> type value
+| array    (n : nat) : endian
+                       -> type value
+                       -> type (bounded n)
+| sequence {n : nat} : type (bounded n)      -> type unbounded
+with endian : Type := bigE  | littleE | hostE.
 
+(** A constant of a given type *)
+Inductive constant  : type value -> Type :=
+| const {m n : nat} : Vector.t nat m -> constant (vector m n).
 
-Ltac strengthen :=
-  match goal with
-    | [ |- Bounded ?T ]
-      => apply ValueIsBounded; assumption
-    | [ |- Wellformed ?T ]
-      => apply BoundedIsWellformed; first [ assumption | strengthen ]
+(** Some common types **)
+Definition word   := vector 0.
+Definition Byte   := word 0. (** 2^0 = 1 byte *)
+Definition Word8  := word 0. (** 2^0 = 1 byte *)
+Definition Word16 := word 1. (** 2^1 = 2 byte *)
+Definition Word32 := word 2. (** 2^2 = 4 byte *)
+Definition Word64 := word 3. (** 2^3 = 8 byte *)
+
+Definition valuetype := type (bounded 0).
+
+Ltac makeArray n e t :=
+  match n with
+    | 0 => fail 1 "array of length 0 defined"
+    | _ => exact (array n e t)
   end.
+
+Definition bigEndian (n : nat)(t : type (bounded 0))
+  := array n bigE t.
+
+Definition littleEndian (n : nat)(t : type (bounded 0))
+  := array n littleE t.
