@@ -1,6 +1,8 @@
 Require Vector.
+Require BinNums.
 Require Import Verse.Tactics.
-
+Require Import NPeano.
+Require BinNums.
 (**
 
 * Types in verse.
@@ -48,17 +50,20 @@ Inductive type       : kind -> Type :=
 | sequence {n : nat} : type (bounded n)      -> type unbounded
 with endian : Type := bigE  | littleE | hostE.
 
+(** Some common types **)
+Definition Word   := vector 0.
+Definition Byte   := Word 0. (** 2^0 = 1 byte *)
+Definition Word8  := Word 0. (** 2^0 = 1 byte *)
+Definition Word16 := Word 1. (** 2^1 = 2 byte *)
+Definition Word32 := Word 2. (** 2^2 = 4 byte *)
+Definition Word64 := Word 3. (** 2^3 = 8 byte *)
+
+
 (** A constant of a given type *)
 Inductive constant  : type value -> Type :=
-| const {m n : nat} : Vector.t nat m -> constant (vector m n).
-
-(** Some common types **)
-Definition word   := vector 0.
-Definition Byte   := word 0. (** 2^0 = 1 byte *)
-Definition Word8  := word 0. (** 2^0 = 1 byte *)
-Definition Word16 := word 1. (** 2^1 = 2 byte *)
-Definition Word32 := word 2. (** 2^2 = 4 byte *)
-Definition Word64 := word 3. (** 2^3 = 8 byte *)
+| w {n : nat}   : Vector.t nat  (2 ^ n) -> constant (Word n)
+| v {m n : nat} : Vector.t (constant (Word n)) (2 ^ m)
+                  -> constant (vector m n).
 
 Definition valuetype := type (bounded 0).
 
@@ -67,6 +72,7 @@ Ltac makeArray n e t :=
     | 0 => fail 1 "array of length 0 defined"
     | _ => exact (array n e t)
   end.
+
 
 Definition bigEndian (n : nat)(t : type (bounded 0))
   := array n bigE t.
