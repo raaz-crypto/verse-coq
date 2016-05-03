@@ -1,6 +1,6 @@
 language: c
 sudo: false
-addon:
+addons:
   apt:
     packages:
       - coq
@@ -9,6 +9,7 @@ notifications:
 fast_finish: true
 before_install:
 script:
+  - coq_makefile -f _CoqProject -o Makefile
   - make
   - make html
 after_success:
