@@ -22,19 +22,33 @@ Ltac leP orig m n :=
 
 Ltac proveLE m n := leP m m n.
 
+
+Ltac disprove_inequalities :=
+  repeat match goal with
+           | [ |- _ <  _ -> False ] => compute; intro
+           | [ |- _ >  _ -> False ] => compute; intro
+           | [ |- _ <= _ -> False ] => intro
+           | [ H : _  <= 0  |- False ] => inversion H
+           | [ H : ?M <= ?N |- False ] => inversion H; clear H
+           | _                         => idtac
+  end.
+
 Ltac simplify := repeat simpl; trivial.
 
 Ltac crush_inequalities :=
   simplify;
   repeat match goal with
-           | [ |- ?M <= ?N ] => unfold M; unfold N; proveLE M N
-           | [ |- ?M =  ?N ] => unfold M; unfold N; trivial
+           | [|- ?M <= ?N  ] => proveLE M N
+           | [|- _  <  _   ] => compute
+           | [|- _  >  _   ] => compute
+           | [|- _ -> False] => disprove_inequalities
+           | [|- ?M =  ?N  ] => trivial
          end.
 
-Ltac rewrite_equalities db :=
+Ltac rewrite_equalities :=
   simplify;
   repeat match goal with
              | [ H  : _      |-  _ ] => rewrite H
              | _
-               => simpl; autorewrite with db; trivial
+               => simpl; autorewrite with core; auto
            end.
