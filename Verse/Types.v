@@ -3,6 +3,8 @@ Require BinNums.
 Require Import Verse.Tactics.
 Require Import NPeano.
 Require BinNums.
+
+
 (**
 
 * Types in verse.
@@ -101,7 +103,15 @@ Definition Vector256Bytes := vector 5 Byte.
 
 This module proves the correctness of the vector types defined
 
-*)
+ *)
+
+(* (* Constants *) *)
+(* Fixpoint constant {v : value} (ty : type (Bounded (Value v))) : Type *)
+(*   := match ty with *)
+(*        | word   n    => Vector.t Nibble (2^(S n)) *)
+(*        | vector n w  => Vector.t (constant w) n *)
+(*      end. *)
+
 Module VectorCorrectness.
 
   (**
@@ -148,8 +158,6 @@ Module VectorCorrectness.
   Proof.
     crush_inequalities.
   Qed.
-
-
 
   Theorem v256_64WF : WFVector256 (Vector256_64).
   Proof.
