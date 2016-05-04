@@ -6,12 +6,11 @@ notifications:
 fast_finish: true
 before_install:
   - sudo apt-get update
-  - sudo apt-get install coq coq-doc coq-theories
+  - sudo apt-get install coq coq-theories
   - coqtop --version
   - coq_makefile -f _CoqProject -o Makefile
 script:
   - make
-  - make html
 after_success:
   - echo "All is well."
 after_failure:
