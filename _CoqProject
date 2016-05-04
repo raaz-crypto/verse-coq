@@ -1,5 +1,7 @@
 -R Verse Verse
 
-Verse/Types.v
+Verse/Error.v
 Verse/Tactics.v
+Verse/BinTree.v
+Verse/Types.v
 Verse/Nibble.v
