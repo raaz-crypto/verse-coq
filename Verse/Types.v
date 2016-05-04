@@ -1,63 +1,61 @@
-Require Vector.
-Require BinNums.
+Require Import String.
 Require Import Verse.Tactics.
-Require Import NPeano.
-Require BinNums.
-
+Require Import Verse.BinTree.
+Require Import Verse.Nibble.
+Require Import Verse.Error.
 
 (**
 
 * Types in verse.
 
 The assembly language supported by verse is typed. We have the
-multi-word, array types and the type of sequences.
+words, vectors, array types and the type of sequences.
 
-** Words.
+** Values.
 
-The type [word n] denotes words of [2^n] bytes. A [vector m n] denotes
-a vector of [2^m] words of size [2^n] bytes each.
-
-** Vectors.
-
-The type [vector n w] denotes
-The type [word n] denotes words of [2^n] bytes. A [vector m n] denotes
-a vector of [2^m] words of size [2^n] bytes each.
+Verse supports both scalar values and vector values. The type [word n]
+denotes scalar values that are unsigned integers of [2^n]
+bytes. Vector of [2^m] elements, each of which are of type [word n]
+are captured by the type [vector m (word n)].
 
 ** Arrays.
 
 Arrays are abstractions to contiguous memory locations in the machine
-each of which can store a scalar.  Therefore, modification to the
+each of which can store a scalar. Therefore, modification to the
 contents of an array in a function changes the contents
 globally. Arrays also required to specify the endianness of the values
 as it matters when loading or storing into memory.
 
-The dimensions of the arrays are fixed at compile time. Hence, they too
-are bounded.
-
 ** Sequences.
 
 Cryptographic primitives like block cipher often process a stream of
-blocks or values. A sequence abstracts this. The stream type is
-unbounded and its length is not known at compile time. As a result,
-verse does not allow nested streams.
+blocks. A sequence abstracts this. The stream type is unbounded and
+its length is not known at compile time. As a result, verse does not
+allow nested streams.
 
-*)
+ *)
 
-Inductive value := Scalar | Vector.
+Inductive value := (** A value is either a scalar or a vector *)
+| Scalar
+| Vector
+.
+
+(** A bounded type is either array or a value *)
 Inductive bound :=
 | Value : value -> bound
 | Array
 .
 
+(** Kinds of types, bounded and unbounded *)
 Inductive kind :=
 | Bounded   : bound -> kind
 | Unbounded : kind
 .
 
-Definition valueK  (v : value) := Bounded (Value v).
-Definition scalarK := valueK Scalar.
-Definition vectorK := valueK Vector.
-Definition arrayK  := Bounded Array.
+Definition valueK  (v : value) := Bounded (Value v). (** A value kind *)
+Definition scalarK := valueK Scalar.  (** A scalar kind *)
+Definition vectorK := valueK Vector.  (** A vector kind *)
+Definition arrayK  := Bounded Array.  (** An array kind *)
 
 
 (** The abstract syntax is specified in this module *)
@@ -101,6 +99,57 @@ Definition Vector256Bytes := vector 5 Byte.
 
 (**
 
+  A constant of a given type. The constructors of this type
+  is an eye sore. To create constatns use the functions [w]
+  and [v] respectively.
+
+*)
+
+Inductive constant :
+  forall {v : value}, type (Bounded (Value v)) -> Type
+  :=
+| wconst {n : nat} : Bin nibble      (S n) -> constant (word n)
+| vconst {n : nat}{ty : type (Bounded (Value Scalar))}
+  : Bin (constant ty) n -> constant (vector n ty)
+.
+
+
+Module Internal.
+  Definition parseW (n : nat)(s : string) :
+    option (constant (word n)) :=
+    match parse s with
+      | None      => None
+      | Some nibs => match @merge nibble (S n) nibs with
+                       | None   => None
+                       | Some b => Some (wconst b)
+                     end
+    end.
+
+  Definition parseV (m n : nat)(lc : list (constant (word n)))
+  : option (constant (vector m (word n))) :=
+    match merge lc with
+      | None   => None
+      | Some b => Some (vconst b)
+    end.
+  Inductive ConstError := BadWord | BadVector.
+
+End Internal.
+
+Import Internal.
+
+
+
+(** The expression [w n s] parses a [word n] constant form a string *)
+
+Definition w (n   : nat)(s : string)
+  := optionToError BadWord (parseW n s).
+
+(** Create a vector constant from a list of values *)
+Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
+  := optionToError BadVector (parseV m n ls).
+
+(**
+
 This module proves the correctness of the vector types defined
 
  *)
@@ -112,7 +161,7 @@ This module proves the correctness of the vector types defined
 (*        | vector n w  => Vector.t (constant w) n *)
 (*      end. *)
 
-Module VectorCorrectness.
+Module Correctness.
 
   (**
 
@@ -183,4 +232,4 @@ Module VectorCorrectness.
   Proof.
     crush_inequalities.
   Qed.
-End VectorCorrectness.
+End Correctness.
