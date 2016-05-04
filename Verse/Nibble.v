@@ -1,11 +1,11 @@
 Require Import String.
 Require Import Ascii.
 Require Import NPeano.
-Require Import Peano_dec.
-Require Import Le.
 Require Import Verse.Tactics.
-Require Vector.
-Import  Vector.VectorNotations.
+Require Import Verse.BinTree.
+Require Import Verse.Error.
+Import List.ListNotations.
+
 
 (** A nibble, i.e. 4 bytes. *)
 Inductive nibble := x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9
@@ -13,8 +13,6 @@ Inductive nibble := x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9
 
 (** A list of nibbles *)
 Definition nibbles := list nibble.
-
-
 
 (** * Internal module.
 
@@ -74,6 +72,7 @@ Module Internal.
       | cons x xs => String (nibbleToAscii x) (nibblesToString xs)
     end.
 
+
   Definition comb (ox : option nibble)(oxs : option nibbles)
   : option (nibbles) :=
     match ox, oxs with
@@ -81,30 +80,19 @@ Module Internal.
       | _, _ => None
     end.
 
-  Fixpoint parse (s : string) : option nibbles :=
-    match s with
-      | EmptyString => Some nil
-      | String x xs => comb (hexDigit x) (parse xs)
-    end.
 
-  Definition fromOption {A : Type}(op : option A)
-  : match op with
-      | None   => option A
-      | Some _ => A
-    end :=
-    match op with
-      | None   => None
-      | Some x => x
-    end.
+End Internal.
 
-  Ltac crush_hex_proofs :=
-    repeat simpl;trivial;
-    repeat match goal with
-             | [ H  : _      |-  _ ] => rewrite H
-             | _
-               => simpl; autorewrite with hexhints; auto
-           end.
+Import Internal.
 
+Fixpoint parse (s : string) : option nibbles :=
+  match s with
+    | EmptyString => Some nil
+    | String x xs => comb (hexDigit x) (parse xs)
+  end.
+
+Module Correctness.
+  (** Correctness proofs for functions here. Not very useful *)
   Lemma hexDigit_o_toAscii_isId:
     forall x : nibble, hexDigit (nibbleToAscii x) = Some x.
   Proof.
@@ -119,7 +107,4 @@ Module Internal.
     induction v; rewrite_equalities.
   Qed.
 
-End Internal.
-
-Import Internal.
-Definition hex (s : string) := fromOption  (parse s).
+End Correctness.
