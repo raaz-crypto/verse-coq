@@ -1,22 +1,12 @@
 language: c
-sudo: false
-addons:
-  apt:
-    packages:
-      - ocaml
-      - ocaml-nox
-      - ocaml-base-nox
-      - ocaml-native-compilers
-      - libcoq-ocaml
-      - camlp5
-      - liblablgtk2-ocaml
-      - coq
-      - coq-doc
-      - coq-theories
+sudo: required
+dist: trusty
 notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
+  - sudo apt-get update
+  - sudo apt-get install coq coq-doc coq-theories
   - coqtop --version
   - coq_makefile -f _CoqProject -o Makefile
 script:
@@ -29,4 +19,3 @@ after_failure:
 branches:
   only:
     - master
-    - x-merge-packages
