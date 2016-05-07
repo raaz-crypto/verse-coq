@@ -70,6 +70,10 @@ Inductive type       : kind -> Type :=
 | sequence {b : bound} : type (Bounded b) -> type Unbounded
 with endian : Type := bigE  | littleE | hostE.
 
+Definition scalartype := type scalarK.
+Definition valuetype := forall v : value, type (valueK v).
+Definition arraytype := type arrayK.
+
 (** Word types that are commonly found in machines *)
 
 Definition Byte   := word 0. (** 2^0 = 1 byte *)
