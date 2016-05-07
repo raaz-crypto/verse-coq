@@ -152,6 +152,25 @@ Definition w (n   : nat)(s : string)
 Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
   := optionToError BadVector (parseV m n ls).
 
+
+Definition w8  := w 0. (** hex string to Word8  *)
+Definition w16 := w 1. (** hex string to Word16 *)
+Definition w32 := w 2. (** hex string to Word32 *)
+Definition w64 := w 3. (** hex string to Word64 *)
+
+
+Definition v128_64 := @v 1 3. (** 2 x 64-bit vector constant *)
+Definition v128_32 := @v 2 2. (** 4 x 32-bit vector constant *)
+Definition v128_16 := @v 3 1. (** 8 x 16-bit vector constant *)
+Definition v128_8  := @v 4 0. (** 16 x 8-bit vector constant *)
+
+
+Definition v256_64 := @v 2 3. (** 4  x 64-bit vector constant *)
+Definition v256_32 := @v 3 2. (** 8  x 32-bit vector constant *)
+Definition v256_16 := @v 4 1. (** 16 x 16-bit vector constant *)
+Definition v256_8  := @v 5 0. (** 32 x 8-bit vector constant  *)
+
+
 (**
 
 This module proves the correctness of the vector types defined
