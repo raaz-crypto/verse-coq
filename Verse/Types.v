@@ -71,7 +71,7 @@ Inductive type       : kind -> Type :=
 with endian : Type := bigE  | littleE | hostE.
 
 Definition scalartype := type scalarK.
-Definition valuetype := forall v : value, type (valueK v).
+Definition valuetype (v : value) := type (valueK v).
 Definition arraytype := type arrayK.
 
 (** Word types that are commonly found in machines *)
@@ -110,7 +110,7 @@ Definition Vector256Bytes := vector 5 Byte.
 *)
 
 Inductive constant :
-  forall {v : value}, type (Bounded (Value v)) -> Type
+  forall {k : kind}, type k -> Type
   :=
 | wconst {n : nat} : Bin nibble      (S n) -> constant (word n)
 | vconst {n : nat}{ty : type (Bounded (Value Scalar))}
@@ -151,6 +151,7 @@ Definition w (n   : nat)(s : string)
 (** Create a vector constant from a list of values *)
 Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
   := optionToError BadVector (parseV m n ls).
+
 
 
 Definition w8  := w 0. (** hex string to Word8  *)
