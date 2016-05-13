@@ -32,12 +32,15 @@ Definition uniop := op unary.
 Section Language.
 
   Variable r   : forall k : kind,  type k -> Type. Arguments r [k] _.
+  Variable i   : Type.
 
+  Inductive var : forall {k : kind}, type k -> Type :=
+  | register {k : kind}{ty : type k} : r ty -> var ty
+  | stack    {k : kind}(ty : type k) : nat  -> var ty.
 
   Inductive arg : forall {k : kind}, type k -> Type :=
-  | register {k : kind}{ty : type k} : r ty -> arg ty
   | param    {k : kind}(ty : type k) : nat  -> arg ty
-  | stack    {k : kind}(ty : type k) : nat  -> arg ty
+  | v        {k : kind}{ty : type k} : var ty -> arg ty
   | const    {k : kind}{ty : type k} : constant ty -> arg ty
   | index {b : nat}{e : endian}{v : value}{ty : valuetype v}
     : arg (array b e ty) -> arg ty.
@@ -58,29 +61,39 @@ Section Language.
   .
 
 
+  Inductive statement : Type :=
+  | assign   : assignment -> statement
+  | specials : i          -> statement
+  | each  {b : bound}{ty : type (Bounded b)} :
+      var ty  -> arg (sequence ty) -> list statement -> statement
+  .
+
+
 End Language.
 
+Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
+Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
+Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
+Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
+Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
 
-Notation "A <= B <+> C " := (assign3   _ plus  A B C)  (at level 20).
-Notation "A <= B <-> C " := (assign3 _ minus A B C)  (at level 20).
-Notation "A <= B <*> C " := (assign3 _ mul   A B C)  (at level 20).
-Notation "A <= B </> C " := (assign3 _ quot  A B C)  (at level 20).
-Notation "A <= B <%> C " := (assign3 _ rem   A B C)  (at level 20).
-Notation "A <= B <|> C " := (assign3 _ rem   A B C)  (at level 20).
-Notation "A <= B <&> C " := (assign3 _ rem   A B C)  (at level 20).
-Notation "A <= B <^> C " := (assign3 _ rem   A B C)  (at level 20).
+Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
+Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
+Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
+Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
+Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
 
-Notation "A +<= B " := (update2 _ plus  A B) (at level 20).
-Notation "A -<= B " := (update2 _ minus A B) (at level 20).
-Notation "A *<= B " := (update2 _ mul   A B) (at level 20).
-Notation "A /<= B " := (update2 _ quot  A B) (at level 20).
-Notation "A %<= B " := (update2 _ rem   A B) (at level 20).
-Notation "A |<= B " := (update2 _ rem   A B) (at level 20).
-Notation "A &<= B " := (update2 _ rem   A B) (at level 20).
-Notation "A ^<= B " := (update2 _ rem   A B) (at level 20).
-
-Notation "A <=~ B "     := (assign2 _ bitComp A B)  (at level 20).
-Notation "A '<=RL' N B" := (assign2 _ (rotL N) A B) (at level 20).
-Notation "A '<=RR' N B" := (assign2 _ (rotR N) A B) (at level 20).
-Notation "A <=<< N B"   := (assign2 _ (shiftL N) A B) (at level 20).
-Notation "A <=>> N B"   := (assign2 _ (shiftR N) A B) (at level 20).
+Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
+Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
+Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
+Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
+                             (at level 20).
+Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
+                             (at level 20).
+Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).
