@@ -1,14 +1,28 @@
+Require Import Verse.Types.
+Require Vector.
+Import Vector.VectorNotations.
+
 (** * The abstract syntax
 
 This module exposes the abstract syntax of the verse programming
-language.
+language. The goal is to give a portable representation all the
+common instructions supported by most architectures and
+parameterising over the architecture specific parts like register
+names and special instructions.
+
+** Arithmetic and bitwise pperators.
+
+Most architectures allow various basic arithmetic, bitwise operations
+on values stored in the registers. We begin by an inductive type that
+captures these operators.
 
  *)
 
-Require Import Verse.Types.
-Require Import String.
 
+(** The arity of an operator *)
 Inductive arity := binary | unary.
+
+(** Generic operators supported by the verse langauge *)
 Inductive op    : arity -> Type :=
 | plus    : op binary
 | minus   : op binary
@@ -29,10 +43,18 @@ Definition binop := op binary.
 Definition uniop := op unary.
 
 
+(**
+
+
+ *)
+
+Definition someType := sigT type.
+
 Section Language.
 
   Variable r   : forall k : kind,  type k -> Type. Arguments r [k] _.
   Variable i   : Type.
+
 
   Inductive var : forall {k : kind}, type k -> Type :=
   | register {k : kind}{ty : type k} : r ty -> var ty
@@ -46,8 +68,6 @@ Section Language.
     : arg (array b e ty) -> arg ty.
 
 
-  (*| immediate {v : value}{ty : valuetype v} : constant ty -> arg ty.*)
-
   Inductive assignment : Type :=
   | assign3  {v : value}{ty : type (valueK v)}
     : binop -> arg ty -> arg ty -> arg ty -> assignment
@@ -59,7 +79,6 @@ Section Language.
   | update1  {v : value}{ty : type (valueK v)}
     : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
-
 
   Inductive statement : Type :=
   | assign   : assignment -> statement
