@@ -69,7 +69,32 @@ Section Language.
   .
 
 
+  Definition parameter {k : kind}(ty : type k) : someType
+    := existT type k ty.
+
+
+  Fixpoint body {n : nat}(ps : Vector.t someType n)(A : Type) : Type :=
+    match ps with
+      | []                  => A
+      | (existT _ ty) :: xs => arg ty -> body xs A
+    end.
+
+
+  Fixpoint function {A : Type}{n : nat}(ps : Vector.t someType n)
+  : body ps A  -> A :=
+    match ps with
+      | []
+        => (fun f : body [] A -> A => f) (fun X : A => X)
+      | existT _ ty :: qs
+        => fun f : body (existT _ _ ty :: qs) A
+           => function qs (f (param ty n))
+
+    end.
+
 End Language.
+
+Arguments body [r n]  _ _.
+Arguments function [r A n] _ _.
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
 Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
