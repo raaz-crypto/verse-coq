@@ -196,76 +196,78 @@ This module proves the correctness of the vector types defined
 (*        | word   n    => Vector.t Nibble (2^(S n)) *)
 (*        | vector n w  => Vector.t (constant w) n *)
 (*      end. *)
+(* begin hide *)
 
 Module Correctness.
 
-  (**
-
-      When you make a vector of 128-bits of word type n, you need to
-      ensure that the total bits are of exactly 128 bits long. If you
-      use vector k n, then this means that [2^k * 2^n = 128] or in
-      other words [k + n = 4]. We prove these theorems here.
-
-   *)
-
-  Definition WFVector128 (v : type vectorK) : Prop
-    := match v with
-         | vector n (word m) => n + m = 4
-         | _                 => False
-       end.
-  Definition WFVector256 (v : type vectorK) : Prop
-    := match v with
-         | vector n (word m) => n + m = 5
-         | _                 => False
-       end.
-
-  Theorem v128_64WF : WFVector128 (Vector128_64).
+  Theorem w8_WF : bits Word8 = 8.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v128_32WF : WFVector128 (Vector128_32).
+  Theorem w16_WF : bits Word16 = 16.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v128_16WF : WFVector128 (Vector128_16).
+  Theorem w32_WF : bits Word32 = 32.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v128_8WF : WFVector128 (Vector128_8).
+  Theorem w64_WF : bits Word64 = 64.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v128_ByteWF : WFVector128 (Vector128Bytes).
+  Theorem v128_64WF : bits Vector128_64 = 128.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v256_64WF : WFVector256 (Vector256_64).
+  Theorem v128_32WF :  bits Vector128_32 = 128.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v256_32WF : WFVector256 (Vector256_32).
+  Theorem v128_16WF :  bits Vector128_16 = 128.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v256_16WF : WFVector256 (Vector256_16).
+  Theorem v128_8WF :  bits Vector128_8 = 128.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v256_8WF : WFVector256 (Vector256_8).
+  Theorem v128_ByteWF : bits Vector128Bytes = 128.
   Proof.
-    crush_inequalities.
+    trivial.
   Qed.
 
-  Theorem v256_ByteWF : WFVector256 (Vector256Bytes).
+  Theorem v256_64WF :  bits Vector256_64 = 256.
   Proof.
-    crush_inequalities.
+    trivial.
+  Qed.
+
+  Theorem v256_32WF : bits Vector256_32 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_16WF : bits Vector256_16 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_8WF : bits Vector256_8 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_ByteWF : bits Vector256Bytes = 256.
+  Proof.
+    trivial.
   Qed.
 End Correctness.
+(* end hide *)
