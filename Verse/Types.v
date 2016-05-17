@@ -86,6 +86,18 @@ Definition Word64 := word 3. (** 2^3 = 8 byte *)
 
 We have vector types of 128-bits and 256 bits given by
 [Vector128_*] and [Vector256_*].
+Require Import NPeano.
+
+Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
+  match t with
+    | word   n        => 2^n
+    | vector m w      => 2^m * bytes w
+    | array  n _ _ v  => n   * bytes v
+  end.
+
+Definition bits {b : bound}(t : type (Bounded b)) : nat
+  := 8 * bytes t.
+
 
  *)
 
