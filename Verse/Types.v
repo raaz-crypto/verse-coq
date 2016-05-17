@@ -13,49 +13,66 @@ words, vectors, array types and the type of sequences.
 
 ** Values.
 
-Verse supports both scalar values and vector values. The type [word n]
-denotes scalar values that are unsigned integers of [2^n]
-bytes. Vector of [2^m] elements, each of which are of type [word n]
-are captured by the type [vector m (word n)].
+Verse supports both scalar values and vector values. The scalar types
+that are supported are [Word8], [Word16], [Word32] and [Word64]. The
+type [Byte] is an aliase for [Word8]. The libary also supports 128 and
+256 vector types of each of the above type. For example,
+[Vector128_64] denotes a vector that consists of 2 64-bit word where
+as [Vector256_64] denotes the vector type that consists of 4 64-bit
+words. These are the standard vector and word types supported and
+users should use these in the code.
+
+Internally, the value [word n] denotes scalar values that are unsigned
+integers of [2^n] bytes. Vector of [2^m] elements, each of which are
+of type [word n] are captured by the type [vector m (word n)].
+However, users should stick to the standard vector and word types as
+much as possible.
 
 ** Arrays.
 
 Arrays are abstractions to contiguous memory locations in the machine
-each of which can store a scalar. Therefore, modification to the
-contents of an array in a function changes the contents
-globally. Arrays also required to specify the endianness of the values
-as it matters when loading or storing into memory.
+each of which can store a value. Arrays also required to specify the
+endianness of the values as it matters when loading or storing into
+memory.
 
 ** Sequences.
 
 Cryptographic primitives like block cipher often process a stream of
-blocks. A sequence abstracts this. The stream type is unbounded and
-its length is not known at compile time. As a result, verse does not
-allow nested streams.
+blocks. A sequence type abstracts such streams of block. The number of
+elements in a sequence is not know at compile time but its elements
+are required to be a bounded type, i.e. either a value or an array
+type.
+
+
+** The kind system.
+
+The type system has to rule out certain types like for example nested
+sequences or vector of arrays etc. A rudimentary kind system is
+implemented to avoid such errors. The kind system ensures the following
+restrictions.
+
+  - The type [vector t] is valid only for a scalar type [t], i.e. [t]
+    is a word type.
+
+  - The array of type [t] is valid if and only if the type [t] is a
+    value.
+
+  - The type [sequence t] is valid if and only if the type [t] is a
+    bounded type, i.e. [t] is either an array or a value type.
 
  *)
 
-Inductive value := (** A value is either a scalar or a vector *)
-| Scalar
-| Vector
+Inductive kind  := Unbounded | Bounded : bound -> kind
+with      bound := Array     | Value   : value -> bound
+with      value := Scalar    | Vector
 .
 
-(** A bounded type is either array or a value *)
-Inductive bound :=
-| Value : value -> bound
-| Array
-.
 
-(** Kinds of types, bounded and unbounded *)
-Inductive kind :=
-| Bounded   : bound -> kind
-| Unbounded : kind
-.
-
-Definition valueK  (v : value) := Bounded (Value v). (** A value kind *)
-Definition scalarK := valueK Scalar.  (** A scalar kind *)
-Definition vectorK := valueK Vector.  (** A vector kind *)
-Definition arrayK  := Bounded Array.  (** An array kind *)
+(** Some short cuts to kinds. *)
+Definition valueK  (v : value) := Bounded (Value v).
+Definition scalarK := valueK Scalar.
+Definition vectorK := valueK Vector.
+Definition arrayK  := Bounded Array.
 
 
 (** The abstract syntax is specified in this module *)
@@ -70,22 +87,16 @@ Inductive type       : kind -> Type :=
 | sequence {b : bound} : type (Bounded b) -> type Unbounded
 with endian : Type := bigE  | littleE | hostE.
 
-Definition scalartype := type scalarK.
-Definition valuetype (v : value) := type (valueK v).
-Definition arraytype := type arrayK.
 
-(** Word types that are commonly found in machines *)
+(**
 
-Definition Byte   := word 0. (** 2^0 = 1 byte *)
-Definition Word8  := word 0. (** 2^0 = 1 byte *)
-Definition Word16 := word 1. (** 2^1 = 2 byte *)
-Definition Word32 := word 2. (** 2^2 = 4 byte *)
-Definition Word64 := word 3. (** 2^3 = 8 byte *)
+* Size calculations.
 
-(* ** Common vector types
+The number of bytes required to represent an element of
+a given type
 
-We have vector types of 128-bits and 256 bits given by
-[Vector128_*] and [Vector256_*].
+*)
+
 Require Import NPeano.
 
 Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
@@ -99,8 +110,20 @@ Definition bits {b : bound}(t : type (Bounded b)) : nat
   := 8 * bytes t.
 
 
- *)
+Definition scalartype            := type scalarK.
+Definition vectortype            := type vectorK.
+Definition arraytype             := type arrayK.
+Definition valuetype (v : value) := type (valueK v).
 
+
+(** Standard word types/scalars *)
+Definition Byte   := word 0.
+Definition Word8  := word 0.
+Definition Word16 := word 1.
+Definition Word32 := word 2.
+Definition Word64 := word 3.
+
+(** Standard vector types *)
 Definition Vector128_64   := vector 1 Word64.
 Definition Vector128_32   := vector 2 Word32.
 Definition Vector128_16   := vector 3 Word16.
@@ -112,6 +135,9 @@ Definition Vector256_32   := vector 3 Word32.
 Definition Vector256_16   := vector 4 Word16.
 Definition Vector256_8    := vector 5 Word8.
 Definition Vector256Bytes := vector 5 Byte.
+
+
+
 
 (**
 
@@ -129,7 +155,7 @@ Inductive constant :
   : Bin (constant ty) n -> constant (vector n ty)
 .
 
-
+(* begin hide *)
 Module Internal.
   Definition parseW (n : nat)(s : string) :
     option (constant (word n)) :=
@@ -150,6 +176,7 @@ Module Internal.
   Inductive ConstError := BadWord | BadVector.
 
 End Internal.
+(* end hide *)
 
 Import Internal.
 
@@ -184,18 +211,6 @@ Definition v256_16 := @v 4 1. (** 16 x 16-bit vector constant *)
 Definition v256_8  := @v 5 0. (** 32 x 8-bit vector constant  *)
 
 
-(**
-
-This module proves the correctness of the vector types defined
-
- *)
-
-(* (* Constants *) *)
-(* Fixpoint constant {v : value} (ty : type (Bounded (Value v))) : Type *)
-(*   := match ty with *)
-(*        | word   n    => Vector.t Nibble (2^(S n)) *)
-(*        | vector n w  => Vector.t (constant w) n *)
-(*      end. *)
 (* begin hide *)
 
 Module Correctness.
