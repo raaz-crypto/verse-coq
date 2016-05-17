@@ -64,9 +64,7 @@ restrictions.
 
 Inductive kind  := Unbounded | Bounded : bound -> kind
 with      bound := Array     | Value   : value -> bound
-with      value := Scalar    | Vector
-.
-
+with      value := Scalar    | Vector.
 
 (** Some short cuts to kinds. *)
 Definition valueK  (v : value) := Bounded (Value v).
@@ -74,8 +72,12 @@ Definition scalarK := valueK Scalar.
 Definition vectorK := valueK Vector.
 Definition arrayK  := Bounded Array.
 
+(**
 
-(** The abstract syntax is specified in this module *)
+The inductive definition of types in verse.
+
+*)
+
 Inductive type       : kind -> Type :=
 | word               : nat -> type (Bounded (Value Scalar))
 | vector             : nat
@@ -110,6 +112,7 @@ Definition bits {b : bound}(t : type (Bounded b)) : nat
   := 8 * bytes t.
 
 
+(** Some type short cuts *)
 Definition scalartype            := type scalarK.
 Definition vectortype            := type vectorK.
 Definition arraytype             := type arrayK.
@@ -136,14 +139,25 @@ Definition Vector256_16   := vector 4 Word16.
 Definition Vector256_8    := vector 5 Word8.
 Definition Vector256Bytes := vector 5 Byte.
 
-
-
-
 (**
 
-  A constant of a given type. The constructors of this type
-  is an eye sore. To create constatns use the functions [w]
-  and [v] respectively.
+* Constants.
+
+For a value type [t], the type [constant t] denotes a Coq type that
+represents a constant of type [t]. Word constants are represented as
+base16 encoded strings using the combinator [w8], [w16], [w32], [w64].
+Similarly, vectors are defined using the [v128_*].
+combinators.  See the definition of [aVector] and [asciiA] for how to
+use these combinators.
+
+** Errors at compile type.
+
+The definition of the constant type and the combinators ensure that
+certain length checks on the constants declared are done by the type
+system of Coq. For example, string arguments supplied for the
+combinator [w16] should be of length 4 and should containing only
+valid hex characters. This helps in early detection of errors that
+occur due to typos when transcribing algorithms.
 
 *)
 
@@ -176,10 +190,7 @@ Module Internal.
   Inductive ConstError := BadWord | BadVector.
 
 End Internal.
-(* end hide *)
-
 Import Internal.
-
 
 
 (** The expression [w n s] parses a [word n] constant form a string *)
@@ -191,12 +202,13 @@ Definition w (n   : nat)(s : string)
 Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
   := optionToError BadVector (parseV m n ls).
 
+(* end hide *)
 
-
-Definition w8  := w 0. (** hex string to Word8  *)
-Definition w16 := w 1. (** hex string to Word16 *)
-Definition w32 := w 2. (** hex string to Word32 *)
-Definition w64 := w 3. (** hex string to Word64 *)
+(** Parsing a base16 string to constant *)
+Definition w8  := w 0.
+Definition w16 := w 1.
+Definition w32 := w 2.
+Definition w64 := w 3.
 
 
 Definition v128_64 := @v 1 3. (** 2 x 64-bit vector constant *)
@@ -210,6 +222,14 @@ Definition v256_32 := @v 3 2. (** 8  x 32-bit vector constant *)
 Definition v256_16 := @v 4 1. (** 16 x 16-bit vector constant *)
 Definition v256_8  := @v 5 0. (** 32 x 8-bit vector constant  *)
 
+
+(** Examples of constant declarations *)
+
+Import List.ListNotations.
+Definition asciiA : constant Word8 := w8 "41".
+
+Definition aVector : constant Vector128_64
+  := v128_64 [ w64 "0123456789ABCDEF"; w64 "0123456789ABCDEF"].
 
 (* begin hide *)
 
