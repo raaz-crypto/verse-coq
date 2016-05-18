@@ -11,6 +11,7 @@ before_install:
   - coq_makefile -f _CoqProject -o Makefile
 script:
   - make
+  - make html
 after_success:
   - echo "All is well."
 after_failure:
