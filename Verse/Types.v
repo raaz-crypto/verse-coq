@@ -144,22 +144,9 @@ Definition Vector256Bytes := vector 5 Byte.
 * Constants.
 
 For a value type [t], the type [constant t] denotes a Coq type that
-represents a constant of type [t]. Word constants are represented as
-base16 encoded strings using the combinator [w8], [w16], [w32], [w64].
-Similarly, vectors are defined using the [v128_*].
-combinators.  See the definition of [aVector] and [asciiA] for how to
-use these combinators.
+represents a constant of type [t].
 
-** Errors at compile type.
-
-The definition of the constant type and the combinators ensure that
-certain length checks on the constants declared are done by the type
-system of Coq. For example, string arguments supplied for the
-combinator [w16] should be of length 4 and should containing only
-valid hex characters. This helps in early detection of errors that
-occur due to typos when transcribing algorithms.
-
-*)
+ *)
 
 Inductive constant :
   forall {k : kind}, type k -> Type
@@ -168,6 +155,9 @@ Inductive constant :
 | vconst {n : nat}{ty : type (Bounded (Value Scalar))}
   : Bin (constant ty) n -> constant (vector n ty)
 .
+
+
+
 
 (* begin hide *)
 Module Internal.
@@ -204,32 +194,72 @@ Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
 
 (* end hide *)
 
-(** Parsing a base16 string to constant *)
+(**
+
+The constructors of [constant t] are not very convenient to use. We
+given convenient combinators to build constants out of the base16
+encoded string representations as follows.
+
+- Using the combinators [w8], [w16], [w32], [w64] on a string
+  of base16 characters of appropriate length.
+
+
+*)
+
 Definition w8  := w 0.
 Definition w16 := w 1.
 Definition w32 := w 2.
 Definition w64 := w 3.
 
+(**
 
-Definition v128_64 := @v 1 3. (** 2 x 64-bit vector constant *)
-Definition v128_32 := @v 2 2. (** 4 x 32-bit vector constant *)
-Definition v128_16 := @v 3 1. (** 8 x 16-bit vector constant *)
-Definition v128_8  := @v 4 0. (** 16 x 8-bit vector constant *)
+- Using the [v128_*] and [v256_*] combinators on lists of
+  appropriate word constants.
 
+*)
 
-Definition v256_64 := @v 2 3. (** 4  x 64-bit vector constant *)
-Definition v256_32 := @v 3 2. (** 8  x 32-bit vector constant *)
-Definition v256_16 := @v 4 1. (** 16 x 16-bit vector constant *)
-Definition v256_8  := @v 5 0. (** 32 x 8-bit vector constant  *)
+Definition v128_64 := @v 1 3.
+Definition v128_32 := @v 2 2.
+Definition v128_16 := @v 3 1.
+Definition v128_8  := @v 4 0.
 
+Definition v256_64 := @v 2 3.
+Definition v256_32 := @v 3 2.
+Definition v256_16 := @v 4 1.
+Definition v256_8  := @v 5 0.
 
-(** Examples of constant declarations *)
+(**
+
+Given below are few examples of the usage of these combinators.
+
+ *)
+
 
 Import List.ListNotations.
-Definition asciiA : constant Word8 := w8 "41".
-
-Definition aVector : constant Vector128_64
+Definition asciiA  : constant Word8 := w8 "41".
+Definition a128Vector : constant Vector128_64
   := v128_64 [ w64 "0123456789ABCDEF"; w64 "0123456789ABCDEF"].
+
+Definition aWord64 := w64 "FEDCBA9876543210".
+Definition a256Vector : constant Vector256_64
+  := v256_64 [ aWord64; aWord64; aWord64 ; w64 "0123456789ABCDEF"].
+
+(**
+
+** Errors at compile type.
+
+The definition of the constant type and the combinators ensure that
+certain length checks on the constants declared are done by the type
+system of Coq. For example, string arguments supplied for the
+combinator [w16] should be of length 4 and should containing only
+valid hex characters. This helps in early detection of errors that
+occur due to typos when transcribing algorithms.
+
+*)
+
+
+
+
 
 (* begin hide *)
 
