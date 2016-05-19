@@ -1,28 +1,39 @@
 Require Import Verse.Types.
 Require Vector.
-Import Vector.VectorNotations.
+Import List.ListNotations.
+Import String.
 
 (** * The abstract syntax
 
 This module exposes the abstract syntax of the verse programming
-language. The goal is to give a portable representation all the
-common instructions supported by most architectures and
-parameterising over the architecture specific parts like register
-names and special instructions.
+language. The design takes the following points into consideration.
 
-** Arithmetic and bitwise pperators.
+- A large number of instructions are shared across architectures. This
+  include instructions that perform various arithmetic operations,
+  bitwise operations etc.
+
+- Certain architecture support various special registers like xmm
+  registers, special instructions like native AES operations.
+
+The design gives a portable way of expressing the former and parameterise
+over the latter.
+
+** Arithmetic and bitwise operators.
 
 Most architectures allow various basic arithmetic, bitwise operations
-on values stored in the registers. We begin by an inductive type that
-captures these operators.
+on values stored in the registers. These instructions can be of
+arity unary or binary.
 
- *)
-
-
-(** The arity of an operator *)
+*)
 Inductive arity := binary | unary.
 
-(** Generic operators supported by the verse langauge *)
+(**
+
+Having defined the arity, we have the generic operations supported by
+most architectures.
+
+*)
+
 Inductive op    : arity -> Type :=
 | plus    : op binary
 | minus   : op binary
@@ -42,26 +53,47 @@ Inductive op    : arity -> Type :=
 Definition binop := op binary.
 Definition uniop := op unary.
 
-
-(**
-
-
- *)
-
-Definition someType := sigT type.
-
 Section Language.
 
-  Variable r   : forall k : kind,  type k -> Type. Arguments r [k] _.
+  (** ** Architecture specific portions.
+
+Architectures differs in what registers they have and what special
+instructions they support. To capture this variability in the
+architecture the verse assembly language is parameterised over these
+two quantities.
+
+   *)
+
+  Variable r   : forall {k : kind},  type k -> Type.
   Variable i   : Type.
 
+  (* begin hide *)
+  (* hide implicit argument declaration for registers *)
+  Arguments r [k] _.
+  (* end hide *)
 
+  (** ** Assembly language statements.
+
+Verse support the implementation of simple C-callable [functions] in
+assembly. A [function] in verse is set of [statements] which inturn
+are instructions applied on appropriate arguments. Arguments,
+represented in Coq using the type [arg], can be one of the following
+
+- _Variables_ represented in Coq using the type [var].
+
+- _Constants_
+
+- _indexed variables_
+
+
+*)
   Inductive var : forall {k : kind}, type k -> Type :=
   | register {k : kind}{ty : type k} : r ty -> var ty
-  | stack    {k : kind}(ty : type k) : nat  -> var ty.
+  | stack    {k : kind}(ty : type k) : nat  -> var ty
+  | param    {k : kind}(ty : type k) : nat  -> var ty
+  .
 
   Inductive arg : forall {k : kind}, type k -> Type :=
-  | param    {k : kind}(ty : type k) : nat  -> arg ty
   | v        {k : kind}{ty : type k} : var ty -> arg ty
   | const    {k : kind}{ty : type k} : constant ty -> arg ty
   | index {b : nat}{e : endian}{v : value}{ty : valuetype v}
@@ -87,33 +119,75 @@ Section Language.
       var ty  -> arg (sequence ty) -> list statement -> statement
   .
 
+  Definition statements := list statement.
 
-  Definition parameter {k : kind}(ty : type k) : someType
-    := existT type k ty.
+  Definition typeSpec   := sigT type.
+  Definition context    := list typeSpec.
+
+  Definition variable {k : kind}(ty : type k) := existT type k ty.
+
+  Record block   : Type
+    := makeBlock { locals       : context;
+                   instructions : statements
+                 }.
+
+  Record function : Type
+    := makeFunction { name    : string;
+                      params  : context;
+                      body    : block
+                    }.
 
 
-  Fixpoint body {n : nat}(ps : Vector.t someType n)(A : Type) : Type :=
-    match ps with
-      | []                  => A
-      | (existT _ ty) :: xs => arg ty -> body xs A
-    end.
+  (* begin hide *)
+  Local Open Scope list_scope.
+
+  Fixpoint allocType (cs : context)(B : Type)
+    := match cs with
+         | []                 => B
+         | existT _ ty :: vsP => arg ty -> allocType vsP B
+       end.
+
+  Fixpoint allocVar
+           (mkV : forall (k : kind) (ty : type k), nat -> var ty)
+           (n : nat)(cs : context)(B : Type)
+  : allocType cs B -> B
+    := match cs with
+         | []
+           => fun b : allocType [] B => b
+         | existT k ty :: csP
+           => fun f : arg ty -> allocType csP B
+              =>  allocVar mkV (S n) csP B (f (v (mkV k ty n)))
+       end.
+
+  (* end hide *)
+
+   (** * Allocating variables.
+
+Constructing the function definition directly is inconvinient and
+error prone particularly when parameter indices are in question. The
+combinators [defun] and [local] can be used for this purpose.
+  *)
 
 
-  Fixpoint function {A : Type}{n : nat}(ps : Vector.t someType n)
-  : body ps A  -> A :=
-    match ps with
-      | []
-        => (fun f : body [] A -> A => f) (fun X : A => X)
-      | existT _ ty :: qs
-        => fun f : body (existT _ _ ty :: qs) A
-           => function qs (f (param ty n))
+  Definition defun (nm : string)(ps : context)
+  : forall f : allocType ps block, function
+    := fun f => makeFunction nm ps (allocVar (@param) 1 ps block f).
 
-    end.
+  Definition local (ps : context)
+  : forall f : allocType ps statements, block
+    := fun f => makeBlock ps (allocVar (@stack) 1 ps statements f).
 
 End Language.
 
-Arguments body [r n]  _ _.
-Arguments function [r A n] _ _.
+
+Arguments defun [r i] _ _ _.
+Arguments local [r i] _ _.
+
+(**
+
+
+ *)
+
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
 Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
