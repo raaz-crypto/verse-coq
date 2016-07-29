@@ -1,15 +1,25 @@
 language: c
-sudo: required
-dist: trusty
+sudo: false
+cache:
+  directories:
+    # Put all the versions of coq that you want here.
+    - coq-8.5.2
+matrix:
+  include:
+    os: linux
+    env: COQ_VER=8.5.2
+    addons: {apt: {packages: [opam], sources: [avsm] }}
 notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
-  - sudo apt-get update --yes
-  - sudo apt-get install coq coq-theories --yes
-  - coqtop --version
+  - mkdir -p "coq-$COQ_VER"
+  - opam init --root="coq-$COQ_VER" --no-setup --yes
+  - eval `opam config env --root="coq-$COQ_VER"`
+  - opam install "coq.$COQ_VER" --yes
   - coq_makefile -f _CoqProject -o Makefile
 script:
+  - eval `opam config env --root=coq-"$COQ_VER"`
   - make
   - make html
 after_success:
