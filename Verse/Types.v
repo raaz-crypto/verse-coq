@@ -100,12 +100,13 @@ a given type
 *)
 
 Require Import NPeano.
+Require Import Nat.
 
 Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
   match t with
-    | word   n        => 2^n
-    | vector m w      => 2^m * bytes w
-    | array  n _ _ v  => n   * bytes v
+    | word   n       => 2^n
+    | vector m w     => 2^m * bytes w
+    | array  n _ v   => n   * bytes v
   end.
 
 Definition bits {b : bound}(t : type (Bounded b)) : nat

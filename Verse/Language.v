@@ -144,7 +144,7 @@ represented in Coq using the type [arg], can be one of the following
   Fixpoint allocType (cs : context)(B : Type)
     := match cs with
          | []                 => B
-         | existT _ ty :: vsP => arg ty -> allocType vsP B
+         | existT  _ _ ty :: vsP => arg ty -> allocType vsP B
        end.
 
   Fixpoint allocVar
@@ -154,7 +154,7 @@ represented in Coq using the type [arg], can be one of the following
     := match cs with
          | []
            => fun b : allocType [] B => b
-         | existT k ty :: csP
+         | existT _ k ty :: csP
            => fun f : arg ty -> allocType csP B
               =>  allocVar mkV (S n) csP B (f (v (mkV k ty n)))
        end.
