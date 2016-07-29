@@ -19,3 +19,4 @@ after_failure:
 branches:
   only:
     - master
+    - opam-based
