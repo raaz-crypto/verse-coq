@@ -65,8 +65,9 @@ two quantities.
 
    *)
 
-  Variable r   : type -> Type.
-  Variable i   : Type.
+  Variable r     : type -> Type.
+  Variable var   : type -> Type.
+  Variable i     : Type.
 
   (** ** Assembly language statements.
 
@@ -83,12 +84,7 @@ represented in Coq using the type [arg], can be one of the following
 
 
 *)
-  Inductive var : type -> Type :=
-  | register {ty : type} : r ty -> var ty
-  | stack    (ty : type) : nat  -> var ty
-  | param    (ty : type) : nat  -> var ty
-  .
-
+  
   Inductive arg : type -> Type :=
   | v        {ty : type} : var ty -> arg ty
   | const    {ty : type} : constant ty -> arg ty
@@ -97,86 +93,37 @@ represented in Coq using the type [arg], can be one of the following
 
 
   Inductive assignment : Type :=
-  | assign3  {ty : type}{_ : isValue ty}
+  | assign3  {ty : type}
     : binop -> arg ty -> arg ty -> arg ty -> assignment
   (** e.g. x = y + z *)
-  | assign2 {ty : type}{_ : isValue ty}
+  | assign2 {ty : type}
     : uniop -> arg ty -> arg ty -> assignment  (** e.g. x = ~ y   *)
-  | update2 {ty : type}{_ : isValue ty}
+  | update2 {ty : type}
     : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
-  | update1 {ty : type}{_ : isValue ty}
+  | update1 {ty : type}
     : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
 
   Inductive statement : Type :=
   | assign   : assignment -> statement
   | specials : i          -> statement
-  | each {ty : type}{_ : isBounded ty} :
+  | each {ty : type} :
       var ty  -> arg (sequence ty) -> list statement -> statement
   .
 
   Definition statements := list statement.
 
-  Definition context    := list type.
-(*
-  Definition variable (ty : type) := existT type ty.
-*)
-  Record block   : Type
-    := makeBlock { locals       : context;
-                   instructions : statements
-                 }.
+  Definition varSpec    := sigT var.
+  Definition context    := list varSpec.
 
   Record function : Type
     := makeFunction { name    : string;
                       params  : context;
-                      body    : block
+                      locals  : context; 
+                      body    : statements;
                     }.
 
-
-  (* begin hide *)
-  Local Open Scope list_scope.
-
-  Fixpoint allocType (cs : context)(B : Type)
-    := match cs with
-         | []                 => B
-         | ty :: vsP => arg ty -> allocType vsP B
-       end.
-
-  Fixpoint allocVar
-           (mkV : forall (ty : type), nat -> var ty)
-           (n : nat)(cs : context)(B : Type)
-  : allocType cs B -> B
-    := match cs with
-         | []
-           => fun b : allocType [] B => b
-         | ty :: csP
-           => fun f : arg ty -> allocType csP B
-              =>  allocVar mkV (S n) csP B (f (v (mkV ty n)))
-       end.
-
-  (* end hide *)
-
-   (** * Allocating variables.
-
-Constructing the function definition directly is inconvinient and
-error prone particularly when parameter indices are in question. The
-combinators [defun] and [local] can be used for this purpose.
-  *)
-
-
-  Definition defun (nm : string)(ps : context)
-  : forall f : allocType ps block, function
-    := fun f => makeFunction nm ps (allocVar (@param) 1 ps block f).
-
-  Definition local (ps : context)
-  : forall f : allocType ps statements, block
-    := fun f => makeBlock ps (allocVar (@stack) 1 ps statements f).
-
 End Language.
-
-
-Arguments defun [r i] _ _ _.
-Arguments local [r i] _ _.
 
 (**
 
