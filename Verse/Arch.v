@@ -1,5 +1,5 @@
 Require Import String.
-Require Import Verse.Types.
+Require Import Verse.Types.Internal.
 
 Require Import Verse.Language.
 

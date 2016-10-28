@@ -3,121 +3,262 @@ Require Import Verse.Tactics.
 Require Import Verse.BinTree.
 Require Import Verse.Nibble.
 Require Import Verse.Error.
+Require Import Verse.Types.Internal.
+
+Inductive TypeError := UnboundedVector | UnboundedArray | UnboundedSeq.
+
+Definition wordS (n : nat) := word n.
+
+Definition vectorS (n : nat) (ty : type) :
+                                          match ty with
+                                          | word _ => type
+                                          | _      => TypeError
+                                          end
+  :=
+    match ty with
+    | word _ => vector n ty
+    | _      => UnboundedVector
+    end.
+
+Definition arrayS (n : nat) (e : endian) (ty : type) :
+                                          match ty with
+                                          | word _     => type
+                                          | vector _ _ => type
+                                          | _          => TypeError
+                                          end
+  :=
+    match ty with
+    | word _     => array n e ty
+    | vector _ _ => array n e ty
+    | _          => UnboundedArray
+    end.
+
+Definition sequenceS (ty : type) :
+                                          match ty with
+                                          | sequence _ => TypeError
+                                          | _          => type
+                                          end
+  :=
+    match ty with
+    | sequence _ => UnboundedSeq
+    | _          => sequence ty
+    end.
+                                
+    
+                                           
+(** Standard word types/scalars *)
+Definition Byte   := wordS 0.
+Definition Word8  := wordS 0.
+Definition Word16 := wordS 1.
+Definition Word32 := wordS 2.
+Definition Word64 := wordS 3.
+
+(** Standard vector types *)
+Definition Vector128_64   := vectorS 1 Word64.
+Definition Vector128_32   := vectorS 2 Word32.
+Definition Vector128_16   := vectorS 3 Word16.
+Definition Vector128_8    := vectorS 4 Word8.
+Definition Vector128Bytes := vectorS 4 Byte.
+
+Definition Vector256_64   := vectorS 2 Word64.
+Definition Vector256_32   := vectorS 3 Word32.
+Definition Vector256_16   := vectorS 4 Word16.
+Definition Vector256_8    := vectorS 5 Word8.
+Definition Vector256Bytes := vectorS 5 Byte.
 
 (**
 
-* Types in verse.
+* Constants.
 
-The assembly language supported by verse is typed. We have the
-words, vectors, array types and the type of sequences.
-
-** Values.
-
-Verse supports both scalar values and vector values. The scalar types
-that are supported are [Word8], [Word16], [Word32] and [Word64]. The
-type [Byte] is an aliase for [Word8]. The libary also supports 128 and
-256 vector types of each of the above type. For example,
-[Vector128_64] denotes a vector that consists of 2 64-bit word where
-as [Vector256_64] denotes the vector type that consists of 4 64-bit
-words. These are the standard vector and word types supported and
-users should use these in the code.
-
-Internally, the value [word n] denotes scalar values that are unsigned
-integers of [2^n] bytes. Vector of [2^m] elements, each of which are
-of type [word n] are captured by the type [vector m (word n)].
-However, users should stick to the standard vector and word types as
-much as possible.
-
-** Arrays.
-
-Arrays are abstractions to contiguous memory locations in the machine
-each of which can store a value. Arrays also required to specify the
-endianness of the values as it matters when loading or storing into
-memory.
-
-** Sequences.
-
-Cryptographic primitives like block cipher often process a stream of
-blocks. A sequence type abstracts such streams of block. The number of
-elements in a sequence is not know at compile time but its elements
-are required to be a bounded type, i.e. either a value or an array
-type.
-
-
-** The kind system.
-
-The type system has to rule out certain types like for example nested
-sequences or vector of arrays etc. A rudimentary kind system is
-implemented to avoid such errors. The kind system ensures the following
-restrictions.
-
-  - The type [vector t] is valid only for a scalar type [t], i.e. [t]
-    is a word type.
-
-  - The array of type [t] is valid if and only if the type [t] is a
-    value.
-
-  - The type [sequence t] is valid if and only if the type [t] is a
-    bounded type, i.e. [t] is either an array or a value type.
+For a value type [t], the type [constant t] denotes a Coq type that
+represents a constant of type [t].
 
  *)
 
-(*
-Inductive kind  := Unbounded | Bounded : bound -> kind
-with      bound := Array     | Value   : value -> bound
-with      value := Scalar    | Vector.
+Inductive constant : type -> Type :=
+| wconst {n : nat} : Bin nibble      (S n) -> constant (word n)
+| vconst {n m : nat}
+  : Bin (constant (word m)) n -> constant (vector n (word m))
+.
 
-(** Some short cuts to kinds. *)
-Definition valueK  (v : value) := Bounded (Value v).
-Definition scalarK := valueK Scalar.
-Definition vectorK := valueK Vector.
-Definition arrayK  := Bounded Array.
+
+
+
+(* begin hide *)
+Module Parse.
+  Definition parseW (n : nat)(s : string) :
+    option (constant (word n)) :=
+    match parse s with
+      | None      => None
+      | Some nibs => match @merge nibble (S n) nibs with
+                       | None   => None
+                       | Some b => Some (wconst b)
+                     end
+    end.
+
+  Definition parseV (m n : nat)(lc : list (constant (word n)))
+  : option (constant (vector m (word n))) :=
+    match merge lc with
+      | None   => None
+      | Some b => Some (vconst b)
+    end.
+  Inductive ConstError := BadWord | BadVector.
+
+End Parse.
+Import Parse.
+
+
+(** The expression [w n s] parses a [word n] constant form a string *)
+
+Definition w (n   : nat)(s : string)
+  := optionToError BadWord (parseW n s).
+
+(** Create a vector constant from a list of values *)
+Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
+  := optionToError BadVector (parseV m n ls).
+
+(* end hide *)
+
+(**
+
+The constructors of [constant t] are not very convenient to use. We
+given convenient combinators to build constants out of the base16
+encoded string representations as follows.
+
+- Using the combinators [w8], [w16], [w32], [w64] on a string
+  of base16 characters of appropriate length.
+
+
+*)
+
+Definition w8  := w 0.
+Definition w16 := w 1.
+Definition w32 := w 2.
+Definition w64 := w 3.
+
+(**
+
+- Using the [v128_*] and [v256_*] combinators on lists of
+  appropriate word constants.
+
+*)
+
+Definition v128_64 := @v 1 3.
+Definition v128_32 := @v 2 2.
+Definition v128_16 := @v 3 1.
+Definition v128_8  := @v 4 0.
+
+Definition v256_64 := @v 2 3.
+Definition v256_32 := @v 3 2.
+Definition v256_16 := @v 4 1.
+Definition v256_8  := @v 5 0.
+
+(**
+
+Given below are few examples of the usage of these combinators.
+
  *)
 
-(**
 
-The inductive definition of types in verse.
+Import List.ListNotations.
+Definition asciiA  : constant Word8 := w8 "41".
+Definition a128Vector : constant Vector128_64
+  := v128_64 [ w64 "0123456789ABCDEF"; w64 "0123456789ABCDEF"].
 
-*)
-
-Inductive type       : Type :=
-| word               : nat -> type
-| vector             : nat -> type -> type
-| array              : nat -> endian -> type -> type
-| sequence           : type -> type
-with endian : Type := bigE | littleE | hostE.
-
-Inductive isValue : type ->  Prop :=
-| wordIsValue        {n : nat} : isValue (word n)
-| vectorIsValue      {n : nat}{t : type} :  isValue (vector n t)
-.
-
-Inductive isBounded : type -> Prop :=
-| wordIsBounded      {n : nat} : isBounded (word n)
-| vectorIsBounded    {n : nat}{t : type} : isBounded (vector n t)
-| arrayIsBounded     {n : nat}{e : endian}{t : type} : isBounded (array n e t)
-.
+Definition aWord64 := w64 "FEDCBA9876543210".
+Definition a256Vector : constant Vector256_64
+  := v256_64 [ aWord64; aWord64; aWord64 ; w64 "0123456789ABCDEF"].
 
 (**
 
-* Size calculations.
+** Errors at compile type.
 
-The number of bytes required to represent an element of
-a given type
+The definition of the constant type and the combinators ensure that
+certain length checks on the constants declared are done by the type
+system of Coq. For example, string arguments supplied for the
+combinator [w16] should be of length 4 and should containing only
+valid hex characters. This helps in early detection of errors that
+occur due to typos when transcribing algorithms.
 
 *)
+
+
+
+
+
+(* begin hide *)
 (*
-Require Import NPeano.
-Require Import Nat.
+Module Correctness.
 
-Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
-  match t with
-    | word   n       => 2^n
-    | vector m w     => 2^m * bytes w
-    | array  n _ v   => n   * bytes v
-  end.
+  Theorem w8_WF : bits Word8 = 8.
+  Proof.
+    trivial.
+  Qed.
 
-Definition bits {b : bound}(t : type (Bounded b)) : nat
-  := 8 * bytes t.
-*)
+  Theorem w16_WF : bits Word16 = 16.
+  Proof.
+    trivial.
+  Qed.
 
+  Theorem w32_WF : bits Word32 = 32.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem w64_WF : bits Word64 = 64.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v128_64WF : bits Vector128_64 = 128.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v128_32WF :  bits Vector128_32 = 128.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v128_16WF :  bits Vector128_16 = 128.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v128_8WF :  bits Vector128_8 = 128.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v128_ByteWF : bits Vector128Bytes = 128.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_64WF :  bits Vector256_64 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_32WF : bits Vector256_32 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_16WF : bits Vector256_16 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_8WF : bits Vector256_8 = 256.
+  Proof.
+    trivial.
+  Qed.
+
+  Theorem v256_ByteWF : bits Vector256Bytes = 256.
+  Proof.
+    trivial.
+  Qed.
+End Correctness.
+(* end hide *)
+ *)
