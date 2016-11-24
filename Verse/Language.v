@@ -1,4 +1,5 @@
 Require Import Verse.Types.
+Require Import Verse.TypeCons.
 Require Vector.
 Import List.ListNotations.
 Import String.
