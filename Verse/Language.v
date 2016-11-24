@@ -64,13 +64,8 @@ two quantities.
 
    *)
 
-  Variable r   : forall {k : kind},  type k -> Type.
+  Variable r   : type -> Type.
   Variable i   : Type.
-
-  (* begin hide *)
-  (* hide implicit argument declaration for registers *)
-  Arguments r [k] _.
-  (* end hide *)
 
   (** ** Assembly language statements.
 
@@ -87,45 +82,44 @@ represented in Coq using the type [arg], can be one of the following
 
 
 *)
-  Inductive var : forall {k : kind}, type k -> Type :=
-  | register {k : kind}{ty : type k} : r ty -> var ty
-  | stack    {k : kind}(ty : type k) : nat  -> var ty
-  | param    {k : kind}(ty : type k) : nat  -> var ty
+  Inductive var : type -> Type :=
+  | register {ty : type} : r ty -> var ty
+  | stack    (ty : type) : nat  -> var ty
+  | param    (ty : type) : nat  -> var ty
   .
 
-  Inductive arg : forall {k : kind}, type k -> Type :=
-  | v        {k : kind}{ty : type k} : var ty -> arg ty
-  | const    {k : kind}{ty : type k} : constant ty -> arg ty
-  | index {b : nat}{e : endian}{v : value}{ty : valuetype v}
+  Inductive arg : type -> Type :=
+  | v        {ty : type} : var ty -> arg ty
+  | const    {ty : type} : constant ty -> arg ty
+  | index {b : nat}{e : endian}{ty : type}
     : arg (array b e ty) -> arg ty.
 
 
   Inductive assignment : Type :=
-  | assign3  {v : value}{ty : type (valueK v)}
+  | assign3  {ty : type}{_ : isValue ty}
     : binop -> arg ty -> arg ty -> arg ty -> assignment
   (** e.g. x = y + z *)
-  | assign2 {v : value}{ty : type (valueK v)}
+  | assign2 {ty : type}{_ : isValue ty}
     : uniop -> arg ty -> arg ty -> assignment  (** e.g. x = ~ y   *)
-  | update2 {v : value}{ty : type (valueK v)}
+  | update2 {ty : type}{_ : isValue ty}
     : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
-  | update1  {v : value}{ty : type (valueK v)}
+  | update1 {ty : type}{_ : isValue ty}
     : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
 
   Inductive statement : Type :=
   | assign   : assignment -> statement
   | specials : i          -> statement
-  | each  {b : bound}{ty : type (Bounded b)} :
+  | each {ty : type}{_ : isBounded ty} :
       var ty  -> arg (sequence ty) -> list statement -> statement
   .
 
   Definition statements := list statement.
 
-  Definition typeSpec   := sigT type.
-  Definition context    := list typeSpec.
-
-  Definition variable {k : kind}(ty : type k) := existT type k ty.
-
+  Definition context    := list type.
+(*
+  Definition variable (ty : type) := existT type ty.
+*)
   Record block   : Type
     := makeBlock { locals       : context;
                    instructions : statements
@@ -144,19 +138,19 @@ represented in Coq using the type [arg], can be one of the following
   Fixpoint allocType (cs : context)(B : Type)
     := match cs with
          | []                 => B
-         | existT  _ _ ty :: vsP => arg ty -> allocType vsP B
+         | ty :: vsP => arg ty -> allocType vsP B
        end.
 
   Fixpoint allocVar
-           (mkV : forall (k : kind) (ty : type k), nat -> var ty)
+           (mkV : forall (ty : type), nat -> var ty)
            (n : nat)(cs : context)(B : Type)
   : allocType cs B -> B
     := match cs with
          | []
            => fun b : allocType [] B => b
-         | existT _ k ty :: csP
+         | ty :: csP
            => fun f : arg ty -> allocType csP B
-              =>  allocVar mkV (S n) csP B (f (v (mkV k ty n)))
+              =>  allocVar mkV (S n) csP B (f (v (mkV ty n)))
        end.
 
   (* end hide *)

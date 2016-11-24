@@ -62,6 +62,7 @@ restrictions.
 
  *)
 
+(*
 Inductive kind  := Unbounded | Bounded : bound -> kind
 with      bound := Array     | Value   : value -> bound
 with      value := Scalar    | Vector.
@@ -71,6 +72,7 @@ Definition valueK  (v : value) := Bounded (Value v).
 Definition scalarK := valueK Scalar.
 Definition vectorK := valueK Vector.
 Definition arrayK  := Bounded Array.
+ *)
 
 (**
 
@@ -78,17 +80,23 @@ The inductive definition of types in verse.
 
 *)
 
-Inductive type       : kind -> Type :=
-| word               : nat -> type (Bounded (Value Scalar))
-| vector             : nat
-                     -> type (Bounded (Value Scalar))
-                     -> type (Bounded (Value Vector))
-| array (n : nat){v : value} : endian
-                             -> type (Bounded (Value v))
-                             -> type (Bounded Array)
-| sequence {b : bound} : type (Bounded b) -> type Unbounded
-with endian : Type := bigE  | littleE | hostE.
+Inductive type       : Type :=
+| word               : nat -> type
+| vector             : nat -> type -> type
+| array              : nat -> endian -> type -> type
+| sequence           : type -> type
+with endian : Type := bigE | littleE | hostE.
 
+Inductive isValue : type ->  Prop :=
+| wordIsValue        {n : nat} : isValue (word n)
+| vectorIsValue      {n : nat}{t : type} :  isValue (vector n t)
+.
+
+Inductive isBounded : type -> Prop :=
+| wordIsBounded      {n : nat} : isBounded (word n)
+| vectorIsBounded    {n : nat}{t : type} : isBounded (vector n t)
+| arrayIsBounded     {n : nat}{e : endian}{t : type} : isBounded (array n e t)
+.
 
 (**
 
@@ -98,7 +106,7 @@ The number of bytes required to represent an element of
 a given type
 
 *)
-
+(*
 Require Import NPeano.
 Require Import Nat.
 
@@ -111,229 +119,5 @@ Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
 
 Definition bits {b : bound}(t : type (Bounded b)) : nat
   := 8 * bytes t.
-
-
-(** Some type short cuts *)
-Definition scalartype            := type scalarK.
-Definition vectortype            := type vectorK.
-Definition arraytype             := type arrayK.
-Definition valuetype (v : value) := type (valueK v).
-
-
-(** Standard word types/scalars *)
-Definition Byte   := word 0.
-Definition Word8  := word 0.
-Definition Word16 := word 1.
-Definition Word32 := word 2.
-Definition Word64 := word 3.
-
-(** Standard vector types *)
-Definition Vector128_64   := vector 1 Word64.
-Definition Vector128_32   := vector 2 Word32.
-Definition Vector128_16   := vector 3 Word16.
-Definition Vector128_8    := vector 4 Word8.
-Definition Vector128Bytes := vector 4 Byte.
-
-Definition Vector256_64   := vector 2 Word64.
-Definition Vector256_32   := vector 3 Word32.
-Definition Vector256_16   := vector 4 Word16.
-Definition Vector256_8    := vector 5 Word8.
-Definition Vector256Bytes := vector 5 Byte.
-
-(**
-
-* Constants.
-
-For a value type [t], the type [constant t] denotes a Coq type that
-represents a constant of type [t].
-
- *)
-
-Inductive constant :
-  forall {k : kind}, type k -> Type
-  :=
-| wconst {n : nat} : Bin nibble      (S n) -> constant (word n)
-| vconst {n : nat}{ty : type (Bounded (Value Scalar))}
-  : Bin (constant ty) n -> constant (vector n ty)
-.
-
-
-
-
-(* begin hide *)
-Module Internal.
-  Definition parseW (n : nat)(s : string) :
-    option (constant (word n)) :=
-    match parse s with
-      | None      => None
-      | Some nibs => match @merge nibble (S n) nibs with
-                       | None   => None
-                       | Some b => Some (wconst b)
-                     end
-    end.
-
-  Definition parseV (m n : nat)(lc : list (constant (word n)))
-  : option (constant (vector m (word n))) :=
-    match merge lc with
-      | None   => None
-      | Some b => Some (vconst b)
-    end.
-  Inductive ConstError := BadWord | BadVector.
-
-End Internal.
-Import Internal.
-
-
-(** The expression [w n s] parses a [word n] constant form a string *)
-
-Definition w (n   : nat)(s : string)
-  := optionToError BadWord (parseW n s).
-
-(** Create a vector constant from a list of values *)
-Definition v (m  : nat){n : nat}(ls : list (constant (word n)))
-  := optionToError BadVector (parseV m n ls).
-
-(* end hide *)
-
-(**
-
-The constructors of [constant t] are not very convenient to use. We
-given convenient combinators to build constants out of the base16
-encoded string representations as follows.
-
-- Using the combinators [w8], [w16], [w32], [w64] on a string
-  of base16 characters of appropriate length.
-
-
 *)
 
-Definition w8  := w 0.
-Definition w16 := w 1.
-Definition w32 := w 2.
-Definition w64 := w 3.
-
-(**
-
-- Using the [v128_*] and [v256_*] combinators on lists of
-  appropriate word constants.
-
-*)
-
-Definition v128_64 := @v 1 3.
-Definition v128_32 := @v 2 2.
-Definition v128_16 := @v 3 1.
-Definition v128_8  := @v 4 0.
-
-Definition v256_64 := @v 2 3.
-Definition v256_32 := @v 3 2.
-Definition v256_16 := @v 4 1.
-Definition v256_8  := @v 5 0.
-
-(**
-
-Given below are few examples of the usage of these combinators.
-
- *)
-
-
-Import List.ListNotations.
-Definition asciiA  : constant Word8 := w8 "41".
-Definition a128Vector : constant Vector128_64
-  := v128_64 [ w64 "0123456789ABCDEF"; w64 "0123456789ABCDEF"].
-
-Definition aWord64 := w64 "FEDCBA9876543210".
-Definition a256Vector : constant Vector256_64
-  := v256_64 [ aWord64; aWord64; aWord64 ; w64 "0123456789ABCDEF"].
-
-(**
-
-** Errors at compile type.
-
-The definition of the constant type and the combinators ensure that
-certain length checks on the constants declared are done by the type
-system of Coq. For example, string arguments supplied for the
-combinator [w16] should be of length 4 and should containing only
-valid hex characters. This helps in early detection of errors that
-occur due to typos when transcribing algorithms.
-
-*)
-
-
-
-
-
-(* begin hide *)
-
-Module Correctness.
-
-  Theorem w8_WF : bits Word8 = 8.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem w16_WF : bits Word16 = 16.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem w32_WF : bits Word32 = 32.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem w64_WF : bits Word64 = 64.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v128_64WF : bits Vector128_64 = 128.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v128_32WF :  bits Vector128_32 = 128.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v128_16WF :  bits Vector128_16 = 128.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v128_8WF :  bits Vector128_8 = 128.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v128_ByteWF : bits Vector128Bytes = 128.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v256_64WF :  bits Vector256_64 = 256.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v256_32WF : bits Vector256_32 = 256.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v256_16WF : bits Vector256_16 = 256.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v256_8WF : bits Vector256_8 = 256.
-  Proof.
-    trivial.
-  Qed.
-
-  Theorem v256_ByteWF : bits Vector256Bytes = 256.
-  Proof.
-    trivial.
-  Qed.
-End Correctness.
-(* end hide *)
