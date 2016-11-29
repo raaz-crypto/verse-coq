@@ -260,5 +260,6 @@ Module Correctness.
     trivial.
   Qed.
 End Correctness.
+*)
 (* end hide *)
- *)
+
