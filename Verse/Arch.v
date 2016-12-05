@@ -1,5 +1,5 @@
 Require Import String.
-Require Import Verse.Types.
+Require Import Verse.Types.Internal.
 
 Require Import Verse.Language.
 
@@ -10,8 +10,7 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The registers for this architecture *)
-  Parameter reg      : forall {k : kind}, type k -> Type.
-  Arguments reg [k] _.
+  Parameter reg      : type -> Type.
 
 
   (** The instruction mnemoics for this architecture *)
