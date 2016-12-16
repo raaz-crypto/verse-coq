@@ -14,7 +14,7 @@ Module Type ARCH.
 
 
   (** The instruction mnemoics for this architecture *)
-  Parameter mnemonic    : Type.
+  Parameter mnemonic : (type -> Type) -> Type.
 
   (**
 
@@ -26,7 +26,7 @@ Module Type ARCH.
 
    *)
 
-  Parameter translate : assignment reg -> option (list mnemonic).
+  Parameter translate : assignment (archvar reg) -> option (list (mnemonic (archvar reg))).
 
   (** Convert the loop statement in assembly instruction. *)
   Parameter loop

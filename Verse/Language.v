@@ -67,7 +67,7 @@ two quantities.
 
   Variable r     : type -> Type.
   Variable var   : type -> Type.
-  Variable i     : Type.
+  Variable i     : (type -> Type) -> Type.
 
   (** ** Assembly language statements.
 
@@ -106,7 +106,7 @@ represented in Coq using the type [arg], can be one of the following
 
   Inductive statement : Type :=
   | assign   : assignment -> statement
-  | specials : i          -> statement
+  | specials : i arg      -> statement
   | each {ty : type} :
       var ty  -> arg (sequence ty) -> list statement -> statement
   .
