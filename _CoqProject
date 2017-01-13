@@ -5,6 +5,7 @@ Verse/Tactics.v
 Verse/BinTree.v
 Verse/Types.v
 Verse/Nibble.v
+Verse/Arch.v
 Verse/Language.v
 Verse/Types/Internal.v
 Verse/Syntax.v

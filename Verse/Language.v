@@ -1,5 +1,6 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
+Require Import Verse.Arch.
 Require Vector.
 Import List.ListNotations.
 Import String.
@@ -65,9 +66,7 @@ two quantities.
 
    *)
 
-  Variable r     : type -> Type.
   Variable var   : type -> Type.
-  Variable i     : (type -> Type) -> Type.
 
   (** ** Assembly language statements.
 
@@ -87,43 +86,74 @@ represented in Coq using the type [arg], can be one of the following
   
   Inductive arg : type -> Type :=
   | v        {ty : type} : var ty -> arg ty
-  | const    {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
     : arg (array b e ty) -> arg ty.
 
-
   Inductive assignment : Type :=
   | assign3  {ty : type}
-    : binop -> arg ty -> arg ty -> arg ty -> assignment
+    : binop -> var ty -> var ty -> var ty -> assignment
   (** e.g. x = y + z *)
   | assign2 {ty : type}
-    : uniop -> arg ty -> arg ty -> assignment  (** e.g. x = ~ y   *)
+    : uniop -> var ty -> var ty -> assignment (** e.g. x = ~ y   *)
   | update2 {ty : type}
-    : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
+    : binop -> var ty -> var ty -> assignment (** e.g. x += y    *)
   | update1 {ty : type}
-    : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
+    : uniop -> var ty -> assignment           (** e.g. x ~= x    *)
   .
-
-  Inductive statement : Type :=
-  | assign   : assignment -> statement
-  | specials : i arg      -> statement
-  | each {ty : type} :
-      var ty  -> arg (sequence ty) -> list statement -> statement
-  .
-
-  Definition statements := list statement.
-
-  Definition varSpec    := sigT var.
-  Definition context    := list varSpec.
-
-  Record function : Type
-    := makeFunction { name    : string;
-                      params  : context;
-                      locals  : context; 
-                      body    : statements;
-                    }.
 
 End Language.
+
+Module Type ENV.
+
+  Parameter env : type -> Type.
+
+End ENV.
+
+Module GenericArch (E : ENV) : ARCH.
+
+  Import E.
+  
+  Definition name    := String "G" EmptyString.
+  Definition archvar := arg env.
+
+  Inductive instruction (var : type -> Type) : Type :=
+  | assign   : assignment var -> instruction var
+(*  | specials : S.mnemonic var -> instruction var*)
+  | each {ty : type} :
+      var ty  -> var (sequence ty) -> list (instruction var) -> instruction var
+  .
+
+  Definition mnemonic := instruction.
+
+  Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
+  Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
+  Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
+  Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
+  Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+  Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+  Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+  Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+
+  Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
+  Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
+  Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
+  Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
+  Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
+  Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
+  Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
+  Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
+
+  Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
+  Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
+  Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
+  Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
+                               (at level 20).
+  Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
+                               (at level 20).
+  Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).
+
+
+End GenericArch.
 
 (**
 
@@ -131,29 +161,3 @@ End Language.
  *)
 
 
-Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
-Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
-Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
-Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
-Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-
-Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
-Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
-Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
-Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
-Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
-
-Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
-Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
-Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
-Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
-                             (at level 20).
-Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
-                             (at level 20).
-Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).

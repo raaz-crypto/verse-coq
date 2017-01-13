@@ -1,8 +1,6 @@
 Require Import String.
 Require Import Verse.Types.Internal.
 
-Require Import Verse.Language.
-
 Module Type ARCH.
 
   (** Name of the architecture family *)
@@ -10,7 +8,7 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The registers for this architecture *)
-  Parameter reg      : type -> Type.
+  Parameter archvar  : type -> Type.
 
 
   (** The instruction mnemoics for this architecture *)
@@ -26,20 +24,20 @@ Module Type ARCH.
 
    *)
 
-  Parameter translate : assignment (archvar reg) -> option (list (mnemonic (archvar reg))).
-
   (** Convert the loop statement in assembly instruction. *)
-  Parameter loop
+  (*Parameter loop
   : forall {b : bound}{ty : type (Bounded b)},
-      var reg ty -> arg reg ty -> list mnemonic -> list mnemonic.
+      var reg ty -> arg reg ty -> list mnemonic -> list mnemonic.*)
 
 End ARCH.
 
-Module asm (A : ARCH).
+Module Type asm (A : ARCH).
+  
   Import A.
-  Definition stmt     := statement reg mnemonic.
-  Definition stmts    := list stmt.
-  Definition assembly := list mnemonic.
+  Definition assembly := list (mnemonic archvar).
 
+  Parameter geninstr : (type -> Type) -> Type.
+
+  Parameter translate : geninstr (archvar) -> option (mnemonic (archvar)).
 
 End asm.
