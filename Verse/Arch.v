@@ -1,5 +1,8 @@
+Require Import Verse.Language.
 Require Import String.
 Require Import Verse.Types.Internal.
+Require Import List.
+Import ListNotations.
 
 Module Type ARCH.
 
@@ -11,9 +14,21 @@ Module Type ARCH.
   Parameter archvar  : type -> Type.
 
 
-  (** The instruction mnemoics for this architecture *)
-  Parameter mnemonic : (type -> Type) -> Type.
+  (** Encode the architecture specific restrictions on the instruction set **)
 
+  Parameter wfinstr : instruction archvar -> Prop.
+
+  Fixpoint wfinstrb (b : block archvar) : Prop :=
+    match b with
+    | [] => True
+    | i :: bt => and (wfinstr i) (wfinstrb bt)
+    end.
+
+  (** Generate code with assurance of well formedness **)
+
+   
+  Parameter generate : forall b : block archvar, wftypesb b -> wfvarb b -> wfinstr b -> string.
+  
   (**
 
     Translate the assignment statement to assembly. Certain assignment
@@ -31,13 +46,3 @@ Module Type ARCH.
 
 End ARCH.
 
-Module Type asm (A : ARCH).
-  
-  Import A.
-  Definition assembly := list (mnemonic archvar).
-
-  Parameter geninstr : (type -> Type) -> Type.
-
-  Parameter translate : geninstr (archvar) -> option (mnemonic (archvar)).
-
-End asm.

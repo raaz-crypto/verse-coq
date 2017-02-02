@@ -1,7 +1,9 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
-Require Import Verse.Arch.
 Require Vector.
+Require Import Coq.Sets.Ensembles.
+Require Import List.
+Require Import Recdef.
 Import List.ListNotations.
 Import String.
 
@@ -86,78 +88,98 @@ represented in Coq using the type [arg], can be one of the following
   
   Inductive arg : type -> Type :=
   | v        {ty : type} : var ty -> arg ty
+  | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
     : arg (array b e ty) -> arg ty.
 
-  Inductive assignment : Type :=
-  | assign3  {ty : type}
-    : binop -> var ty -> var ty -> var ty -> assignment
+  Inductive assignment {ty : type} : Type :=
+  | assign3 
+    : binop -> arg ty -> arg ty -> arg ty -> assignment
   (** e.g. x = y + z *)
-  | assign2 {ty : type}
-    : uniop -> var ty -> var ty -> assignment (** e.g. x = ~ y   *)
-  | update2 {ty : type}
-    : binop -> var ty -> var ty -> assignment (** e.g. x += y    *)
-  | update1 {ty : type}
-    : uniop -> var ty -> assignment           (** e.g. x ~= x    *)
+  | assign2
+    : uniop -> arg ty -> arg ty -> assignment (** e.g. x = ~ y   *)
+  | update2
+    : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
+  | update1
+    : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
+
+  Inductive instruction : Type :=
+  | assign : forall ty : type,  @assignment ty -> instruction
+  .
+
+  Definition block := list instruction.
+
+  (*Definition isLval {ty : type} (a : arg ty) : Prop := True.*)
+  Inductive isLval {ty : type} : arg ty -> Prop :=
+   | vIsLval {vr : var ty} : isLval (v vr)
+   | indexIsLval {b : nat} {e : endian} {a : arg (array b e ty)}: isLval (index a)
+  .
+  Definition wftypes (i : instruction) : Prop := True.
+  Fixpoint wfvar (i : instruction) : Prop :=
+    match i with
+    | @assign ty i => and (isValue ty)
+                          match i with
+                          | assign3 _ v1 _ _ => isLval v1
+                          | assign2 _ v1 _  => isLval v1
+                          | update2 _ v1 _  => isLval v1
+                          | update1 _ v1     => isLval v1
+                          end
+    end
+  .
+
+  Fixpoint wfvarb (b : block) : Prop :=
+    match b with
+    | [] => True
+    | i :: bt => and (wfvar i) (wfvarb bt)
+    end.
+
 
 End Language.
 
-Module Type ENV.
+Arguments wftypes [var] _ .
+Arguments wfvar [var] _ .
+Check assign.
 
-  Parameter env : type -> Type.
-
-End ENV.
-
-Module GenericArch (E : ENV) : ARCH.
-
-  Import E.
-  
-  Definition name    := String "G" EmptyString.
-  Definition archvar := arg env.
-
-  Inductive instruction (var : type -> Type) : Type :=
-  | assign   : assignment var -> instruction var
-(*  | specials : S.mnemonic var -> instruction var*)
-  | each {ty : type} :
-      var ty  -> var (sequence ty) -> list (instruction var) -> instruction var
-  .
-
-  Definition mnemonic := instruction.
-
-  Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
-  Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
-  Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
-  Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
-  Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-  Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-  Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-  Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-
-  Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
-  Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
-  Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
-  Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
-  Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
-  Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
-  Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
-  Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
-
-  Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
-  Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
-  Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
-  Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
-                               (at level 20).
-  Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
-                               (at level 20).
-  Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).
+Fixpoint translateb {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> w ty) (b : list (instruction v)) {struct b} : block w :=
+  match b with
+  | [] => []
+  | i :: bt => (fun i => match i with
+                         | assign _ ty a => match a with
+                                         | @assign3 _ _ b v1 v2 v3 => assign w (assign3 w b (transv ty v1) (transv ty v2) (transv ty v3))
+                                         | @assign2 _ _ u v1 v2 => assign w (assign2 w u (transv ty v1) (transv ty v2))
+                                         | @update2 _ _ b v1 v2 => assign w (update2 w b (transv ty v1) (transv ty v2))
+                                         | @update1 _ _ u v1 => assign w (update1 w u (transv ty v1))
+                                         end
+                         end
+               ) i :: (translateb transv bt)
+  end.
 
 
-End GenericArch.
+Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
+Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
+Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
+Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
+Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
 
-(**
+Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
+Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
+Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
+Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
+Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
 
-
- *)
-
+Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
+Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
+Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
+Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
+                             (at level 20).
+Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
+                             (at level 20).
+(*Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).*)
 
