@@ -140,6 +140,27 @@ End Language.
 Arguments wftypes [var] _ .
 Arguments wfvar [var] _ .
 Check assign.
+Fixpoint striparg {var : type -> Type} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
+  match a with
+  | v _ vv => Singleton _ (existT var _ vv) 
+  | constant _ c => Empty_set _
+  | index _ arr => (striparg arr)
+  end.
+
+Fixpoint getvars {var : type -> Type} (b : block var) : Ensemble (sigT var) :=
+  match b with
+  | [] => Empty_set _
+  | i :: bt => Union _ 
+                     match i with
+                     | assign _ ty a => match a with
+                                        | assign3 _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
+                                        | assign2 _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                                        | update2 _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                                        | update1 _ _ a1 => striparg a1
+                                        end
+                     end
+                     (getvars bt)
+  end.
 
 Fixpoint translateb {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> w ty) (b : list (instruction v)) {struct b} : block w :=
   match b with

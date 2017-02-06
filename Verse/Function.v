@@ -1,30 +1,42 @@
 Require Import Types.Internal.
 Require Import Language.
 Require Import String.
-Require Import Ascii.
-Require Import Fin.
+Require Import Coq.Sets.Ensembles.
+Require Import List.
+Import ListNotations.
 
+
+Fixpoint listSet {A : Type} (l : list A) : Ensemble A :=
+  match l with
+  | [] => Empty_set _
+  | a :: lt => Ensembles.Add _ (listSet lt) a
+  end.
 
 Module Type Function.
   
   Parameter name    : string.
 
-  Parameter np   :  nat.
-  Parameter nl  : nat.
   Parameter param  : type -> Type.
   Parameter local  : type -> Type.
-
-  Check sigT.
-  
-  Parameter porder : {o : Fin.t np -> {ty : type & (param ty)} & (forall p : { ty : type & (param ty) }, exists i : Fin.t np, o i = p)}.
-
-  Parameter lorder : {o : Fin.t nl -> {ty : type & (local ty)} & (forall l : { ty : type & (local ty) }, exists i : Fin.t nl, o i = l)}.
 
   Inductive fvar : type -> Type :=
   | p : forall ty : type, param ty -> fvar ty
   | l : forall ty : type, local ty -> fvar ty
   .
 
-  Parameter setup   : block fvar.
+  Parameter paramord : list (sigT param).
+  Parameter localord : list (sigT local).
+  Parameter loopvar  : sigT local.
 
+  Parameter setup   : block fvar.
+  Parameter loop    : block fvar.
+  Parameter cleanup : block fvar.
+
+  Definition usedvars := Ensembles.Add _ (Union _ (Union _ (getvars setup) (getvars cleanup)) (getvars cleanup)) (existT _ _ (l _ (projT2 loopvar))).
+  
+  Parameter allUsedListed : forall v : (sigT fvar), Ensembles.In _ usedvars v ->
+                                                      match v with
+                                                      | existT _ _ (p _ pv) => In (existT _ _ pv) paramord
+                                                      | existT _ _ (l _ lv) => In (existT _ _ lv) localord
+                                                      end.
 End Function.
