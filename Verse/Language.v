@@ -116,6 +116,13 @@ represented in Coq using the type [arg], can be one of the following
    | indexIsLval {b : nat} {e : endian} {a : arg (array b e ty)}: isLval (index a)
   .
   Definition wftypes (i : instruction) : Prop := True.
+
+  Fixpoint wftypesb (b : block) : Prop :=
+    match b with
+    | [] => True
+    | i :: bt => and (wftypes i) (wftypesb bt)
+    end.
+
   Fixpoint wfvar (i : instruction) : Prop :=
     match i with
     | @assign ty i => and (isValue ty)
@@ -137,9 +144,9 @@ represented in Coq using the type [arg], can be one of the following
 
 End Language.
 
-Arguments wftypes [var] _ .
-Arguments wfvar [var] _ .
-Check assign.
+Arguments wftypesb [var] _ .
+Arguments wfvarb [var] _ .
+
 Fixpoint striparg {var : type -> Type} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
   match a with
   | v _ vv => Singleton _ (existT var _ vv) 
@@ -162,15 +169,23 @@ Fixpoint getvars {var : type -> Type} (b : block var) : Ensemble (sigT var) :=
                      (getvars bt)
   end.
 
+Fixpoint lifttrans {v1 : type -> Type} {v2 : type -> Type}  (transv : forall ty, v1 ty -> v2 ty) { ty : type} (a : (arg v1) ty) : (arg v2) ty :=
+  match a with
+                     | v _ vv1 => v _ (transv _ vv1)
+                     | constant _ c => constant _ c
+                     | @index _ b e ty (arr) => 
+                       index _ (lifttrans transv arr)
+  end.
+
 Fixpoint translateb {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> w ty) (b : list (instruction v)) {struct b} : block w :=
   match b with
   | [] => []
   | i :: bt => (fun i => match i with
                          | assign _ ty a => match a with
-                                         | @assign3 _ _ b v1 v2 v3 => assign w (assign3 w b (transv ty v1) (transv ty v2) (transv ty v3))
-                                         | @assign2 _ _ u v1 v2 => assign w (assign2 w u (transv ty v1) (transv ty v2))
-                                         | @update2 _ _ b v1 v2 => assign w (update2 w b (transv ty v1) (transv ty v2))
-                                         | @update1 _ _ u v1 => assign w (update1 w u (transv ty v1))
+                                         | @assign3 _ _ b v1 v2 v3 => assign w _ (assign3 w b (lifttrans transv v1) (lifttrans transv v2) (lifttrans transv v3))
+                                         | @assign2 _ _ u v1 v2 => assign w _ (assign2 w u (lifttrans transv v1) (lifttrans transv v2))
+                                         | @update2 _ _ b v1 v2 => assign w _ (update2 w b (lifttrans transv v1) (lifttrans transv v2))
+                                         | @update1 _ _ u v1 => assign w _ (update1 w u (lifttrans transv v1))
                                          end
                          end
                ) i :: (translateb transv bt)

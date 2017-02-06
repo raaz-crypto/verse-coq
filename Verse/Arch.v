@@ -28,7 +28,7 @@ Module Type ARCH.
 
   Parameter callConv : forall (var : type -> Type) (lvar : list (sigT var)) (v : sigT var), In v lvar ->  (forall ty : type, var ty -> option (archvar ty)).
    
-  Parameter generate : forall b : block archvar, wftypesb b -> wfvarb b -> wfinstr b -> string.
+  Parameter generate : forall b : block archvar, wftypesb b -> wfvarb b -> wfinstrb b -> string.
   
   (**
 
