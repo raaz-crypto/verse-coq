@@ -58,8 +58,6 @@ Definition idSubst (u : varT) : subT u u := fun _ x => x.
 Definition composeSubT {u v w} (g : subT v w)(f : subT u v) : subT u w :=
   fun t ut => g t (f t ut).
 
-Arguments composeSubT [u v w].
-
 Notation "f >> g" := (composeSubT g f) (at level 40, left associativity).
 Notation "f << g" := (composeSubT f g) (at level 40, left associativity).
 
