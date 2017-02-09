@@ -116,7 +116,7 @@ Inductive opt (v : varT) :=
 | defined (t : type) : v t -> opt v
 | undefined          : opt v.
 
-Arguments defined [v t].
+Arguments defined [v t] _ .
 Arguments undefined [v].
 Notation "[ X ]" := (defined X).
 Notation "_|_"   := undefined.
