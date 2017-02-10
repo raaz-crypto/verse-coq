@@ -105,12 +105,38 @@ are often straight forward. This tactic crushes them.
 
  *)
 
-Ltac crush_ast_obligations
-  := apply functional_extensionality;
-     let x := fresh "X" in intro x; destruct x; trivial.
+Ltac crush_ast_obligations := apply functional_extensionality;
+     let x := fresh "X" in intro x; unfold id; unfold compose; autorewrite with core; eauto; destruct x; trivial.
 
 
 (** * Some examples. *)
+
+Module ListAST ( Syn : AST ) <: AST.
+
+  Definition syn (v : varT) := list (Syn.syn v).
+
+  Definition map {u v}(f : subT u v) (lsyn : list (Syn.syn u) ) : list (Syn.syn v)
+    := List.map (Syn.map f) lsyn.
+
+  Lemma identity {u}: map (idSubst u) = id.
+  Proof.
+    Hint Rewrite List.map_id.
+    Hint Rewrite @Syn.identity.
+    unfold map.
+    crush_ast_obligations.
+  Qed.
+
+
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Proof.
+    Hint Rewrite List.map_map.
+    Hint Rewrite <- @Syn.composition.
+    unfold map.
+    crush_ast_obligations.
+  Qed.
+
+End ListAST.
+
 
 Inductive opt (v : varT) :=
 | defined (t : type) : v t -> opt v
