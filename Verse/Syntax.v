@@ -199,12 +199,14 @@ Definition fUV : subT U V :=
              end.
 
 Import OptAST.
-
-
+Module OptListAST := ListAST(OptAST).
+Import OptListAST.
 
 Print OptAST.map.
-
-Compute (map fUV [xU]).
+Require Import List.
+Import ListNotations.
+Compute (OptListAST.map fUV [ {- xU -}; {- yU -}; _|_ ]).
 
 >>
+
 *)
