@@ -144,7 +144,7 @@ Inductive opt (v : varT) :=
 
 Arguments defined [v t] _ .
 Arguments undefined [v].
-Notation "[ X ]" := (defined X).
+Notation "{- X -}" := (defined X).
 Notation "_|_"   := undefined.
 
 
@@ -154,7 +154,7 @@ Module OptAST <: AST.
 
   Definition map {u v}(f : subT u v) (ou : opt u) : opt v :=
     match ou with
-    | [ xU ] => [ f _ xU ]
+    | {- xU -} => {- f _ xU -}
     | _|_    => _|_
     end.
 
