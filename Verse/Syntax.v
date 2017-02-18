@@ -105,8 +105,12 @@ are often straight forward. This tactic crushes them.
 
  *)
 
-Ltac crush_ast_obligations := apply functional_extensionality;
-     let x := fresh "X" in intro x; unfold id; unfold compose; autorewrite with core; eauto; destruct x; trivial.
+Ltac crush_ast_obligations :=
+  repeat match goal with
+         | [ |- ?F _ = ?F _] => f_equal
+         | _ => apply functional_extensionality;
+                let x := fresh "X" in intro x; unfold id; unfold compose; autorewrite with core; eauto; destruct x; trivial
+         end.
 
 
 (** * Some examples. *)
