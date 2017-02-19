@@ -93,7 +93,7 @@ Module Type AST.
 
   Axiom identity : forall {u}, map (idSubst u) = id.
 
-  Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, compose (map g) (map f) = map (g << f).
+  Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, map (g << f) = compose (map g) (map f).
 
 End AST.
 
@@ -129,10 +129,10 @@ Module ListAST ( Syn : AST ) <: AST.
   Qed.
 
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
   Proof.
     Hint Rewrite List.map_map.
-    Hint Rewrite <- @Syn.composition.
+    Hint Rewrite @Syn.composition.
 
     unfold map.
     crush_ast_obligations.
@@ -169,7 +169,7 @@ Module OptAST <: AST.
     
   Qed.
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
   Proof.
 
     crush_ast_obligations.

@@ -184,7 +184,7 @@ Proof.
   eauto.
 Qed.
 
-Lemma composition_for_arg : forall {ty : type}{u v w}{g : subT v w} {f : subT u v}, compose (@map_for_arg _ _ g ty) (@map_for_arg _ _ f ty) = map_for_arg (g << f).
+Lemma composition_for_arg : forall {ty : type}{u v w}{g : subT v w} {f : subT u v}, map_for_arg (g << f) = compose (@map_for_arg _ _ g ty) (@map_for_arg _ _ f ty).
 Proof.
   intros.
   apply functional_extensionality.
@@ -217,9 +217,9 @@ Module Assignment <: AST.
     crush_ast_obligations. 
   Qed. 
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
   Proof.
-    Hint Rewrite <- @composition_for_arg.
+    Hint Rewrite @composition_for_arg.
 
     intros.
     unfold map.
@@ -242,16 +242,15 @@ Module Instruction <: AST.
   
   Lemma identity {u}: map (idSubst u) = id.
   Proof.
-    Hint Rewrite identity_for_arg.
     Hint Rewrite @Assignment.identity.
     
     unfold map.
     crush_ast_obligations.
   Qed.    
     
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
   Proof.
-    Hint Rewrite <- @Assignment.composition.
+    Hint Rewrite @Assignment.composition.
 
     intros.
     unfold map.
