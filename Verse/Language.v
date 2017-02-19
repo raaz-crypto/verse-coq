@@ -113,63 +113,56 @@ represented in Coq using the type [arg], can be one of the following
 
   Definition block := list instruction.
 
-  (*Definition isLval {ty : type} (a : arg ty) : Prop := True.*)
+  (* Generic well-formed checks on instructions *)
+  
   Inductive isLval {ty : type} : arg ty -> Prop :=
    | vIsLval {vr : var ty} : isLval (v vr)
    | indexIsLval {b : nat} {e : endian} {a : arg (array b e ty)}: isLval (index a)
   .
   Definition wftypes (i : instruction) : Prop := True.
 
-  Fixpoint wftypesb (b : block) : Prop :=
-    match b with
-    | [] => True
-    | i :: bt => and (wftypes i) (wftypesb bt)
-    end.
+  Definition wftypesB (b : block) : Prop := fold_left and (map wftypes b) True.
 
-  Fixpoint wfvar (i : instruction) : Prop :=
+  Fixpoint wfvar (i : instruction) : Prop := 
     match i with
-    | @assign ty i => and (isValue ty)
-                          match i with
-                          | assign3 _ v1 _ _ => isLval v1
-                          | assign2 _ v1 _  => isLval v1
-                          | update2 _ v1 _  => isLval v1
-                          | update1 _ v1     => isLval v1
-                          end
-    end
-  .
-
-  Fixpoint wfvarb (b : block) : Prop :=
-    match b with
-    | [] => True
-    | i :: bt => and (wfvar i) (wfvarb bt)
+    | assign i => match i with
+                  | assign3 ty _ v1 _ _ => and (isValue ty) (isLval v1)
+                  | assign2 ty _ v1 _  => and (isValue ty) (isLval v1)
+                  | update2 ty _ v1 _  => and (isValue ty) (isLval v1)
+                  | update1 ty _ v1     => and (isValue ty) (isLval v1)
+                  end
     end.
-
+  
+  Definition wfvarB (b : block) : Prop := fold_left and (map wfvar b) True.
 
 End Language.
 
-Arguments wftypesb [var] _ .
-Arguments wfvarb [var] _ .
+Arguments wftypesB [var] _ .
+Arguments wfvarB [var] _ .
 
-Fixpoint striparg {var : type -> Type} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
+(* Helper functions for the Function module *)
+
+Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
   match a with
   | v _ vv => Singleton _ (existT var _ vv) 
   | constant _ c => Empty_set _
   | index _ arr => (striparg arr)
   end.
 
-Fixpoint getvars {var : type -> Type} (b : block var) : Ensemble (sigT var) :=
+Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
+  match i with
+  | assign _ a => match a with
+                     | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
+                     | assign2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update1 _ _ _ a1 => striparg a1
+                     end
+  end.
+
+Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
   match b with
   | [] => Empty_set _
-  | i :: bt => Union _ 
-                     match i with
-                     | assign _ ty a => match a with
-                                        | assign3 _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
-                                        | assign2 _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                                        | update2 _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                                        | update1 _ _ a1 => striparg a1
-                                        end
-                     end
-                     (getvars bt)
+  | i :: bt => Union _ (instrvars i) (getvars bt)
   end.
 
 (* Syntax modules *)
@@ -269,6 +262,24 @@ End Instruction.
 
 Module Block := ListAST Instruction.
 
+(*
+Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (instrvars i) vv -> transv _ (projT2 vv) <> None)
+  : instruction v2.
+  refine (
+      match i with
+      | assign _ ty a => match a with
+                         | @assign3 _ _ b v1 v2 v3 => assign w _ (assign3 w b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3))
+                         | @assign2 _ _ u v1 v2 => assign w _ (assign2 w u (map_for_arg transv v1) (map_for_arg transv v2))
+                         | @update2 _ _ b v1 v2 => assign w _ (update2 w b (map_for_arg transv v1) (map_for_arg transv v2))
+                         | @update1 _ _ u v1 => assign w _ (update1 w u (map_for_arg transv v1))
+                         end
+      end
+*)
+
+(*
+Fixpoint translatem {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> option (w ty)) (b : list (instruction v)) (allAlloc : forall vv : sigT v, Ensembles.In _ (getvars b) vv ->  transv _ (projT2 vv) <> None) : Prop := 
+  refine (
+*)
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
 Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).

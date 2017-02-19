@@ -1,6 +1,7 @@
 Require Import Verse.Language.
-Require Import String.
+Require Import Verse.Syntax.
 Require Import Verse.Types.Internal.
+Require Import String.
 Require Import List.
 Import ListNotations.
 
@@ -11,24 +12,24 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The registers for this architecture *)
-  Parameter archvar  : type -> Type.
+  Parameter archvar  : varT.
 
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
   Parameter wfinstr : instruction archvar -> Prop.
 
-  Fixpoint wfinstrb (b : block archvar) : Prop :=
+  Fixpoint wfinstrB (b : block archvar) : Prop :=
     match b with
     | [] => True
-    | i :: bt => and (wfinstr i) (wfinstrb bt)
+    | i :: bt => and (wfinstr i) (wfinstrB bt)
     end.
 
   (** Generate code with assurance of well formedness **)
 
-  Parameter callConv : forall (var : type -> Type) (lvar : list (sigT var)) (v : sigT var), In v lvar ->  (forall ty : type, var ty -> option (archvar ty)).
+  Parameter callConv : forall {var} (lvar : list (sigT var)) v, In v lvar ->  archvar (projT1 v).
    
-  Parameter generate : forall b : block archvar, wftypesb b -> wfvarb b -> wfinstrb b -> string.
+  Parameter generate : forall b : block archvar, wftypesB b -> wfvarB b -> wfinstrB b -> string.
   
   (**
 
