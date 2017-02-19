@@ -93,7 +93,7 @@ represented in Coq using the type [arg], can be one of the following
   | v        {ty : type} : var ty -> arg ty
   | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
-    : arg (array b e ty) -> arg ty.
+    : var (array b e ty) -> arg ty.
 
   Inductive assignment : Type :=
   | assign3 
@@ -117,7 +117,7 @@ represented in Coq using the type [arg], can be one of the following
   
   Inductive isLval {ty : type} : arg ty -> Prop :=
    | vIsLval {vr : var ty} : isLval (v vr)
-   | indexIsLval {b : nat} {e : endian} {a : arg (array b e ty)}: isLval (index a)
+   | indexIsLval {b : nat} {e : endian} {a : var (array b e ty)}: isLval (index a)
   .
   Definition wftypes (i : instruction) : Prop := True.
 
@@ -146,7 +146,7 @@ Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var
   match a with
   | v _ vv => Singleton _ (existT var _ vv) 
   | constant _ c => Empty_set _
-  | index _ arr => (striparg arr)
+  | index _ arr => Singleton _ (existT var _ arr)
   end.
 
 Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
@@ -166,38 +166,62 @@ Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
   end.
 
 (* Syntax modules *)
+(*
+Inductive argu (ty : type) (var :varT) : Type := 
+| vu        :  var ty -> argu ty var
+| constantu : Types.constant ty -> argu ty var
+| indexu {b : nat}{e : endian}
+  : var (array b e ty) -> argu ty var.
 
-Fixpoint map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) ty) : (arg v2) ty :=
+Module Type Arg <: AST.
+
+  Parameter ty : type.
+  Definition syn := @argu ty.
+
+  Definition map {v1 v2} (transv : subT v1 v2) (a : argu ty v1) : argu ty v2 :=
+    match a with
+    | vu _ _ vv1 => vu _ _ (transv _ vv1)
+    | constantu _ _ c => constantu _ _ c
+    | indexu _ _ arr => indexu _ _ (transv _ arr)
+    end.
+
+  Lemma identity : forall (u : varT) , @map u u (idSubst u) = id.
+  Proof.
+    intros.
+    crush_ast_obligations.
+  Qed.
+
+  Lemma composition : forall {u v w} {g : subT v w} {f : subT u v}, compose (map g) (map f) = map (g << f).
+  Proof.
+    intros.
+    crush_ast_obligations.
+  Qed.
+
+End Arg.
+*)
+Definition map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) ty) : (arg v2) ty :=
   match a with
                      | v _ vv1 => v _ (transv _ vv1)
                      | constant _ c => constant _ c
                      | @index _ b e ty (arr) => 
-                       index _ (map_for_arg transv arr)
+                       index _ (transv _ arr)
   end.
 
-Lemma identity_for_arg : forall (ty : type) (u : varT) (v : arg u ty), @map_for_arg u u (idSubst u) ty v = id v.
+Lemma identity_for_arg : forall (ty : type) (u : varT) (v : arg u ty), @map_for_arg u u (idSubst u) ty= id.
 Proof.
   intros.
-  induction v0; eauto.
-  unfold id.
-  unfold map_for_arg. f_equal.
-  eauto.
+  unfold map_for_arg.
+  crush_ast_obligations.
 Qed.
 
 Lemma composition_for_arg : forall {ty : type}{u v w}{g : subT v w} {f : subT u v}, map_for_arg (g << f) = compose (@map_for_arg _ _ g ty) (@map_for_arg _ _ f ty).
 Proof.
   intros.
-  apply functional_extensionality.
-  intros.
-  unfold compose.
-  induction x; eauto.
-  simpl.
-  f_equal.
-  eauto.
+  crush_ast_obligations.
 Qed.
-  
+
 Module Assignment <: AST.
-  
+
   Definition syn := assignment.
   Definition map v w (transv : subT v w) (a : assignment v) : assignment w :=
     match a with
