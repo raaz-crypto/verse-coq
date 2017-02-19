@@ -91,7 +91,6 @@ Module Type AST.
   (* The function that maps a subsitution over the syntax tree *)
   Parameter map : forall {u v : varT}, subT u v -> syn u -> syn v.
 
-
   Axiom identity : forall {u}, map (idSubst u) = id.
 
   Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, compose (map g) (map f) = map (g << f).
@@ -106,12 +105,9 @@ are often straight forward. This tactic crushes them.
  *)
 
 Ltac crush_ast_obligations :=
-  repeat match goal with
-         | [ |- ?F _ = ?F _] => f_equal
-         | _ => apply functional_extensionality;
-                let x := fresh "X" in intro x; unfold id; unfold compose; autorewrite with core; eauto; destruct x; trivial
-         end.
-
+  repeat apply functional_extensionality;
+         let x := fresh "X" in intro x; destruct x;
+                               unfold id; unfold compose; autorewrite with core; eauto.
 
 (** * Some examples. *)
 
@@ -126,8 +122,10 @@ Module ListAST ( Syn : AST ) <: AST.
   Proof.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.identity.
+
     unfold map.
     crush_ast_obligations.
+
   Qed.
 
 
@@ -135,6 +133,7 @@ Module ListAST ( Syn : AST ) <: AST.
   Proof.
     Hint Rewrite List.map_map.
     Hint Rewrite <- @Syn.composition.
+
     unfold map.
     crush_ast_obligations.
   Qed.
@@ -162,14 +161,19 @@ Module OptAST <: AST.
     | _|_    => _|_
     end.
 
+
   Lemma identity {u}: map (idSubst u) = id.
   Proof.
+    
     crush_ast_obligations.
+    
   Qed.
 
   Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
   Proof.
+
     crush_ast_obligations.
+
   Qed.
 
 End OptAST.
