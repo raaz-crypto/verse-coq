@@ -1,11 +1,14 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
+Require Import Verse.Syntax.
 Require Vector.
 Require Import Coq.Sets.Ensembles.
 Require Import List.
+Import ListNotations.
 Require Import Recdef.
-Import List.ListNotations.
 Import String.
+Require Import Basics.
+Require Import FunctionalExtensionality.
 
 (** * The abstract syntax
 
@@ -86,26 +89,26 @@ represented in Coq using the type [arg], can be one of the following
 
 *)
   
-  Inductive arg : type -> Type :=
+  Inductive arg : type -> Type := 
   | v        {ty : type} : var ty -> arg ty
   | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
     : arg (array b e ty) -> arg ty.
 
-  Inductive assignment {ty : type} : Type :=
+  Inductive assignment : Type :=
   | assign3 
-    : binop -> arg ty -> arg ty -> arg ty -> assignment
+    : forall ty, binop -> arg ty -> arg ty -> arg ty -> assignment
   (** e.g. x = y + z *)
   | assign2
-    : uniop -> arg ty -> arg ty -> assignment (** e.g. x = ~ y   *)
+    : forall ty, uniop -> arg ty -> arg ty -> assignment (** e.g. x = ~ y   *)
   | update2
-    : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
+    : forall ty, binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
   | update1
-    : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
+    : forall ty, uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
 
   Inductive instruction : Type :=
-  | assign : forall ty : type,  @assignment ty -> instruction
+  | assign : assignment -> instruction
   .
 
   Definition block := list instruction.
@@ -169,27 +172,102 @@ Fixpoint getvars {var : type -> Type} (b : block var) : Ensemble (sigT var) :=
                      (getvars bt)
   end.
 
-Fixpoint lifttrans {v1 : type -> Type} {v2 : type -> Type}  (transv : forall ty, v1 ty -> v2 ty) { ty : type} (a : (arg v1) ty) : (arg v2) ty :=
+(* Syntax modules *)
+
+Fixpoint map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) ty) : (arg v2) ty :=
   match a with
                      | v _ vv1 => v _ (transv _ vv1)
                      | constant _ c => constant _ c
                      | @index _ b e ty (arr) => 
-                       index _ (lifttrans transv arr)
+                       index _ (map_for_arg transv arr)
   end.
 
-Fixpoint translateb {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> w ty) (b : list (instruction v)) {struct b} : block w :=
-  match b with
-  | [] => []
-  | i :: bt => (fun i => match i with
-                         | assign _ ty a => match a with
-                                         | @assign3 _ _ b v1 v2 v3 => assign w _ (assign3 w b (lifttrans transv v1) (lifttrans transv v2) (lifttrans transv v3))
-                                         | @assign2 _ _ u v1 v2 => assign w _ (assign2 w u (lifttrans transv v1) (lifttrans transv v2))
-                                         | @update2 _ _ b v1 v2 => assign w _ (update2 w b (lifttrans transv v1) (lifttrans transv v2))
-                                         | @update1 _ _ u v1 => assign w _ (update1 w u (lifttrans transv v1))
-                                         end
-                         end
-               ) i :: (translateb transv bt)
+Lemma identity_for_arg : forall (ty : type) (u : varT) (v : arg u ty), @map_for_arg u u (idSubst u) ty v = id v.
+Proof.
+  intros.
+  induction v0; eauto.
+  unfold id.
+  unfold map_for_arg. f_equal.
+  eauto.
+Qed.
+
+Lemma composition_for_arg : forall {ty : type}{u v w}{g : subT v w} {f : subT u v}, compose (@map_for_arg _ _ g ty) (@map_for_arg _ _ f ty) = map_for_arg (g << f).
+Proof.
+  intros.
+  apply functional_extensionality.
+  intros.
+  unfold compose.
+  induction x; eauto.
+  simpl.
+  f_equal.
+  eauto.
+Qed.
+  
+Module Assignment <: AST.
+  
+  Definition syn := assignment.
+  Definition map v w (transv : subT v w) (a : assignment v) : assignment w :=
+    match a with
+    | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3)
+    | @assign2 _ _ u v1 v2 => assign2 w _ u (map_for_arg transv v1) (map_for_arg transv v2)
+    | @update2 _ _ b v1 v2 => update2 w _ b (map_for_arg transv v1) (map_for_arg transv v2)
+    | @update1 _ _ u v1 => update1 w _ u (map_for_arg transv v1)
+    end.
+
+  Arguments map [v w] _ _.
+
+  Lemma identity {u}: map (idSubst u) = id.
+  Proof.
+    Hint Rewrite identity_for_arg.
+    unfold map.
+        
+    crush_ast_obligations. 
+  Qed. 
+
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Proof.
+    Hint Rewrite <- @composition_for_arg.
+
+    intros.
+    unfold map.
+
+    crush_ast_obligations.
+  Qed.
+  
+End Assignment.
+
+Module Instruction <: AST.
+
+  Import Assignment.
+  Definition syn := instruction.
+  Definition map v w (transv : subT v w) (i : instruction v) : instruction w :=
+  match i with
+  | assign _ a => assign w (map transv a)
   end.
+
+  Arguments map [v w] _ _.
+  
+  Lemma identity {u}: map (idSubst u) = id.
+  Proof.
+    Hint Rewrite identity_for_arg.
+    Hint Rewrite @Assignment.identity.
+    
+    unfold map.
+    crush_ast_obligations.
+  Qed.    
+    
+  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Proof.
+    Hint Rewrite <- @Assignment.composition.
+
+    intros.
+    unfold map.
+    crush_ast_obligations.
+  Qed.
+
+End Instruction.
+
+Module Block := ListAST Instruction.
 
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
