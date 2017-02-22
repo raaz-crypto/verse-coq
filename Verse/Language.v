@@ -166,23 +166,27 @@ Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
   end.
 
 (* Syntax modules *)
-(*
-Inductive argu (ty : type) (var :varT) : Type := 
-| vu        :  var ty -> argu ty var
-| constantu : Types.constant ty -> argu ty var
-| indexu {b : nat}{e : endian}
-  : var (array b e ty) -> argu ty var.
 
-Module Type Arg <: AST.
+Module Arg <: AST.
 
-  Parameter ty : type.
-  Definition syn := @argu ty.
+  Definition T := type -> Type.
+  Definition syn := arg.
 
-  Definition map {v1 v2} (transv : subT v1 v2) (a : argu ty v1) : argu ty v2 :=
-    match a with
-    | vu _ _ vv1 => vu _ _ (transv _ vv1)
-    | constantu _ _ c => constantu _ _ c
-    | indexu _ _ arr => indexu _ _ (transv _ arr)
+  Definition morph (T1 T2 : type -> Type) := forall ty, T1 ty -> T2 ty.
+
+  Definition idM (T1 : type -> Type) (ty : type) := @id (T1 ty).
+
+  Definition composeM {T1 T2 T3 : type -> Type} (m23 : morph T2 T3) (m12 : morph T1 T2) := fun ty : type => compose (m23 ty) (m12 ty).
+
+  Axiom identityM : forall {T1 T2} {f : morph T1 T2}, and (composeM (idM T2) f = f) (composeM f (idM T1) = f).
+  Axiom associativeM : forall {T1 T2 T3 T4} {f : morph T1 T2} {g : morph T2 T3} {h : morph T3 T4}, composeM h (composeM g f) = composeM (composeM h g) f.
+
+  Definition map {v1 v2} (transv : subT v1 v2) : morph v1 v2 :=
+    fun ty => 
+    match ( ty) with
+    | v  _ vv1 => v _ _ (transv _ vv1)
+    | constant _ c => constant _ _ c
+    | index _ arr => index _ _ (transv _ arr)
     end.
 
   Lemma identity : forall (u : varT) , @map u u (idSubst u) = id.

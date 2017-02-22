@@ -74,6 +74,7 @@ as a particular program parameteried by variables, i.e. if in addition
 *)
 
 Definition synT := varT -> Type.
+Definition morphT (syn : synT) := varT -> varT -> Type.
 
 (** *** The class of abstract syntax trees.
 
@@ -86,16 +87,30 @@ are types that allow mapping over its variables using a substitution.
 Module Type AST.
 
   (* The type of the underlying syntax tree *)
-  Parameter syn : synT.
+  Parameter T : Type.
+  Parameter syn : varT -> T.
+  Parameter morph : forall (T1 T2 : T), Type.
+
+  Parameter idM : forall (T1 : T), morph T1 T1.
+  Parameter composeM : forall {T1 T2 T3}, morph T2 T3 -> morph T1 T2 -> morph T1 T3.
+
+  Axiom identityM : forall {T1 T2} {f : morph T1 T2}, and (composeM (idM T2) f = f) (composeM f (idM T1) = f).
+  Axiom associativeM : forall {T1 T2 T3 T4} {f : morph T1 T2} {g : morph T2 T3} {h : morph T3 T4}, composeM h (composeM g f) = composeM (composeM h g) f.
 
   (* The function that maps a subsitution over the syntax tree *)
-  Parameter map : forall {u v : varT}, subT u v -> syn u -> syn v.
+  Parameter map : forall {u v : varT}, subT u v -> morph (syn u) (syn v).
 
-  Axiom identity : forall {u}, map (idSubst u) = id.
+  Axiom identity : forall {u}, map (idSubst u) = idM (syn u).
 
-  Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, map (g << f) = compose (map g) (map f).
+  Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, map (g << f) = composeM (map g) (map f).
 
 End AST.
+
+Module Type ASTT:= AST with Definition T := Type.
+Module Type ASTU := ASTT
+      with Definition morph := fun T1 T2 => T1 -> T2
+      with Definition idM := @id
+      with Definition composeM := @compose.
 
 (** * Tactic to crush AST proof obligations
 
@@ -111,8 +126,28 @@ Ltac crush_ast_obligations :=
 
 (** * Some examples. *)
 
-Module ListAST ( Syn : AST ) <: AST.
+Module ListAST (Syn : ASTU) <: ASTU.
 
+  Definition T := Type.
+  Definition morph := fun T1 T2 => T1 -> T2.
+  
+  Definition idM := @id.
+  Definition composeM := @compose.
+
+  Arguments idM [A] _.
+  Arguments composeM [A B C] _ _ _.
+  
+  Lemma identityM {T1 T2} : forall {f : morph T1 T2}, and (composeM (@idM T2) f = f) (composeM f (@idM T1) = f).
+  Proof.
+    eauto.
+  Qed.
+  
+  Lemma associativeM {T1 T2 T3 T4} : forall {f : morph T1 T2} {g : morph T2 T3} {h : morph T3 T4}, composeM h (composeM g f) = composeM (composeM h g) f.
+  Proof.
+    eauto.
+  Qed.
+
+  
   Definition syn (v : varT) := list (Syn.syn v).
 
   Definition map {u v}(f : subT u v) (lsyn : list (Syn.syn u) ) : list (Syn.syn v)
@@ -140,7 +175,6 @@ Module ListAST ( Syn : AST ) <: AST.
 
 End ListAST.
 
-
 Inductive opt (v : varT) :=
 | defined (t : type) : v t -> opt v
 | undefined          : opt v.
@@ -153,7 +187,27 @@ Notation "_|_"   := undefined.
 
 Module OptAST <: AST.
 
+  Definition T := Type.
   Definition syn := opt.
+
+  Definition morph := fun T1 T2 => T1 -> T2.
+
+  Definition idM := @id.
+  Arguments idM [A] _.
+
+  Definition composeM := @compose.
+
+  Arguments composeM [A B C] _ _ _.
+
+  Lemma identityM : forall {T1 T2} {f : morph T1 T2}, and (composeM (@idM T2) f = f) (composeM f (@idM T1) = f).
+  Proof.
+    eauto.
+  Qed.
+  
+  Lemma associativeM : forall {T1 T2 T3 T4} {f : morph T1 T2} {g : morph T2 T3} {h : morph T3 T4}, composeM h (composeM g f) = composeM (composeM h g) f.
+  Proof.
+    eauto.
+  Qed.
 
   Definition map {u v}(f : subT u v) (ou : opt u) : opt v :=
     match ou with
@@ -177,8 +231,6 @@ Module OptAST <: AST.
   Qed.
 
 End OptAST.
-
-
 
 (** A small example of maping over Opt.
 
