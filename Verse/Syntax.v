@@ -97,9 +97,9 @@ are types that allow mapping over its variables using a substitution.
 
 *)
 
-Module Type AST (C : Cat) := Functor VarT C.
+Module Type VarTto (C : Cat) := Functor VarT C.
 
-Module Type ASTT := AST TypeCat.
+Module Type AST := VarTto TypeCat.
 
 Definition synT := varT -> Type.
 Definition morphT (syn : synT) := varT -> varT -> Type.
@@ -112,13 +112,13 @@ are often straight forward. This tactic crushes them.
  *)
 
 Ltac crush_ast_obligations :=
-  repeat apply functional_extensionality;
+  repeat apply functional_extensionality_dep;
          let x := fresh "X" in intro x; destruct x;
                                unfold id; unfold compose; autorewrite with core; eauto.
 
 (** * Some examples. *)
 
-Module ListAST (Syn : ASTT) <: ASTT.
+Module ListAST (Syn : AST) <: AST.
 
   Definition omap v := list (Syn.omap v).
 
@@ -157,7 +157,7 @@ Arguments undefined [v].
 Notation "{- X -}" := (defined X).
 Notation "_|_"   := undefined.
 
-Module OptAST <: ASTT.
+Module OptAST <: AST.
 
   Definition omap := opt.
 

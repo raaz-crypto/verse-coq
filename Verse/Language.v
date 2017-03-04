@@ -1,5 +1,6 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
+Require Import Verse.Cat.
 Require Import Verse.Syntax.
 Require Vector.
 Require Import Coq.Sets.Ensembles.
@@ -8,7 +9,7 @@ Import ListNotations.
 Require Import Recdef.
 Import String.
 Require Import Basics.
-Require Import FunctionalExtensionality.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 (** * The abstract syntax
 
@@ -167,42 +168,6 @@ Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
 
 (* Syntax modules *)
 
-Module Arg <: AST.
-
-  Definition T := type -> Type.
-  Definition syn := arg.
-
-  Definition morph (T1 T2 : type -> Type) := forall ty, T1 ty -> T2 ty.
-
-  Definition idM (T1 : type -> Type) (ty : type) := @id (T1 ty).
-
-  Definition composeM {T1 T2 T3 : type -> Type} (m23 : morph T2 T3) (m12 : morph T1 T2) := fun ty : type => compose (m23 ty) (m12 ty).
-
-  Axiom identityM : forall {T1 T2} {f : morph T1 T2}, and (composeM (idM T2) f = f) (composeM f (idM T1) = f).
-  Axiom associativeM : forall {T1 T2 T3 T4} {f : morph T1 T2} {g : morph T2 T3} {h : morph T3 T4}, composeM h (composeM g f) = composeM (composeM h g) f.
-
-  Definition map {v1 v2} (transv : subT v1 v2) : morph v1 v2 :=
-    fun ty => 
-    match ( ty) with
-    | v  _ vv1 => v _ _ (transv _ vv1)
-    | constant _ c => constant _ _ c
-    | index _ arr => index _ _ (transv _ arr)
-    end.
-
-  Lemma identity : forall (u : varT) , @map u u (idSubst u) = id.
-  Proof.
-    intros.
-    crush_ast_obligations.
-  Qed.
-
-  Lemma composition : forall {u v w} {g : subT v w} {f : subT u v}, compose (map g) (map f) = map (g << f).
-  Proof.
-    intros.
-    crush_ast_obligations.
-  Qed.
-
-End Arg.
-*)
 Definition map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) ty) : (arg v2) ty :=
   match a with
                      | v _ vv1 => v _ (transv _ vv1)
@@ -211,23 +176,52 @@ Definition map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) t
                        index _ (transv _ arr)
   end.
 
+Definition idSubst (u : varT) : subT u u  := fun _ x => x.
 Lemma identity_for_arg : forall (ty : type) (u : varT) (v : arg u ty), @map_for_arg u u (idSubst u) ty= id.
 Proof.
   intros.
   unfold map_for_arg.
+
   crush_ast_obligations.
 Qed.
 
-Lemma composition_for_arg : forall {ty : type}{u v w}{g : subT v w} {f : subT u v}, map_for_arg (g << f) = compose (@map_for_arg _ _ g ty) (@map_for_arg _ _ f ty).
-Proof.
-  intros.
-  crush_ast_obligations.
-Qed.
+
+Module Arg <: VarTto VarT.
+
+  Definition omap := arg.
+
+  Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
+    fun ty a =>
+    match a with
+    | v  _ vv1 => v _ (f _ vv1)
+    | constant _ c => constant _ c
+    | index _ arr => index _ (f _ arr)
+    end.
+
+  Lemma idF : forall (u : varT) , mmap (@VarT.idM u) = VarT.idM.
+  Proof.
+    intros.
+
+    unfold mmap.
+    unfold VarT.idM.
+
+    crush_ast_obligations; crush_ast_obligations.
+
+  Qed.
+
+  Lemma functorial : forall {u v w} {g : subT v w} {f : subT u v}, mmap (g << f) = VarT.composeM (mmap g) (mmap f).
+  Proof.
+    intros.
+    unfold mmap.
+    crush_ast_obligations; crush_ast_obligations.
+  Qed.
+
+End Arg.
 
 Module Assignment <: AST.
 
-  Definition syn := assignment.
-  Definition map v w (transv : subT v w) (a : assignment v) : assignment w :=
+  Definition omap := assignment.
+  Definition mmap {v w} (transv : subT v w) (a : assignment v) : assignment w :=
     match a with
     | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3)
     | @assign2 _ _ u v1 v2 => assign2 w _ u (map_for_arg transv v1) (map_for_arg transv v2)
@@ -235,22 +229,20 @@ Module Assignment <: AST.
     | @update1 _ _ u v1 => update1 w _ u (map_for_arg transv v1)
     end.
 
-  Arguments map [v w] _ _.
-
-  Lemma identity {u}: map (idSubst u) = id.
+  Lemma idF {u} : mmap (@VarT.idM u) = id.
   Proof.
     Hint Rewrite identity_for_arg.
-    unfold map.
+    unfold mmap.
         
     crush_ast_obligations. 
   Qed. 
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = TypeCat.composeM (mmap g) (mmap f).
   Proof.
-    Hint Rewrite @composition_for_arg.
+    Hint Rewrite @Arg.functorial.
 
     intros.
-    unfold map.
+    unfold mmap.
 
     crush_ast_obligations.
   Qed.
@@ -259,29 +251,26 @@ End Assignment.
 
 Module Instruction <: AST.
 
-  Import Assignment.
-  Definition syn := instruction.
-  Definition map v w (transv : subT v w) (i : instruction v) : instruction w :=
+  Definition omap := instruction.
+  Definition mmap {v w} (f : subT v w) (i : instruction v) : instruction w :=
   match i with
-  | assign _ a => assign w (map transv a)
+  | assign _ a => assign w (Assignment.mmap f a)
   end.
 
-  Arguments map [v w] _ _.
-  
-  Lemma identity {u}: map (idSubst u) = id.
+  Lemma idF {u}: mmap (@VarT.idM u) = id.
   Proof.
-    Hint Rewrite @Assignment.identity.
+    Hint Rewrite @Assignment.idF.
     
-    unfold map.
+    unfold mmap.
     crush_ast_obligations.
   Qed.    
     
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: map (g << f) = compose (map g) (map f).
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
   Proof.
-    Hint Rewrite @Assignment.composition.
+    Hint Rewrite @Assignment.functorial.
 
     intros.
-    unfold map.
+    unfold mmap.
     crush_ast_obligations.
   Qed.
 
