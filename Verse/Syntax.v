@@ -52,10 +52,9 @@ variables of type [u] to variables of type [v]
 
   Definition mr (u v : o) := forall t, u t -> v t.
 
-
   (** For any variable type [u : varT] there is always a identity substitution *)
 
-  Definition idM {u : o} : mr u u := fun _ x => x.
+  Definition idM {u : o} : mr u u := fun t x => x.
 
   (** Substitutions can be composed *)
 
@@ -112,9 +111,9 @@ are often straight forward. This tactic crushes them.
  *)
 
 Ltac crush_ast_obligations :=
-  repeat apply functional_extensionality_dep;
-         let x := fresh "X" in intro x; destruct x;
-                               unfold id; unfold compose; autorewrite with core; eauto.
+  repeat (intros; apply functional_extensionality_dep;
+         let x := fresh "X" in intro x; destruct x; simpl;
+                               unfold id; unfold compose; autorewrite with core; eauto).
 
 (** * Some examples. *)
 
@@ -125,14 +124,15 @@ Module ListAST (Syn : AST) <: AST.
   Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
     := List.map (Syn.mmap f) lsyn.
 
+  Arguments mmap / {u v} _ _.
+
   Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
   Proof.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.idF.
 
-    unfold mmap.
-    crush_ast_obligations.
-
+    crush_ast_obligations. 
+        
   Qed.
 
 
@@ -141,7 +141,6 @@ Module ListAST (Syn : AST) <: AST.
     Hint Rewrite List.map_map.
     Hint Rewrite @Syn.functorial.
 
-    unfold mmap.
     crush_ast_obligations.
   Qed.
 
@@ -174,8 +173,8 @@ Module OptAST <: AST.
     crush_ast_obligations.
     
   Qed.
-
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+ 
+ Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
   Proof.
 
     crush_ast_obligations.

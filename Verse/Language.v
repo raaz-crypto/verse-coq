@@ -168,24 +168,6 @@ Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
 
 (* Syntax modules *)
 
-Definition map_for_arg {v1 v2} (transv : subT v1 v2) {ty : type} (a : (arg v1) ty) : (arg v2) ty :=
-  match a with
-                     | v _ vv1 => v _ (transv _ vv1)
-                     | constant _ c => constant _ c
-                     | @index _ b e ty (arr) => 
-                       index _ (transv _ arr)
-  end.
-
-Definition idSubst (u : varT) : subT u u  := fun _ x => x.
-Lemma identity_for_arg : forall (ty : type) (u : varT) (v : arg u ty), @map_for_arg u u (idSubst u) ty= id.
-Proof.
-  intros.
-  unfold map_for_arg.
-
-  crush_ast_obligations.
-Qed.
-
-
 Module Arg <: VarTto VarT.
 
   Definition omap := arg.
@@ -198,22 +180,18 @@ Module Arg <: VarTto VarT.
     | index _ arr => index _ (f _ arr)
     end.
 
+  Arguments mmap [v1 v2] _ [t] _.
+
   Lemma idF : forall (u : varT) , mmap (@VarT.idM u) = VarT.idM.
   Proof.
-    intros.
 
-    unfold mmap.
-    unfold VarT.idM.
-
-    crush_ast_obligations; crush_ast_obligations.
+    crush_ast_obligations.
 
   Qed.
 
   Lemma functorial : forall {u v w} {g : subT v w} {f : subT u v}, mmap (g << f) = VarT.composeM (mmap g) (mmap f).
   Proof.
-    intros.
-    unfold mmap.
-    crush_ast_obligations; crush_ast_obligations.
+    crush_ast_obligations.
   Qed.
 
 End Arg.
@@ -221,28 +199,27 @@ End Arg.
 Module Assignment <: AST.
 
   Definition omap := assignment.
-  Definition mmap {v w} (transv : subT v w) (a : assignment v) : assignment w :=
+
+
+  Definition mmap {v w} (f : subT v w) (a : assignment v) : assignment w :=
     match a with
-    | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3)
-    | @assign2 _ _ u v1 v2 => assign2 w _ u (map_for_arg transv v1) (map_for_arg transv v2)
-    | @update2 _ _ b v1 v2 => update2 w _ b (map_for_arg transv v1) (map_for_arg transv v2)
-    | @update1 _ _ u v1 => update1 w _ u (map_for_arg transv v1)
+    | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
+    | @assign2 _ _ u v1 v2 => assign2 w _ u (Arg.mmap f v1) (Arg.mmap f v2)
+    | @update2 _ _ b v1 v2 => update2 w _ b (Arg.mmap f v1) (Arg.mmap f v2)
+    | @update1 _ _ u v1 => update1 w _ u (Arg.mmap f v1)
     end.
 
   Lemma idF {u} : mmap (@VarT.idM u) = id.
   Proof.
-    Hint Rewrite identity_for_arg.
-    unfold mmap.
-        
-    crush_ast_obligations. 
+    Hint Rewrite Arg.idF.
+    
+    crush_ast_obligations.
+
   Qed. 
 
   Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = TypeCat.composeM (mmap g) (mmap f).
   Proof.
     Hint Rewrite @Arg.functorial.
-
-    intros.
-    unfold mmap.
 
     crush_ast_obligations.
   Qed.
@@ -261,7 +238,6 @@ Module Instruction <: AST.
   Proof.
     Hint Rewrite @Assignment.idF.
     
-    unfold mmap.
     crush_ast_obligations.
   Qed.    
     
@@ -269,8 +245,6 @@ Module Instruction <: AST.
   Proof.
     Hint Rewrite @Assignment.functorial.
 
-    intros.
-    unfold mmap.
     crush_ast_obligations.
   Qed.
 
