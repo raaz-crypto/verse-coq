@@ -33,6 +33,7 @@ on values stored in the registers. These instructions can be of
 arity unary or binary.
 
 *)
+
 Inductive arity := binary | unary.
 
 (**
@@ -63,14 +64,8 @@ Definition uniop := op unary.
 
 Section Language.
 
-  (** ** Architecture specific portions.
-
-Architectures differs in what registers they have and what special
-instructions they support. To capture this variability in the
-architecture the verse assembly language is parameterised over these
-two quantities.
-
-   *)
+  (** The verse assembly language is parameterised over the type [var]
+      of typed variables *)
 
   Variable var   : type -> Type.
 
@@ -81,7 +76,7 @@ assembly. A [function] in verse is set of [statements] which inturn
 are instructions applied on appropriate arguments. Arguments,
 represented in Coq using the type [arg], can be one of the following
 
-- _Variables_ represented in Coq using the type [var].
+- _Variables_ 
 
 - _Constants_
 
@@ -141,31 +136,6 @@ End Language.
 Arguments wftypesB [var] _ .
 Arguments wfvarB [var] _ .
 
-(* Helper functions for the Function module *)
-
-Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
-  match a with
-  | v _ vv => Singleton _ (existT var _ vv) 
-  | constant _ c => Empty_set _
-  | index _ arr => Singleton _ (existT var _ arr)
-  end.
-
-Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
-  match i with
-  | assign _ a => match a with
-                     | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
-                     | assign2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                     | update2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                     | update1 _ _ _ a1 => striparg a1
-                     end
-  end.
-
-Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
-  match b with
-  | [] => Empty_set _
-  | i :: bt => Union _ (instrvars i) (getvars bt)
-  end.
-
 (* Syntax modules *)
 
 Module Arg <: VarTto VarT.
@@ -180,13 +150,11 @@ Module Arg <: VarTto VarT.
     | index _ arr => index _ (f _ arr)
     end.
 
-  Arguments mmap [v1 v2] _ [t] _.
+  Arguments mmap {v1 v2} _ [t] _.
 
-  Lemma idF : forall (u : varT) , mmap (@VarT.idM u) = VarT.idM.
+  Lemma idF (u : varT) :  mmap (@VarT.idM u) = VarT.idM.
   Proof.
-
     crush_ast_obligations.
-
   Qed.
 
   Lemma functorial : forall {u v w} {g : subT v w} {f : subT u v}, mmap (g << f) = VarT.composeM (mmap g) (mmap f).
@@ -251,6 +219,31 @@ Module Instruction <: AST.
 End Instruction.
 
 Module Block := ListAST Instruction.
+
+(* Helper functions for the Function module *)
+
+Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
+  match a with
+  | v _ vv => Singleton _ (existT var _ vv) 
+  | constant _ c => Empty_set _
+  | index _ arr => Singleton _ (existT var _ arr)
+  end.
+
+Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
+  match i with
+  | assign _ a => match a with
+                     | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
+                     | assign2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update1 _ _ _ a1 => striparg a1
+                     end
+  end.
+
+Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
+  match b with
+  | [] => Empty_set _
+  | i :: bt => Union _ (instrvars i) (getvars bt)
+  end.
 
 (*
 Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (instrvars i) vv -> transv _ (projT2 vv) <> None)

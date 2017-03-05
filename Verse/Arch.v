@@ -12,13 +12,14 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The registers for this architecture *)
+
   Parameter archvar  : varT.
 
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
   Parameter wfinstr : instruction archvar -> Prop.
-
+  
   Fixpoint wfinstrB (b : block archvar) : Prop :=
     match b with
     | [] => True

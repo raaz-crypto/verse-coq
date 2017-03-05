@@ -75,6 +75,9 @@ End VarT.
 Notation "f >> g" := (VarT.composeM g f) (at level 40, left associativity).
 Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 
+Definition varT := VarT.o.
+Definition subT := VarT.mr.
+
 (** ** Syntactic types.
 
 The type [synT : Type] captures the coq type of syntax trees. If
@@ -83,10 +86,9 @@ as a particular program parameteried by variables, i.e. if in addition
 [u : varT], then [prog u] is a fragment that uses the variable type
 [u].
 
-*)
+ *)
 
-Definition varT := VarT.o.
-Definition subT := VarT.mr.
+Definition synT := varT -> Type.
 
 (** *** The class of abstract syntax trees.
 
@@ -99,9 +101,6 @@ are types that allow mapping over its variables using a substitution.
 Module Type VarTto (C : Cat) := Functor VarT C.
 
 Module Type AST := VarTto TypeCat.
-
-Definition synT := varT -> Type.
-Definition morphT (syn : synT) := varT -> varT -> Type.
 
 (** * Tactic to crush AST proof obligations
 
@@ -146,7 +145,7 @@ Module ListAST (Syn : AST) <: AST.
 
 End ListAST.
 
-Check forall (ty : type) (v : VarT.o), v ty.
+
 Inductive opt (v : VarT.o) :=
 | defined (t : type) : v t -> opt v
 | undefined          : opt v.
