@@ -229,7 +229,7 @@ Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var
   | index _ arr => Singleton _ (existT var _ arr)
   end.
 
-Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
+Fixpoint ivars {var} (i : instruction var) : Ensemble (sigT var) :=
   match i with
   | assign _ a => match a with
                      | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
@@ -239,14 +239,11 @@ Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
                      end
   end.
 
-Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
-  match b with
-  | [] => Empty_set _
-  | i :: bt => Union _ (instrvars i) (getvars bt)
-  end.
+Definition bvars {var : varT} (b : block var) := fold_left (fun S i => Union _ S (ivars i)) b (Empty_set _).
+
 
 (*
-Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (instrvars i) vv -> transv _ (projT2 vv) <> None)
+Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (ivars i) vv -> transv _ (projT2 vv) <> None)
   : instruction v2.
   refine (
       match i with
