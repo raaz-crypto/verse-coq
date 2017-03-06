@@ -1,5 +1,6 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
+Require Import Verse.Cat.
 Require Import FunctionalExtensionality.
 Require Import Basics.
 
@@ -9,9 +10,11 @@ In this module, we define coq types that captures various syntactic
 objects in verse namely variables, languages, substitutions etc.
 
 
-*)
+ *)
 
-(** ** Variable type.
+Module VarT <: Cat.
+
+  (** ** Variable type.
 
 
 Programs use variables.  The type [varT : Type] captures coq types
@@ -36,32 +39,44 @@ Inductive Var : varT :=
 Defining variables as above helps the user avoid problems like name
 clashing (guranteed by each constructor being a name).
 
-*)
+   *)
 
-Definition varT := type -> Type.
+  Definition o := type -> Type.
 
-(** ** Substitution type.
+  (** ** Substitution type.
 
 The type [subT u v] is the coq type that captures substitutions from
 variables of type [u] to variables of type [v]
 
-*)
+   *)
 
-Definition subT (u v : varT) := forall t, u t -> v t.
+  Definition mr (u v : o) := forall t, u t -> v t.
 
+  (** For any variable type [u : varT] there is always a identity substitution *)
 
-(** For any variable type [u : varT] there is always a identity substitution *)
+  Definition idM {u : o} : mr u u := fun t x => x.
 
-Definition idSubst (u : varT) : subT u u := fun _ x => x.
+  (** Substitutions can be composed *)
 
-(** Substitutions can be composed *)
-Definition composeSubT {u v w} (g : subT v w)(f : subT u v) : subT u w :=
-  fun t ut => g t (f t ut).
+  Definition composeM {u v w} (g : mr v w)(f : mr u v) : mr u w :=
+    fun t ut => g t (f t ut).
 
-Notation "f >> g" := (composeSubT g f) (at level 40, left associativity).
-Notation "f << g" := (composeSubT f g) (at level 40, left associativity).
+  Lemma identityLeft  : forall {a b}{f : mr a b}, composeM idM f =  f.
+  Proof. auto. Qed.
 
+  Lemma identityRight : forall {a b}{f : mr a b},  composeM f idM =  f.
+  Proof. auto. Qed.
 
+  Lemma associativity : forall {a b c d}{f : mr a b}{g : mr b c}{h : mr c d}, composeM (composeM h g) f  = composeM h (composeM g f).
+  Proof. auto. Qed.
+
+End VarT.
+
+Notation "f >> g" := (VarT.composeM g f) (at level 40, left associativity).
+Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
+
+Definition varT := VarT.o.
+Definition subT := VarT.mr.
 
 (** ** Syntactic types.
 
@@ -71,7 +86,7 @@ as a particular program parameteried by variables, i.e. if in addition
 [u : varT], then [prog u] is a fragment that uses the variable type
 [u].
 
-*)
+ *)
 
 Definition synT := varT -> Type.
 
@@ -83,20 +98,9 @@ are types that allow mapping over its variables using a substitution.
 
 *)
 
-Module Type AST.
+Module Type VarTto (C : Cat) := Functor VarT C.
 
-  (* The type of the underlying syntax tree *)
-  Parameter syn : synT.
-
-  (* The function that maps a subsitution over the syntax tree *)
-  Parameter map : forall {u v : varT}, subT u v -> syn u -> syn v.
-
-
-  Axiom identity : forall {u}, map (idSubst u) = id.
-
-  Axiom composition : forall {u v w}{g : subT v w}{f : subT u v}, compose (map g) (map f) = map (g << f).
-
-End AST.
+Module Type AST := VarTto TypeCat.
 
 (** * Tactic to crush AST proof obligations
 
@@ -106,43 +110,43 @@ are often straight forward. This tactic crushes them.
  *)
 
 Ltac crush_ast_obligations :=
-  repeat match goal with
-         | [ |- ?F _ = ?F _] => f_equal
-         | _ => apply functional_extensionality;
-                let x := fresh "X" in intro x; unfold id; unfold compose; autorewrite with core; eauto; destruct x; trivial
-         end.
-
+  repeat (intros; apply functional_extensionality_dep;
+         let x := fresh "X" in intro x; destruct x; simpl;
+                               unfold id; unfold compose; autorewrite with core; eauto).
 
 (** * Some examples. *)
 
-Module ListAST ( Syn : AST ) <: AST.
+Module ListAST (Syn : AST) <: AST.
 
-  Definition syn (v : varT) := list (Syn.syn v).
+  Definition omap v := list (Syn.omap v).
 
-  Definition map {u v}(f : subT u v) (lsyn : list (Syn.syn u) ) : list (Syn.syn v)
-    := List.map (Syn.map f) lsyn.
+  Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
+    := List.map (Syn.mmap f) lsyn.
 
-  Lemma identity {u}: map (idSubst u) = id.
+  Arguments mmap / {u v} _ _.
+
+  Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
   Proof.
     Hint Rewrite List.map_id.
-    Hint Rewrite @Syn.identity.
-    unfold map.
-    crush_ast_obligations.
+    Hint Rewrite @Syn.idF.
+
+    crush_ast_obligations. 
+        
   Qed.
 
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
   Proof.
     Hint Rewrite List.map_map.
-    Hint Rewrite <- @Syn.composition.
-    unfold map.
+    Hint Rewrite @Syn.functorial.
+
     crush_ast_obligations.
   Qed.
 
 End ListAST.
 
 
-Inductive opt (v : varT) :=
+Inductive opt (v : VarT.o) :=
 | defined (t : type) : v t -> opt v
 | undefined          : opt v.
 
@@ -151,30 +155,32 @@ Arguments undefined [v].
 Notation "{- X -}" := (defined X).
 Notation "_|_"   := undefined.
 
-
 Module OptAST <: AST.
 
-  Definition syn := opt.
+  Definition omap := opt.
 
-  Definition map {u v}(f : subT u v) (ou : opt u) : opt v :=
+  Definition mmap {u v}(f : VarT.mr u v) (ou : opt u) : opt v :=
     match ou with
     | {- xU -} => {- f _ xU -}
     | _|_    => _|_
     end.
 
-  Lemma identity {u}: map (idSubst u) = id.
-  Proof.
-    crush_ast_obligations.
-  Qed.
 
-  Lemma composition {u v w}{g : subT v w}{f : subT u v}: compose (map g) (map f) = map (g << f).
+  Lemma idF {u}: mmap (@VarT.idM u) = id.
   Proof.
+    
     crush_ast_obligations.
+    
+  Qed.
+ 
+ Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+  Proof.
+
+    crush_ast_obligations.
+
   Qed.
 
 End OptAST.
-
-
 
 (** A small example of maping over Opt.
 

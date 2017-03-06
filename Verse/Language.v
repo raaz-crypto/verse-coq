@@ -1,8 +1,15 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
+Require Import Verse.Cat.
+Require Import Verse.Syntax.
 Require Vector.
-Import List.ListNotations.
+Require Import Coq.Sets.Ensembles.
+Require Import List.
+Import ListNotations.
+Require Import Recdef.
 Import String.
+Require Import Basics.
+Require Import Coq.Logic.FunctionalExtensionality.
 
 (** * The abstract syntax
 
@@ -26,6 +33,7 @@ on values stored in the registers. These instructions can be of
 arity unary or binary.
 
 *)
+
 Inductive arity := binary | unary.
 
 (**
@@ -56,17 +64,10 @@ Definition uniop := op unary.
 
 Section Language.
 
-  (** ** Architecture specific portions.
+  (** The verse assembly language is parameterised over the type [var]
+      of typed variables *)
 
-Architectures differs in what registers they have and what special
-instructions they support. To capture this variability in the
-architecture the verse assembly language is parameterised over these
-two quantities.
-
-   *)
-
-  Variable r   : type -> Type.
-  Variable i   : Type.
+  Variable var   : type -> Type.
 
   (** ** Assembly language statements.
 
@@ -75,7 +76,7 @@ assembly. A [function] in verse is set of [statements] which inturn
 are instructions applied on appropriate arguments. Arguments,
 represented in Coq using the type [arg], can be one of the following
 
-- _Variables_ represented in Coq using the type [var].
+- _Variables_ 
 
 - _Constants_
 
@@ -83,106 +84,185 @@ represented in Coq using the type [arg], can be one of the following
 
 
 *)
-  Inductive var : type -> Type :=
-  | register {ty : type} : r ty -> var ty
-  | stack    (ty : type) : nat  -> var ty
-  | param    (ty : type) : nat  -> var ty
-  .
-
-  Inductive arg : type -> Type :=
+  
+  Inductive arg : type -> Type := 
   | v        {ty : type} : var ty -> arg ty
-  | const    {ty : type} : constant ty -> arg ty
+  | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
-    : arg (array b e ty) -> arg ty.
-
+    : var (array b e ty) -> arg ty.
 
   Inductive assignment : Type :=
-  | assign3  {ty : type}{_ : isValue ty}
-    : binop -> arg ty -> arg ty -> arg ty -> assignment
+  | assign3 
+    : forall ty, binop -> arg ty -> arg ty -> arg ty -> assignment
   (** e.g. x = y + z *)
-  | assign2 {ty : type}{_ : isValue ty}
-    : uniop -> arg ty -> arg ty -> assignment  (** e.g. x = ~ y   *)
-  | update2 {ty : type}{_ : isValue ty}
-    : binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
-  | update1 {ty : type}{_ : isValue ty}
-    : uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
+  | assign2
+    : forall ty, uniop -> arg ty -> arg ty -> assignment (** e.g. x = ~ y   *)
+  | update2
+    : forall ty, binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
+  | update1
+    : forall ty, uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
   .
 
-  Inductive statement : Type :=
-  | assign   : assignment -> statement
-  | specials : i          -> statement
-  | each {ty : type}{_ : isBounded ty} :
-      var ty  -> arg (sequence ty) -> list statement -> statement
+  Inductive instruction : Type :=
+  | assign : assignment -> instruction
   .
 
-  Definition statements := list statement.
+  Definition block := list instruction.
 
-  Definition context    := list type.
-(*
-  Definition variable (ty : type) := existT type ty.
-*)
-  Record block   : Type
-    := makeBlock { locals       : context;
-                   instructions : statements
-                 }.
+  (* Generic well-formed checks on instructions *)
+  
+  Inductive isLval {ty : type} : arg ty -> Prop :=
+   | vIsLval {vr : var ty} : isLval (v vr)
+   | indexIsLval {b : nat} {e : endian} {a : var (array b e ty)}: isLval (index a)
+  .
+  Definition wftypes (i : instruction) : Prop := True.
 
-  Record function : Type
-    := makeFunction { name    : string;
-                      params  : context;
-                      body    : block
-                    }.
+  Definition wftypesB (b : block) : Prop := fold_left and (map wftypes b) True.
 
-
-  (* begin hide *)
-  Local Open Scope list_scope.
-
-  Fixpoint allocType (cs : context)(B : Type)
-    := match cs with
-         | []                 => B
-         | ty :: vsP => arg ty -> allocType vsP B
-       end.
-
-  Fixpoint allocVar
-           (mkV : forall (ty : type), nat -> var ty)
-           (n : nat)(cs : context)(B : Type)
-  : allocType cs B -> B
-    := match cs with
-         | []
-           => fun b : allocType [] B => b
-         | ty :: csP
-           => fun f : arg ty -> allocType csP B
-              =>  allocVar mkV (S n) csP B (f (v (mkV ty n)))
-       end.
-
-  (* end hide *)
-
-   (** * Allocating variables.
-
-Constructing the function definition directly is inconvinient and
-error prone particularly when parameter indices are in question. The
-combinators [defun] and [local] can be used for this purpose.
-  *)
-
-
-  Definition defun (nm : string)(ps : context)
-  : forall f : allocType ps block, function
-    := fun f => makeFunction nm ps (allocVar (@param) 1 ps block f).
-
-  Definition local (ps : context)
-  : forall f : allocType ps statements, block
-    := fun f => makeBlock ps (allocVar (@stack) 1 ps statements f).
+  Fixpoint wfvar (i : instruction) : Prop := 
+    match i with
+    | assign i => match i with
+                  | assign3 ty _ v1 _ _ => and (isValue ty) (isLval v1)
+                  | assign2 ty _ v1 _  => and (isValue ty) (isLval v1)
+                  | update2 ty _ v1 _  => and (isValue ty) (isLval v1)
+                  | update1 ty _ v1     => and (isValue ty) (isLval v1)
+                  end
+    end.
+  
+  Definition wfvarB (b : block) : Prop := fold_left and (map wfvar b) True.
 
 End Language.
 
+Arguments wftypesB [var] _ .
+Arguments wfvarB [var] _ .
 
-Arguments defun [r i] _ _ _.
-Arguments local [r i] _ _.
+(* Syntax modules *)
 
-(**
+Module Arg <: VarTto VarT.
+
+  Definition omap := arg.
+
+  Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
+    fun ty a =>
+    match a with
+    | v  _ vv1 => v _ (f _ vv1)
+    | constant _ c => constant _ c
+    | index _ arr => index _ (f _ arr)
+    end.
+
+  Arguments mmap {v1 v2} _ [t] _.
+
+  Lemma idF (u : varT) :  mmap (@VarT.idM u) = VarT.idM.
+  Proof.
+    crush_ast_obligations.
+  Qed.
+
+  Lemma functorial : forall {u v w} {g : subT v w} {f : subT u v}, mmap (g << f) = VarT.composeM (mmap g) (mmap f).
+  Proof.
+    crush_ast_obligations.
+  Qed.
+
+End Arg.
+
+Module Assignment <: AST.
+
+  Definition omap := assignment.
 
 
- *)
+  Definition mmap {v w} (f : subT v w) (a : assignment v) : assignment w :=
+    match a with
+    | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
+    | @assign2 _ _ u v1 v2 => assign2 w _ u (Arg.mmap f v1) (Arg.mmap f v2)
+    | @update2 _ _ b v1 v2 => update2 w _ b (Arg.mmap f v1) (Arg.mmap f v2)
+    | @update1 _ _ u v1 => update1 w _ u (Arg.mmap f v1)
+    end.
 
+  Lemma idF {u} : mmap (@VarT.idM u) = id.
+  Proof.
+    Hint Rewrite Arg.idF.
+    
+    crush_ast_obligations.
+
+  Qed. 
+
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = TypeCat.composeM (mmap g) (mmap f).
+  Proof.
+    Hint Rewrite @Arg.functorial.
+
+    crush_ast_obligations.
+  Qed.
+  
+End Assignment.
+
+Module Instruction <: AST.
+
+  Definition omap := instruction.
+  Definition mmap {v w} (f : subT v w) (i : instruction v) : instruction w :=
+  match i with
+  | assign _ a => assign w (Assignment.mmap f a)
+  end.
+
+  Lemma idF {u}: mmap (@VarT.idM u) = id.
+  Proof.
+    Hint Rewrite @Assignment.idF.
+    
+    crush_ast_obligations.
+  Qed.    
+    
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+  Proof.
+    Hint Rewrite @Assignment.functorial.
+
+    crush_ast_obligations.
+  Qed.
+
+End Instruction.
+
+Module Block := ListAST Instruction.
+
+(* Helper functions for the Function module *)
+
+Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
+  match a with
+  | v _ vv => Singleton _ (existT var _ vv) 
+  | constant _ c => Empty_set _
+  | index _ arr => Singleton _ (existT var _ arr)
+  end.
+
+Fixpoint instrvars {var} (i : instruction var) : Ensemble (sigT var) :=
+  match i with
+  | assign _ a => match a with
+                     | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
+                     | assign2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
+                     | update1 _ _ _ a1 => striparg a1
+                     end
+  end.
+
+Fixpoint getvars {var : varT} (b : block var) : Ensemble (sigT var) :=
+  match b with
+  | [] => Empty_set _
+  | i :: bt => Union _ (instrvars i) (getvars bt)
+  end.
+
+(*
+Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (instrvars i) vv -> transv _ (projT2 vv) <> None)
+  : instruction v2.
+  refine (
+      match i with
+      | assign _ ty a => match a with
+                         | @assign3 _ _ b v1 v2 v3 => assign w _ (assign3 w b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3))
+                         | @assign2 _ _ u v1 v2 => assign w _ (assign2 w u (map_for_arg transv v1) (map_for_arg transv v2))
+                         | @update2 _ _ b v1 v2 => assign w _ (update2 w b (map_for_arg transv v1) (map_for_arg transv v2))
+                         | @update1 _ _ u v1 => assign w _ (update1 w u (map_for_arg transv v1))
+                         end
+      end
+*)
+
+(*
+Fixpoint translatem {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> option (w ty)) (b : list (instruction v)) (allAlloc : forall vv : sigT v, Ensembles.In _ (getvars b) vv ->  transv _ (projT2 vv) <> None) : Prop := 
+  refine (
+*)
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
 Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
@@ -209,4 +289,5 @@ Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
                              (at level 20).
 Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
                              (at level 20).
-Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).
+(*Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).*)
+
