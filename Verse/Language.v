@@ -162,7 +162,51 @@ Module Arg <: VarTto VarT.
     crush_ast_obligations.
   Qed.
 
+  Definition vSet {var} {ty} (a : omap var ty) : Ensemble (sigT var) :=
+    match a with
+    | (v _ vv) => Singleton _ (existT var _ vv) 
+    | (constant _ c) => Empty_set _
+    | (index _ arr) => Singleton _ (existT var _ arr)
+    end.
+(*
+  Parameter opmap : forall {v w} {ty} (f : opSigT v w) (o : omap v ty),
+     sumor (omap w ty) (exists var : sigT v, and (Ensembles.In _ (vSet (o)) var) (f var = None)).
+*)
+  Definition opmap {v w} {ty} (f : opSigT v w) (o : omap v ty) : 
+     sumor (sigT (omap w)) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f var = None)).
+    refine
+      (match o with 
+       | v _ vv => let im := f (existT _ _ vv) in
+                   match im return sigT (omap w) + {exists var, and _ (im = None)} with
+                   | None => inright (ex_intro _ (existT _ _ vv)
+                                               (conj _ (eq_refl None)))
+                   | Some (existT _ _ ww) => inleft (existT _ _ (Top.v _ ww))
+                   end
+       | _ => _
+       end).
+     (f (existT _ _ vv)).
+    unfold vSet; apply In_singleton. Print eq.
+
+    refine
+    match o with
+    | existT _ _ (v _ vv) => (match f (existT _ _ vv) with
+                | None => inright (ex_intro _ (existT _ _ vv)
+                                            (conj _ _ ))
+                | Some (existT _ _ ww) => inleft (existT _ _ (Top.v _ ww))
+                end)
+    | _ => _
+    end.
+
+    
+    
 End Arg.
+
+Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
+  match a with
+  | v _ vv => Singleton _ (existT var _ vv) 
+  | constant _ c => Empty_set _
+  | index _ arr => Singleton _ (existT var _ arr)
+  end.
 
 Module Assignment <: AST.
 
@@ -191,6 +235,69 @@ Module Assignment <: AST.
 
     crush_ast_obligations.
   Qed.
+
+  Definition vSet {var} (a : omap var) : Ensemble (sigT var) :=
+    match a with
+    | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (Arg.vSet a1) (Arg.vSet a2)) (Arg.vSet a3)
+    | assign2 _ _ _ a1 a2 => Union _ (Arg.vSet a1) (Arg.vSet a2)
+    | update2 _ _ _ a1 a2 => Union _ (Arg.vSet a1) (Arg.vSet a2)
+    | update1 _ _ _ a1 => Arg.vSet a1
+    end.
+
+  Hint Resolve Union_intror.
+  Hint Resolve Union_introl.
+
+  Definition opmap {v1 w} (f : opSigT v1 w) (o : omap v1):
+    sumor (omap w) (exists var : sigT v1, and (Ensembles.In _ (vSet o) var) (f var = None)).
+    refine
+      match o with
+      | update1 _ _ u av => match Arg.opmap f av with
+                            | inleft aw => inleft (update1 _ _ u aw)
+                            | inright p => inright
+                                             match p with
+                                             | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                             end
+                            end
+      | update2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
+                                 | inleft aw1, inleft aw2 => inleft (update2 _ _ u aw1 aw2)
+                                 | inright p, _ => inright
+                                                     match p with
+                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                     end
+                                 | _, inright p => inright
+                                                     match p with
+                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                     end
+                                 end
+      | assign3 _ _ u av1 av2 av3 => match Arg.opmap f av1, Arg.opmap f av2, Arg.opmap f av3 with
+                                     | inleft aw1, inleft aw2, inleft aw3 => inleft (assign3 _ _ u aw1 aw2 aw3)
+                                     | inright p, _, _ => inright
+                                                            match p with
+                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                            end
+                                     | _, inright p, _ => inright
+                                                            match p with
+                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                            end
+                                     | _, _, inright p => inright
+                                                            match p with
+                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                            end
+                                     end
+      | assign2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
+                                 | inleft aw1, inleft aw2 => inleft (assign2 _ _ u aw1 aw2)
+                                 | inright p, _ => inright
+                                                     match p with
+                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                     end
+                                 | _, inright p => inright
+                                                     match p with
+                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                                     end
+                                 end
+      end;
+      apply conj; unfold vSet; eauto.
+  Qed.
   
 End Assignment.
 
@@ -216,18 +323,31 @@ Module Instruction <: AST.
     crush_ast_obligations.
   Qed.
 
+  Definition vSet {var} (i : omap var) : Ensemble (sigT var) :=
+    match i with
+    | assign _ a => Assignment.vSet a
+    end.
+
+  Definition opmap {v w} (f : opSigT v w) (o : omap v) :
+      sumor (omap w) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f var = None)).
+    refine
+      match o with
+      | assign _ iv => match Assignment.opmap f iv with
+                       | inleft iw => inleft (assign _ iw)
+                       | inright p => inright
+                                        match p with
+                                        | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
+                                        end
+                       end
+      end;
+      apply conj; eauto.
+    Qed.
+
 End Instruction.
 
 Module Block := ListAST Instruction.
 
 (* Helper functions for the Function module *)
-
-Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
-  match a with
-  | v _ vv => Singleton _ (existT var _ vv) 
-  | constant _ c => Empty_set _
-  | index _ arr => Singleton _ (existT var _ arr)
-  end.
 
 Fixpoint ivars {var} (i : instruction var) : Ensemble (sigT var) :=
   match i with
