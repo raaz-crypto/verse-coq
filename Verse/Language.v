@@ -3,9 +3,9 @@ Require Import Verse.Types.
 Require Import Verse.Cat.
 Require Import Verse.Syntax.
 Require Vector.
-Require Import Coq.Sets.Ensembles.
 Require Import List.
-Import ListNotations.
+Require Import Coq.Sets.Ensembles.
+(*Import ListNotations.*)
 Require Import Recdef.
 Import String.
 Require Import Basics.
@@ -138,12 +138,11 @@ Arguments wfvarB [v] _ .
 
 Lemma casesOpt {T : Type} (o : option T) : {t : T | o = Some t} + {o = None}.
 Proof.
-  induction o.
-  constructor.
-  exact (exist _ a eq_refl).
-  constructor 2.
-  trivial.
-  Show Proof.
+  exact 
+  match o with
+  | Some t => inleft (exist _ t eq_refl)
+  | None   => inright (eq_refl)
+  end.
 Qed.
 
 (* Syntax modules *)
@@ -180,34 +179,22 @@ Module Arg <: VarTto VarT.
     end.
 
   Definition opmap {v w} {ty} (f : opSubT v w) (o : omap v ty) : 
-     sumor (omap w ty) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
+     sumor (omap w ty) (exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)).
     refine
       (match o with 
-       | var _ vv => _
+       | var _ vv => match casesOpt (f _ vv) with
+                     | inleft (exist _ a _) => inleft (var _ a)
+                     | inright p => inright (ex_intro _ (existT _ _ vv) (conj _ p))
+                     end
        | constant _ c => inleft (constant _ c)
-       | index _ arr => _
-       end).
-    assert (im_ind := casesOpt (f _ vv)).
-    induction im_ind.
-    exact (inleft (var _ (proj1_sig a))).
-    apply inright.
-    exists (existT _ _ vv).
-    apply conj.
-    unfold vSet.
-    unfold Ensembles.In.
-    constructor.
-    exact b.
-    assert (im_ind := casesOpt (f _ arr)).
-    induction im_ind.
-    exact (inleft (index _ (proj1_sig a))).
-    apply inright.
-    exists (existT _ _ arr).
-    apply conj.
-    unfold vSet.
-    unfold Ensembles.In.
-    constructor.
-    simpl.
-    exact b.
+       | index _ arr => match casesOpt (f _ arr) with
+                        | inleft (exist _ a _) => inleft (index _ a)
+                        | inright p => inright (ex_intro _ (existT _ _ arr) (conj _ p))
+                        end
+       end); 
+    unfold vSet;
+    unfold In;
+    split.
   Qed.
     
 End Arg.
@@ -258,56 +245,40 @@ Module Assignment <: AST.
   Hint Resolve Union_intror.
   Hint Resolve Union_introl.
 
-  Definition opmap {v1 w} (f : opSubT v1 w) (o : omap v1):
-    sumor (omap w) (exists var : sigT v1, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+
+  Notation error := inright.
+  Notation "{- X -}" := (inleft X).
+  Definition opmap {v1 w} (f : opSubT v1 w) (o : omap v1): opt f o.
+
     refine
       match o with
       | update1 _ _ u av => match Arg.opmap f av with
-                            | inleft aw => inleft (update1 _ _ u aw)
-                            | inright p => inright
-                                             match p with
-                                             | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                             end
+                            | {- aw -} => {- update1 _ _ u aw -}
+                            | error p => error _
                             end
       | update2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
-                                 | inleft aw1, inleft aw2 => inleft (update2 _ _ u aw1 aw2)
-                                 | inright p, _ => inright
-                                                     match p with
-                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                     end
-                                 | _, inright p => inright
-                                                     match p with
-                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                     end
+                                 | {- aw1 -}, {- aw2 -} => {- update2 _ _ u aw1 aw2 -}
+                                 | error p, _ => error _ 
+                                 | _, error p => error _ 
                                  end
       | assign3 _ _ u av1 av2 av3 => match Arg.opmap f av1, Arg.opmap f av2, Arg.opmap f av3 with
-                                     | inleft aw1, inleft aw2, inleft aw3 => inleft (assign3 _ _ u aw1 aw2 aw3)
-                                     | inright p, _, _ => inright
-                                                            match p with
-                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                            end
-                                     | _, inright p, _ => inright
-                                                            match p with
-                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                            end
-                                     | _, _, inright p => inright
-                                                            match p with
-                                                            | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                            end
+                                     | {- aw1 -}, {- aw2 -}, {- aw3 -} => {- assign3 _ _ u aw1 aw2 aw3 -}
+                                     | error p, _, _ => error _ 
+                                     | _, error p, _ => error _ 
+                                     | _, _, error p => error _ 
                                      end
       | assign2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
-                                 | inleft aw1, inleft aw2 => inleft (assign2 _ _ u aw1 aw2)
-                                 | inright p, _ => inright
-                                                     match p with
-                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                     end
-                                 | _, inright p => inright
-                                                     match p with
-                                                     | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                                     end
+                                 | {- aw1 -}, {- aw2 -} => {- assign2 _ _ u aw1 aw2 -}
+                                 | error p, _ => error _ 
+                                 | _, error p => error _ 
                                  end
-      end;
-      apply conj; unfold vSet; eauto.
+      end;      
+    destruct p as [ pv pc ];
+    destruct pc as [ pi pn ];
+    refine (ex_intro _ pv _);
+    apply conj; unfold vSet; eauto.    
   Qed.
   
 End Assignment.
@@ -339,8 +310,10 @@ Module Instruction <: AST.
     | assign _ a => Assignment.vSet a
     end.
 
-  Definition opmap {v w} (f : opSubT v w) (o : omap v) :
-      sumor (omap w) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+
+  Definition opmap {v w} (f : opSubT v w) (o : omap v) : opt f o.
     refine
       match o with
       | assign _ iv => match Assignment.opmap f iv with
@@ -353,7 +326,7 @@ Module Instruction <: AST.
       end;
       apply conj; eauto.
     Qed.
-
+  
 End Instruction.
 
 Module Block := ListAST Instruction.
@@ -374,7 +347,7 @@ Definition bvars {var : varT} (b : block var) := fold_left (fun S i => Union _ S
 
 
 (*
-Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, Ensembles.In _ (ivars i) vv -> transv _ (projT2 vv) <> None)
+Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, In _ (ivars i) vv -> transv _ (projT2 vv) <> None)
   : instruction v2.
   refine (
       match i with
@@ -388,7 +361,7 @@ Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) 
 *)
 
 (*
-Fixpoint translatem {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> option (w ty)) (b : list (instruction v)) (allAlloc : forall vv : sigT v, Ensembles.In _ (getvars b) vv ->  transv _ (projT2 vv) <> None) : Prop := 
+Fixpoint translatem {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> option (w ty)) (b : list (instruction v)) (allAlloc : forall vv : sigT v, In _ (getvars b) vv ->  transv _ (projT2 vv) <> None) : Prop := 
   refine (
 *)
 

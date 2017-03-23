@@ -104,7 +104,7 @@ Module Type VarTto (C : Cat) := Functor VarT C.
 
 Module Type VarTtoT := VarTto TypeCat.
 
-
+(*
 Inductive opt (v : VarT.o) :=
 | defined (t : type) : v t -> opt v
 | undefined          : opt v.
@@ -113,16 +113,20 @@ Arguments defined [v t] _ .
 Arguments undefined [v].
 Notation "{- X -}" := (defined X).
 Notation "_|_"   := undefined.
+ *)
 
 Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
 Module Type AST <: VarTtoT.
 
   Include VarTtoT.
+
   Parameter vSet : forall {var},  omap var -> Ensemble (sigT var).
 
-  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v),
-      sumor (omap w) (exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)).
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+
+  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
   
 End AST.
 
@@ -197,16 +201,12 @@ Module ListAST (Syn : AST) <: AST.
 
   Definition vSet {var} (b : omap var) :=
     fold_right (Union _) (Empty_set _) (map Syn.vSet b).
-(*
-  Lemma unionFold {T1 T2} (lh : T1) (lt : list T1) (f : T1 -> Ensemble T2) :
-    Included _ (f lh) (fold_left (fun s t => Union _ (f t) s) (lh::lt) (Empty_set _)).
-  Proof.
-    unfold Included.
-    intros.
-    simpl.
-  *)  
-  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : 
-    ((omap w) + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}).
+
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+
+
+  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : opt f o.
     refine
     match o with
     | nil      => inleft nil
@@ -223,8 +223,8 @@ Module ListAST (Syn : AST) <: AST.
     Qed.
 
 End ListAST.
-
-Module OptAST <: VarTtoT.
+(*
+Module Opt <: VarTtoT.
 
   Definition omap := opt.
 
@@ -249,8 +249,8 @@ Module OptAST <: VarTtoT.
 
   Qed.
 
-End OptAST.
-
+End Opt.
+*)
 
 
 (** A small example of maping over Opt.
