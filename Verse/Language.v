@@ -67,7 +67,7 @@ Section Language.
   (** The verse assembly language is parameterised over the type [var]
       of typed variables *)
 
-  Variable var   : type -> Type.
+  Variable v   : type -> Type.
 
   (** ** Assembly language statements.
 
@@ -86,10 +86,10 @@ represented in Coq using the type [arg], can be one of the following
 *)
   
   Inductive arg : type -> Type := 
-  | v        {ty : type} : var ty -> arg ty
+  | var      {ty : type} : v ty -> arg ty
   | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
-    : var (array b e ty) -> arg ty.
+    : v (array b e ty) -> arg ty.
 
   Inductive assignment : Type :=
   | assign3 
@@ -112,8 +112,8 @@ represented in Coq using the type [arg], can be one of the following
   (* Generic well-formed checks on instructions *)
   
   Inductive isLval {ty : type} : arg ty -> Prop :=
-   | vIsLval {vr : var ty} : isLval (v vr)
-   | indexIsLval {b : nat} {e : endian} {a : var (array b e ty)}: isLval (index a)
+   | vIsLval {vr : v ty} : isLval (var vr)
+   | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)}: isLval (index a)
   .
   Definition wftypes (i : instruction) : Prop := True.
 
@@ -133,8 +133,18 @@ represented in Coq using the type [arg], can be one of the following
 
 End Language.
 
-Arguments wftypesB [var] _ .
-Arguments wfvarB [var] _ .
+Arguments wftypesB [v] _ .
+Arguments wfvarB [v] _ .
+
+Lemma casesOpt {T : Type} (o : option T) : {t : T | o = Some t} + {o = None}.
+Proof.
+  induction o.
+  constructor.
+  exact (exist _ a eq_refl).
+  constructor 2.
+  trivial.
+  Show Proof.
+Qed.
 
 (* Syntax modules *)
 
@@ -145,7 +155,7 @@ Module Arg <: VarTto VarT.
   Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
     fun ty a =>
     match a with
-    | v  _ vv1 => v _ (f _ vv1)
+    | var  _ vv1 => var _ (f _ vv1)
     | constant _ c => constant _ c
     | index _ arr => index _ (f _ arr)
     end.
@@ -162,48 +172,49 @@ Module Arg <: VarTto VarT.
     crush_ast_obligations.
   Qed.
 
-  Definition vSet {var} {ty} (a : omap var ty) : Ensemble (sigT var) :=
+  Definition vSet {v} {ty} (a : omap v ty) : Ensemble (sigT v) :=
     match a with
-    | (v _ vv) => Singleton _ (existT var _ vv) 
+    | (var _ vv) => Singleton _ (existT v _ vv) 
     | (constant _ c) => Empty_set _
-    | (index _ arr) => Singleton _ (existT var _ arr)
+    | (index _ arr) => Singleton _ (existT v _ arr)
     end.
-(*
-  Parameter opmap : forall {v w} {ty} (f : opSigT v w) (o : omap v ty),
-     sumor (omap w ty) (exists var : sigT v, and (Ensembles.In _ (vSet (o)) var) (f var = None)).
-*)
-  Definition opmap {v w} {ty} (f : opSigT v w) (o : omap v ty) : 
-     sumor (sigT (omap w)) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f var = None)).
+
+  Definition opmap {v w} {ty} (f : opSubT v w) (o : omap v ty) : 
+     sumor (omap w ty) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
     refine
       (match o with 
-       | v _ vv => let im := f (existT _ _ vv) in
-                   match im return sigT (omap w) + {exists var, and _ (im = None)} with
-                   | None => inright (ex_intro _ (existT _ _ vv)
-                                               (conj _ (eq_refl None)))
-                   | Some (existT _ _ ww) => inleft (existT _ _ (Top.v _ ww))
-                   end
-       | _ => _
+       | var _ vv => _
+       | constant _ c => inleft (constant _ c)
+       | index _ arr => _
        end).
-     (f (existT _ _ vv)).
-    unfold vSet; apply In_singleton. Print eq.
-
-    refine
-    match o with
-    | existT _ _ (v _ vv) => (match f (existT _ _ vv) with
-                | None => inright (ex_intro _ (existT _ _ vv)
-                                            (conj _ _ ))
-                | Some (existT _ _ ww) => inleft (existT _ _ (Top.v _ ww))
-                end)
-    | _ => _
-    end.
-
-    
+    assert (im_ind := casesOpt (f _ vv)).
+    induction im_ind.
+    exact (inleft (var _ (proj1_sig a))).
+    apply inright.
+    exists (existT _ _ vv).
+    apply conj.
+    unfold vSet.
+    unfold Ensembles.In.
+    constructor.
+    exact b.
+    assert (im_ind := casesOpt (f _ arr)).
+    induction im_ind.
+    exact (inleft (index _ (proj1_sig a))).
+    apply inright.
+    exists (existT _ _ arr).
+    apply conj.
+    unfold vSet.
+    unfold Ensembles.In.
+    constructor.
+    simpl.
+    exact b.
+  Qed.
     
 End Arg.
 
 Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
   match a with
-  | v _ vv => Singleton _ (existT var _ vv) 
+  | var _ vv => Singleton _ (existT var _ vv) 
   | constant _ c => Empty_set _
   | index _ arr => Singleton _ (existT var _ arr)
   end.
@@ -247,8 +258,8 @@ Module Assignment <: AST.
   Hint Resolve Union_intror.
   Hint Resolve Union_introl.
 
-  Definition opmap {v1 w} (f : opSigT v1 w) (o : omap v1):
-    sumor (omap w) (exists var : sigT v1, and (Ensembles.In _ (vSet o) var) (f var = None)).
+  Definition opmap {v1 w} (f : opSubT v1 w) (o : omap v1):
+    sumor (omap w) (exists var : sigT v1, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
     refine
       match o with
       | update1 _ _ u av => match Arg.opmap f av with
@@ -328,8 +339,8 @@ Module Instruction <: AST.
     | assign _ a => Assignment.vSet a
     end.
 
-  Definition opmap {v w} (f : opSigT v w) (o : omap v) :
-      sumor (omap w) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f var = None)).
+  Definition opmap {v w} (f : opSubT v w) (o : omap v) :
+      sumor (omap w) (exists var : sigT v, and (Ensembles.In _ (vSet o) var) (f _ (projT2 var) = None)).
     refine
       match o with
       | assign _ iv => match Assignment.opmap f iv with

@@ -114,15 +114,15 @@ Arguments undefined [v].
 Notation "{- X -}" := (defined X).
 Notation "_|_"   := undefined.
 
-Definition opSigT (v w : varT) := sigT v -> option (sigT w).
+Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
 Module Type AST <: VarTtoT.
 
   Include VarTtoT.
   Parameter vSet : forall {var},  omap var -> Ensemble (sigT var).
 
-  Parameter opmap : forall {v w} (f : opSigT v w) (o : omap v),
-      sumor (omap w) (exists var : sigT v, and (In _ (vSet o) var) (f var = None)).
+  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v),
+      sumor (omap w) (exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)).
   
 End AST.
 
@@ -205,8 +205,8 @@ Module ListAST (Syn : AST) <: AST.
     intros.
     simpl.
   *)  
-  Fixpoint opmap {v w : varT} (f : opSigT v w) (o : list (Syn.omap v)) : 
-    ((omap w) + {exists var : sigT v, and (In _ (vSet o) var) ((f var) = None)}).
+  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : 
+    ((omap w) + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}).
     refine
     match o with
     | nil      => inleft nil
