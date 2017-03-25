@@ -5,7 +5,6 @@ Require Import Verse.Syntax.
 Require Vector.
 Require Import List.
 Require Import Coq.Sets.Ensembles.
-(*Import ListNotations.*)
 Require Import Recdef.
 Import String.
 Require Import Basics.
@@ -178,23 +177,32 @@ Module Arg <: VarTto VarT.
     | (index _ arr) => Singleton _ (existT v _ arr)
     end.
 
-  Definition opmap {v w} {ty} (f : opSubT v w) (o : omap v ty) : 
-     sumor (omap w ty) (exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)).
+  Definition usedIn {v} {ty} (o : omap v ty) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
+
+  Arguments vSet / _ _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _ _.
+  Arguments undef / _ _ _ _.
+
+  Definition opt {v w : varT} {ty} (f : opSubT v w) (o : omap v ty) :=
+    omap w ty + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+
+
+  Definition opmap {v w} {ty} (f : opSubT v w) (o : omap v ty) : opt f o.
     refine
       (match o with 
        | var _ vv => match casesOpt (f _ vv) with
-                     | inleft (exist _ a _) => inleft (var _ a)
-                     | inright p => inright (ex_intro _ (existT _ _ vv) (conj _ p))
+                     | {- exist _ a _ -} => {- var _ a -}
+                     | error p => error _
                      end
        | constant _ c => inleft (constant _ c)
        | index _ arr => match casesOpt (f _ arr) with
-                        | inleft (exist _ a _) => inleft (index _ a)
-                        | inright p => inright (ex_intro _ (existT _ _ arr) (conj _ p))
+                        | {- exist _ a _ -} => {- index _ a -}
+                        | error p => error _
                         end
-       end); 
-    unfold vSet;
-    unfold In;
-    split.
+       end).
+    refine (ex_intro _ (existT _ _ vv) _); simpl; eauto.
+    refine (ex_intro _ (existT _ _ arr) _); simpl; eauto.
   Qed.
     
 End Arg.
@@ -242,14 +250,16 @@ Module Assignment <: AST.
     | update1 _ _ _ a1 => Arg.vSet a1
     end.
 
-  Hint Resolve Union_intror.
-  Hint Resolve Union_introl.
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
 
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
+    
   Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
 
-  Notation error := inright.
-  Notation "{- X -}" := (inleft X).
   Definition opmap {v1 w} (f : opSubT v1 w) (o : omap v1): opt f o.
 
     refine
@@ -274,11 +284,12 @@ Module Assignment <: AST.
                                  | error p, _ => error _ 
                                  | _, error p => error _ 
                                  end
-      end;      
+      end;
     destruct p as [ pv pc ];
     destruct pc as [ pi pn ];
     refine (ex_intro _ pv _);
-    apply conj; unfold vSet; eauto.    
+    cbv delta - [In]; eauto.
+
   Qed.
   
 End Assignment.
@@ -310,21 +321,29 @@ Module Instruction <: AST.
     | assign _ a => Assignment.vSet a
     end.
 
+
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
+
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
+
   Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
 
   Definition opmap {v w} (f : opSubT v w) (o : omap v) : opt f o.
     refine
       match o with
       | assign _ iv => match Assignment.opmap f iv with
-                       | inleft iw => inleft (assign _ iw)
-                       | inright p => inright
-                                        match p with
-                                        | ex_intro _ pv (conj pi pn) => ex_intro _ pv _
-                                        end
+                       | {- iw -} => {- assign _ iw -}
+                       | error p => error _ 
                        end
-      end;
-      apply conj; eauto.
+      end.
+    destruct p as [pv pp].
+    destruct pp as [pi pn].
+    refine (ex_intro _ pv _).
+    eauto.
     Qed.
   
 End Instruction.

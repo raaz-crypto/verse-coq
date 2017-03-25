@@ -80,17 +80,6 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 Definition varT := VarT.o.
 Definition subT := VarT.mr.
 
-(** ** Syntactic types.
-
-The type [synT : Type] captures the coq type of syntax trees. If
-[progLang : synT], a syntactic type then [prog : progLang] can be seen
-as a particular program parameteried by variables, i.e. if in addition
-[u : varT], then [prog u] is a fragment that uses the variable type
-[u].
-
- *)
-
-Definition synT := varT -> Type.
 
 (** *** The class of abstract syntax trees.
 
@@ -121,15 +110,24 @@ Module Type AST <: VarTtoT.
 
   Include VarTtoT.
 
-  Parameter vSet : forall {var},  omap var -> Ensemble (sigT var).
+  Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
+
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
+
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
 
   Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
 
   Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
   
 End AST.
 
+Notation error := inright.
+Notation "{- X -}" := (inleft X).
 
 (** * Tactic to crush AST proof obligations
 
@@ -142,6 +140,7 @@ Ltac crush_ast_obligations :=
   repeat (intros; apply functional_extensionality_dep;
          let x := fresh "X" in intro x; destruct x; simpl;
                                unfold id; unfold compose; autorewrite with core; eauto).
+Hint Resolve Union_introl Union_intror In_singleton.
 
 (** * Some examples. *)
 
@@ -202,24 +201,29 @@ Module ListAST (Syn : AST) <: AST.
   Definition vSet {var} (b : omap var) :=
     fold_right (Union _) (Empty_set _) (map Syn.vSet b).
 
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
 
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
+
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
 
   Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : opt f o.
     refine
     match o with
-    | nil      => inleft nil
+    | nil      => {- nil -}
     | oh :: ol => match Syn.opmap f oh, opmap _ _ f ol with
-                  | inright ev, _ => inright
-                                             match ev with
-                                             | ex_intro _ var (conj pin pf) => ex_intro _ var (conj _ pf)
-                                             end
-                  | _, _ => inleft nil
+                  | error ev, _ => error _ 
+                  | _, _ => {- nil -}
                   end
     end.
-    unfold vSet. simpl. 
-    unfold In. apply Union_introl. trivial.
+    destruct ev as [ evv evp ].
+    destruct evp as [ evi evn ].
+    refine (ex_intro _ evv _).
+    simpl. eauto.
     Qed.
 
 End ListAST.
