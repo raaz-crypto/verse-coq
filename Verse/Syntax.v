@@ -14,26 +14,36 @@ objects in verse namely variables, languages, substitutions etc.
 
  *)
 
-Module VarT <: Cat.
-
-  (** ** Variable type.
 
 
-Programs use variables.  The type [varT : Type] captures coq types
-that can potentially be variables in programs.  A user first defines
-an inductive type whose constructors are the variable she intends to
-use in the program. For example, suppose she wishes to write a program
-which use two variables A and B of types [Word32] and [Word64]
-respectively, she would begin with a definition of the following
-nature:
+
+(** ** Variable type.
+
+Programs use variables.  The type [varT] captures coq types that can
+potentially be variables in programs. It takes as parameter the [type]
+of the value that the variable is required to hold.
+
+ *)
+
+Definition varT := type -> Type.
+
+
+
+(**
+
+A user first defines an inductive type whose constructors are the
+variable she intends to use in the program. For example, suppose she
+wishes to write a program which use two variables A and B of types
+[Word32] and [Word64] respectively, she would begin with a definition
+of the following nature:
+
 
 
 <<
 
 Inductive Var : varT :=
 | A : Var Word32
-| B : Var Word64
-.
+| B : Var Word64 .
 
 >>
 
@@ -41,24 +51,37 @@ Inductive Var : varT :=
 Defining variables as above helps the user avoid problems like name
 clashing (guranteed by each constructor being a name).
 
+*)
+
+(** ** Substitutions
+
+One of the most important operations on variables is
+substitution. Variable substitutions are captured by the following
+type. The type [subT u v] is the coq type that captures substitutions
+from variables of type [u] to variables of type [v]. Subsitutions are
+required to preserve the types of the variables.
+
    *)
 
-  Definition o := type -> Type.
 
-  (** ** Substitution type.
+Definition subT (u v : varT) := forall t, u t -> v t.
 
-The type [subT u v] is the coq type that captures substitutions from
-variables of type [u] to variables of type [v]
 
-   *)
+(**
 
-  Definition mr (u v : o) := forall t, u t -> v t.
+We can give a categorical structure on variables with substitutions
+being the morphisms. We give this below.
 
-  (** For any variable type [u : varT] there is always a identity substitution *)
+ *)
+
+Module VarT <: Cat.
+
+  Definition o := varT.
+
+
+  Definition mr (u v : o) := subT u v.
 
   Definition idM {u : o} : mr u u := fun t x => x.
-
-  (** Substitutions can be composed *)
 
   Definition composeM {u v w} (g : mr v w)(f : mr u v) : mr u w :=
     fun t ut => g t (f t ut).
@@ -74,11 +97,10 @@ variables of type [u] to variables of type [v]
 
 End VarT.
 
+
 Notation "f >> g" := (VarT.composeM g f) (at level 40, left associativity).
 Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 
-Definition varT := VarT.o.
-Definition subT := VarT.mr.
 
 
 (** *** The class of abstract syntax trees.
@@ -123,7 +145,7 @@ Module Type AST <: VarTtoT.
     omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
 
   Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
-  
+
 End AST.
 
 Notation error := inright.
@@ -158,8 +180,8 @@ Module ListF (Syn : VarTtoT) <: VarTtoT.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.idF.
 
-    crush_ast_obligations. 
-        
+    crush_ast_obligations.
+
   Qed.
 
   Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
@@ -186,8 +208,8 @@ Module ListAST (Syn : AST) <: AST.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.idF.
 
-    crush_ast_obligations. 
-    
+    crush_ast_obligations.
+
   Qed.
 
   Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
@@ -216,7 +238,7 @@ Module ListAST (Syn : AST) <: AST.
     match o with
     | nil      => {- nil -}
     | oh :: ol => match Syn.opmap f oh, opmap _ _ f ol with
-                  | error ev, _ => error _ 
+                  | error ev, _ => error _
                   | _, _ => {- nil -}
                   end
     end.
@@ -241,11 +263,11 @@ Module Opt <: VarTtoT.
 
   Lemma idF {u}: mmap (@VarT.idM u) = id.
   Proof.
-    
+
     crush_ast_obligations.
-    
+
   Qed.
- 
+
  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
   Proof.
 
@@ -295,4 +317,3 @@ Compute (OptListAST.map fUV [ {- xU -}; {- yU -}; _|_ ]).
 >>
 
 *)
-                                                                
