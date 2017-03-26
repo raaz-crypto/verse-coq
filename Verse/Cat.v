@@ -61,8 +61,3 @@ Module Type Functor (C : Cat) (D : Cat).
       mmap (C.composeM g f) = D.composeM (mmap g) (mmap f).
   
 End Functor.
-
-
-
-  
-
