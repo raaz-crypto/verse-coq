@@ -1,6 +1,5 @@
 (* An implementation of basic category theories in Coq *)
 
-Require Import FunctionalExtensionality.
 Require Import Basics.
 
 Module Type Cat.
