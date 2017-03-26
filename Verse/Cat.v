@@ -32,7 +32,7 @@ Module TypeCat <: Cat.
 
   Definition composeM {A B C} := @compose A B C.
 
-  Definition identityLeft {a b}{f : a -> b} : compose id  f = f.
+  Definition identityLeft {a b}{f : a -> b} : compose id f = f.
   Proof.
     trivial.
   Qed.
@@ -53,11 +53,11 @@ Module Type Functor (C : Cat) (D : Cat).
 
   Parameter omap : C.o -> D.o.
 
-  Parameter mmap : forall {a b : C.o}, (C.mr a b) -> (D.mr (omap a) (omap b)).
+  Parameter mmap : forall {a b}, C.mr a b -> D.mr (omap a) (omap b).
 
-  Axiom idF : forall (a : C.o), mmap (@C.idM a) = @D.idM _.
+  Axiom idF : forall a, mmap (@C.idM a) = @D.idM _.
 
-  Axiom functorial : forall {a b c : C.o} (g : C.mr b c) (f : C.mr a b),
+  Axiom functorial : forall {a b c}, forall (g : C.mr b c) (f : C.mr a b),
       mmap (C.composeM g f) = D.composeM (mmap g) (mmap f).
   
 End Functor.
