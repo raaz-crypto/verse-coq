@@ -1,5 +1,7 @@
 Require Import Types.Internal.
+Require Import Syntax.
 Require Import Language.
+Require Import Arch.
 Require Import String.
 Require Import Coq.Sets.Ensembles.
 Require Import List.
@@ -12,31 +14,35 @@ Fixpoint listSet {A : Type} (l : list A) : Ensemble A :=
   | a :: lt => Ensembles.Add _ (listSet lt) a
   end.
 
-Module Type Function.
+Module Type Function (arch : ARCH).
   
-  Parameter name    : string.
+  Parameter name     : string.
 
-  Parameter param  : type -> Type.
-  Parameter local  : type -> Type.
+  (** The variable type on which the function body is parametrized *)
+  Parameter fvar     : type -> Type.
 
-  Inductive fvar : type -> Type :=
-  | p : forall ty : type, param ty -> fvar ty
-  | l : forall ty : type, local ty -> fvar ty
-  .
+  (** The ordered list of parameters of the function *)
+  Parameter param    : list {ty : type & fvar ty}.
 
-  Parameter paramord : list (sigT param).
-  Parameter localord : list (sigT local).
-  Parameter loopvar  : sigT local.
+  (** Allocation onto _archvar_ from the local variables *)
+  Parameter localloc : list {fv : {ty : type & fvar ty} & (arch.var (projT1 fv))}.
 
-  Parameter setup   : block fvar.
-  Parameter loop    : block fvar.
-  Parameter cleanup : block fvar.
+  Parameter loopvar  : {ty : type & fvar ty}.
 
-  Definition usedvars := Ensembles.Add _ (Union _ (Union _ (getvars setup) (getvars cleanup)) (getvars cleanup)) (existT _ _ (l _ (projT2 loopvar))).
-  
+  Definition local := map (@projT1 {ty : type & fvar ty} _) localloc.
+
+  Parameter setup    : block fvar.
+  Parameter loop     : block fvar.
+  Parameter cleanup  : block fvar.
+
+  Definition usedvars := Ensembles.Add _
+                                       (Union _
+                                              (Union _ (bvars setup) (bvars loop))
+                                              (bvars cleanup))
+                                       loopvar.
+
+  (* ## Can be changed to use listSet and a disjoint union prop from the Ensemble library *)
   Parameter allUsedListed : forall v : (sigT fvar), Ensembles.In _ usedvars v ->
-                                                      match v with
-                                                      | existT _ _ (p _ pv) => In (existT _ _ pv) paramord
-                                                      | existT _ _ (l _ lv) => In (existT _ _ lv) localord
-                                                      end.
+                                                    or (In v param) (In v local).
+  
 End Function.

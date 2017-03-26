@@ -3,6 +3,8 @@ Require Import Verse.Types.Internal.
 Require Import Verse.Cat.
 Require Import FunctionalExtensionality.
 Require Import Basics.
+Require Import List.
+Require Import Coq.Sets.Ensembles.
 
 (** * Syntactic types.
 
@@ -78,17 +80,6 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 Definition varT := VarT.o.
 Definition subT := VarT.mr.
 
-(** ** Syntactic types.
-
-The type [synT : Type] captures the coq type of syntax trees. If
-[progLang : synT], a syntactic type then [prog : progLang] can be seen
-as a particular program parameteried by variables, i.e. if in addition
-[u : varT], then [prog u] is a fragment that uses the variable type
-[u].
-
- *)
-
-Definition synT := varT -> Type.
 
 (** *** The class of abstract syntax trees.
 
@@ -100,7 +91,43 @@ are types that allow mapping over its variables using a substitution.
 
 Module Type VarTto (C : Cat) := Functor VarT C.
 
-Module Type AST := VarTto TypeCat.
+Module Type VarTtoT := VarTto TypeCat.
+
+(*
+Inductive opt (v : VarT.o) :=
+| defined (t : type) : v t -> opt v
+| undefined          : opt v.
+
+Arguments defined [v t] _ .
+Arguments undefined [v].
+Notation "{- X -}" := (defined X).
+Notation "_|_"   := undefined.
+ *)
+
+Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
+
+Module Type AST <: VarTtoT.
+
+  Include VarTtoT.
+
+  Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
+
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
+
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
+
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
+
+  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
+  
+End AST.
+
+Notation error := inright.
+Notation "{- X -}" := (inleft X).
 
 (** * Tactic to crush AST proof obligations
 
@@ -113,10 +140,11 @@ Ltac crush_ast_obligations :=
   repeat (intros; apply functional_extensionality_dep;
          let x := fresh "X" in intro x; destruct x; simpl;
                                unfold id; unfold compose; autorewrite with core; eauto).
+Hint Resolve Union_introl Union_intror In_singleton.
 
 (** * Some examples. *)
 
-Module ListAST (Syn : AST) <: AST.
+Module ListF (Syn : VarTtoT) <: VarTtoT.
 
   Definition omap v := list (Syn.omap v).
 
@@ -134,6 +162,33 @@ Module ListAST (Syn : AST) <: AST.
         
   Qed.
 
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+  Proof.
+    Hint Rewrite List.map_map.
+    Hint Rewrite @Syn.functorial.
+
+    crush_ast_obligations.
+  Qed.
+
+End ListF.
+
+Module ListAST (Syn : AST) <: AST.
+
+  Definition omap v := list (Syn.omap v).
+
+  Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
+    := List.map (Syn.mmap f) lsyn.
+
+  Arguments mmap / {u v} _ _.
+
+  Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
+  Proof.
+    Hint Rewrite List.map_id.
+    Hint Rewrite @Syn.idF.
+
+    crush_ast_obligations. 
+    
+  Qed.
 
   Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
   Proof.
@@ -143,19 +198,37 @@ Module ListAST (Syn : AST) <: AST.
     crush_ast_obligations.
   Qed.
 
+  Definition vSet {var} (b : omap var) :=
+    fold_right (Union _) (Empty_set _) (map Syn.vSet b).
+
+  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
+  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
+
+  Arguments vSet / _ _ _ : simpl nomatch.
+  Arguments usedIn / _ _ _.
+  Arguments undef / _ _ _ _.
+
+  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
+    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
+
+  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : opt f o.
+    refine
+    match o with
+    | nil      => {- nil -}
+    | oh :: ol => match Syn.opmap f oh, opmap _ _ f ol with
+                  | error ev, _ => error _ 
+                  | _, _ => {- nil -}
+                  end
+    end.
+    destruct ev as [ evv evp ].
+    destruct evp as [ evi evn ].
+    refine (ex_intro _ evv _).
+    simpl. eauto.
+    Qed.
+
 End ListAST.
-
-
-Inductive opt (v : VarT.o) :=
-| defined (t : type) : v t -> opt v
-| undefined          : opt v.
-
-Arguments defined [v t] _ .
-Arguments undefined [v].
-Notation "{- X -}" := (defined X).
-Notation "_|_"   := undefined.
-
-Module OptAST <: AST.
+(*
+Module Opt <: VarTtoT.
 
   Definition omap := opt.
 
@@ -180,7 +253,9 @@ Module OptAST <: AST.
 
   Qed.
 
-End OptAST.
+End Opt.
+*)
+
 
 (** A small example of maping over Opt.
 
@@ -220,3 +295,4 @@ Compute (OptListAST.map fUV [ {- xU -}; {- yU -}; _|_ ]).
 >>
 
 *)
+                                                                
