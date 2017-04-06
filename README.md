@@ -12,4 +12,4 @@ This is a variant of the verse DSL in coq.
 
 [travis-status]: <https://secure.travis-ci.org/piyush-kurur/verse-coq.png> "Build status"
 
-[travis-raaz]: <https://travis-ci.org/piyush-kurur/verse-coq/
+[travis-raaz]: <https://travis-ci.org/piyush-kurur/verse-coq/>
