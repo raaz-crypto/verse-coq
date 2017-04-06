@@ -192,29 +192,7 @@ End ListF.
 
 Module ListAST (Syn : AST) <: AST.
 
-  Definition omap v := list (Syn.omap v).
-
-  Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
-    := List.map (Syn.mmap f) lsyn.
-
-  Arguments mmap / {u v} _ _.
-
-  Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
-  Proof.
-    Hint Rewrite List.map_id.
-    Hint Rewrite @Syn.idF.
-
-    crush_ast_obligations.
-
-  Qed.
-
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
-  Proof.
-    Hint Rewrite List.map_map.
-    Hint Rewrite @Syn.functorial.
-
-    crush_ast_obligations.
-  Qed.
+  Include ListF (Syn).
 
   Definition vSet {var} (b : omap var) :=
     fold_right (Union _) (Empty_set _) (map Syn.vSet b).
