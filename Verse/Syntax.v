@@ -103,11 +103,18 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 
 
 
-(** *** The class of abstract syntax trees.
+(** *** Abstract syntax trees.
 
-Not all elements of [synT] are valid syntax trees. The class [AST]
-captures those syntactic objects that are abstract syntax trees. There
-are types that allow mapping over its variables using a substitution.
+For any language, we can capture the abstract syntax tree using a data
+type. A type that captures some abstract syntax has variables embedded
+in it. We abstract out this variable type. Thus an abstrct syntax is a
+type say [ast] from [varT] to [Type].
+
+Notice that both [varT] and [Type] are (objects) of the associated
+categories. If [ast] is an abstract syntax, then a substitution @subT
+v w@ for variable types @v@ and @w@, should give us a functorial map
+from @ast v@ to @ast w@ which replaces every occurance of the variable
+@v@ with @w@. Thus ast's should give us a functor.
 
 *)
 
