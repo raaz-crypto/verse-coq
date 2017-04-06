@@ -112,23 +112,12 @@ are types that allow mapping over its variables using a substitution.
 *)
 
 Module Type VarTto (C : Cat) := Functor VarT C.
-
 Module Type VarTtoT := VarTto TypeCat.
-
-(*
-Inductive opt (v : VarT.o) :=
-| defined (t : type) : v t -> opt v
-| undefined          : opt v.
-
-Arguments defined [v t] _ .
-Arguments undefined [v].
-Notation "{- X -}" := (defined X).
-Notation "_|_"   := undefined.
- *)
 
 Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
 Module Type AST <: VarTtoT.
+
 
   Include VarTtoT.
 
