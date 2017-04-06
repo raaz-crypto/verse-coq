@@ -123,7 +123,7 @@ Module Type VarTtoT := VarTto TypeCat.
 
 Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
-Module Type AST <: VarTtoT.
+Module Type AST.  (* <: VarTtoT. *)
 
 
   Include VarTtoT.
