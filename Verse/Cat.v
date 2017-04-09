@@ -59,5 +59,5 @@ Module Type Functor (C : Cat) (D : Cat).
 
   Axiom functorial : forall {a b c}, forall (g : C.mr b c) (f : C.mr a b),
       mmap (C.composeM g f) = D.composeM (mmap g) (mmap f).
-  
+
 End Functor.
