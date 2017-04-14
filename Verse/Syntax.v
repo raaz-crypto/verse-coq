@@ -132,8 +132,13 @@ Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
 Module Type AST.  (* <: VarTtoT. *)
 
+  (** The syntax tree *)
+  Parameter syn       : astT.
 
-  Include VarTtoT.
+  (** Function to transfrom from one syntax tree to the other given a variable subsitution *)
+  Parameter transform : forall {v w}, subT v w ->  syn v -> syn w.
+
+  Include Functor VarT TypeCat with Definition omap := syn with Definition mmap := fun {v w} => @transform v w.
 
   Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
 
@@ -169,37 +174,31 @@ Hint Resolve Union_introl Union_intror In_singleton.
 
 (** * Some examples. *)
 
-Module ListF (Syn : VarTtoT) <: VarTtoT.
+Module ListAST (Syn : AST) <: AST.
+  Definition syn v := list (Syn.syn v).
+  Definition transform {v w}(f : subT v w) := List.map (Syn.transform f).
 
-  Definition omap v := list (Syn.omap v).
+  Definition omap := syn.
+  Definition mmap := fun {v w} => @transform v w.
 
-  Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
-    := List.map (Syn.mmap f) lsyn.
+  (* Arguments mmap / {u v} _ _. *)
 
-  Arguments mmap / {u v} _ _.
-
-  Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
+  Lemma idF {u : VarT.o} : transform (@VarT.idM u) = TypeCat.idM.
   Proof.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.idF.
-
+    unfold transform.
     crush_ast_obligations.
-
   Qed.
 
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: transform (g << f) = compose (transform g) (transform f).
   Proof.
     Hint Rewrite List.map_map.
     Hint Rewrite @Syn.functorial.
-
+    unfold transform.
     crush_ast_obligations.
   Qed.
 
-End ListF.
-
-Module ListAST (Syn : AST) <: AST.
-
-  Include ListF (Syn).
 
   Definition vSet {var} (b : omap var) :=
     fold_right (Union _) (Empty_set _) (map Syn.vSet b).
@@ -227,6 +226,6 @@ Module ListAST (Syn : AST) <: AST.
     destruct evp as [ evi evn ].
     refine (ex_intro _ evv _).
     simpl. eauto.
-    Qed.
 
+    Qed.
 End ListAST.
