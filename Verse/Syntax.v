@@ -61,10 +61,13 @@ type. The type [subT u v] is the coq type that captures substitutions
 from variables of type [u] to variables of type [v]. Subsitutions are
 required to preserve the types of the variables.
 
-   *)
+ *)
 
 
 Definition subT (u v : varT) := forall t, u t -> v t.
+
+(** The trivial substitution *)
+
 Definition idSubst {v : varT} : subT v v := fun _ vt => vt.
 
 (**
