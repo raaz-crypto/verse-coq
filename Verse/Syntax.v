@@ -106,6 +106,12 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 
 
 
+Module Type VarTto (C : Cat) := Functor VarT C.
+Module Type VarTtoT := VarTto TypeCat.
+
+Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
+
+
 (** *** Abstract syntax trees.
 
 Abstract syntax trees are data types where one of the atomic element
@@ -116,32 +122,28 @@ essentially types parameterised by [varT].
 
 Definition astT := forall v : varT, Type.
 
-(**
-
-Abstract syntaxes allow change of variables. For an [a] is an abstract
-syntax, i.e. [a : astT], it should be possible to lift a substitution
-[s: subT v w] to a map from [a v -> a w]. Intuitively, this lift just
-traverses the syntax tree and whenever it hits a leaf corresponding to
-a variable, it performs the substitution. What it means is that ast's
-should be functors from the category of variables to the categroy of
-types.
-
- *)
-
-Module Type VarTto (C : Cat) := Functor VarT C.
-Module Type VarTtoT := VarTto TypeCat.
-
-Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
-
 Module Type AST.  (* <: VarTtoT. *)
 
   (** The syntax tree *)
   Parameter syn       : astT.
 
-  (** Function to transfrom from one syntax tree to the other given a variable subsitution *)
+  (** Abstract syntaxes allow change of variables. For an [a] is an
+      abstract syntax, i.e. [a : astT], it should be possible to lift
+      a substitution [s: subT v w] to a map from [a v -> a
+      w]. Intuitively, this lift just traverses the syntax tree and
+      whenever it hits a leaf corresponding to a variable, it performs
+      the substitution.
+
+   *)
   Parameter transform : forall {v w}, subT v w ->  syn v -> syn w.
 
-  Include Functor VarT TypeCat with Definition omap := syn with Definition mmap := fun {v w} => @transform v w.
+  (** The syntax type together with the function transoform makes any
+      abstract syntax tree a functor from the categroy of varialbes to
+      the category of types.  *)
+
+  Include Functor VarT TypeCat
+  with Definition omap := syn
+  with Definition mmap := fun {v w} => @transform v w.
 
   Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
 
