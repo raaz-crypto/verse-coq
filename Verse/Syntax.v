@@ -61,11 +61,14 @@ type. The type [subT u v] is the coq type that captures substitutions
 from variables of type [u] to variables of type [v]. Subsitutions are
 required to preserve the types of the variables.
 
-   *)
+ *)
 
 
 Definition subT (u v : varT) := forall t, u t -> v t.
 
+(** The trivial substitution *)
+
+Definition idSubst {v : varT} : subT v v := fun _ vt => vt.
 
 (**
 
@@ -81,7 +84,7 @@ Module VarT <: Cat.
 
   Definition mr (u v : o) := subT u v.
 
-  Definition idM {u : o} : mr u u := fun t x => x.
+  Definition idM {u} := @idSubst u .
 
   Definition composeM {u v w} (g : mr v w)(f : mr u v) : mr u w :=
     fun t ut => g t (f t ut).
@@ -103,30 +106,44 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 
 
 
-(** *** Abstract syntax trees.
-
-For any language, we can capture the abstract syntax tree using a data
-type. A type that captures some abstract syntax has variables embedded
-in it. We abstract out this variable type. Thus an abstrct syntax is a
-type say [ast] from [varT] to [Type].
-
-Notice that both [varT] and [Type] are (objects) of the associated
-categories. If [ast] is an abstract syntax, then a substitution @subT
-v w@ for variable types @v@ and @w@, should give us a functorial map
-from @ast v@ to @ast w@ which replaces every occurance of the variable
-@v@ with @w@. Thus ast's should give us a functor.
-
-*)
-
 Module Type VarTto (C : Cat) := Functor VarT C.
 Module Type VarTtoT := VarTto TypeCat.
 
 Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
 
+
+(** *** Abstract syntax trees.
+
+Abstract syntax trees are data types where one of the atomic element
+is a variable. Hence, the abstract syntaxes of languages are
+essentially types parameterised by [varT].
+
+*)
+
+Definition astT := forall v : varT, Type.
+
 Module Type AST.  (* <: VarTtoT. *)
 
+  (** The syntax tree *)
+  Parameter syn       : astT.
 
-  Include VarTtoT.
+  (** Abstract syntaxes allow change of variables. For an [a] is an
+      abstract syntax, i.e. [a : astT], it should be possible to lift
+      a substitution [s: subT v w] to a map from [a v -> a
+      w]. Intuitively, this lift just traverses the syntax tree and
+      whenever it hits a leaf corresponding to a variable, it performs
+      the substitution.
+
+   *)
+  Parameter transform : forall {v w}, subT v w ->  syn v -> syn w.
+
+  (** The syntax type together with the function transoform makes any
+      abstract syntax tree a functor from the categroy of varialbes to
+      the category of types.  *)
+
+  Include Functor VarT TypeCat
+  with Definition omap := syn
+  with Definition mmap := fun {v w} => @transform v w.
 
   Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
 
@@ -162,37 +179,31 @@ Hint Resolve Union_introl Union_intror In_singleton.
 
 (** * Some examples. *)
 
-Module ListF (Syn : VarTtoT) <: VarTtoT.
+Module ListAST (Syn : AST) <: AST.
+  Definition syn v := list (Syn.syn v).
+  Definition transform {v w}(f : subT v w) := List.map (Syn.transform f).
 
-  Definition omap v := list (Syn.omap v).
+  Definition omap := syn.
+  Definition mmap := fun {v w} => @transform v w.
 
-  Definition mmap {u v}(f : VarT.mr u v) (lsyn : list (Syn.omap u) ) : list (Syn.omap v)
-    := List.map (Syn.mmap f) lsyn.
+  (* Arguments mmap / {u v} _ _. *)
 
-  Arguments mmap / {u v} _ _.
-
-  Lemma idF {u : VarT.o} : mmap (@VarT.idM u) = TypeCat.idM.
+  Lemma idF {u : VarT.o} : transform (@VarT.idM u) = TypeCat.idM.
   Proof.
     Hint Rewrite List.map_id.
     Hint Rewrite @Syn.idF.
-
+    unfold transform.
     crush_ast_obligations.
-
   Qed.
 
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
+  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: transform (g << f) = compose (transform g) (transform f).
   Proof.
     Hint Rewrite List.map_map.
     Hint Rewrite @Syn.functorial.
-
+    unfold transform.
     crush_ast_obligations.
   Qed.
 
-End ListF.
-
-Module ListAST (Syn : AST) <: AST.
-
-  Include ListF (Syn).
 
   Definition vSet {var} (b : omap var) :=
     fold_right (Union _) (Empty_set _) (map Syn.vSet b).
@@ -220,6 +231,6 @@ Module ListAST (Syn : AST) <: AST.
     destruct evp as [ evi evn ].
     refine (ex_intro _ evv _).
     simpl. eauto.
-    Qed.
 
+    Qed.
 End ListAST.

@@ -216,16 +216,17 @@ Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var
 
 Module Assignment <: AST.
 
-  Definition omap := assignment.
+  Definition syn  := assignment.
+  Definition transform {v w} (f : subT v w) (a : assignment v) : assignment w :=
+   match a with
+   | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
+   | @assign2 _ _ u v1 v2 => assign2 w _ u (Arg.mmap f v1) (Arg.mmap f v2)
+   | @update2 _ _ b v1 v2 => update2 w _ b (Arg.mmap f v1) (Arg.mmap f v2)
+   | @update1 _ _ u v1 => update1 w _ u (Arg.mmap f v1)
+   end.
 
-
-  Definition mmap {v w} (f : subT v w) (a : assignment v) : assignment w :=
-    match a with
-    | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
-    | @assign2 _ _ u v1 v2 => assign2 w _ u (Arg.mmap f v1) (Arg.mmap f v2)
-    | @update2 _ _ b v1 v2 => update2 w _ b (Arg.mmap f v1) (Arg.mmap f v2)
-    | @update1 _ _ u v1 => update1 w _ u (Arg.mmap f v1)
-    end.
+  Definition omap := syn.
+  Definition mmap := fun {v w} => @transform v w.
 
   Lemma idF {u} : mmap (@VarT.idM u) = id.
   Proof.
@@ -296,12 +297,17 @@ End Assignment.
 
 Module Instruction <: AST.
 
-  Definition omap := instruction.
-  Definition mmap {v w} (f : subT v w) (i : instruction v) : instruction w :=
+  Definition syn := instruction.
+  Definition transform {v w} (f : subT v w) (i : instruction v) : instruction w :=
   match i with
   | assign _ a => assign w (Assignment.mmap f a)
   end.
 
+
+  Definition omap := syn.
+  Definition mmap := fun {v w} => @transform v w.
+
+  
   Lemma idF {u}: mmap (@VarT.idM u) = id.
   Proof.
     Hint Rewrite @Assignment.idF.
