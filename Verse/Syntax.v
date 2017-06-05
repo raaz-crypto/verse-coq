@@ -4,6 +4,7 @@ Require Import Verse.Cat.
 Require Import FunctionalExtensionality.
 Require Import Basics.
 Require Import List.
+Import  ListNotations.
 Require Import Coq.Sets.Ensembles.
 
 (** * Syntactic types.
@@ -191,3 +192,52 @@ Module ListAST (Syn : AST) <: AST.
   Qed.
 
 End ListAST.
+
+
+Section Scope.
+
+  (** ** Scopes.
+
+  Code fragments like functions or loops have a set of variables that
+  are local to that fragment. The types here allow us to construct a
+  HOAS style scoped code fragments. Firstly, fix the variable type for
+  the code fragment *)
+
+  Variable v : varT.
+
+  (**
+
+      A scoped code fragment of type [CODE] with [n] variables of
+  types [t1,..., tn] is an element of the type [v t1 -> v t2 -> ... ->
+  v tn -> T].
+
+   *)
+
+  Fixpoint scoped (l : list type)(CODE : Type) : Type :=
+    match l with
+    | []       => CODE
+    | ty :: lt => v ty -> scoped lt CODE
+    end.
+
+  (** ** Allocation
+
+    When generating code corresponding to the code fragment, we need a
+    way to allocate variables to. The following type captures an
+    allocation of variables of type [t1,...,tn].
+
+   *)
+
+
+  Inductive allocation : list type -> Type :=
+  | EmptyAlloc : allocation []
+  | Allocate  {ty : type}{l : list type} : v ty -> allocation l -> allocation (ty :: l)
+  .
+
+  (* This function fills in the variables from an allocation into a scoped code *)
+  Fixpoint fill {CODE}{l : list type} (a : allocation l) : scoped l CODE -> CODE :=
+    match a in allocation l0 return scoped l0 CODE -> CODE with
+    | EmptyAlloc                   => fun x => x
+    | @Allocate ty lrest v0 arest  => fun scfunc : v ty -> scoped lrest CODE => fill arest (scfunc v0)
+    end.
+
+End Scope.
