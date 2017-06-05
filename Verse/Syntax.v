@@ -145,20 +145,6 @@ Module Type AST.  (* <: VarTtoT. *)
   with Definition omap := syn
   with Definition mmap := fun {v w} => @transform v w.
 
-  Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
-
 End AST.
 
 Notation error := inright.
@@ -204,33 +190,4 @@ Module ListAST (Syn : AST) <: AST.
     crush_ast_obligations.
   Qed.
 
-
-  Definition vSet {var} (b : omap var) :=
-    fold_right (Union _) (Empty_set _) (map Syn.vSet b).
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : opt f o.
-    refine
-    match o with
-    | nil      => {- nil -}
-    | oh :: ol => match Syn.opmap f oh, opmap _ _ f ol with
-                  | error ev, _ => error _
-                  | _, _ => {- nil -}
-                  end
-    end.
-    destruct ev as [ evv evp ].
-    destruct evp as [ evi evn ].
-    refine (ex_intro _ evv _).
-    simpl. eauto.
-
-    Qed.
 End ListAST.
