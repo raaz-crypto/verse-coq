@@ -84,6 +84,7 @@ Inductive machineVar (reg : varT) : varT :=
 | inRegister {t : type} : reg t -> machineVar reg t
 .
 
+Arguments onStack [reg t].
 
 (**
 
