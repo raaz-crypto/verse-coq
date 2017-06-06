@@ -18,7 +18,7 @@ Module Type ARCH.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter wfinstr : instruction register -> Prop.
+  Parameter supports : instruction (machineVar register) -> Prop.
 
   (*
 
