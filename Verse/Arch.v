@@ -13,27 +13,34 @@ Module Type ARCH.
 
   (** The registers for this architecture *)
 
-  Parameter var  : varT.
+  Parameter register : varT.
 
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter wfinstr : instruction var -> Prop.
-  
+  Parameter wfinstr : instruction register -> Prop.
+
+  (*
+
+  Not need as of now.
+
   Fixpoint wfinstrB (b : block var) : Prop :=
     match b with
     | [] => True
     | i :: bt => and (wfinstr i) (wfinstrB bt)
     end.
+   *)
 
   (** Generate code with assurance of well formedness **)
 
-  (* ## Could have a notation for @sigT type and projT1 *)
-
-  Parameter callConv : forall {fvar} (param : list (sigT fvar)) v, In v param ->  var (projT1 v).
-   
-  Parameter generate : forall b : block var, wftypesB b -> wfvarB b -> wfinstrB b -> string.
   
+  Parameter callConv : forall paramTypes localTypes, allocation (machineVar register) (paramTypes ++ localTypes).
+
+  (*
+
+  Parameter generate : forall b : block var, wftypesB b -> wfvarB b -> wfinstrB b -> string.
+
+   *)
   (**
 
     Translate the assignment statement to assembly. Certain assignment
@@ -50,4 +57,3 @@ Module Type ARCH.
       var reg ty -> arg reg ty -> list mnemonic -> list mnemonic.*)
 
 End ARCH.
-
