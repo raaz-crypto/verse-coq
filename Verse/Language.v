@@ -169,50 +169,9 @@ Module Arg <: VarTto VarT.
   Proof.
     crush_ast_obligations.
   Qed.
-
-  Definition vSet {v} {ty} (a : omap v ty) : Ensemble (sigT v) :=
-    match a with
-    | (var _ vv) => Singleton _ (existT v _ vv) 
-    | (constant _ c) => Empty_set _
-    | (index _ arr) => Singleton _ (existT v _ arr)
-    end.
-
-  Definition usedIn {v} {ty} (o : omap v ty) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} {ty} (f : opSubT v w) (o : omap v ty) :=
-    omap w ty + {exists var : sigT v, and (In _ (vSet o) var) (f _ (projT2 var) = None)}.
-
-
-  Definition opmap {v w} {ty} (f : opSubT v w) (o : omap v ty) : opt f o.
-    refine
-      (match o with 
-       | var _ vv => match casesOpt (f _ vv) with
-                     | {- exist _ a _ -} => {- var _ a -}
-                     | error p => error _
-                     end
-       | constant _ c => inleft (constant _ c)
-       | index _ arr => match casesOpt (f _ arr) with
-                        | {- exist _ a _ -} => {- index _ a -}
-                        | error p => error _
-                        end
-       end).
-    refine (ex_intro _ (existT _ _ vv) _); simpl; eauto.
-    refine (ex_intro _ (existT _ _ arr) _); simpl; eauto.
-  Qed.
     
 End Arg.
 
-Fixpoint striparg {var : varT} {ty : type} (a : arg var ty) : Ensemble (sigT var) :=
-  match a with
-  | var _ vv => Singleton _ (existT var _ vv) 
-  | constant _ c => Empty_set _
-  | index _ arr => Singleton _ (existT var _ arr)
-  end.
 
 Module Assignment <: AST.
 
@@ -241,56 +200,6 @@ Module Assignment <: AST.
     Hint Rewrite @Arg.functorial.
 
     crush_ast_obligations.
-  Qed.
-
-  Definition vSet {var} (a : omap var) : Ensemble (sigT var) :=
-    match a with
-    | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (Arg.vSet a1) (Arg.vSet a2)) (Arg.vSet a3)
-    | assign2 _ _ _ a1 a2 => Union _ (Arg.vSet a1) (Arg.vSet a2)
-    | update2 _ _ _ a1 a2 => Union _ (Arg.vSet a1) (Arg.vSet a2)
-    | update1 _ _ _ a1 => Arg.vSet a1
-    end.
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-    
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Definition opmap {v1 w} (f : opSubT v1 w) (o : omap v1): opt f o.
-
-    refine
-      match o with
-      | update1 _ _ u av => match Arg.opmap f av with
-                            | {- aw -} => {- update1 _ _ u aw -}
-                            | error p => error _
-                            end
-      | update2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
-                                 | {- aw1 -}, {- aw2 -} => {- update2 _ _ u aw1 aw2 -}
-                                 | error p, _ => error _ 
-                                 | _, error p => error _ 
-                                 end
-      | assign3 _ _ u av1 av2 av3 => match Arg.opmap f av1, Arg.opmap f av2, Arg.opmap f av3 with
-                                     | {- aw1 -}, {- aw2 -}, {- aw3 -} => {- assign3 _ _ u aw1 aw2 aw3 -}
-                                     | error p, _, _ => error _ 
-                                     | _, error p, _ => error _ 
-                                     | _, _, error p => error _ 
-                                     end
-      | assign2 _ _ u av1 av2 => match Arg.opmap f av1, Arg.opmap f av2 with
-                                 | {- aw1 -}, {- aw2 -} => {- assign2 _ _ u aw1 aw2 -}
-                                 | error p, _ => error _ 
-                                 | _, error p => error _ 
-                                 end
-      end;
-    destruct p as [ pv pc ];
-    destruct pc as [ pi pn ];
-    refine (ex_intro _ pv _);
-    cbv delta - [In]; eauto.
-
   Qed.
   
 End Assignment.
@@ -321,74 +230,12 @@ Module Instruction <: AST.
 
     crush_ast_obligations.
   Qed.
-
-  Definition vSet {var} (i : omap var) : Ensemble (sigT var) :=
-    match i with
-    | assign _ a => Assignment.vSet a
-    end.
-
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Definition opmap {v w} (f : opSubT v w) (o : omap v) : opt f o.
-    refine
-      match o with
-      | assign _ iv => match Assignment.opmap f iv with
-                       | {- iw -} => {- assign _ iw -}
-                       | error p => error _ 
-                       end
-      end.
-    destruct p as [pv pp].
-    destruct pp as [pi pn].
-    refine (ex_intro _ pv _).
-    eauto.
-    Qed.
   
 End Instruction.
 
 Module Block := ListAST Instruction.
 
 (* Helper functions for the Function module *)
-
-Fixpoint ivars {var} (i : instruction var) : Ensemble (sigT var) :=
-  match i with
-  | assign _ a => match a with
-                     | assign3 _ _ _ a1 a2 a3 => Union _ (Union _ (striparg a1) (striparg a2)) (striparg a3)
-                     | assign2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                     | update2 _ _ _ a1 a2 => Union _ (striparg a1) (striparg a2)
-                     | update1 _ _ _ a1 => striparg a1
-                     end
-  end.
-
-Definition bvars {var : varT} (b : block var) := fold_left (fun S i => Union _ S (ivars i)) b (Empty_set _).
-
-
-(*
-Definition alloc_not_none {v1 v2} (transv : forall ty, v1 ty -> option (v2 ty)) (i : instruction v1) (allAlloc : forall vv : sigT v1, In _ (ivars i) vv -> transv _ (projT2 vv) <> None)
-  : instruction v2.
-  refine (
-      match i with
-      | assign _ ty a => match a with
-                         | @assign3 _ _ b v1 v2 v3 => assign w _ (assign3 w b (map_for_arg transv v1) (map_for_arg transv v2) (map_for_arg transv v3))
-                         | @assign2 _ _ u v1 v2 => assign w _ (assign2 w u (map_for_arg transv v1) (map_for_arg transv v2))
-                         | @update2 _ _ b v1 v2 => assign w _ (update2 w b (map_for_arg transv v1) (map_for_arg transv v2))
-                         | @update1 _ _ u v1 => assign w _ (update1 w u (map_for_arg transv v1))
-                         end
-      end
-*)
-
-(*
-Fixpoint translatem {v : type -> Type} {w : type -> Type} (transv : forall ty, v ty -> option (w ty)) (b : list (instruction v)) (allAlloc : forall vv : sigT v, In _ (getvars b) vv ->  transv _ (projT2 vv) <> None) : Prop := 
-  refine (
-*)
 
 Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
 Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
