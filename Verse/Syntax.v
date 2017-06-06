@@ -110,9 +110,6 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 Module Type VarTto (C : Cat) := Functor VarT C.
 Module Type VarTtoT := VarTto TypeCat.
 
-Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
-
-
 (** *** Abstract syntax trees.
 
 Abstract syntax trees are data types where one of the atomic element
