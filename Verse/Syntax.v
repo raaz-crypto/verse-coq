@@ -205,7 +205,7 @@ Module ListAST (Syn : AST) <: AST.
 End ListAST.
 
 
-Section Scope.
+Section Scoped.
 
   (** ** Scopes.
 
@@ -251,4 +251,4 @@ Section Scope.
     | @Allocate ty lrest v0 arest  => fun scfunc : v ty -> scoped lrest CODE => fill arest (scfunc v0)
     end.
 
-End Scope.
+End Scoped.
