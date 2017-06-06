@@ -175,6 +175,14 @@ End Arg.
 
 Module Assignment <: AST.
 
+  Definition argtype {v : varT} (a : assignment v) : type :=
+    match a with
+    | assign3 _ ty _ _ _ _ => ty
+    | assign2 _ ty _ _ _   => ty
+    | update2 _ ty _ _ _   => ty
+    | update1 _ ty _ _     => ty
+    end.
+
   Definition syn  := assignment.
   Definition transform {v w} (f : subT v w) (a : assignment v) : assignment w :=
    match a with
