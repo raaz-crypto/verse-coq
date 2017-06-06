@@ -73,6 +73,20 @@ Definition idSubst {v : varT} : subT v v := fun _ vt => vt.
 
 (**
 
+When programs are run on machines, the variables in the program can
+either be on stack or in one of the registers of the machine.  The
+type [machineVar] is an inductive type parameterised by the underlying
+machine registers, that represent program variables.
+
+*)
+Inductive machineVar (reg : varT) : varT :=
+| onStack    {t : type} : nat   -> machineVar reg t
+| inRegister {t : type} : reg t -> machineVar reg t
+.
+
+
+(**
+
 We can give a categorical structure on variables with substitutions
 being the morphisms. We give this below.
 
