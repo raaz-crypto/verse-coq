@@ -244,8 +244,6 @@ Section Scoped.
   | Allocate  {ty : type}{l : list type} : v ty -> allocation l -> allocation (ty :: l)
   .
 
-  Notation "[]"  := EmptyAlloc : allocation_scope.
-  Infix    "::"  := Allocate (at level 60, right associativity) : allocation_scope.
 
   (* This function fills in the variables from an allocation into a scoped code *)
   Fixpoint fill {CODE}{l : list type} (a : allocation l) : scoped l CODE -> CODE :=
@@ -255,3 +253,10 @@ Section Scoped.
     end.
 
 End Scoped.
+
+Arguments EmptyAlloc [v].
+Arguments Allocate [v ty l].
+Notation "[]"  := EmptyAlloc : allocation_scope.
+Infix    "::"  := Allocate (at level 60, right associativity) : allocation_scope.
+Bind Scope allocation_scope with type.
+Delimit Scope allocation_scope with allocation.
