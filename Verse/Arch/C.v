@@ -26,8 +26,6 @@ Module CArch : ARCH.
     | assign _ ainst => supportedType (Assignment.argtype ainst)
     end.
 
-  Print Visibility list_scope.
-  Print Visibility allocation_scope.
   Open Scope allocation_scope.
   Open Scope list_scope.
 
