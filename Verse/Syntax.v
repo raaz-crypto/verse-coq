@@ -257,7 +257,24 @@ End Scoped.
 
 Arguments EmptyAlloc [v].
 Arguments Allocate [v ty l].
-Notation "[]"  := EmptyAlloc : allocation_scope.
-Infix    "::"  := Allocate (at level 60, right associativity) : allocation_scope.
+
+Notation "[]"             := EmptyAlloc : allocation_scope.
+Notation "[ X ]"          := (Allocate X EmptyAlloc) : allocation_scope.
+Notation "[ x ; .. ; y ]" := (Allocate x .. (Allocate y EmptyAlloc) ..) : allocation_scope.
+Infix    "::"             := Allocate (at level 60, right associativity) : allocation_scope.
+
 Bind Scope allocation_scope with type.
 Delimit Scope allocation_scope with allocation.
+
+(* Some test
+Inductive myVar : type -> Type :=
+| X : myVar Word8
+| Y : myVar Word16
+| Z : myVar Word32
+| W : myVar Word64.
+
+
+Definition myAlloc := [ X ; W ; Y ; Z]%allocation.
+Print myAlloc.
+
+ *)
