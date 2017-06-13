@@ -84,7 +84,7 @@ Inductive machineVar (reg : varT) : varT :=
 | inRegister {t : type} : reg t -> machineVar reg t
 .
 
-Arguments onStack [reg t].
+Arguments onStack [reg t] _.
 
 (**
 
@@ -256,7 +256,7 @@ Section Scoped.
 End Scoped.
 
 Arguments EmptyAlloc [v].
-Arguments Allocate [v ty l].
+Arguments Allocate [v ty l] _ _.
 
 Notation "[]"             := EmptyAlloc : allocation_scope.
 Notation "[ X ]"          := (Allocate X EmptyAlloc) : allocation_scope.
