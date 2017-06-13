@@ -4,6 +4,7 @@ Require Import Verse.Cat.
 Require Import FunctionalExtensionality.
 Require Import Basics.
 Require Import List.
+Import  ListNotations.
 Require Import Coq.Sets.Ensembles.
 
 (** * Syntactic types.
@@ -72,6 +73,21 @@ Definition idSubst {v : varT} : subT v v := fun _ vt => vt.
 
 (**
 
+When programs are run on machines, the variables in the program can
+either be on stack or in one of the registers of the machine.  The
+type [machineVar] is an inductive type parameterised by the underlying
+machine registers, that represent program variables.
+
+*)
+Inductive machineVar (reg : varT) : varT :=
+| onStack    {t : type} : nat   -> machineVar reg t
+| inRegister {t : type} : reg t -> machineVar reg t
+.
+
+Arguments onStack [reg t].
+
+(**
+
 We can give a categorical structure on variables with substitutions
 being the morphisms. We give this below.
 
@@ -109,9 +125,6 @@ Notation "f << g" := (VarT.composeM f g) (at level 40, left associativity).
 Module Type VarTto (C : Cat) := Functor VarT C.
 Module Type VarTtoT := VarTto TypeCat.
 
-Definition opSubT (v w : varT) := forall ty, v ty -> option (w ty).
-
-
 (** *** Abstract syntax trees.
 
 Abstract syntax trees are data types where one of the atomic element
@@ -144,20 +157,6 @@ Module Type AST.  (* <: VarTtoT. *)
   Include Functor VarT TypeCat
   with Definition omap := syn
   with Definition mmap := fun {v w} => @transform v w.
-
-  Parameter vSet : forall {v},  omap v -> Ensemble (sigT v).
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Parameter opmap : forall {v w} (f : opSubT v w) (o : omap v), opt f o.
 
 End AST.
 
@@ -204,33 +203,78 @@ Module ListAST (Syn : AST) <: AST.
     crush_ast_obligations.
   Qed.
 
-
-  Definition vSet {var} (b : omap var) :=
-    fold_right (Union _) (Empty_set _) (map Syn.vSet b).
-
-  Definition usedIn {v} (o : omap v) (var : sigT v) := In _ (vSet o) var.
-  Definition undef {v w} (f : opSubT v w) (var : sigT v) := f _ (projT2 var) = None.
-
-  Arguments vSet / _ _ _ : simpl nomatch.
-  Arguments usedIn / _ _ _.
-  Arguments undef / _ _ _ _.
-
-  Definition opt {v w : varT} (f : opSubT v w) (o : omap v) :=
-    omap w + {exists var : sigT v, usedIn o var /\ undef f var}.
-
-  Fixpoint opmap {v w : varT} (f : opSubT v w) (o : list (Syn.omap v)) : opt f o.
-    refine
-    match o with
-    | nil      => {- nil -}
-    | oh :: ol => match Syn.opmap f oh, opmap _ _ f ol with
-                  | error ev, _ => error _
-                  | _, _ => {- nil -}
-                  end
-    end.
-    destruct ev as [ evv evp ].
-    destruct evp as [ evi evn ].
-    refine (ex_intro _ evv _).
-    simpl. eauto.
-
-    Qed.
 End ListAST.
+
+
+Section Scoped.
+
+  (** ** Scopes.
+
+  Code fragments like functions or loops have a set of variables that
+  are local to that fragment. The types here allow us to construct a
+  HOAS style scoped code fragments. Firstly, fix the variable type for
+  the code fragment *)
+
+  Variable v : varT.
+
+  (**
+
+      A scoped code fragment of type [CODE] with [n] variables of
+  types [t1,..., tn] is an element of the type [v t1 -> v t2 -> ... ->
+  v tn -> T].
+
+   *)
+
+  Fixpoint scoped (l : list type)(CODE : Type) : Type :=
+    match l with
+    | []       => CODE
+    | ty :: lt => v ty -> scoped lt CODE
+    end.
+
+  (** ** Allocation
+
+    When generating code corresponding to the code fragment, we need a
+    way to allocate variables to. The following type captures an
+    allocation of variables of type [t1,...,tn].
+
+   *)
+
+
+  Inductive allocation : list type -> Type :=
+  | EmptyAlloc : allocation []
+  | Allocate  {ty : type}{l : list type} : v ty -> allocation l -> allocation (ty :: l)
+  .
+
+
+  (* This function fills in the variables from an allocation into a scoped code *)
+  Fixpoint fill {CODE}{l : list type} (a : allocation l) : scoped l CODE -> CODE :=
+    match a in allocation l0 return scoped l0 CODE -> CODE with
+    | EmptyAlloc                   => fun x => x
+    | @Allocate ty lrest v0 arest  => fun scfunc : v ty -> scoped lrest CODE => fill arest (scfunc v0)
+    end.
+
+End Scoped.
+
+Arguments EmptyAlloc [v].
+Arguments Allocate [v ty l].
+
+Notation "[]"             := EmptyAlloc : allocation_scope.
+Notation "[ X ]"          := (Allocate X EmptyAlloc) : allocation_scope.
+Notation "[ x ; .. ; y ]" := (Allocate x .. (Allocate y EmptyAlloc) ..) : allocation_scope.
+Infix    "::"             := Allocate (at level 60, right associativity) : allocation_scope.
+
+Bind Scope allocation_scope with type.
+Delimit Scope allocation_scope with allocation.
+
+(* Some test
+Inductive myVar : type -> Type :=
+| X : myVar Word8
+| Y : myVar Word16
+| Z : myVar Word32
+| W : myVar Word64.
+
+
+Definition myAlloc := [ X ; W ; Y ; Z]%allocation.
+Print myAlloc.
+
+ *)
