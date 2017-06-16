@@ -20,10 +20,10 @@ Section Function.
 
   Record FAllocation (pl lv rv : list type) (t : type) := fallocation
                           {
-                            pa  : alloc v pl;
-                            lva : alloc v lv;
+                            pa  : allocation v pl;
+                            lva : allocation v lv;
                             loopvar : v t;
-                            rva : alloc v rv;
+                            rva : allocation v rv;
                           }.
 
   Definition fscoped (t : type) (pl lv rv : list type) (T : Type) := scoped v pl (scoped v lv (scoped v (t :: nil) (scoped v rv T))).

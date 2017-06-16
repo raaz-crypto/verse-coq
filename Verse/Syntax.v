@@ -269,67 +269,27 @@ Section Scoped.
 
    *)
 
-  Inductive allocation : list type -> Type :=
-  | EmptyAlloc : allocation []
-  | Allocate  {ty : type}{l : list type} : v ty -> allocation l -> allocation (ty :: l)
-  .
-
-  Fixpoint allocation_app {l1 l2 : list type} (a1 : allocation l1) (a2 : allocation l2) : allocation (l1 ++ l2) :=
-    match a1 with
-    | EmptyAlloc     => a2
-    | Allocate x a1t => Allocate x (allocation_app a1t a2)
-    end.
-
-  Fixpoint alloc (l : list type) : Type :=
+  Fixpoint allocation (l : list type) : Type :=
     match l with
     | []      => unit
-    | t :: lt => v t * alloc lt
+    | t :: lt => v t * allocation lt
     end.
 
-  Fixpoint alloc_split l1 l2 : alloc (l1 ++ l2) -> (alloc l1) * (alloc l2) :=
-    match l1 return alloc (l1 ++ l2) -> (alloc l1) * (alloc l2) with
+  Fixpoint alloc_split l1 l2 : allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) :=
+    match l1 return allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) with
     | []      => fun x => pair tt x
-    | t :: lt => fun a : alloc ((t :: lt) ++ l2) =>
-                   (fun p : alloc lt * (alloc l2) =>
+    | t :: lt => fun a : allocation ((t :: lt) ++ l2) =>
+                   (fun p : allocation lt * (allocation l2) =>
                      pair (pair (fst a) (fst p)) (snd p))
                    (alloc_split lt l2 (snd a))
     end.
 
   (* This function fills in the variables from an allocation into a scoped code *)
-  Fixpoint fill {CODE}{l : list type} (a : allocation l) : scoped l CODE -> CODE :=
-    match a in allocation l0 return scoped l0 CODE -> CODE with
-    | EmptyAlloc                   => fun x => x
-    | @Allocate ty lrest v0 arest  => fun scfunc : v ty -> scoped lrest CODE => fill arest (scfunc v0)
-    end.
 
-  Fixpoint fill' {CODE} {l : list type} : alloc l -> scoped l CODE -> CODE :=
+  Fixpoint fill {CODE} {l : list type} : allocation l -> scoped l CODE -> CODE :=
     match l with
     | []       => fun a x => x
-    | ty :: lt => fun a x => fill' (snd a) (x (fst a))
+    | ty :: lt => fun a x => fill (snd a) (x (fst a))
     end.
 
 End Scoped.
-
-Arguments EmptyAlloc [v].
-Arguments Allocate [v ty l] _ _.
-
-Notation "[]"             := EmptyAlloc : allocation_scope.
-Notation "[ X ]"          := (Allocate X EmptyAlloc) : allocation_scope.
-Notation "[ x ; .. ; y ]" := (Allocate x .. (Allocate y EmptyAlloc) ..) : allocation_scope.
-Infix    "::"             := Allocate (at level 60, right associativity) : allocation_scope.
-
-Bind Scope allocation_scope with type.
-Delimit Scope allocation_scope with allocation.
-
-(* Some test
-Inductive myVar : type -> Type :=
-| X : myVar Word8
-| Y : myVar Word16
-| Z : myVar Word32
-| W : myVar Word64.
-
-
-Definition myAlloc := [ X ; W ; Y ; Z]%allocation.
-Print myAlloc.
-
- *)

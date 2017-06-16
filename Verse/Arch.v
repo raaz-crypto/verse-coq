@@ -37,19 +37,19 @@ Module Type ARCH.
   (** Generate code with assurance of well formedness **)
 
   
-  Parameter callConv : forall paramTypes localTypes, alloc var (paramTypes ++ localTypes).
+  Parameter callConv : forall paramTypes localTypes, allocation var (paramTypes ++ localTypes).
 
   (* Allocate with loopvar being allocated in a register by user *)
   Definition allocate loopvar paramTypes localVars localReg
                   (f      : func loopvar paramTypes localVars localReg)
-                  (lalloc : alloc var (loopvar :: localReg))
+                  (lalloc : allocation var (loopvar :: localReg))
     : Function var loopvar * FAllocation var paramTypes localVars localReg loopvar :=
 
     let calloc            := callConv paramTypes localVars in
     let (palloc, lvalloc) := alloc_split var paramTypes localVars calloc in
     let lv                := fst (fst (alloc_split var (loopvar :: nil) localReg lalloc)) in
     let lralloc           := snd (alloc_split var (loopvar :: nil) localReg lalloc) in
-    let f'                := fill' var lralloc (fill' var lvalloc (fill' var palloc (f var))) in
+    let f'                := fill var lralloc (fill var lvalloc (fill var palloc (f var))) in
     let fa                := {|
                                pa      := palloc;
                                lva     := lvalloc;
@@ -62,14 +62,14 @@ Module Type ARCH.
   (* Allocate with loopvar being allocated on stack by callConv *)
   Definition allocate' loopvar paramTypes localVars localReg
                   (f      : func loopvar paramTypes localVars localReg)
-                  (lalloc : alloc var localReg)
+                  (lalloc : allocation var localReg)
     : Function var loopvar * FAllocation var paramTypes localVars localReg loopvar :=
 
     let calloc            := callConv paramTypes (loopvar :: localVars) in
     let (palloc, ra)      := alloc_split var paramTypes (loopvar :: localVars) calloc in
     let (lva,lvalloc)     := alloc_split var (loopvar :: nil) localVars ra in
     let lv                := fst lva in
-    let f'                := fill' var lalloc (fill' var lvalloc (fill' var palloc (f var))) in
+    let f'                := fill var lalloc (fill var lvalloc (fill var palloc (f var))) in
     let fa                := {|
                                pa      := palloc;
                                lva     := lvalloc;
