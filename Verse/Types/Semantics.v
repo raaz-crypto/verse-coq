@@ -3,13 +3,23 @@ Require Import BinNat.
 Require Vector.
 Require Streams.
 
-Print Vector.t.
-
 (**
 
 We now give a semantics of type. The function typeDenote gives a definition from
 
  *)
+
+
+
+Ltac crush_binnat_ineqs := repeat match goal with
+                                  | [ H : ?T |- ?T               ] => exact H
+                                  | [ |- N.mul _ _ <> 0%N        ] => apply N.neq_mul_0
+                                  | [ |- N.lt (N.modulo _ ?A) ?A ] => apply N.mod_lt
+                                  | [ |- _ /\ _                  ] => constructor
+                                  | [ |- 2%N <> 0%N              ] => compute; let A := fresh "A" in (intro A; inversion A)
+                                  | _                              => eauto; idtac
+                                  end.
+
 
 Open Scope N.
 Fixpoint modulus (n : nat) : N :=
@@ -21,24 +31,21 @@ Fixpoint modulus (n : nat) : N :=
 Definition NBit n := { m : N | m < modulus n }.
 
 
+
+
 Lemma modulus_n_neq_0 (n : nat) : modulus n <> 0.
 Proof.
-  induction n. compute. intros. inversion H.
-  Search ( _ * _ <> _).
-  unfold modulus. fold modulus. apply N.neq_mul_0.
-  constructor. compute. intro. inversion H. trivial.
+  induction n; unfold modulus; fold modulus;crush_binnat_ineqs.
 Qed.
 
-
-
-Search (_ mod _ < _).
+Hint Resolve modulus_n_neq_0.
 Definition binOp {n : nat}(f : N -> N -> N)(a b : NBit n) : NBit n.
   refine(
       match a , b with
         | exist _ aN _, exist _ bN _ =>  exist _ ((f aN bN) mod (modulus n)) _
       end
-    ). apply N.mod_lt. apply modulus_n_neq_0.
-Qed.
+    ); crush_binnat_ineqs.
+Defined.
 
 
 Definition plus {n : nat}(a b : NBit n) : NBit n := binOp N.add a b.
