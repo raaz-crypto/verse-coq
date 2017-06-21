@@ -1,14 +1,14 @@
 -R Verse Verse
 
-Verse/Error.v
-Verse/Tactics.v
+Verse/Arch.v
 Verse/BinTree.v
 Verse/Cat.v
+Verse/Error.v
+Verse/Function.v
+Verse/Language.v
+Verse/Nibble.v
+Verse/Syntax.v
+Verse/Tactics.v
 Verse/Types.v
 Verse/Types/Semantics.v
-Verse/Nibble.v
-Verse/Arch.v
-Verse/Language.v
 Verse/Types/Internal.v
-Verse/Syntax.v
-Verse/Function.v
