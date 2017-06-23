@@ -81,8 +81,8 @@ The inductive definition of types in verse.
 *)
 
 Inductive type       : Type :=
-| word               : nat -> type
-| vector             : nat -> type -> type
+| word               : nat -> type                    (* 2^n bytes                              *)
+| vector             : nat -> type -> type            (* vector type of 2^n individual elements *)
 | array              : nat -> endian -> type -> type
 | sequence           : type -> type
 with endian : Type := bigE | littleE | hostE.
@@ -120,4 +120,3 @@ Fixpoint bytes {b : bound}(t : type (Bounded b)) : nat :=
 Definition bits {b : bound}(t : type (Bounded b)) : nat
   := 8 * bytes t.
 *)
-
