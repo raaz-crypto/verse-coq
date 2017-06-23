@@ -1,86 +1,73 @@
 Require Import Verse.Types.Internal.
-Require Import BinNat.
 Require Vector.
 Require Streams.
-
+Require Import Bvector.
+Require Import Coq.Numbers.BinNums.
+Require Import Coq.ZArith.Zdigits.
+Require Import BinInt.
+Require Import Nat.
 (**
 
 We now give a semantics of type. The function typeDenote gives a definition from
 
  *)
 
+Open Scope nat_scope.
 
+(* n-bit word *)
+Inductive WORD (n : nat) : Type :=
+| WORD_BITS : Bvector n -> WORD n.
 
-Ltac crush_binnat_ineqs := repeat match goal with
-                                  | [ H : ?T |- ?T               ] => exact H
-                                  | [ |- N.mul _ _ <> 0%N        ] => apply N.neq_mul_0
-                                  | [ |- N.lt (N.modulo _ ?A) ?A ] => apply N.mod_lt
-                                  | [ |- _ /\ _                  ] => constructor
-                                  | [ |- 2%N <> 0%N              ] => compute; let A := fresh "A" in (intro A; inversion A)
-                                  | _                              => eauto; idtac
-                                  end.
+Arguments WORD_BITS [n] _.
 
-
-Open Scope N.
-Fixpoint modulus (n : nat) : N :=
-  match n with
-    | O   => 2
-    | S m => 2 * modulus m
+Definition numBinOp {n} f  (x y : WORD n) : WORD n :=
+  match x, y with
+  | WORD_BITS xv, WORD_BITS yv => WORD_BITS (Z_to_binary n (f (binary_value n xv)(binary_value n yv)))
   end.
 
-Definition NBit n := { m : N | m < modulus n }.
+Definition numUnaryOp {n : nat} f (x : WORD n) : WORD n :=
+  match x with
+  | WORD_BITS xv => WORD_BITS (Z_to_binary n (f (binary_value n xv)))
+  end.
 
+Definition bitwiseBinOp {n : nat} f (x y : WORD n) : WORD n :=
+  match x,y with
+  | WORD_BITS xv, WORD_BITS yv => WORD_BITS (Vector.map2 f xv yv)
+  end.
 
-
-
-Lemma modulus_n_neq_0 (n : nat) : modulus n <> 0.
-Proof.
-  induction n; unfold modulus; fold modulus;crush_binnat_ineqs.
-Qed.
-
-Hint Resolve modulus_n_neq_0.
-Definition binOp {n : nat}(f : N -> N -> N)(a b : NBit n) : NBit n.
-  refine(
-      match a , b with
-        | exist _ aN _, exist _ bN _ =>  exist _ ((f aN bN) mod (modulus n)) _
-      end
-    ); crush_binnat_ineqs.
-Defined.
-
-Definition unaryOp {n : nat}(f : N -> N)(a: NBit n) : NBit n.
-  refine(
-      match a with
-        | exist _ aN _ =>  exist _ ((f aN) mod (modulus n)) _
-      end
-    ); crush_binnat_ineqs.
-Defined.
+Definition bitwiseUnaryOp {n : nat} f (x : WORD n) : WORD n :=
+  match x with
+  | WORD_BITS xv => WORD_BITS (Vector.map f xv )
+  end.
 
 
 Fixpoint typeDenote (t : type) : Type :=
   match t with
-    | word   n      => NBit n
-    | vector n tw   => Vector.t (typeDenote tw) n
+    | word   n      => WORD (2^(n+3))                   (** 2^n bytes = 2^n * 2^3 bits *)
+    | vector n tw   => Vector.t (typeDenote tw) (2^n)
     | array  n _ tw => Vector.t (typeDenote tw) n
     | sequence tw   => Streams.Stream (typeDenote tw)
   end.
 
+
 (** Meaning of the binary operator at at the given type_ *)
 
-Fixpoint binaryDenote (f : N -> N -> N)(t : type) : typeDenote t -> typeDenote t -> typeDenote t :=
+
+Fixpoint numBinaryDenote (f : Z -> Z -> Z) t : typeDenote t -> typeDenote t -> typeDenote t :=
   match t as t0 return typeDenote t0 -> typeDenote t0 -> typeDenote t0 with
-  | word n        => binOp f
-  | vector n tw   => Vector.map2 (binaryDenote f tw)
-  | array  n _ tw => Vector.map2 (binaryDenote f tw)
-  | sequence tw   => Streams.zipWith (binaryDenote f tw)
+  | word n        => numBinOp f
+  | vector n tw   => Vector.map2 (numBinaryDenote f tw)
+  | array  n _ tw => Vector.map2 (numBinaryDenote f tw)
+  | sequence tw   => Streams.zipWith (numBinaryDenote f tw)
   end.
 
-Fixpoint unaryDenote (f : N -> N)(t : type) : typeDenote t -> typeDenote t :=
+Fixpoint numUnaryDenote (f : Z -> Z)(t : type) : typeDenote t -> typeDenote t :=
   match t as t0 return typeDenote t0 -> typeDenote t0 with
-  | word n        => unaryOp f
-  | vector n tw   => Vector.map (unaryDenote f tw)
-  | array  n _ tw => Vector.map (unaryDenote f tw)
-  | sequence tw   => Streams.map (unaryDenote f tw)
+  | word n        => numUnaryOp f
+  | vector n tw   => Vector.map (numUnaryDenote f tw)
+  | array  n _ tw => Vector.map (numUnaryDenote f tw)
+  | sequence tw   => Streams.map (numUnaryDenote f tw)
   end.
 
-Definition plus  := binaryDenote N.add.
-Definition minus := binaryDenote N.sub.
+Definition plus  := numBinaryDenote Z.add.
+Definition minus := numBinaryDenote Z.sub.
