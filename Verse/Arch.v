@@ -16,6 +16,7 @@ Module Type ARCH.
 
   Parameter register : varT.
 
+
   Definition var     := machineVar register.
 
 

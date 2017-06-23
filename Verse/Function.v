@@ -13,6 +13,7 @@ Section Function.
   
   Record Function t := function
                          {
+                           name    : string;
                            setup   : block v;
                            loop    : v t -> block v;
                            cleanup : block v;

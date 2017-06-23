@@ -87,7 +87,7 @@ represented in Coq using the type [arg], can be one of the following
   | var      {ty : type} : v ty -> arg ty
   | constant {ty : type} : constant ty -> arg ty
   | index {b : nat}{e : endian}{ty : type}
-    : v (array b e ty) -> arg ty.
+    : v (array b e ty) -> nat -> arg ty.
 
   Inductive assignment : Type :=
   | assign3 
@@ -111,7 +111,7 @@ represented in Coq using the type [arg], can be one of the following
   
   Inductive isLval {ty : type} : arg ty -> Prop :=
    | vIsLval {vr : v ty} : isLval (var vr)
-   | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)}: isLval (index a)
+   | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)} {n}: isLval (index a n)
   .
   Definition wftypes (i : instruction) : Prop := True.
 
@@ -130,6 +130,15 @@ represented in Coq using the type [arg], can be one of the following
   Definition wfvarB (b : block) : Prop := fold_left and (map wfvar b) True.
 
 End Language.
+
+Arguments var [v ty] _ .
+Arguments constant [v ty] _ .
+Arguments index [v b e ty] _ _ .
+Arguments assign3 [v ty] _ _ _ _ .
+Arguments assign2 [v ty] _ _ _ .
+Arguments update2 [v ty] _ _ _ .
+Arguments update1 [v ty] _ _ .
+Arguments assign [v] _ .
 
 Arguments wftypesB [v] _ .
 Arguments wfvarB [v] _ .
@@ -152,9 +161,9 @@ Module Arg <: VarTto VarT.
   Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
     fun _ a =>
     match a with
-    | var  _ vv1 => var _ (f _ vv1)
-    | constant _  c => constant _ c
-    | index _ arr => index _ (f _ arr)
+    | var vv1 => var (f _ vv1)
+    | constant c => constant c
+    | index arr n => index (f _ arr) n
     end.
 
   Arguments mmap {v1 v2} _ [t] _.
@@ -176,19 +185,19 @@ Module Assignment <: AST.
 
   Definition argtype {v : varT} (a : assignment v) : type :=
     match a with
-    | assign3 _ ty _ _ _ _ => ty
-    | assign2 _ ty _ _ _   => ty
-    | update2 _ ty _ _ _   => ty
-    | update1 _ ty _ _     => ty
+    | @assign3 _ ty _ _ _ _ => ty
+    | @assign2 _ ty _ _ _   => ty
+    | @update2 _ ty _ _ _   => ty
+    | @update1 _ ty _ _     => ty
     end.
 
   Definition syn  := assignment.
   Definition transform {v w} (f : subT v w) (a : assignment v) : assignment w :=
    match a with
-   | @assign3 _ _ b v1 v2 v3 => assign3 w _ b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
-   | @assign2 _ _ u v1 v2 => assign2 w _ u (Arg.mmap f v1) (Arg.mmap f v2)
-   | @update2 _ _ b v1 v2 => update2 w _ b (Arg.mmap f v1) (Arg.mmap f v2)
-   | @update1 _ _ u v1 => update1 w _ u (Arg.mmap f v1)
+   | assign3 b v1 v2 v3 => assign3 b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
+   | assign2 u v1 v2 => assign2 u (Arg.mmap f v1) (Arg.mmap f v2)
+   | update2 b v1 v2 => update2 b (Arg.mmap f v1) (Arg.mmap f v2)
+   | update1 u v1 => update1 u (Arg.mmap f v1)
    end.
 
   Definition omap := syn.
@@ -216,7 +225,7 @@ Module Instruction <: AST.
   Definition syn := instruction.
   Definition transform {v w} (f : subT v w) (i : instruction v) : instruction w :=
   match i with
-  | assign _ a => assign w (Assignment.mmap f a)
+  | assign a => assign (Assignment.mmap f a)
   end.
 
 
