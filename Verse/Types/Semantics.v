@@ -47,8 +47,13 @@ Definition binOp {n : nat}(f : N -> N -> N)(a b : NBit n) : NBit n.
     ); crush_binnat_ineqs.
 Defined.
 
-
-Definition plus {n : nat}(a b : NBit n) : NBit n := binOp N.add a b.
+Definition unaryOp {n : nat}(f : N -> N)(a: NBit n) : NBit n.
+  refine(
+      match a with
+        | exist _ aN _ =>  exist _ ((f aN) mod (modulus n)) _
+      end
+    ); crush_binnat_ineqs.
+Defined.
 
 
 Fixpoint typeDenote (t : type) : Type :=
@@ -58,3 +63,24 @@ Fixpoint typeDenote (t : type) : Type :=
     | array  n _ tw => Vector.t (typeDenote tw) n
     | sequence tw   => Streams.Stream (typeDenote tw)
   end.
+
+(** Meaning of the binary operator at at the given type_ *)
+
+Fixpoint binaryDenote (f : N -> N -> N)(t : type) : typeDenote t -> typeDenote t -> typeDenote t :=
+  match t as t0 return typeDenote t0 -> typeDenote t0 -> typeDenote t0 with
+  | word n        => binOp f
+  | vector n tw   => Vector.map2 (binaryDenote f tw)
+  | array  n _ tw => Vector.map2 (binaryDenote f tw)
+  | sequence tw   => Streams.zipWith (binaryDenote f tw)
+  end.
+
+Fixpoint unaryDenote (f : N -> N)(t : type) : typeDenote t -> typeDenote t :=
+  match t as t0 return typeDenote t0 -> typeDenote t0 with
+  | word n        => unaryOp f
+  | vector n tw   => Vector.map (unaryDenote f tw)
+  | array  n _ tw => Vector.map (unaryDenote f tw)
+  | sequence tw   => Streams.map (unaryDenote f tw)
+  end.
+
+Definition plus  := binaryDenote N.add.
+Definition minus := binaryDenote N.sub.
