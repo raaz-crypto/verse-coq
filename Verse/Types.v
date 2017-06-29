@@ -5,76 +5,34 @@ Require Import Verse.Nibble.
 Require Import Verse.Error.
 Require Import Verse.Types.Internal.
 
-Inductive TypeError : Prop := BadVector | BadArray | BadSequence.
+(** * Types in verse.
 
+The verse EDSL supports the standard word types, vectors type, arrays
+and sequences. There is more to types and all the gory details of
+types are exposed from the module [Verse.Types.Internal]. However,
+users should stick to the types given below as they are well formed.
 
-
-(* begin hide *)
-
-Definition ap {A B : Type}{Err : Prop}(f : A -> B) (y : A + {Err}) :=
-  match y with
-  | inleft  a    => inleft (f a)
-  | inright err  => inright err
-  end.
-
-Fixpoint typeCheck (ty : type) : type + {TypeError} :=
-  match ty with
-  | word _                   => inleft ty
-  | vector m (word n)        => inleft ty
-  | vector _ _               => inright BadVector
-  | array  _ _ (sequence _)  => inright BadArray
-  | array  _ _ (array _ _ _) => inright BadArray
-  | array  m e typ           => ap (array m e) (typeCheck typ)
-  | sequence (sequence _)    => inright BadSequence
-  | sequence typ             =>  ap sequence (typeCheck typ)
-  end.
-
-Definition recover (tyErr : type + {TypeError}) :
-  if tyErr then type else TypeError
-  := match tyErr with
-     | inleft ty => ty
-     | inright err => err
-     end.
-
-Definition smartType (ty : type) := recover (typeCheck ty).
-
-
-Definition wordS (n : nat) := word n.
-
-
-Definition vectorS (n : nat) (ty : type) := smartType (vector n ty).
-
-Definition arrayS (n : nat) (e : endian) (ty : type) := smartType (array n e ty).
-
-Definition sequenceS (ty : type) := smartType (sequence ty).
-
-(* end hide *)
-
+*)
 
 (** Standard word types/scalars *)
-Definition Byte   := wordS 0.
-Definition Word8  := wordS 0.
-Definition Word16 := wordS 1.
-Definition Word32 := wordS 2.
-Definition Word64 := wordS 3.
+Definition Byte   := WordT 0.
+Definition Word8  := WordT 0.
+Definition Word16 := WordT 1.
+Definition Word32 := WordT 2.
+Definition Word64 := WordT 3.
 
 (** Standard vector types *)
-Definition Vector128_64   : type := vectorS 1 Word64.
-Definition Vector128_32   : type := vectorS 2 Word32.
-Definition Vector128_16   : type := vectorS 3 Word16.
-Definition Vector128_8    : type := vectorS 4 Word8.
-Definition Vector128Bytes : type := vectorS 4 Byte.
+Definition Vector128_64   : type := VectorT 1 Word64.
+Definition Vector128_32   : type := VectorT 2 Word32.
+Definition Vector128_16   : type := VectorT 3 Word16.
+Definition Vector128_8    : type := VectorT 4 Word8.
+Definition Vector128Bytes : type := VectorT 4 Byte.
 
-Definition Vector256_64   : type := vectorS 2 Word64.
-Definition Vector256_32   : type := vectorS 3 Word32.
-Definition Vector256_16   : type := vectorS 4 Word16.
-Definition Vector256_8    : type := vectorS 5 Word8.
-Definition Vector256Bytes : type := vectorS 5 Byte.
-
-
-
-(** An array type *)
-Definition Array n e t := arrayS n e t.
+Definition Vector256_64   : type := VectorT 2 Word64.
+Definition Vector256_32   : type := VectorT 3 Word32.
+Definition Vector256_16   : type := VectorT 4 Word16.
+Definition Vector256_8    : type := VectorT 5 Word8.
+Definition Vector256Bytes : type := VectorT 5 Byte.
 
 (**
 
