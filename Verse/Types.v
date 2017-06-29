@@ -8,9 +8,9 @@ Require Import Verse.Types.Internal.
 (** * Types in verse.
 
 The verse EDSL supports the standard word types, vectors type, arrays
-and sequences. There is more to types and all the gory details of
-types are exposed from the module [Verse.Types.Internal]. However,
-users should stick to the types given below as they are well formed.
+and sequences. The types exposed from this module is what users of
+verse should stick to. There is more to types and all its gory details
+of types are exposed from the module [Verse.Types.Internal].
 
 *)
 
