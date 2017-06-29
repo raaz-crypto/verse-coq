@@ -15,11 +15,11 @@ users should stick to the types given below as they are well formed.
 *)
 
 (** Standard word types/scalars *)
-Definition Byte   := WordT 0.
-Definition Word8  := WordT 0.
-Definition Word16 := WordT 1.
-Definition Word32 := WordT 2.
-Definition Word64 := WordT 3.
+Definition Byte   : type := WordT 0.
+Definition Word8  : type := WordT 0.
+Definition Word16 : type := WordT 1.
+Definition Word32 : type := WordT 2.
+Definition Word64 : type := WordT 3.
 
 (** Standard vector types *)
 Definition Vector128_64   : type := VectorT 1 Word64.
