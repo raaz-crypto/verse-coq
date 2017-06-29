@@ -5,47 +5,52 @@ Require Import Verse.Nibble.
 Require Import Verse.Error.
 Require Import Verse.Types.Internal.
 
-Inductive TypeError := UnboundedVector | UnboundedArray | UnboundedSeq.
+Inductive TypeError : Prop := BadVector | BadArray | BadSequence.
+
+
+
+(* begin hide *)
+
+Definition ap {A B : Type}{Err : Prop}(f : A -> B) (y : A + {Err}) :=
+  match y with
+  | inleft  a    => inleft (f a)
+  | inright err  => inright err
+  end.
+
+Fixpoint typeCheck (ty : type) : type + {TypeError} :=
+  match ty with
+  | word _                   => inleft ty
+  | vector m (word n)        => inleft ty
+  | vector _ _               => inright BadVector
+  | array  _ _ (sequence _)  => inright BadArray
+  | array  _ _ (array _ _ _) => inright BadArray
+  | array  m e typ           => ap (array m e) (typeCheck typ)
+  | sequence (sequence _)    => inright BadSequence
+  | sequence typ             =>  ap sequence (typeCheck typ)
+  end.
+
+Definition recover (tyErr : type + {TypeError}) :
+  if tyErr then type else TypeError
+  := match tyErr with
+     | inleft ty => ty
+     | inright err => err
+     end.
+
+Definition smartType (ty : type) := recover (typeCheck ty).
+
 
 Definition wordS (n : nat) := word n.
 
-Definition vectorS (n : nat) (ty : type) :
-                                          match ty with
-                                          | word _ => type
-                                          | _      => TypeError
-                                          end
-  :=
-    match ty with
-    | word _ => vector n ty
-    | _      => UnboundedVector
-    end.
 
-Definition arrayS (n : nat) (e : endian) (ty : type) :
-                                          match ty with
-                                          | word _     => type
-                                          | vector _ _ => type
-                                          | _          => TypeError
-                                          end
-  :=
-    match ty with
-    | word _     => array n e ty
-    | vector _ _ => array n e ty
-    | _          => UnboundedArray
-    end.
+Definition vectorS (n : nat) (ty : type) := smartType (vector n ty).
 
-Definition sequenceS (ty : type) :
-                                          match ty with
-                                          | sequence _ => TypeError
-                                          | _          => type
-                                          end
-  :=
-    match ty with
-    | sequence _ => UnboundedSeq
-    | _          => sequence ty
-    end.
-                                
-    
-                                           
+Definition arrayS (n : nat) (e : endian) (ty : type) := smartType (array n e ty).
+
+Definition sequenceS (ty : type) := smartType (sequence ty).
+
+(* end hide *)
+
+
 (** Standard word types/scalars *)
 Definition Byte   := wordS 0.
 Definition Word8  := wordS 0.
@@ -54,17 +59,22 @@ Definition Word32 := wordS 2.
 Definition Word64 := wordS 3.
 
 (** Standard vector types *)
-Definition Vector128_64   := vectorS 1 Word64.
-Definition Vector128_32   := vectorS 2 Word32.
-Definition Vector128_16   := vectorS 3 Word16.
-Definition Vector128_8    := vectorS 4 Word8.
-Definition Vector128Bytes := vectorS 4 Byte.
+Definition Vector128_64   : type := vectorS 1 Word64.
+Definition Vector128_32   : type := vectorS 2 Word32.
+Definition Vector128_16   : type := vectorS 3 Word16.
+Definition Vector128_8    : type := vectorS 4 Word8.
+Definition Vector128Bytes : type := vectorS 4 Byte.
 
-Definition Vector256_64   := vectorS 2 Word64.
-Definition Vector256_32   := vectorS 3 Word32.
-Definition Vector256_16   := vectorS 4 Word16.
-Definition Vector256_8    := vectorS 5 Word8.
-Definition Vector256Bytes := vectorS 5 Byte.
+Definition Vector256_64   : type := vectorS 2 Word64.
+Definition Vector256_32   : type := vectorS 3 Word32.
+Definition Vector256_16   : type := vectorS 4 Word16.
+Definition Vector256_8    : type := vectorS 5 Word8.
+Definition Vector256Bytes : type := vectorS 5 Byte.
+
+
+
+(** An array type *)
+Definition Array n e t := arrayS n e t.
 
 (**
 
@@ -262,4 +272,3 @@ Module Correctness.
 End Correctness.
 *)
 (* end hide *)
-
