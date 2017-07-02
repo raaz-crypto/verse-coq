@@ -8,7 +8,6 @@ Require Import Coq.Sets.Ensembles.
 Require Import Recdef.
 Import String.
 Require Import Basics.
-Require Import Coq.Logic.FunctionalExtensionality.
 
 (** * The abstract syntax
 
@@ -151,10 +150,10 @@ Module Arg <: VarTto VarT.
   Definition omap := arg.
 
   Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
-    fun ty a =>
+    fun _ a =>
     match a with
     | var  _ vv1 => var _ (f _ vv1)
-    | constant _ c => constant _ c
+    | constant _  c => constant _ c
     | index _ arr => index _ (f _ arr)
     end.
 
