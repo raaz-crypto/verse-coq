@@ -172,8 +172,8 @@ are often straight forward. This tactic crushes them.
 
 Ltac crush_ast_obligations :=
   repeat (intros; apply functional_extensionality_dep;
-         let x := fresh "X" in intro x; destruct x; simpl;
-                               unfold id; unfold compose; autorewrite with core; eauto).
+         let x := fresh "X" in intro x; induction x; simpl;
+                               unfold id; unfold compose; try (autorewrite with core); eauto).
 Hint Resolve Union_introl Union_intror In_singleton.
 
 (** * Some examples. *)
