@@ -96,7 +96,7 @@ Module Correctness.
   Lemma hexDigit_o_toAscii_isId:
     forall x : nibble, hexDigit (nibbleToAscii x) = Some x.
   Proof.
-    intro x. induction x; rewrite_equalities.
+    intro x. induction x; compute; trivial.
   Qed.
 
   Hint Rewrite hexDigit_o_toAscii_isId.
