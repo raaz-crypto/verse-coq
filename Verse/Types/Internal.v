@@ -1,3 +1,4 @@
+Require Import Verse.Error.
 (** * Types in Verse.
 
 Given below is the inductive type that captures data types used in the
@@ -27,19 +28,6 @@ Inductive BadType : Prop := BadVector | BadArray | BadSequence.
 
 (* begin hide *)
 
-Definition ap {A B : Type}{Err : Prop}(f : A -> B) (y : A + {Err}) :=
-  match y with
-  | inleft  a    => inleft (f a)
-  | inright err  => inright err
-  end.
-
-
-
-Definition recover {A : Type}{B : Prop}(x : A + {B}) : if x then A else B
-  := match x with
-     | inleft a => a
-     | inright b => b
-     end.
 
 (* end hide *)
 
