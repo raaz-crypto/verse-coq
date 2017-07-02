@@ -40,9 +40,9 @@ Fixpoint typeCheck (ty : type) : type + {BadType}
   | vector _ _               => inright BadVector
   | array  _ _ (sequence _)  => inright BadArray
   | array  _ _ (array _ _ _) => inright BadArray
-  | array  m e typ           => ap (array m e) (typeCheck typ)
+  | array  m e typ           => array m e <$> typeCheck typ
   | sequence (sequence _)    => inright BadSequence
-  | sequence typ             =>  ap sequence (typeCheck typ)
+  | sequence typ             => sequence  <$> typeCheck typ
   end.
 
 (** Makes type smartly, i.e. typeCheck and recover the type *)
