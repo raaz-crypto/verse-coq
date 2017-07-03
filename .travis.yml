@@ -19,15 +19,9 @@ notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
-  - mkdir -p "coq-$COQ_VER"
-  - opam init --root="coq-$COQ_VER" --no-setup --yes
-  - eval `opam config env --root="coq-$COQ_VER"`
-  - opam install "coq.$COQ_VER" --yes
-  - coq_makefile -f _CoqProject -o Makefile
+  - ./scripts/opam-build.sh init
 script:
-  - eval `opam config env --root=coq-"$COQ_VER"`
-  - make
-  - make html
+  - ./scripts/opam-build.sh build
 after_success:
   - echo "All is well."
 after_failure:
