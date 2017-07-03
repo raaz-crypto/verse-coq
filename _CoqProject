@@ -8,6 +8,5 @@ Verse/Language.v
 Verse/Syntax.v
 Verse/Tactics.v
 Verse/Types.v
-Verse/Types/Semantics.v
 Verse/Types/Internal.v
 Verse/Word.v

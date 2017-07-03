@@ -1,7 +1,6 @@
 Require Import String.
 Require Import Verse.Tactics.
 Require Import Verse.Types.Internal.
-Require Import Verse.Types.Semantics.
 
 (** * Types in verse.
 
