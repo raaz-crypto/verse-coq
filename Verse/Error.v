@@ -1,3 +1,5 @@
+Require Import Vector.
+Import VectorNotations.
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
@@ -35,3 +37,18 @@ Arguments recover [A Err] _.
 (* Haskell like applicative notation for errors *)
 Global Notation "F <$> A" := (ap  F A) (at level 40, left associativity).
 Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
+
+Section Sequence.
+  Variable A : Type.
+  Variable Err : Prop.
+
+  Fixpoint sequence  {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
+  match verr with
+  | []                            => inleft []
+  | inright err :: _              => inright err
+  | Vector.cons _ (inleft x) m xs => Vector.cons _ x m  <$> (@sequence m xs)
+  end.
+
+End Sequence.
+
+Arguments sequence [A Err n] _.
