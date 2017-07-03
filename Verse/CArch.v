@@ -12,6 +12,7 @@ Require Import List.
 Import ListNotations.
 Require Import Basics.
 Require Import NPeano.
+Require Import Ensembles.
 
 Set Implicit Arguments.
 
@@ -26,19 +27,22 @@ Module CArch <: ARCH.
 
   (** The registers for this architecture *)
 
-  Definition reg := creg.
+  Definition register := creg.
 
-  Definition var := machineVar reg.
+  Definition var := machineVar register.
+
+  Inductive typesSupported : Ensemble type :=
+  | uint8           : typesSupported (word 0)
+  | uint16          : typesSupported (word 1)
+  | uint32          : typesSupported (word 2)
+  | array {n e ty}  : typesSupported ty -> typesSupported (array n e ty)
+  .
+
+  Definition supportedTy := Intersection _ typesSupported wfTypes.
+
+  Definition supportedInst := Full_set (instruction var).
   
   (** Encode the architecture specific restrictions on the instruction set **)
-
-  Definition wfinstr : instruction var -> Prop := fun _ => True.
-  
-  Fixpoint wfinstrB (b : block var) : Prop :=
-    match b with
-    | [] => True
-    | ih :: bt => and (wfinstr ih) (wfinstrB bt)
-    end.
 
   Definition natToDigit (n : nat) : ascii :=
     match n with
@@ -66,143 +70,126 @@ Module CArch <: ARCH.
   Definition nat_to_str (n : nat) : string :=
     writeNatAux n n "".
 
-  Definition callConv paramTypes localTypes : allocation var (paramTypes ++ localTypes) :=
+  Definition callConv (paramTypes localTypes : listIn supportedTy) :
+      allocation var (proj_l paramTypes ++ proj_l localTypes) :=
     (fix allStack (n : nat) l : allocation var l :=
-        match l with
-        | []       => tt
-        | ty :: lt => (onStack n, allStack (n + 1) lt)
-        end)
-     0 (paramTypes ++ localTypes).
-
-    (* Allocate with loopvar being allocated in a register by user *)
-  Definition allocate loopvar paramTypes localVars localReg
-                  (f      : func loopvar paramTypes localVars localReg)
-                  (lalloc : allocation var (loopvar :: localReg))
-    : Function var loopvar * FAllocation var paramTypes localVars localReg loopvar :=
-
-    let calloc            := callConv paramTypes localVars in
-    let (palloc, lvalloc) := alloc_split var paramTypes localVars calloc in
-    let lv                := fst (fst (alloc_split var (loopvar :: nil) localReg lalloc)) in
-    let lralloc           := snd (alloc_split var (loopvar :: nil) localReg lalloc) in
-    let f'                := fill var lralloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-                               pa      := palloc;
-                               lva     := lvalloc;
-                               loopvar := lv;
-                               rva     := lralloc;
-                             |}
-    in   
-    pair f' fa.
-
-  (* Allocate with loopvar being allocated on stack by callConv *)
-  Definition allocate' loopvar paramTypes localVars localReg
-                  (f      : func loopvar paramTypes localVars localReg)
-                  (lalloc : allocation var localReg)
-    : Function var loopvar * FAllocation var paramTypes localVars localReg loopvar :=
-
-    let calloc            := callConv paramTypes (loopvar :: localVars) in
-    let (palloc, ra)      := alloc_split var paramTypes (loopvar :: localVars) calloc in
-    let (lva,lvalloc)     := alloc_split var (loopvar :: nil) localVars ra in
-    let lv                := fst lva in
-    let f'                := fill var lalloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-                               pa      := palloc;
-                               lva     := lvalloc;
-                               loopvar := lv;
-                               rva     := lalloc;
-                             |}
-    in   
-    pair f' fa.
-
-    (** Generate code with assurance of well formedness **)
-
-    Definition op_to_str {a : arity} (o : op a) : string :=
-      match o with
-      | plus    => "+"
-      | minus   => "-"
-      | mul     => "*"
-      | quot    => "/"
-      | rem     => "%"
-      | bitOr   => "|"
-      | bitAnd  => "&"
-      | bitXor  => "^"
-      | bitComp => "~"
-      | rotL _  => ""
-      | rotR _  => ""
-      | shiftL n => "<<" ++ (nat_to_str n)
-      | shiftR n => ">>" ++ (nat_to_str n)
-      end.
-
-    Definition write_arg t (a : arg var t) : string :=
-      match a with
-      | Language.var v          => match v with
-                                      | inRegister (cr _ st) => st
-                                      | onStack n => "var" ++ (nat_to_str n)
-                                   end
-      | @Language.index _ 1 _ _ a _ => match a with
-                                      | inRegister (cr _ st) => "*" ++ st
-                                      | onStack m => "*var" ++ (nat_to_str m)
-                                     end
-      | Language.index a n       => match a with
-                                      | inRegister (cr _ st) => st ++ "[" ++ (nat_to_str n) ++ "]"
-                                      | onStack m => "var" ++ (nat_to_str m) ++ "[" ++ (nat_to_str n) ++ "]"
-                                      end
-      | Language.constant c         => match c with
-                                      | wconst b => "0x" ++ Internal.nibblesToString (binToList _ b)
-                                      | @vconst n m v => "0x" ++ fold_left append
-                                                              (map
-                                                                 (fun vc : Types.constant (word m) =>
-                                                                    match vc with
-                                                                    | wconst b => Internal.nibblesToString (binToList _ b)
-                                                                    end)
-                                                                 (binToList _ v))
-                                                              EmptyString
-                                      end
-      end.
-
-    Definition write_inst (i : instruction var) : string :=
-      let 'assign a := i in
-      match a with
-      | assign3 b a1 a2 a3 => write_arg a1 ++ "=" ++ write_arg a2 ++ op_to_str b ++ write_arg a3
-      | assign2 u a1 a2    => write_arg a1 ++ "=" ++ op_to_str u ++ write_arg a2
-      | update2 b a1 a2    => write_arg a1 ++ op_to_str b ++ "=" ++ write_arg a2
-      | update1 u a1       => write_arg a1 ++ op_to_str u ++ "=" ++ write_arg a1
-      end.
-
-    Definition nl := String (ascii_of_nat 10) EmptyString.
-    Definition append_list (sep : string) (l : list string) : string :=
-      fold_left append (map (fun x => append x sep) l) EmptyString.
-
-    Definition write_block (b : block var) : string :=
-      append_list nl (map write_inst b).
-
-    Open Scope string_scope.
-    Definition generate {loopvar} {paramTypes localVar localReg}
-               (f : Function var loopvar)
-               (fa : FAllocation var paramTypes localVar localReg loopvar) : string :=
-      append_list nl [
-                    "#include <stdint.h>";
-                    "void " ++ Function.name _ _ f ++ "()"
-                  ].
-                            
-      
-      
-      
-
-
+       match l with
+       | []       => tt
+       | ty :: lt => (onStack n, allStack (n + 1) lt)
+       end)
+      0 (proj_l paramTypes ++ proj_l localTypes).
   
-  (**
-    Translate the assignment statement to assembly. Certain assignment
-    instructions can fail, for example a three address assignment like
-    [A <= B + C] is not supported on a 2-address machine like x86. and
-    hence the result of a translation is a [option (list mnemonic)]
-    instead of just a [list mnemonics].
+  (** Generate code with assurance of well formedness **)
 
-   *)
+  Definition op_to_str {a : arity} (o : op a) : string :=
+    match o with
+    | plus    => "+"
+    | minus   => "-"
+    | mul     => "*"
+    | quot    => "/"
+    | rem     => "%"
+    | bitOr   => "|"
+    | bitAnd  => "&"
+    | bitXor  => "^"
+    | bitComp => "~"
+    | rotL _  => ""
+    | rotR _  => ""
+    | shiftL n => "<<" ++ (nat_to_str n)
+    | shiftR n => ">>" ++ (nat_to_str n)
+    end.
 
-  (** Convert the loop statement in assembly instruction. *)
-  (*Parameter loop
-  : forall {b : bound}{ty : type (Bounded b)},
-      var reg ty -> arg reg ty -> list mnemonic -> list mnemonic.*)
+  Definition write_arg t (a : arg var t) : string :=
+    match a with
+    | Language.var v          => match v with
+                                 | inRegister (cr _ st) => st
+                                 | onStack n => "var" ++ (nat_to_str n)
+                                 end
+    | @Language.index _ 1 _ _ a _ => match a with
+                                     | inRegister (cr _ st) => "*" ++ st
+                                     | onStack m => "*var" ++ (nat_to_str m)
+                                     end
+    | Language.index a n       => match a with
+                                  | inRegister (cr _ st) => st ++ "[" ++ (nat_to_str n) ++ "]"
+                                  | onStack m => "var" ++ (nat_to_str m) ++ "[" ++ (nat_to_str n) ++ "]"
+                                  end
+    | Language.constant c         => match c with
+                                     | wconst b => "0x" ++ Internal.nibblesToString (binToList _ b)
+                                     | @vconst n m v => "0x" ++ fold_left append
+                                                             (map
+                                                                (fun vc : Types.constant (word m) =>
+                                                                   match vc with
+                                                                   | wconst b => Internal.nibblesToString (binToList _ b)
+                                                                   end)
+                                                                (binToList _ v))
+                                                             EmptyString
+                                     end
+    end.
+
+  Definition write_inst (i : instruction var) : string :=
+    let 'assign a := i in
+    match a with
+    | assign3 b a1 a2 a3 => write_arg a1 ++ "=" ++ write_arg a2 ++ op_to_str b ++ write_arg a3
+    | assign2 u a1 a2    => write_arg a1 ++ "=" ++ op_to_str u ++ write_arg a2
+    | update2 b a1 a2    => write_arg a1 ++ op_to_str b ++ "=" ++ write_arg a2
+    | update1 u a1       => write_arg a1 ++ op_to_str u ++ "=" ++ write_arg a1
+    end.
+
+  Definition nl := String (ascii_of_nat 10) EmptyString.
+  Definition tab := String (ascii_of_nat 9) EmptyString.
+  
+  Definition append_list (sep : string) (l : list string) : string :=
+    fold_left append (map (fun x => append x sep) l) EmptyString.
+
+  Definition write_block (b : block var) : string :=
+    append_list nl (map write_inst b).
+
+  Definition var_declare {ty : type} (is_pointer : bool) (v : var ty) : string :=
+    let word_type (t : type) : string :=
+        match t with
+        | word 0 => "uint8_t"%string
+        | word 1 => "uint16_t"%string
+        | word 2 => "uint32_t"%string
+        | _      => ""%string
+        end in          
+    match ty with
+    | @Internal.array n e ty => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
+    | _                      => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v)
+    end.
+
+  Fixpoint alloc_declare (l : list type) : forall a : allocation var l, list string :=
+    match l with
+    | []        => fun _ => []
+    | (t :: lt) => fun a : allocation var (t :: lt) => var_declare false (fst a) :: (alloc_declare lt (snd a))
+    end.
+
+  Open Scope string_scope.
+
+  Definition generate {loopvar} {paramTypes localVar localReg}
+             (f : Function var loopvar)
+             (fa : FAllocation var paramTypes localVar localReg loopvar) : string :=
+    let blockT  := inRegister (cr loopvar "Block") in
+    append_list nl [
+                    "#include <stdint.h>";
+                    "typedef " ++ var_declare true blockT ++ ";";
+                    "void " ++ Function.name f ++
+                            "(Block *mesg, int nblocks, " ++ append_list "," (alloc_declare _ (pa fa))++ ")";
+                    "{";
+                    append_list (nl ++ tab) [
+                                  append_list nl (alloc_declare _ (lva fa));
+                                  append_list nl (alloc_declare _ (rva fa));
+                                  var_declare false (lv fa);
+                                  write_block (setup f);
+                                  "while (nblocks > 0)";
+                                  "{";
+                                    append_list (nl ++ tab) [
+                                                write_arg (Language.var (lv fa)) ++ " = *mesg;";
+                                                write_block (loop f (lv fa));
+                                                "mesg++; nblocks--;"
+                                                ];
+                                  "}";
+                                  write_block (cleanup f)
+                                ];
+                    "}";
+                ].
 
 End CArch.

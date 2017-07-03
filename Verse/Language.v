@@ -113,9 +113,7 @@ represented in Coq using the type [arg], can be one of the following
    | vIsLval {vr : v ty} : isLval (var vr)
    | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)} {n}: isLval (index a n)
   .
-  Definition wftypes (i : instruction) : Prop := True.
-
-  Definition wftypesB (b : block) : Prop := fold_left and (map wftypes b) True.
+  Definition wfTypes (ty : type) : Prop := True.
 
   Fixpoint wfvar (i : instruction) : Prop := 
     match i with
@@ -140,7 +138,6 @@ Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
 
-Arguments wftypesB [v] _ .
 Arguments wfvarB [v] _ .
 
 Lemma casesOpt {T : Type} (o : option T) : {t : T | o = Some t} + {o = None}.

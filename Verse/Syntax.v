@@ -87,6 +87,11 @@ Inductive machineVar (reg : varT) : varT :=
 Arguments inRegister [reg t] _.
 Arguments onStack [reg t] _.
 
+(* Type definition for a list of types from an ensemble and a projection for the same *)
+
+Definition listIn {T : Type} (e : Ensemble T) := list {t : T | In _ e t}.
+Definition proj_l {T : Type} {P : T -> Prop} : list {t : T | P t} -> list T := map (@proj1_sig _ _).
+
 (**
 
 We can give a categorical structure on variables with substitutions
