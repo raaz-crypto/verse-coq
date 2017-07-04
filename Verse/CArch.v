@@ -155,6 +155,7 @@ Module CArch <: ARCH.
         | _      => ""%string
         end in          
     match ty with
+    | @Internal.array 1 e ty => word_type ty ++ " *" ++ write_arg (Language.var v)
     | @Internal.array n e ty => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
     | _                      => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v)
     end.
