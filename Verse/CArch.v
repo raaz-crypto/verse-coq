@@ -1,5 +1,3 @@
-Require Import Verse.Nibble.
-Require Import Verse.BinTree.
 Require Import Verse.Types.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
@@ -35,7 +33,7 @@ Module CArch <: ARCH.
   | uint8           : typesSupported (word 0)
   | uint16          : typesSupported (word 1)
   | uint32          : typesSupported (word 2)
-  | array {n e ty}  : typesSupported ty -> typesSupported (array n e ty)
+  | garray {n e ty}  : typesSupported ty -> typesSupported (array n e ty)
   .
 
   Definition supportedTy := Intersection _ typesSupported wfTypes.
@@ -98,6 +96,21 @@ Module CArch <: ARCH.
     | shiftR n => ">>" ++ (nat_to_str n)
     end.
 
+  Definition bits_to_str {n} (w : Word.t n) : string :=
+    let 'Word.bits bv := w in
+    Vector.fold_left append EmptyString (Vector.map (fun b : bool => if b then "1"%string else "0"%string) bv).
+
+  Open Scope string_scope.
+
+  Fixpoint constant_to_str {t} (td : typeDenote t) : string :=
+    match t return typeDenote t -> string with
+    | word n => fun bv => bits_to_str bv
+    | array (S n) _ _ => fun vec => "[" ++
+                                        (constant_to_str (Vector.hd vec)) ++ Vector.fold_left append EmptyString (Vector.map (fun b => "," ++ constant_to_str b) (Vector.tl vec))
+                                        ++ "]"
+    | _ => fun _ => ""
+    end td.
+
   Definition write_arg t (a : arg var t) : string :=
     match a with
     | Language.var v          => match v with
@@ -112,17 +125,7 @@ Module CArch <: ARCH.
                                   | inRegister (cr _ st) => st ++ "[" ++ (nat_to_str n) ++ "]"
                                   | onStack m => "var" ++ (nat_to_str m) ++ "[" ++ (nat_to_str n) ++ "]"
                                   end
-    | Language.constant c         => match c with
-                                     | wconst b => "0x" ++ Internal.nibblesToString (binToList _ b)
-                                     | @vconst n m v => "0x" ++ fold_left append
-                                                             (map
-                                                                (fun vc : Types.constant (word m) =>
-                                                                   match vc with
-                                                                   | wconst b => Internal.nibblesToString (binToList _ b)
-                                                                   end)
-                                                                (binToList _ v))
-                                                             EmptyString
-                                     end
+    | @Language.constant _ ty c   => constant_to_str c
     end.
 
   Definition write_inst (i : instruction var) : string :=
@@ -162,8 +165,6 @@ Module CArch <: ARCH.
     | (t :: lt) => fun a : allocation var (t :: lt) => var_declare false (fst a) :: (alloc_declare lt (snd a))
     end.
 
-  Open Scope string_scope.
-
   Definition generate {loopvar} {paramTypes localVar localReg}
              (f : Function var loopvar)
              (fa : FAllocation var paramTypes localVar localReg loopvar) : string :=
@@ -189,7 +190,6 @@ Module CArch <: ARCH.
                                   "}";
                                   write_block (cleanup f)
                                 ];
-                    "}";
+                    "}"
                 ].
-
 End CArch.
