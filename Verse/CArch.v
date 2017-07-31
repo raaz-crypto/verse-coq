@@ -33,7 +33,7 @@ Module CArch <: ARCH.
   | uint8           : typesSupported (word 0)
   | uint16          : typesSupported (word 1)
   | uint32          : typesSupported (word 2)
-  | garray {n e ty}  : typesSupported ty -> typesSupported (array n e ty)
+  | carray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
   Definition supportedTy := Intersection _ typesSupported wfTypes.
@@ -105,9 +105,9 @@ Module CArch <: ARCH.
   Fixpoint constant_to_str {t} (td : typeDenote t) : string :=
     match t return typeDenote t -> string with
     | word n => fun bv => bits_to_str bv
-    | array (S n) _ _ => fun vec => "[" ++
-                                        (constant_to_str (Vector.hd vec)) ++ Vector.fold_left append EmptyString (Vector.map (fun b => "," ++ constant_to_str b) (Vector.tl vec))
-                                        ++ "]"
+    | array (S n) _ _ => fun vec => "["
+                                      ++ (constant_to_str (Vector.hd vec)) ++ Vector.fold_left append EmptyString (Vector.map (fun b => "," ++ constant_to_str b) (Vector.tl vec)) ++
+                                    "]"
     | _ => fun _ => ""
     end td.
 
@@ -144,7 +144,7 @@ Module CArch <: ARCH.
     fold_left append (map (fun x => append x sep) l) EmptyString.
 
   Definition write_block (b : block var) : string :=
-    append_list nl (map write_inst b).
+    append_list (";" ++ nl) (map write_inst b).
 
   Definition var_declare {ty : type} (is_pointer : bool) (v : var ty) : string :=
     let word_type (t : type) : string :=
@@ -176,14 +176,14 @@ Module CArch <: ARCH.
                     "void " ++ Function.name f ++
                             "(Block *mesg, int nblocks, " ++ append_list "," (alloc_declare _ (pa fa))++ ")";
                     "{";
-                    append_list (nl ++ tab) [
-                                  append_list nl (alloc_declare _ (lva fa));
-                                  append_list nl (alloc_declare _ (rva fa));
-                                  var_declare false (lv fa);
+                    tab ++ append_list (nl ++ tab) [
+                                  append_list (";" ++ nl ++ tab) (alloc_declare _ (lva fa));
+                                  append_list (";" ++ nl ++ tab) (alloc_declare _ (rva fa));
+                                  var_declare false (lv fa) ++ ";"; "" ;
                                   write_block (setup f);
                                   "while (nblocks > 0)";
                                   "{";
-                                    append_list (nl ++ tab) [
+                                    tab ++ append_list (nl ++ tab ++ tab) [
                                                 write_arg (Language.var (lv fa)) ++ " = *mesg;";
                                                 write_block (loop f (lv fa));
                                                 "mesg++; nblocks--;"
@@ -194,3 +194,5 @@ Module CArch <: ARCH.
                     "}"
                 ].
 End CArch.
+
+Module CArchAux := ArchAux CArch.

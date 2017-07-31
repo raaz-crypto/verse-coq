@@ -42,12 +42,12 @@ Module Type ARCH.
   Parameter callConv : forall (paramTypes localTypes : listIn supportedTy),
       allocation var (proj_l paramTypes ++ proj_l localTypes).
 
-  (*
 
-  Parameter generate : forall b : block var, wftypesB b -> wfvarB b -> wfinstrB b -> string.
+  Parameter generate : forall {loopvar} {paramTypes localVar localReg}
+             (f : Function var loopvar)
+             (fa : FAllocation var paramTypes localVar localReg loopvar), string.
 
-   *)
-  (**
+(**
 
     Translate the assignment statement to assembly. Certain assignment
     instructions can fail, for example a three address assignment like
@@ -93,8 +93,6 @@ Module ArchAux (A : ARCH).
     pair f' fa.
 
   (* Allocate with loopvar being allocated on stack by callConv *)
-
-                                
   Definition allocate' loopvar
              (p          : In _ supportedTy loopvar)
              (paramTypes : listIn supportedTy)
