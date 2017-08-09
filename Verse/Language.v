@@ -250,30 +250,30 @@ Module Block := ListAST Instruction.
 
 (* Helper functions for the Function module *)
 
-Notation "A <= B <+> C " := (assign (assign3 _ plus  A B C))  (at level 20).
-Notation "A <= B <-> C " := (assign (assign3 _ minus A B C))  (at level 20).
-Notation "A <= B <*> C " := (assign (assign3 _ mul   A B C))  (at level 20).
-Notation "A <= B </> C " := (assign (assign3 _ quot  A B C))  (at level 20).
-Notation "A <= B <%> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <|> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <&> C " := (assign (assign3 _ rem   A B C))  (at level 20).
-Notation "A <= B <^> C " := (assign (assign3 _ rem   A B C))  (at level 20).
+Notation "A <= B <+> C " := (assign (assign3 plus  A B C))  (at level 20).
+Notation "A <= B <-> C " := (assign (assign3 minus A B C))  (at level 20).
+Notation "A <= B <*> C " := (assign (assign3 mul   A B C))  (at level 20).
+Notation "A <= B </> C " := (assign (assign3 quot  A B C))  (at level 20).
+Notation "A <= B <%> C " := (assign (assign3 rem   A B C))  (at level 20).
+Notation "A <= B <|> C " := (assign (assign3 rem   A B C))  (at level 20).
+Notation "A <= B <&> C " := (assign (assign3 rem   A B C))  (at level 20).
+Notation "A <= B <^> C " := (assign (assign3 rem   A B C))  (at level 20).
 
-Notation "A +<= B " := (assign (update2 _ plus  A B)) (at level 20).
-Notation "A -<= B " := (assign (update2 _ minus A B)) (at level 20).
-Notation "A *<= B " := (assign (update2 _ mul   A B)) (at level 20).
-Notation "A /<= B " := (assign (update2 _ quot  A B)) (at level 20).
-Notation "A %<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A |<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A &<= B " := (assign (update2 _ rem   A B)) (at level 20).
-Notation "A ^<= B " := (assign (update2 _ rem   A B)) (at level 20).
+Notation "A +<= B " := (assign (update2 plus  A B)) (at level 20).
+Notation "A -<= B " := (assign (update2 minus A B)) (at level 20).
+Notation "A *<= B " := (assign (update2 mul   A B)) (at level 20).
+Notation "A /<= B " := (assign (update2 quot  A B)) (at level 20).
+Notation "A %<= B " := (assign (update2 rem   A B)) (at level 20).
+Notation "A |<= B " := (assign (update2 rem   A B)) (at level 20).
+Notation "A &<= B " := (assign (update2 rem   A B)) (at level 20).
+Notation "A ^<= B " := (assign (update2 rem   A B)) (at level 20).
 
-Notation "A <=~ B "     := (assign (assign2 _ bitComp A B)) (at level 20).
-Notation "A '<=RL' N B" := (assign (assign2 _ (rotL N) A B)) (at level 20).
-Notation "A '<=RR' N B" := (assign (assign2 _ (rotR N) A B)) (at level 20).
-Notation "A <=<< N B"   := (assign (assign2 _ (shiftL N) A B))
+Notation "A <=~ B "     := (assign (assign2 bitComp A B)) (at level 20).
+Notation "A '<=RL' N B" := (assign (assign2 (rotL N) A B)) (at level 20).
+Notation "A '<=RR' N B" := (assign (assign2 (rotR N) A B)) (at level 20).
+Notation "A <=<< N B"   := (assign (assign2 (shiftL N) A B))
                              (at level 20).
-Notation "A <=>> N B"   := (assign (assign2 _ (shiftR N) A B))
+Notation "A <=>> N B"   := (assign (assign2 (shiftR N) A B))
                              (at level 20).
 (*Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).*)
 
