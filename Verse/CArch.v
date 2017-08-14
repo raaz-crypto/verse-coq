@@ -156,8 +156,8 @@ Module CArch <: ARCH.
         end in          
     match ty with
     | @Internal.array 1 e ty => word_type ty ++ " *" ++ write_arg (Language.var v)
-    | @Internal.array n e ty => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
-    | _                      => word_type ty ++ " " ++ if is_pointer then "*" else "" ++ write_arg (Language.var v)
+    | @Internal.array n e ty => word_type ty ++ " " ++ (if is_pointer then "*" else "") ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
+    | _                      => word_type ty ++ " " ++ (if is_pointer then "*" else "") ++ write_arg (Language.var v)
     end.
 
   Fixpoint alloc_declare (l : list type) : forall a : allocation var l, list string :=
