@@ -1,3 +1,4 @@
+Require Import Verse.Word.
 Require Import Verse.Types.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
@@ -68,6 +69,41 @@ Module CArch <: ARCH.
   Definition nat_to_str (n : nat) : string :=
     writeNatAux n n "".
 
+  Definition natToxDigit (n : nat) : ascii :=
+    match n with
+    | 0 => "0"
+    | 1 => "1"
+    | 2 => "2"
+    | 3 => "3"
+    | 4 => "4"
+    | 5 => "5"
+    | 6 => "6"
+    | 7 => "7"
+    | 8 => "8"
+    | 9 => "9"
+    | 10 => "a"
+    | 11 => "b"
+    | 12 => "c"
+    | 13 => "d"
+    | 14 => "e"
+    | _ => "f"
+    end.
+
+  Fixpoint writexNatAux (time n : nat) (acc : string) : string :=
+    let acc' := String (natToDigit (n mod 16)) acc in
+    match time with
+    | 0 => acc'
+    | S time' =>
+      match n / 16 with
+      | 0 => acc'
+      | n' => writeNatAux time' n' acc'
+      end
+    end.
+
+  Definition nat_to_xstr (n : nat) : string :=
+    writeNatAux n n "".
+
+
   Definition callConv (paramTypes localTypes : listIn supportedTy) :
       allocation var (proj_l paramTypes ++ proj_l localTypes) :=
     (fix allStack (n : nat) l : allocation var l :=
@@ -96,15 +132,11 @@ Module CArch <: ARCH.
     | shiftR n => ">>" ++ (nat_to_str n)
     end.
 
-  Definition bits_to_str {n} (w : Word.t n) : string :=
-    let 'Word.bits bv := w in
-    Vector.fold_left append EmptyString (Vector.map (fun b : bool => if b then "1"%string else "0"%string) bv).
-
   Open Scope string_scope.
 
   Fixpoint constant_to_str {t} (td : typeDenote t) : string :=
     match t return typeDenote t -> string with
-    | word n => fun bv => bits_to_str bv
+    | word n => fun bv => bitsToHex bv
     | array (S n) _ _ => fun vec => "["
                                       ++ (constant_to_str (Vector.hd vec)) ++ Vector.fold_left append EmptyString (Vector.map (fun b => "," ++ constant_to_str b) (Vector.tl vec)) ++
                                     "]"
