@@ -1,10 +1,10 @@
-Require Import Verse.CArch.
+Require Import Verse.Arch.C.
 Require Import Verse.Function.
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
-Import Verse.CArch.CArchAux.
+Import Verse.Arch.C.CArchAux.
 
 Require Import String.
 Require Import List.
@@ -15,26 +15,33 @@ Definition pl      := [Word16].
 Definition lv      := [ArrayT 3 hostE Word16].
 Definition rv      := [Word16; Word32].
 
-Ltac crush_typred ty := refine (exist _ ty _); unfold Ensembles.In; repeat constructor.
+Ltac genPredList l :=
+  let l' := match l with
+            | nil => l
+            | _ :: _ => l
+            | _ => eval unfold l in l
+  end
+  in
+  match l' with
+  | nil        => exact nil
+  | ?ty :: ?lt => refine (_ :: _); [ > refine (exist _ ty _); unfold Ensembles.In; repeat constructor | genPredList lt ]
+  end.
 
-Definition localReg : list {ty : type | Ensembles.In _ CArch.supportedTy ty}.
-  refine [_;_].
-  crush_typred Word16.
-  crush_typred Word32.
-Defined.
 
 Definition paramTypes : list {ty : type | Ensembles.In _ CArch.supportedTy ty}.
-  refine [_].
-  crush_typred Word16.
+  genPredList pl.
 Defined.
 
 Definition localVars : list {ty : type | Ensembles.In _ CArch.supportedTy ty}.
-  refine ([_]).
-  crush_typred (ArrayT 3 hostE Word16).
+  genPredList lv.
+Defined.
+
+Definition localReg : list {ty : type | Ensembles.In _ CArch.supportedTy ty}.
+  genPredList rv.
 Defined.
 
 Definition p : Ensembles.In _ CArch.supportedTy loopvar.
-  unfold Ensembles.In. repeat constructor.
+  unfold Ensembles.In; repeat constructor.
 Defined.
 
 Definition test : func loopvar pl lv rv :=
