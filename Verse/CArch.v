@@ -172,13 +172,21 @@ Module CArch <: ARCH.
   Definition nl := String (ascii_of_nat 10) EmptyString.
   Definition tab := String (ascii_of_nat 9) EmptyString.
   
+  Definition sep_list (sep : string) (l : list string) : string :=
+    fold_left append ((map (fun x => append x sep) (removelast l)) ++ [last l ""]) EmptyString.
   Definition append_list (sep : string) (l : list string) : string :=
     fold_left append (map (fun x => append x sep) l) EmptyString.
 
   Definition write_block (b : block var) : string :=
     append_list (";" ++ nl) (map write_inst b).
 
-  Definition var_declare {ty : type} (is_pointer : bool) (v : var ty) : string :=
+  Fixpoint ncopy (n : nat) (s : string) :=
+    match n with
+    | 0   => ""
+    | S n => s ++ ncopy n s
+    end.
+
+  Definition var_declare {ty : type} (is_pointer : nat) (v : var ty) : string :=
     let word_type (t : type) : string :=
         match t with
         | word 0 => "uint8_t"%string
@@ -188,30 +196,29 @@ Module CArch <: ARCH.
         end in          
     match ty with
     | @Internal.array 1 e ty => word_type ty ++ " *" ++ write_arg (Language.var v)
-    | @Internal.array n e ty => word_type ty ++ " " ++ (if is_pointer then "*" else "") ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
-    | _                      => word_type ty ++ " " ++ (if is_pointer then "*" else "") ++ write_arg (Language.var v)
+    | @Internal.array n e ty => word_type ty ++ " " ++ (if is_pointer then "" else ncopy is_pointer "*") ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
+    | _                      => word_type ty ++ " " ++ (if is_pointer then "" else ncopy is_pointer "*") ++ write_arg (Language.var v)
     end.
 
   Fixpoint alloc_declare (l : list type) : forall a : allocation var l, list string :=
     match l with
     | []        => fun _ => []
-    | (t :: lt) => fun a : allocation var (t :: lt) => var_declare false (fst a) :: (alloc_declare lt (snd a))
+    | (t :: lt) => fun a : allocation var (t :: lt) => var_declare 0 (fst a) :: (alloc_declare lt (snd a))
     end.
 
   Definition generate {loopvar} {paramTypes localVar localReg}
              (f : Function var loopvar)
              (fa : FAllocation var paramTypes localVar localReg loopvar) : string :=
-    let blockT  := inRegister (cr loopvar "Block") in
+    let block  := inRegister (cr loopvar ("mesg")) in
     append_list nl [
                     "#include <stdint.h>";
-                    "typedef " ++ var_declare true blockT ++ ";";
                     "void " ++ Function.name f ++
-                            "(Block *mesg, int nblocks, " ++ append_list "," (alloc_declare _ (pa fa))++ ")";
+                            "(" ++ var_declare 2 block ++ ", int nblocks, " ++ (sep_list "," (alloc_declare _ (pa fa))) ++ ")";
                     "{";
                     tab ++ append_list (nl ++ tab) [
                                   append_list (";" ++ nl ++ tab) (alloc_declare _ (lva fa));
                                   append_list (";" ++ nl ++ tab) (alloc_declare _ (rva fa));
-                                  var_declare false (lv fa) ++ ";"; "" ;
+                                  var_declare 0 (lv fa) ++ ";"; "" ;
                                   write_block (setup f);
                                   "while (nblocks > 0)";
                                   "{";
