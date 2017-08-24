@@ -1,7 +1,7 @@
 -R Verse Verse
 
 Verse/Arch.v
-Verse/CArch.v
+Verse/Arch/C.v
 Verse/Cat.v
 Verse/Error.v
 Verse/Function.v

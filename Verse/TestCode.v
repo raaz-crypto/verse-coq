@@ -1,10 +1,10 @@
-Require Import Verse.CArch.
+Require Import Verse.Arch.C.
 Require Import Verse.Function.
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
-Import Verse.CArch.CArchAux.
+Import Verse.Arch.C.CArchAux.
 
 Require Import String.
 Require Import List.
