@@ -1,8 +1,12 @@
 (* begin hide *)
 Require Import Bvector.
+Require Import Verse.Error.
 Require Import Vector.
 Require Import Coq.ZArith.Zdigits.
+Require Import BinNums.
+Require Import BigNumPrelude.
 Require Import String.
+Require Import Ascii.
 
 (** * Words.
 
@@ -12,7 +16,7 @@ the meanings of
 *)
 
 
-
+Open Scope Z_scope.
 Inductive t (n : nat) : Type :=
 | bits : Bvector n -> t n.
 
@@ -66,6 +70,92 @@ Definition bitsToHex {n} (x : t n) : string :=
   | nil                                    => "x"
   end) _ bv'.
 
+(* Encodings of constants *)
+Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.
+
+Module Base16.
+
+
+  Open Scope string_scope.
+  Open Scope char_scope.
+
+
+    Definition hexDigit (c : ascii) : Z + {EncodeError}:=
+    (match c with
+     | "0" => inleft 0
+     | "1" => inleft 1
+     | "2" => inleft 2
+     | "3" => inleft 3
+     | "4" => inleft 4
+     | "5" => inleft 5
+     | "6" => inleft 6
+     | "7" => inleft 7
+     | "8" => inleft 8
+     | "9" => inleft 9
+     | "a" | "A" => inleft 10
+     | "b" | "B" => inleft 11
+     | "c" | "C" => inleft 12
+     | "d" | "D" => inleft 13
+     | "e" | "E" => inleft 14
+     | "f" | "F" => inleft 15
+     | _ => inright BadBase16
+     end)%Z.
+
+    Fixpoint hexToZP (sofar : Z) (s : string) :=
+      let update := (fun x => sofar * 16 + x)%Z in
+      match s with
+      | String c sp => x <- update <$> hexDigit c ;  hexToZP x sp
+      | EmptyString => inleft sofar
+      end.
+
+
+    Definition hexToZ (n : nat)(s : string) : t n + {EncodeError}
+      := match Nat.compare n (4 * String.length s) with
+         | Eq => @bits n <$> (Z_to_binary n <$> hexToZP (0%Z) s)
+         | Lt => inright TooManyDigits
+         | Gt => inright TooFewDigits
+         end.
+
+    Definition lastHexDigit z :=
+      match binary_value 4 (Z_to_binary 4 z) with
+      | 0 => "0"
+      | 1 => "1"
+      | 2 => "2"
+      | 3 => "3"
+      | 4 => "4"
+      | 5 => "5"
+      | 6 => "6"
+      | 7 => "7"
+      | 8 => "8"
+      | 9 => "9"
+      | 10 => "a"
+      | 11 => "b"
+      | 12 => "c"
+      | 13 => "d"
+      | 14 => "e"
+      | 15 => "f"
+      | _  => "-"
+      end.
+               
+               
+               
+      
+    Fixpoint ZToHex (n : nat)(z : Z) : string :=
+      match n with
+      | (S (S (S (S m)))) => ZToHex m (z / 16) ++ String (lastHexDigit z) EmptyString
+      | _                 => EmptyString
+      end.
+
+End Base16.
+
+Definition Ox s := recover (Base16.hexToZ (4 * String.length s) s).
+
+Definition hex {n} (u : t (4 * n)) :=
+  match u with
+  | bits bv => Base16.ZToHex (4 * n) (binary_value (4 * n) bv)
+  end.
+
+
 (** This function lifts a numeric binary function  to WORDS *)
 Definition numBinOp {n} f  (x y : t n) : t n :=
   match x, y with
@@ -89,4 +179,3 @@ Definition bitwiseUnaryOp {n : nat} f (x : t n) : t n :=
   match x with
   | bits xv => bits (Vector.map f xv )
   end.
-
