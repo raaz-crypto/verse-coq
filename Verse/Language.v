@@ -118,8 +118,8 @@ represented in Coq using the type [arg], can be one of the following
     match i with
     | assign i => match i with
                   | assign3 ty _ v1 _ _ => and (isValue ty) (isLval v1)
-                  | assign2 ty _ v1 _  => and (isValue ty) (isLval v1)
-                  | update2 ty _ v1 _  => and (isValue ty) (isLval v1)
+                  | assign2 ty _ v1 _   => and (isValue ty) (isLval v1)
+                  | update2 ty _ v1 _   => and (isValue ty) (isLval v1)
                   | update1 ty _ v1     => and (isValue ty) (isLval v1)
                   end
     end.
