@@ -20,6 +20,12 @@ Arguments bits [n] _.
 
 Arguments nil [A].
 
+
+Definition toZ {n}(x : t n) :=
+  match x with
+  | bits bv => binary_value n bv
+  end.
+
 Open Scope string_scope.
 
 Definition bitsToHex {n} (x : t n) : string :=
