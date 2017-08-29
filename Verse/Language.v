@@ -1,6 +1,5 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
-Require Import Verse.Cat.
 Require Import Verse.Syntax.
 Require Vector.
 Require Import List.
@@ -148,105 +147,6 @@ Proof.
   | None   => inright (eq_refl)
   end.
 Qed.
-
-(* Syntax modules *)
-
-Module Arg <: VarTto VarT.
-
-  Definition omap := arg.
-
-  Definition mmap {v1 v2} (f : subT v1 v2) : subT (arg v1) (arg v2) :=
-    fun _ a =>
-    match a with
-    | var vv1 => var (f _ vv1)
-    | constant c => constant c
-    | index arr n => index (f _ arr) n
-    end.
-
-  Arguments mmap {v1 v2} _ [t] _.
-
-  Lemma idF (u : varT) :  mmap (@VarT.idM u) = VarT.idM.
-  Proof.
-    crush_ast_obligations.
-  Qed.
-
-  Lemma functorial : forall {u v w} {g : subT v w} {f : subT u v}, mmap (g << f) = VarT.composeM (mmap g) (mmap f).
-  Proof.
-    crush_ast_obligations.
-  Qed.
-    
-End Arg.
-
-
-Module Assignment <: AST.
-
-  Definition argtype {v : varT} (a : assignment v) : type :=
-    match a with
-    | @assign3 _ ty _ _ _ _ => ty
-    | @assign2 _ ty _ _ _   => ty
-    | @update2 _ ty _ _ _   => ty
-    | @update1 _ ty _ _     => ty
-    end.
-
-  Definition syn  := assignment.
-  Definition transform {v w} (f : subT v w) (a : assignment v) : assignment w :=
-   match a with
-   | assign3 b v1 v2 v3 => assign3 b (Arg.mmap f v1) (Arg.mmap f v2) (Arg.mmap f v3)
-   | assign2 u v1 v2 => assign2 u (Arg.mmap f v1) (Arg.mmap f v2)
-   | update2 b v1 v2 => update2 b (Arg.mmap f v1) (Arg.mmap f v2)
-   | update1 u v1 => update1 u (Arg.mmap f v1)
-   end.
-
-  Definition omap := syn.
-  Definition mmap := fun {v w} => @transform v w.
-
-  Lemma idF {u} : mmap (@VarT.idM u) = id.
-  Proof.
-    Hint Rewrite Arg.idF.
-    
-    crush_ast_obligations.
-
-  Qed. 
-
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = TypeCat.composeM (mmap g) (mmap f).
-  Proof.
-    Hint Rewrite @Arg.functorial.
-
-    crush_ast_obligations.
-  Qed.
-  
-End Assignment.
-
-Module Instruction <: AST.
-
-  Definition syn := instruction.
-  Definition transform {v w} (f : subT v w) (i : instruction v) : instruction w :=
-  match i with
-  | assign a => assign (Assignment.mmap f a)
-  end.
-
-
-  Definition omap := syn.
-  Definition mmap := fun {v w} => @transform v w.
-
-  
-  Lemma idF {u}: mmap (@VarT.idM u) = id.
-  Proof.
-    Hint Rewrite @Assignment.idF.
-    
-    crush_ast_obligations.
-  Qed.    
-    
-  Lemma functorial {u v w}{g : subT v w}{f : subT u v}: mmap (g << f) = compose (mmap g) (mmap f).
-  Proof.
-    Hint Rewrite @Assignment.functorial.
-
-    crush_ast_obligations.
-  Qed.
-  
-End Instruction.
-
-Module Block := ListAST Instruction.
 
 (* Helper functions for the Function module *)
 
