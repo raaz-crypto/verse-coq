@@ -1,6 +1,5 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
-Require Import FunctionalExtensionality.
 Require Import Basics.
 Require Import List.
 Import  ListNotations.
@@ -37,12 +36,17 @@ required to preserve the types of the variables.
 
  *)
 
-
 Definition subT (u v : varT) := forall t, u t -> v t.
 
-(** The trivial substitution *)
+(** *** Abstract syntax trees.
 
-Definition idSubst {v : varT} : subT v v := fun _ vt => vt.
+Abstract syntax trees are data types where one of the atomic element
+is a variable. Hence, the abstract syntaxes of languages are
+essentially types parameterised by [varT].
+
+*)
+
+Definition astT := forall v : varT, Type.
 
 (**
 
@@ -64,36 +68,6 @@ Arguments onStack [reg t] _.
 
 Definition listIn {T : Type} (e : Ensemble T) := list {t : T | In _ e t}.
 Definition proj_l {T : Type} {P : T -> Prop} : list {t : T | P t} -> list T := map (@proj1_sig _ _).
-
-
-(** *** Abstract syntax trees.
-
-Abstract syntax trees are data types where one of the atomic element
-is a variable. Hence, the abstract syntaxes of languages are
-essentially types parameterised by [varT].
-
-*)
-
-Definition astT := forall v : varT, Type.
-
-Notation error := inright.
-Notation "{- X -}" := (inleft X).
-
-(** * Tactic to crush AST proof obligations
-
-When defining the instance for AST, the identity and composition laws
-are often straight forward. This tactic crushes them.
-
- *)
-
-Ltac crush_ast_obligations :=
-  repeat (intros; apply functional_extensionality_dep;
-         let x := fresh "X" in intro x; induction x; simpl;
-                               unfold id; unfold compose; try (autorewrite with core); eauto).
-Hint Resolve Union_introl Union_intror In_singleton.
-
-(** * Some examples. *)
-
 
 Section Scoped.
 

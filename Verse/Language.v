@@ -139,15 +139,6 @@ Arguments assign [v] _ .
 
 Arguments wfvarB [v] _ .
 
-Lemma casesOpt {T : Type} (o : option T) : {t : T | o = Some t} + {o = None}.
-Proof.
-  exact 
-  match o with
-  | Some t => inleft (exist _ t eq_refl)
-  | None   => inright (eq_refl)
-  end.
-Qed.
-
 (* Helper functions for the Function module *)
 
 Notation "A <= B <+> C " := (assign (assign3 plus  A B C))  (at level 20).
