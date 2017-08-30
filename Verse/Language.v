@@ -215,4 +215,4 @@ Inductive MyVar : varT :=
 .
 
 Import ListNotations.
-Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X <*> X ]  .
+Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X <*> X ; X <= X <|> Ox "ff"].
