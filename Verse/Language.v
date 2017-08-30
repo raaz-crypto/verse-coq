@@ -214,7 +214,5 @@ Inductive MyVar : varT :=
 |  A : MyVar (ArrayT 42 bigE Word8)
 .
 
-Check A[-2-].
-
 Import ListNotations.
 Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X <*> X ]  .
