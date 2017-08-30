@@ -51,8 +51,8 @@ Definition test : func loopvar pl lv rv :=
         fun (tmp : v Word16) (double : v Word32) =>
           {|
             name    := "test";
-            setup   := [var num <= var tmp <*> Language.index arr 0];
-            loop    := fun lv : v loopvar => [var num <=  var tmp <+> Language.index arr 1];
+            setup   := [ num <= tmp <*> arr[-0-] ];
+            loop    := fun lv : v loopvar => [num <=  tmp <+> arr[-1-] ];
             cleanup := []
           |}.
 

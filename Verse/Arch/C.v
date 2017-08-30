@@ -31,18 +31,20 @@ Module CArch <: ARCH.
   Definition var := machineVar register.
 
   Inductive typesSupported : Ensemble type :=
-  | uint8           : typesSupported (word 0)
-  | uint16          : typesSupported (word 1)
-  | uint32          : typesSupported (word 2)
+  | uint8           : typesSupported Word8
+  | uint16          : typesSupported Word16
+  | uint32          : typesSupported Word32
+  | uint64          : typesSupported Word64
   | carray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
   Definition supportedTy := Intersection _ typesSupported wfTypes.
 
   Definition supportedInst := Full_set (instruction var).
-  
+
   (** Encode the architecture specific restrictions on the instruction set **)
 
+  Open Scope nat.
   Definition natToDigit (n : nat) : ascii :=
     match n with
     | 0 => "0"
@@ -68,6 +70,7 @@ Module CArch <: ARCH.
     end.
   Definition nat_to_str (n : nat) : string :=
     writeNatAux n n "".
+
 
   Definition natToxDigit (n : nat) : ascii :=
     match n with
@@ -112,7 +115,7 @@ Module CArch <: ARCH.
        | ty :: lt => (onStack n, allStack (n + 1) lt)
        end)
       0 (proj_l paramTypes ++ proj_l localTypes).
-  
+
   (** Generate code with assurance of well formedness **)
 
   Definition op_to_str {a : arity} (o : op a) : string :=
@@ -171,7 +174,7 @@ Module CArch <: ARCH.
 
   Definition nl := String (ascii_of_nat 10) EmptyString.
   Definition tab := String (ascii_of_nat 9) EmptyString.
-  
+
   Definition sep_list (sep : string) (l : list string) : string :=
     fold_left append ((map (fun x => append x sep) (removelast l)) ++ [last l ""]) EmptyString.
   Definition append_list (sep : string) (l : list string) : string :=
@@ -193,7 +196,7 @@ Module CArch <: ARCH.
         | word 1 => "uint16_t"%string
         | word 2 => "uint32_t"%string
         | _      => ""%string
-        end in          
+        end in
     match ty with
     | @Internal.array 1 e ty => word_type ty ++ " *" ++ write_arg (Language.var v)
     | @Internal.array n e ty => word_type ty ++ " " ++ (if is_pointer then "" else ncopy is_pointer "*") ++ write_arg (Language.var v) ++ "[" ++ nat_to_str n ++ "]"
