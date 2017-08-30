@@ -149,35 +149,72 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-
 Arguments wfvarB [v] _ .
 
-(* Helper functions for the Function module *)
 
-Notation "A <= B <+> C " := (assign (assign3 plus  A B C))  (at level 20).
-Notation "A <= B <-> C " := (assign (assign3 minus A B C))  (at level 20).
-Notation "A <= B <*> C " := (assign (assign3 mul   A B C))  (at level 20).
-Notation "A <= B </> C " := (assign (assign3 quot  A B C))  (at level 20).
-Notation "A <= B <%> C " := (assign (assign3 rem   A B C))  (at level 20).
-Notation "A <= B <|> C " := (assign (assign3 rem   A B C))  (at level 20).
-Notation "A <= B <&> C " := (assign (assign3 rem   A B C))  (at level 20).
-Notation "A <= B <^> C " := (assign (assign3 rem   A B C))  (at level 20).
 
-Notation "A +<= B " := (assign (update2 plus  A B)) (at level 20).
-Notation "A -<= B " := (assign (update2 minus A B)) (at level 20).
-Notation "A *<= B " := (assign (update2 mul   A B)) (at level 20).
-Notation "A /<= B " := (assign (update2 quot  A B)) (at level 20).
-Notation "A %<= B " := (assign (update2 rem   A B)) (at level 20).
-Notation "A |<= B " := (assign (update2 rem   A B)) (at level 20).
-Notation "A &<= B " := (assign (update2 rem   A B)) (at level 20).
-Notation "A ^<= B " := (assign (update2 rem   A B)) (at level 20).
+(** * Pretty Notation.
 
-Notation "A <=~ B "     := (assign (assign2 bitComp A B)) (at level 20).
-Notation "A '<=RL' N B" := (assign (assign2 (rotL N) A B)) (at level 20).
-Notation "A '<=RR' N B" := (assign (assign2 (rotR N) A B)) (at level 20).
-Notation "A <=<< N B"   := (assign (assign2 (shiftL N) A B))
-                             (at level 20).
-Notation "A <=>> N B"   := (assign (assign2 (shiftR N) A B))
-                             (at level 20).
-(*Notation "'FOR' V 'IN' S 'DO' B" :=  (each V S B) (at level 20).*)
+Expressing instructions directly as elements of the instruction type
+is painful. The first painful aspect comes from explictly having to
+lift each variable and constant to the argument level. This we solve
+using the following class.
 
+*)
+
+Class ARG (v : varT) (ty : type) t  := { toArg : t -> arg v ty }.
+
+(** Instances of this class has been defined for both variables and constants *)
+
+Instance arg_of_arg  (v : varT)(ty : type) : ARG v ty (arg v ty)          := { toArg := fun x => x  }.
+Instance arg_of_v    (v : varT)(ty : type) : ARG v ty (v ty)              := { toArg :=  @var v ty  }.
+Instance const_arg_v (v : varT)(ty : type) : ARG v ty (Types.constant ty) := { toArg := @constant v ty }.
+
+
+
+Notation "A [- N -]" := (index A N) (at level 69).
+Notation "A <= B <+> C " := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
+
+Notation "A <= B <-> C " := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B <*> C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B </> C " := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B <%> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B <|> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B <&> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B <^> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+
+Notation "A +<= B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
+Notation "A -<= B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
+Notation "A *<= B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
+Notation "A /<= B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
+Notation "A %<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A |<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A &<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A ^<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+
+Notation "A <=~ B "     := (assign (assign2 bitComp    (toArg A) (toArg B))) (at level 70).
+Notation "A '<=RL' N B" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
+Notation "A '<=RR' N B" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
+Notation "A <=<< N B"   := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
+Notation "A <=>> N B"   := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
+
+
+Require Import Verse.Word.
+
+(** * Example using this notation.
+
+To demonstrate the use of this notation we first define a inductive
+type to capture variables.
+
+*)
+
+Inductive MyVar : varT :=
+|  X : MyVar Word8
+|  Y : MyVar Word64
+|  A : MyVar (ArrayT 42 bigE Word8)
+.
+
+Check A[-2-].
+
+Import ListNotations.
+Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X <*> X ]  .
