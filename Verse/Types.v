@@ -7,7 +7,7 @@ Require Import Verse.Types.Internal.
 The verse EDSL supports the standard word types, vectors type, arrays
 and sequences. The types exposed from this module is what users of
 verse should stick to. There is more to types and all its gory details
-of types are exposed from the module [Verse.Types.Internal].
+are exposed from the module [Verse.Types.Internal].
 
 *)
 
