@@ -31,10 +31,10 @@ Module CArch <: ARCH.
   Definition var := machineVar register.
 
   Inductive typesSupported : Ensemble type :=
-  | uint8           : typesSupported (word 0)
-  | uint16          : typesSupported (word 1)
-  | uint32          : typesSupported (word 2)
-
+  | uint8           : typesSupported Word8
+  | uint16          : typesSupported Word16
+  | uint32          : typesSupported Word32
+  | uint64          : typesSupported Word64
   | carray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
