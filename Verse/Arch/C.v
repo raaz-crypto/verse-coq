@@ -45,31 +45,6 @@ Module CArch <: ARCH.
   (** Encode the architecture specific restrictions on the instruction set **)
 
   Open Scope nat.
-  Definition natToDigit (n : nat) : ascii :=
-    match n with
-    | 0 => "0"
-    | 1 => "1"
-    | 2 => "2"
-    | 3 => "3"
-    | 4 => "4"
-    | 5 => "5"
-    | 6 => "6"
-    | 7 => "7"
-    | 8 => "8"
-    | _ => "9"
-    end.
-  Fixpoint writeNatAux (time n : nat) (acc : string) : string :=
-    let acc' := String (natToDigit (n mod 10)) acc in
-    match time with
-    | 0 => acc'
-    | S time' =>
-      match n / 10 with
-      | 0 => acc'
-      | n' => writeNatAux time' n' acc'
-      end
-    end.
-  Definition nat_to_str (n : nat) : string :=
-    writeNatAux n n "".
 
 
   Definition natToxDigit (n : nat) : ascii :=
