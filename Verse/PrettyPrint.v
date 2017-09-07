@@ -118,4 +118,11 @@ Module Internal.
 End Internal.
 
 Definition decimal n := text (Internal.nat_to_str n).
-Definition hexadecimal {n : nat} (u : Word.t (4 * n)) := Word.hex u.
+Definition hexadecimal {n : nat} (u : Word.t (4 * n)) := text (Word.hex u).
+
+
+Class PrettyPrint a := { doc : a -> Doc}.
+
+Instance string_pretty : PrettyPrint string := { doc := text }.
+Instance nat_pretty    : PrettyPrint nat    := { doc := decimal }.
+Instance word_pretty {n : nat} : PrettyPrint (Word.t (4 * n)) := { doc := @hexadecimal n  }.
