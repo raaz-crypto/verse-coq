@@ -1,14 +1,53 @@
 Require Import String.
 Require Import Strings.Ascii.
 Require Import List.
+Require Import NPeano.
 Import ListNotations.
 
 
-Definition Words := list string.
+Module Internal.
 
+  Fixpoint intercalate (punct : string) (ws : list string) : string :=
+  match ws with
+  | []        => ""
+  | [x]       => x
+  | (x :: xs) => (x ++ punct) ++ intercalate punct xs
+  end.
+
+  Definition digit (n : nat) : ascii :=
+    match n with
+    | 0 => "0"
+    | 1 => "1"
+    | 2 => "2"
+    | 3 => "3"
+    | 4 => "4"
+    | 5 => "5"
+    | 6 => "6"
+    | 7 => "7"
+    | 8 => "8"
+    | _ => "9"
+    end.
+
+
+  Fixpoint writeNatAux (time n : nat) (acc : string) : string :=
+    let acc' := String (digit (n mod 10)) acc in
+    match time with
+    | 0 => acc'
+    | S time' =>
+      match n / 10 with
+      | 0 => acc'
+      | n' => writeNatAux time' n' acc'
+      end
+    end.
+
+  Definition nat_to_str (n : nat) : string :=
+    writeNatAux n n "".
+
+End Internal.
+
+Definition Words       := list string.
 Definition Line : Set  := nat * Words.
-
-Definition Doc  := list Line.
+Definition Doc         := list Line.
 
 Definition line (ws : Words) : Line := (0,ws).
 Definition lines := List.map line.
@@ -20,13 +59,10 @@ Definition indent n (l : Line)   : Line :=
 
 Definition nest  (n : nat): Doc -> Doc := List.map (indent n).
 
+Definition decimal (n : nat) : Words :=  [Internal.nat_to_str n].
 
-Fixpoint intercalate (punct : string) (ws : list string) : string :=
-  match ws with
-  | []        => ""
-  | [x]       => x
-  | (x :: xs) => (x ++ punct) ++ intercalate punct xs
-  end.
+
+
 
 
 
@@ -42,8 +78,8 @@ Class DOC (doc : Set) := {
 Section Utils.
   Variable doc : Set.
   Variable cls : DOC doc.
-  Definition comaSep := sepBy ",".
-  Definition semiSep := sepBy ";".
+  Definition comaSep      := sepBy ",".
+  Definition semiSep      := sepBy ";".
   Definition semiSepEnd   := sepEndBy ";".
   Definition paren  := between "(" ")".
   Definition bracket := between "[" "]".
@@ -103,7 +139,7 @@ Instance words_pretty : DOC Words
   := { between  := PrettyWords.bet;
        sepBy    := PrettyWords.sep;
        sepEndBy := PrettyWords.sepE;
-       toString := intercalate " "
+       toString := Internal.intercalate " "
      }.
 
 
@@ -140,12 +176,12 @@ Module PrettyDoc.
 
   Definition linetoStr (ln : Line) :=
     match ln with
-    | (n,ws) => (spaces n ++ intercalate " " ws)%string
+    | (n,ws) => (spaces n ++ Internal.intercalate " " ws)%string
     end.
 
 
   Fixpoint unlines (doc : Doc) : string :=
-    intercalate newline (List.map linetoStr doc).
+    Internal.intercalate newline (List.map linetoStr doc).
 
 
 End PrettyDoc.
