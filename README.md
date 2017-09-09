@@ -4,6 +4,16 @@ Verse
 A domain specific language in coq used to write low-level
 cryptographic primitives.
 
+
+Configuring and installing
+--------------------------
+
+```
+./configure.sh
+make
+
+```
+
 Building with multiple coq-versions
 -----------------------------------
 
@@ -12,8 +22,8 @@ versions of coq. You need to set the the environment variable $COQ_VER
 and run the script `./scripts/opam-build.sh`. Here is an example.
 
 ```
-COQ_VER=8.6 ./scripts/opam-build.sh init
-COQ_VER=8.6 ./scripts/opam-build.sh build
+COQ_VER=8.6 ./scripts/opam-build.sh build  # compile all the coq files
+COQ_VER=8.6 ./scripts/opam-build.sh html   # build html documentation
 
 ```
 
