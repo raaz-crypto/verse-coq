@@ -60,8 +60,8 @@ Section Language.
 (**
 
 This section build up towards the the inductive type that capture the
-verse languages abstract syntax tree. One of the most important
-elements in a programming language is variables. In verse program
+verse language's abstract syntax tree. One of the most important
+elements in a programming language is variables. In verse, program
 fragments are parameterised by an abstract variable type that is used
 through out.
 
@@ -183,20 +183,24 @@ Notation "A <= B <|> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)
 Notation "A <= B <&> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
 Notation "A <= B <^> C " := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
 
-Notation "A +<= B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
-Notation "A -<= B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
-Notation "A *<= B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
-Notation "A /<= B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
-Notation "A %<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
-Notation "A |<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
-Notation "A &<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
-Notation "A ^<= B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A <=+ B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
+Notation "A <=- B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
+Notation "A <=* B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
+Notation "A <=/ B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
+Notation "A <=% B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A <=| B " := (assign (update2 bitOr   (toArg A) (toArg B))) (at level 70).
+Notation "A <=& B " := (assign (update2 bitAnd   (toArg A) (toArg B))) (at level 70).
+Notation "A <=^ B " := (assign (update2 bitXor   (toArg A) (toArg B))) (at level 70).
 
 Notation "A <=~ B "     := (assign (assign2 bitComp    (toArg A) (toArg B))) (at level 70).
-Notation "A '<=RL' N B" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
-Notation "A '<=RR' N B" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
-Notation "A <=<< N B"   := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
-Notation "A <=>> N B"   := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
+Notation "A <= B <*< N" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
+Notation "A <= B >*> N" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
+Notation "A <= B <<  N"  := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
+Notation "A <= B >>  N" := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
+Notation "A <=<< N "    := (assign (update1 (shiftL N) (toArg A))) (at level 70).
+Notation "A <=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70).
+Notation "A <=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
+Notation "A <=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
 
 Require Import Verse.Word.
@@ -215,4 +219,104 @@ Inductive MyVar : varT :=
 .
 
 Import ListNotations.
-Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X <*> X ; X <= X <|> Ox "ff"].
+Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X << 5 ; X <=>> 5].
+
+
+Require Import Verse.PrettyPrint.
+
+(** * Pretty printing of verse instructions.
+
+It is convenient to have a pretty printed syntax for instructions in
+verse. Since instructions are parameterised by variables, we give a
+C-like pretty printing for verse instructions. We start by defining a
+section for this where we parameterise over teh variable type and its
+pretty printing instance.
+
+
+*)
+
+Section PrettyPrintingInstruction.
+
+  (** The variable type for our instructions *)
+  Variable v : varT.
+
+
+  (** The pretty printing instance for our variable *)
+  Variable vPrint : forall ty : type, PrettyPrint (v ty).
+
+  (** The pretty printing of our argument *)
+  Global Instance arg_pretty_print : forall ty, PrettyPrint (arg v ty)
+    := { doc := fun av => match av with
+                          | var v      => doc v
+                          | constant c => doc c
+                          | index v n  => doc v <> bracket (doc n)
+                          end
+       }.
+
+  Local Definition opDoc {a : arity}(o : op a) :=
+    match o with
+    | plus     => text "+"
+    | minus    => text "-"
+    | mul      => text "*"
+    | quot     => text "/"
+    | rem      => text "%"
+    | bitOr    => text "|"
+    | bitAnd   => text "&"
+    | bitXor   => text "^"
+    | bitComp  => text "~"
+    | rotL _   => text "<*<"
+    | rotR _   => text ">*>"
+    | shiftL _ => text "<<"
+    | shiftR _ => text ">>"
+    end.
+
+  Local Definition EQUALS := text "=".
+  Local Definition mkAssign {a : arity}(o : op a) (x y z : Doc) := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Local Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+
+  (** The pretty printing of assignment statements **)
+  Global Instance assignment_pretty_print : PrettyPrint (assignment v)
+    := { doc := fun assgn =>  match assgn with
+                              | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
+                              | update2 o x y   => mkUpdate o (doc x) (doc y)
+                              | assign2 u x y   =>
+                                match u with
+                                | bitComp  => mkAssign u (doc x) empty (doc y)
+                                | shiftL n
+                                | shiftR n
+                                | rotL n
+                                | rotR n   => mkAssign u (doc x) (doc y) (decimal n)
+                                end
+                              | update1 u x      =>
+                                match u with
+                                | bitComp => mkAssign u (doc x) empty (doc x)
+                                | shiftL n | shiftR n
+                                | rotL n   | rotR n
+                                             => mkUpdate u (doc x) (decimal n)
+                                                   end
+                              end
+       }.
+
+  Global Instance instruction_pretty_print : PrettyPrint (instruction v)
+    := { doc := fun i => match i with
+                         | assign a => doc a
+                         end
+       }.
+
+End PrettyPrintingInstruction.
+
+(** ** Example pretty printing 
+
+Let us define pretty printing instance for the variable above to demonstrate the use of
+this pretty printing
+
+ *)
+
+Instance PrettyPrintMyVar : forall ty : type, PrettyPrint (MyVar ty) :=
+  { doc := fun v => text ( match v with
+                           | X => "X"
+                           | Y => "Y"
+                           | A => "A"
+                           end
+                         )
+  }.
