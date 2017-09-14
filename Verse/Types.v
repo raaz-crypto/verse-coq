@@ -34,3 +34,13 @@ Definition Vector256Bytes : type := VectorT 5 Byte.
 Require Import Nat.
 
 Definition constant ty := typeDenote ty.
+
+Require Import PrettyPrint.
+
+Fixpoint constant_doc (ty : type) : constant ty -> Doc :=
+  match ty as ty0 return constant ty0 -> Doc with
+  | word n => fun w => text "0x" <> doc w
+  | _      => fun _ => text ""
+  end.
+
+Instance constant_pretty {ty : type} : PrettyPrint (constant ty) := { doc := constant_doc ty}.
