@@ -7,6 +7,7 @@ Require Import BinNums.
 Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
+Require Import Verse.PrettyPrint.
 
 (** * Words.
 
@@ -142,17 +143,18 @@ Module Base16.
       
     Fixpoint ZToHex (n : nat)(z : Z) : string :=
       match n with
+      | 0%nat             => EmptyString
       | (S (S (S (S m)))) => ZToHex m (z / 16) ++ String (lastHexDigit z) EmptyString
-      | _                 => EmptyString
+      | _                 => String (lastHexDigit z) EmptyString
       end.
 
 End Base16.
 
 Definition Ox s := recover (Base16.hexToZ (4 * String.length s) s).
 
-Definition hex {n} (u : t (4 * n)) :=
+Definition hex {n} (u : t n) :=
   match u with
-  | bits bv => Base16.ZToHex (4 * n) (binary_value (4 * n) bv)
+  | bits bv => Base16.ZToHex n (binary_value n bv)
   end.
 
 
@@ -179,3 +181,5 @@ Definition bitwiseUnaryOp {n : nat} f (x : t n) : t n :=
   match x with
   | bits xv => bits (Vector.map f xv )
   end.
+
+Instance word_pretty (n : nat) : PrettyPrint (t n) := { doc := fun w => doc (@hex n w) }.
