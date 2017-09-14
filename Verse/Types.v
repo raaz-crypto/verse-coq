@@ -1,5 +1,4 @@
 Require Import String.
-Require Import Verse.Tactics.
 Require Import Verse.Types.Internal.
 
 (** * Types in verse.
