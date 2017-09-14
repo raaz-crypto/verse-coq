@@ -2,6 +2,7 @@ Require Import Verse.Language.
 Require Import Verse.Syntax.
 Require Import Verse.Function.
 Require Import Verse.Types.Internal.
+Require Import Verse.PrettyPrint.
 Require Import String.
 Require Import List.
 Import ListNotations.
@@ -45,7 +46,7 @@ Module Type ARCH.
 
   Parameter generate : forall {loopvar} {paramTypes localVar localReg}
              (f : Function var loopvar)
-             (fa : FAllocation var paramTypes localVar localReg loopvar), string.
+             (fa : FAllocation var paramTypes localVar localReg loopvar), Doc.
 
 (**
 
