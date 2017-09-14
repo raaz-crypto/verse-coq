@@ -4,6 +4,7 @@ Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
+Require Import Verse.PrettyPrint.
 Import Verse.Arch.C.CArchAux.
 
 Require Import String.
@@ -58,8 +59,8 @@ Definition test : func loopvar pl lv rv :=
 
 Definition lalloc : allocation CArch.var rv := (inRegister (cr Word16 "tmp"), (inRegister (cr Word32 "double"), tt)).
 
-Definition code : string :=
+Definition code : Doc :=
   let '(f, fa) := allocate' Byte p paramTypes localVars localReg test lalloc in
   CArch.generate f fa.
 
-Compute code.
+Compute (layout code).
