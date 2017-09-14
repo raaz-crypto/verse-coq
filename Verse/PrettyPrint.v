@@ -63,20 +63,20 @@ Notation  "A <_> B" :=  (appendSpace A B) (at level 70).
 Definition combine (docs : list Doc) : Doc := List.fold_left append docs empty.
 Definition between (b e : string) (doc : Doc) := text b <> doc <> text e.
 
-Fixpoint sepBy (s : string) (docs : list Doc) : Doc :=
+Fixpoint sepBy (s : Doc) (docs : list Doc) : Doc :=
   match docs with
   | []        => empty
   | [x]       => x
-  | (x :: xs) => (x <> text s) <_> sepBy s xs
+  | (x :: xs) => (x <> s) <_> sepBy s xs
   end.
 
-Fixpoint sepEndBy (s : string) (docs : list Doc) : Doc :=
-  List.fold_left appendSpace (List.map (fun x => x <> text s) docs) empty.
+Fixpoint sepEndBy (s : Doc) (docs : list Doc) : Doc :=
+  List.fold_left appendSpace (List.map (fun x => x <> s) docs) empty.
 
-Definition commaSep   := sepBy ",".
-Definition semiSep    := sepBy ";".
-Definition semiEndSep := sepEndBy ";".
-
+Definition commaSep   := sepBy    (text ",").
+Definition semiSep    := sepBy    (text ";").
+Definition semiEndSep := sepEndBy (text ";").
+Definition lineSep    := sepBy line.
 
 Definition paren   := between "(" ")".
 Definition bracket := between "[" "]".
