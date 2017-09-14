@@ -58,7 +58,7 @@ Fixpoint appendSpace (a b : Doc) : Doc :=
   end.
 
 Notation  "A <>  B" := (append A B).
-Notation  "A <+> B" :=  (appendSpace A B) (at level 70).
+Notation  "A <_> B" :=  (appendSpace A B) (at level 70).
 
 Definition combine (docs : list Doc) : Doc := List.fold_left append docs empty.
 Definition between (b e : string) (doc : Doc) := text b <> doc <> text e.
@@ -67,7 +67,7 @@ Fixpoint sepBy (s : string) (docs : list Doc) : Doc :=
   match docs with
   | []        => empty
   | [x]       => x
-  | (x :: xs) => (x <> text s) <+> sepBy s xs
+  | (x :: xs) => (x <> text s) <_> sepBy s xs
   end.
 
 Fixpoint sepEndBy (s : string) (docs : list Doc) : Doc :=
@@ -122,4 +122,3 @@ Class PrettyPrint a := { doc : a -> Doc}.
 
 Instance string_pretty : PrettyPrint string := { doc := text }.
 Instance nat_pretty    : PrettyPrint nat    := { doc := decimal }.
-
