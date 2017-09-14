@@ -173,6 +173,7 @@ Instance const_arg_v (v : varT)(ty : type) : ARG v ty (Types.constant ty) := { t
 
 
 Notation "A [- N -]" := (index A N) (at level 69).
+Notation "! A"       := (index A 0) (at level 70).
 Notation "A <= B <+> C " := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
 Notation "A <= B <-> C " := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).

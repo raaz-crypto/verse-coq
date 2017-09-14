@@ -17,6 +17,8 @@ Definition Word16 : type := WordT 1.
 Definition Word32 : type := WordT 2.
 Definition Word64 : type := WordT 3.
 
+Definition Ref (ty : type) := array 1 hostE ty.
+
 (** Standard vector types *)
 Definition Vector128_64   : type := VectorT 1 Word64.
 Definition Vector128_32   : type := VectorT 2 Word32.
