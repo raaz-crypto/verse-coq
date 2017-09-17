@@ -4,9 +4,11 @@ Require Import Verse.Types.Internal.
 (** * Types in verse.
 
 The verse EDSL supports the standard word types, vectors type, arrays
-and sequences. The types exposed from this module is what users of
-verse should stick to. There is more to types and all its gory details
-are exposed from the module [Verse.Types.Internal].
+and sequences. Users of Verse should use only types exported from this
+module in their verse programs. There is more to types and all its
+gory details are exposed from the module [Verse.Types.Internal]. Using
+the internal module directly can lead to creation of non-well formed
+types and hence is discouraged.
 
 *)
 
@@ -17,7 +19,7 @@ Definition Word16 : type := WordT 1.
 Definition Word32 : type := WordT 2.
 Definition Word64 : type := WordT 3.
 
-Definition Ref (ty : type) := array 1 hostE ty.
+
 
 (** Standard vector types *)
 Definition Vector128_64   : type := VectorT 1 Word64.
@@ -31,6 +33,9 @@ Definition Vector256_32   : type := VectorT 3 Word32.
 Definition Vector256_16   : type := VectorT 4 Word16.
 Definition Vector256_8    : type := VectorT 5 Word8.
 Definition Vector256Bytes : type := VectorT 5 Byte.
+
+(** The reference type. We use array of size 1 for reference types *)
+Definition Ref (ty : type) := array 1 hostE ty.
 
 Require Import Nat.
 
