@@ -48,21 +48,6 @@ Module Type ARCH.
              (f : Function var loopvar)
              (fa : FAllocation var paramTypes localVar localReg loopvar), Doc.
 
-(**
-
-    Translate the assignment statement to assembly. Certain assignment
-    instructions can fail, for example a three address assignment like
-    [A <= B + C] is not supported on a 2-address machine like x86. and
-    hence the result of a translation is a [option (list mnemonic)]
-    instead of just a [list mnemonics].
-
-   *)
-
-  (** Convert the loop statement in assembly instruction. *)
-  (*Parameter loop
-  : forall {b : bound}{ty : type (Bounded b)},
-      var reg ty -> arg reg ty -> list mnemonic -> list mnemonic.*)
-
 End ARCH.
 
 Module ArchAux (A : ARCH).
