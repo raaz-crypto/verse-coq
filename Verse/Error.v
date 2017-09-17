@@ -1,3 +1,11 @@
+(** * Representing Erros.
+
+    We use the sumor type to represent constructs in the verse
+language that might be erroneous. This module developes the monadic
+notation for it for ease of use in the rest of the program.
+
+*)
+
 Require Import Vector.
 Import VectorNotations.
 Section Error.
