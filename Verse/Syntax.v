@@ -69,7 +69,6 @@ Arguments onStack [reg t] _.
 Definition listIn {T : Type} (e : Ensemble T) := list {t : T | In _ e t}.
 Definition proj_l {T : Type} {P : T -> Prop} : list {t : T | P t} -> list T := map (@proj1_sig _ _).
 
-Section Scoped.
 
   (** ** Scopes.
 
@@ -77,6 +76,8 @@ Section Scoped.
   are local to that fragment. The types here allow us to construct a
   HOAS style scoped code fragments. Firstly, fix the variable type for
   the code fragment *)
+
+Section Scoped.
 
   Variable v : varT.
 
@@ -95,7 +96,7 @@ Section Scoped.
     end.
 
   (* Some auxiliaries to work with scopes *)
-  
+
   Fixpoint scopedApp {l : list type} {T T' : Type} : scoped l (T -> T') -> scoped l T -> scoped l T' :=
     match l with
     | nil     => fun scf => scf
@@ -111,7 +112,7 @@ Section Scoped.
   Fixpoint scopedAppConst {l : list type} {T T' : Type} (f : T -> T') : scoped l T -> scoped l T' :=
     scopedApp (scopedConst l f).
 
-  Fixpoint merge_scope {l1 l2 : list type} {T : Type} : scoped l1 (scoped l2 T) -> scoped (l1 ++ l2) T := 
+  Fixpoint merge_scope {l1 l2 : list type} {T : Type} : scoped l1 (scoped l2 T) -> scoped (l1 ++ l2) T :=
     match l1 with
     | nil      => fun x => x
     | t :: l1t => fun x v => merge_scope (x v)
