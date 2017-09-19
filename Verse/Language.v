@@ -142,7 +142,7 @@ End Language.
 
 
 Arguments var [v ty] _ .
-Arguments constant [v ty] _ .
+Arguments const [v ty] _ .
 Arguments index [v b e ty] _ _ .
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
@@ -166,14 +166,18 @@ Class ARG (v : varT) (ty : type) t  := { toArg : t -> arg v ty }.
 
 (** Instances of this class has been defined for both variables and constants *)
 
-Instance arg_of_arg  (v : varT)(ty : type) : ARG v ty (arg v ty)          := { toArg := fun x => x  }.
-Instance arg_of_v    (v : varT)(ty : type) : ARG v ty (v ty)              := { toArg :=  @var v ty  }.
-Instance const_arg_v (v : varT)(ty : type) : ARG v ty (Types.constant ty) := { toArg := @constant v ty }.
+Section ARGInstances.
+  Variable v  : varT.
+  Variable ty : type.
 
+  Global Instance arg_of_arg  : ARG v ty (arg v ty) := { toArg := fun x => x  }.
+  Global Instance arg_of_v    : ARG v ty (v ty)     := { toArg := @var v ty   }.
+  Global Instance const_arg_v : ARG v ty (Types.constant ty) := { toArg := @const v ty }.
 
+End ARGInstances.
 
-Notation "A [- N -]" := (index A N) (at level 69).
-Notation "! A"       := (index A 0) (at level 70).
+Notation "A [- N -]"     := (index A N) (at level 69).
+Notation "! A"           := (index A 0) (at level 70).
 Notation "A <= B <+> C " := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
 Notation "A <= B <-> C " := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
@@ -306,7 +310,7 @@ Section PrettyPrintingInstruction.
 
 End PrettyPrintingInstruction.
 
-(** ** Example pretty printing 
+(** ** Example pretty printing
 
 Let us define pretty printing instance for the variable above to demonstrate the use of
 this pretty printing
