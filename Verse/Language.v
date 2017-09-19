@@ -7,6 +7,7 @@ Require Import Coq.Sets.Ensembles.
 Require Import Recdef.
 Import String.
 Require Import Basics.
+Import Nat.
 
 (** * The Verse language as an inductive data type.
 
@@ -276,7 +277,19 @@ Section PrettyPrintingInstruction.
     end.
 
   Local Definition EQUALS := text "=".
-  Local Definition mkAssign {a : arity}(o : op a) (x y z : Doc) := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Local Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Local Definition mkRot    (ty : type)(o : op unary) (x y : Doc)  :=
+    let rotSuffix := match ty with
+                     | word w            => decimal (2 ^ (w + 3))%nat 
+                     | vector v (word w) => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
+                     | _                 => text "Unsupported"
+                     end in
+    match o with
+    | rotL n => x <_> EQUALS <_> text "rotL" <> rotSuffix <> paren (commaSep [y ; decimal n])
+    | rotR n => x <_> EQUALS <_> text "rotR" <> rotSuffix <> paren (commaSep [y ; decimal n])
+    | _      => text "BadOp"
+    end.
+            
   Local Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
 
   (** The pretty printing of assignment statements **)
@@ -284,21 +297,18 @@ Section PrettyPrintingInstruction.
     := { doc := fun assgn =>  match assgn with
                               | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
-                              | assign2 u x y   =>
+                              | @assign2 _ ty u x y   =>
                                 match u with
-                                | bitComp  => mkAssign u (doc x) empty (doc y)
-                                | shiftL n
-                                | shiftR n
-                                | rotL n
-                                | rotR n   => mkAssign u (doc x) (doc y) (decimal n)
+                                | bitComp             => mkAssign u (doc x) empty (doc y)
+                                | shiftL n | shiftR n => mkAssign u (doc x) (doc y) (decimal n)
+                                | rotL n   | rotR n   => mkRot ty u (doc x)(doc y)  
                                 end
-                              | update1 u x      =>
+                              | @update1 _ ty u x      =>
                                 match u with
-                                | bitComp => mkAssign u (doc x) empty (doc x)
-                                | shiftL n | shiftR n
-                                | rotL n   | rotR n
-                                             => mkUpdate u (doc x) (decimal n)
-                                                   end
+                                | bitComp             => mkAssign u (doc x) empty (doc x)
+                                | shiftL n | shiftR n => mkUpdate u (doc x) (decimal n)
+                                | rotL n   | rotR n   => mkRot ty u (doc x) (doc x)
+                                end
                               end
        }.
 
