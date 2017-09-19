@@ -5,6 +5,7 @@ Require Import Verse.Types.Internal.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
 Require Import Verse.PrettyPrint.
+Require Import Verse.Word.
 Import Verse.Arch.C.CArchAux.
 
 Require Import String.
@@ -52,7 +53,38 @@ Definition test : func loopvar pl lv rv :=
         fun (tmp : v Word16) (double : v Word32) =>
           {|
             name    := "test";
-            setup   := [ num <= tmp <*> arr[-0-] ];
+            (* Try out all operators *)
+            setup   := [
+                        num <= tmp <+> Ox "abcd";
+                         (* num <= tmp <-> num ; *) (* FIXME: Notation does not work *)
+                          num      <= tmp      <*> arr[-1-] ;
+                          num      <= arr[-1-] </> tmp ;
+                          arr[-1-] <= tmp      <|> num ;
+                          num      <= tmp      <&> arr[-1-];
+                          num      <= tmp      <^> num ;
+
+                          (* binary update *)
+                          num <=+ tmp;
+                          num <=- arr[-1-];
+                          num <=* Ox "1234";
+                          num <=/ tmp;
+                          num <=| tmp;
+                          num <=& tmp;
+                          num <=^ tmp;
+
+                          (* Unary operators *)
+                          num      <=~ tmp;
+                          tmp      <=  arr[-1-] <<  42;
+                          tmp      <=  arr[-1-] >>  42;
+                          num      <=  tmp     <*< 42;
+                          arr[-1-] <=  tmp     >*> 42;
+
+                          (* Unary update operators *)
+                          tmp      <=<<  (42%nat);
+                          tmp      <=>>  (42%nat);
+                          num      <=<*< (42%nat);
+                          arr[-1-] <=>*> (42%nat)
+                       ]%list;
             loop    := fun lv : v loopvar => [num <=  tmp <+> arr[-1-] ];
             cleanup := []
           |}.
