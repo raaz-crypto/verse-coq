@@ -28,7 +28,7 @@ Module CP.
     := void <_> text nm <> paren (commaSep args) <> line <> body bdy.
   
   Definition register (decl : Doc) := text "register" <_> decl.
-  Definition deref    v            := text "*" <> v.
+  Definition deref    v            := paren (text "*" <> v).
   Definition assign   x y          := x <_> text "=" <_> y.
   Definition plusplus d            := text "++" <> d.
   Definition minusminus d          := text "--" <> d.
