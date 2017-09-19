@@ -8,99 +8,112 @@ Require Import List.
 Import ListNotations.
 Require Import Ensembles.
 
+(** * Architecture
+
+An architecture is characterised by its
+
+1. register set
+
+2. the instruction set
+
+An abstract assembly language program in this architecture uses both
+registers and stack variables. We abstract such variables in the type
+machine var. The architecture should provide a translation of the
+instruction that use machine vars to actual machine code.
+
+
+*)
+
 Module Type ARCH.
 
   (** Name of the architecture family *)
-
   Parameter name     : string.
 
   (** The registers for this architecture *)
-
   Parameter register : varT.
 
 
-  Definition var     := machineVar register.
+  Parameter machineVar : varT.
 
+  (** A way to embed register into the machine variable *)
+  Parameter embedRegister : forall {ty : type}, register ty -> machineVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter supportedInst : Ensemble (instruction var).
-  Parameter supportedTy   : Ensemble type.
+  Parameter supportedInst : Ensemble (instruction machineVar).
+  Parameter supportedType : Ensemble type.
 
-  (*
-
-  Not need as of now.
-
-  Fixpoint wfinstrB (b : block var) : Prop :=
-    match b with
-    | [] => True
-    | i :: bt => and (wfinstr i) (wfinstrB bt)
-    end.
+  (** Type that capture register set in the architecture. This is type is used in the Frame module to
+      determine which registers are to be saved by the callee.
    *)
-
-  (** Generate code with assurance of well formedness **)
-
-  Parameter callConv : forall (paramTypes localTypes : listIn supportedTy),
-      allocation var (proj_l paramTypes ++ proj_l localTypes).
-
-
-  Parameter generate : forall {loopvar} {paramTypes localVar localReg}
-             (f : Function var loopvar)
-             (fa : FAllocation var paramTypes localVar localReg loopvar), Doc.
+  Parameter RegisterSet : Type.
 
 End ARCH.
 
-Module ArchAux (A : ARCH).
 
-  Import A.
+(** * Frame management.
 
-  (* Allocate with loopvar being allocated in a register by user *)
-  Definition allocate loopvar
-             (p          : In _ supportedTy loopvar)
-             (paramTypes : listIn supportedTy)
-             (localVars  : listIn supportedTy)
-             (localReg   : listIn supportedTy)
-             (f      : func loopvar (proj_l paramTypes) (proj_l localVars) (proj_l localReg))
-             (lalloc : allocation var (loopvar :: (proj_l localReg)))
-  : Function A.var loopvar * FAllocation var (proj_l paramTypes) (proj_l localVars) (proj_l localReg) loopvar :=
+The next module abstracts the machine dependent frame management for
+functions in verse.  A verse function supports only statements that
+refer to the following types of variables.
 
-    let calloc            := callConv paramTypes localVars in
-    let (palloc, lvalloc) := alloc_split var (proj_l paramTypes) (proj_l localVars) calloc in
-    let lv                := fst (fst (alloc_split var (loopvar :: nil) (proj_l localReg) lalloc)) in
-    let lralloc           := snd (alloc_split var (loopvar :: nil) (proj_l localReg) lalloc) in
-    let f'                := fill var lralloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-          pa      := palloc;
-          lva     := lvalloc;
-          lv      := lv;
-          rva     := lralloc;
-        |}
-    in   
-    pair f' fa.
+1. The parameters
 
-  (* Allocate with loopvar being allocated on stack by callConv *)
-  Definition allocate' loopvar
-             (p          : In _ supportedTy loopvar)
-             (paramTypes : listIn supportedTy)
-             (localVars  : listIn supportedTy)
-             (localReg   : listIn supportedTy)
-             (f      : func loopvar (proj_l paramTypes) (proj_l localVars) (proj_l localReg))
-             (lalloc : allocation var (proj_l localReg))
-    : Function var loopvar * FAllocation var (proj_l paramTypes) (proj_l localVars) (proj_l localReg) loopvar :=
+2. The local variables.
 
-    let p3'               := (exist _ loopvar p) :: localVars in
-    let calloc            := callConv paramTypes ((exist _ loopvar p) :: localVars) in
-    let (palloc, ra)      := alloc_split var (proj_l paramTypes) (loopvar :: (proj_l localVars)) calloc in
-    let (lva,lvalloc)     := alloc_split var (loopvar :: nil) (proj_l localVars) ra in
-    let lv                := fst lva in
-    let f'                := fill var lalloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-          pa      := palloc;
-          lva     := lvalloc;
-          lv      := lv;
-          rva     := lalloc;
-        |}
-    in   
-    pair f' fa.
+In particular, we do not have nested functions and hence all variables
+mentioned in the function are within the current frame.
 
-End ArchAux.  
+*)
+
+Inductive FrameError : Prop := RegisterInUse.
+
+Module Type FRAME(A : ARCH).
+
+  (**
+
+  We incrementally build the frame description of the function. The
+  [frameState] captures the description of the function calling frame.
+  This includes information on the registers and stack locations used
+  for the parameters or local variables.
+
+
+  *)
+
+  Parameter frameState : Type.
+
+  (** The state of the frame as seen from the callee when it is
+      entered.  At the point of entering, the stack frame only
+      consists of the parameter to the function and hence this is
+      parmeterised by the parameters of the function. Subsequent
+      functions allocate more stuff from the frame.
+
+   *)
+
+  Parameter enteringState : list { ty : type | A.supportedType ty } -> frameState.
+
+  Parameter onStack : frameState -> {ty : type | A.supportedType ty } -> frameState.
+
+  Parameter useRegister : forall ty : type, frameState
+                                            -> A.register ty -> frameState + {FrameError}.
+
+
+
+  Parameter calleeSaveSet : frameState -> A.RegisterSet.
+
+End FRAME.
+
+
+Print not.
+Module Type CODEGEN (A : ARCH).
+
+  (** Emit the code for a single instruction for *)
+  Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
+
+  (** Instruction(s) the save a given set of registers (on th stack) *)
+  Parameter save : A.RegisterSet -> Doc.
+
+  (** Restore the contents of the given register set. *)
+  Parameter restore : A.RegisterSet -> Doc.
+
+End CODEGEN.
