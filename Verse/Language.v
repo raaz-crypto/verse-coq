@@ -253,8 +253,8 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall ty, PrettyPrint (arg v ty)
     := { doc := fun av => match av with
                           | var v      => doc v
-                          | const c => doc c
-                          | index v n  => text "" (*doc v <> bracket (doc n) *)
+                          | const c    => doc c
+                          | index v n  => doc v <> bracket (decimal n)
                           end
        }.
 
