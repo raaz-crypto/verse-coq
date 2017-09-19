@@ -82,7 +82,7 @@ constants or indexed variables. The type arg captures this.
 
   Inductive arg : type -> Type :=
   | var      {ty : type} : v ty -> arg ty
-  | constant {ty : type} : constant ty -> arg ty
+  | const {ty : type} : constant ty  -> arg ty
   | index {b : nat}{e : endian}{ty : type}
     : v (array b e ty) -> nat -> arg ty.
 
@@ -249,8 +249,8 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall ty, PrettyPrint (arg v ty)
     := { doc := fun av => match av with
                           | var v      => doc v
-                          | constant c => doc c
-                          | index v n  => doc v <> bracket (doc n)
+                          | const c => doc c
+                          | index v n  => text "" (*doc v <> bracket (doc n) *)
                           end
        }.
 
