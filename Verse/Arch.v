@@ -88,9 +88,12 @@ Module Type FRAME(A : ARCH).
       parmeterised by the parameters of the function. Subsequent
       functions allocate more stuff from the frame.
 
+      The frame also has comes with a name, the name of the function.
+      It is this name that allows it to be called from a C program.
+
    *)
 
-  Parameter enteringState : list { ty : type | A.supportedType ty } -> frameState.
+  Parameter enteringState : string -> list { ty : type | A.supportedType ty } -> frameState.
 
   Parameter onStack : frameState -> {ty : type | A.supportedType ty } -> frameState.
 
