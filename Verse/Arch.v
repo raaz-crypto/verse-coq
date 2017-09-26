@@ -43,10 +43,18 @@ Module Type ARCH.
   Parameter supportedInst : Ensemble (instruction machineVar).
   Parameter supportedType : Ensemble type.
 
-  (** Type that capture register set in the architecture. This is type is used in the Frame module to
-      determine which registers are to be saved by the callee.
+  (**
+
+      The frame module (see below) incrementally builds a function
+      frame. While generating code we need to know the description of
+      the function, so that approprate prologue and epilogue can be
+      appended on to the user code. This type captures that
+      abstraction.
+
    *)
-  Parameter RegisterSet : Type.
+
+  Parameter frameDescription.
+
 
 End ARCH.
 
@@ -102,7 +110,7 @@ Module Type FRAME(A : ARCH).
 
 
 
-  Parameter calleeSaveSet : frameState -> A.RegisterSet.
+  Parameter description : frameState -> A.frameDescription
 
 End FRAME.
 
@@ -114,9 +122,9 @@ Module Type CODEGEN (A : ARCH).
   Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
 
   (** Instruction(s) the save a given set of registers (on th stack) *)
-  Parameter save : A.RegisterSet -> Doc.
+  Parameter prologue : A.frameDescription -> Doc.
 
   (** Restore the contents of the given register set. *)
-  Parameter restore : A.RegisterSet -> Doc.
+  Parameter epilogue : A.frameDescription -> Doc.
 
 End CODEGEN.
