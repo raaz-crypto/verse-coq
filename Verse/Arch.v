@@ -53,7 +53,7 @@ Module Type ARCH.
 
    *)
 
-  Parameter frameDescription.
+  Parameter frameDescription : Type.
 
 
 End ARCH.
@@ -101,21 +101,18 @@ Module Type FRAME(A : ARCH).
 
    *)
 
-  Parameter enteringState : string -> list { ty : type | A.supportedType ty } -> frameState.
-
-  Parameter onStack : frameState -> {ty : type | A.supportedType ty } -> frameState.
+  Parameter paramAlloc : forall (f : frameState) (ty : type), frameState + { ~ In _ A.supportedType ty }.
+                                                       
+  Parameter onStack : forall (f : frameState) (ty : type), frameState + { ~ In _ A.supportedType ty }.
 
   Parameter useRegister : forall ty : type, frameState
-                                            -> A.register ty -> frameState + {FrameError}.
+                                            -> A.register ty -> frameState + { ~ In _ A.supportedType ty}.
 
-
-
-  Parameter description : frameState -> A.frameDescription
+  Parameter description : frameState -> A.frameDescription.
 
 End FRAME.
 
 
-Print not.
 Module Type CODEGEN (A : ARCH).
 
   (** Emit the code for a single instruction for *)
