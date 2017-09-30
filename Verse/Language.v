@@ -125,7 +125,6 @@ program block is merely a list of instructions.
    | vIsLval {vr : v ty} : isLval (var vr)
    | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)} {n}: isLval (index a n)
   .
-  Definition wfTypes (ty : type) : Prop := True.
 
   Fixpoint wfvar (i : instruction) : Prop :=
     match i with
