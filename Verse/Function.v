@@ -11,11 +11,11 @@ Section Function.
 
   Variable v : varT.
   
-  Record Function t := function
+  Record Function   := function
                          {
                            name    : string;
                            setup   : block v;
-                           loop    : v t -> block v;
+                           loop    : block v;
                            cleanup : block v;
                          }.
 
@@ -25,14 +25,14 @@ Section Function.
                            local   : list type;
                          }.
 
-  Definition fscoped (t : type) (pl lv rv : list type) (T : Type) := scoped v pl (scoped v lv (scoped v (t :: nil) (scoped v rv T))).
+  Definition fscoped (p l : list type) (T : Type) := scoped v p (scoped v l T).
 
 End Function.
 
-Arguments name [v t] _ .
-Arguments setup [v t] _ .
-Arguments loop [v t] _ _ .
-Arguments cleanup [v t] _ .
+Arguments name [v] _ .
+Arguments setup [v] _ .
+Arguments loop [v] _ .
+Arguments cleanup [v] _ .
 
-Definition func t pl lv rv := forall (v : varT),
-                              scoped v pl (scoped v lv (scoped v rv (Function v t))).
+Definition func p l := forall (v : varT),
+                              scoped v p (scoped v l (Function v)).
