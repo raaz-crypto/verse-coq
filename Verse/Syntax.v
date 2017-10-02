@@ -48,22 +48,6 @@ essentially types parameterised by [varT].
 
 Definition astT := forall v : varT, Type.
 
-(**
-
-When programs are run on machines, the variables in the program can
-either be on stack or in one of the registers of the machine.  The
-type [machineVar] is an inductive type parameterised by the underlying
-machine registers, that represent program variables.
-
-*)
-Inductive machineVar (reg : varT) : varT :=
-| onStack    {t : type} : nat   -> machineVar reg t
-| inRegister {t : type} : reg t -> machineVar reg t
-.
-
-Arguments inRegister [reg t] _.
-Arguments onStack [reg t] _.
-
 (* Type definition for a list of types from an ensemble and a projection for the same *)
 
 Definition listIn {T : Type} (e : Ensemble T) := list {t : T | In _ e t}.
