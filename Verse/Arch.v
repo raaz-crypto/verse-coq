@@ -3,6 +3,8 @@ Require Import Verse.Syntax.
 Require Import Verse.Function.
 Require Import Verse.Types.Internal.
 Require Import Verse.PrettyPrint.
+Require Import Verse.Types.
+
 Require Import String.
 Require Import List.
 Import ListNotations.
@@ -32,13 +34,14 @@ Module Type ARCH.
   (** The registers for this architecture *)
   Parameter register : varT.
 
-
   Parameter machineVar : varT.
 
   (** A way to embed register into the machine variable *)
   Parameter embedRegister : forall {ty : type}, register ty -> machineVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
+
+  Parameter Word          : type.
 
   Parameter supportedInst : Ensemble (instruction machineVar).
   Parameter supportedType : Ensemble type.
@@ -101,12 +104,14 @@ Module Type FRAME(A : ARCH).
 
    *)
 
-  Parameter paramAlloc : forall (f : frameState) (ty : type), frameState + { ~ In _ A.supportedType ty }.
+  Parameter emptyFrame : forall s : string, frameState.
+
+  Parameter paramAlloc : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ In _ A.supportedType ty }.
                                                        
-  Parameter onStack : forall (f : frameState) (ty : type), frameState + { ~ In _ A.supportedType ty }.
+  Parameter onStack : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ In _ A.supportedType ty }.
 
   Parameter useRegister : forall ty : type, frameState
-                                            -> A.register ty -> frameState + { ~ In _ A.supportedType ty}.
+                                            -> A.register ty -> (A.machineVar ty) * frameState + { ~ In _ A.supportedType ty}.
 
   Parameter description : frameState -> A.frameDescription.
 
@@ -124,4 +129,7 @@ Module Type CODEGEN (A : ARCH).
   (** Restore the contents of the given register set. *)
   Parameter epilogue : A.frameDescription -> Doc.
 
+  Parameter loopWrapper : forall (msgTy : type), A.machineVar msgTy -> A.machineVar A.Word -> Doc -> Doc.
+
 End CODEGEN.
+    
