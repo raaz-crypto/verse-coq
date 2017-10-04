@@ -146,42 +146,42 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   Definition localAlloc (f : F.frameState) (ty : type) (ua : userTy A.register ty) : A.machineVar ty * F.frameState + { FunError } :=
     match ua with
     | inR r => match F.useRegister f r with
-                   | inleft x => inleft x
-                   | inright e => inright (match e with
+                   | {- x -} => {- x -}
+                  | error e => error (match e with
                                            | or_introl _ _ => TypeNotSupported ty
                                            | or_intror _ _ => RegisterInUse r
                                            end)
                     end
     | onS ty  => match F.onStack f ty with
-                   | inleft x => inleft x
-                   | inright _ => inright (TypeNotSupported ty)
+                   | {- x -} => {- x -}
+                   | error _ => error (TypeNotSupported ty)
                    end
     end.
   
   Fixpoint pAlloc (p : list type) : forall (fr : F.frameState), F.frameState * allocation A.machineVar p + { FunError } :=
     fun (fr : F.frameState) => 
         match p with
-        | [] => inleft (fr, emptyAllocation A.machineVar)
+        | [] => {- (fr, emptyAllocation A.machineVar) -}
         | ty :: pt => match F.paramAlloc fr ty with
-                      | inleft (vty, fr') => match pAlloc pt fr' with
-                                             | inleft (fr'', a) => inleft (fr'', (vty, a))
-                                             | inright e        => inright e
+                      | {- (vty, fr') -} => match pAlloc pt fr' with
+                                             | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
+                                             | error e        => error e
                                              end
-                      | inright _         => inright (TypeNotSupported ty)
+                      | error _         => error (TypeNotSupported ty)
                       end
         end.
 
   Fixpoint lAlloc (l : list type) : forall (la : userAlloc A.register l) (fr : F.frameState), F.frameState * allocation A.machineVar l + { FunError } :=
     match l with
     | []       => fun _ (fr : F.frameState) =>
-                    inleft (fr, emptyAllocation A.machineVar)
+                    {- (fr, emptyAllocation A.machineVar) -}
     | ty :: lt => fun (la : userAlloc A.register (ty ::lt)) (fr : F.frameState) =>
                     match localAlloc fr (fst la) with
-                    | inleft (vty, fr') => match lAlloc lt (snd la) fr' with
-                                           | inleft (fr'', a) => inleft (fr'', (vty, a))
-                                           | inright e        => inright e
+                    | {- (vty, fr') -} => match lAlloc lt (snd la) fr' with
+                                           | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
+                                           | error e        => error e
                                            end
-                    | inright e         => inright e
+                    | error e         => error e
                     end
     end.
 
@@ -191,26 +191,26 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   Definition fFill (fv : FunVars) (f : func A.register fv) : allocation A.machineVar (param fv) * F.frameState * Function A.machineVar + { FunError } :=
     let ef := F.emptyFrame (fname fv) in
 (*    match pAlloc (param fv) ef with
-    | inleft (fr, pa) => match lAlloc (snd f) fr with
-                         | inleft (fr', la) => inleft (fr', fill la (fill pa (fst f A.machineVar)))
-                         | inright e        => inright e
+    | {- fr, pa -} => match lAlloc (snd f) fr with
+                         | {- fr', la -} => {- (fr', fill la (fill pa (fst f A.machineVar))) -}
+                         | error e        => error e
                          end
-    | inright e       => inright e
+    | error e       => error e
     end.*)
   x <- pAlloc (param fv) ef; let (fr, pa) := x in
                              y <- lAlloc (snd f) fr; (let (fr', la) := y in
-                                                     inleft (pa, fr', fill la (fill pa (fst f A.machineVar)))).
+                                                     {- (pa, fr', fill la (fill pa (fst f A.machineVar))) -}).
 
   Fixpoint blockWrite (b : block A.machineVar) : Doc + { FunError } :=
     let fix mapEmit (b : block A.machineVar) :=
     match b with
-    | []      => inleft []
+    | []      => {- [] -}
     | i :: bt => match C.emit i with
-                 | inleft d => match mapEmit bt with
-                               | inleft ld => inleft (d :: ld)
-                               | inright e => inright e
+                 | {- d -} => match mapEmit bt with
+                               | {- ld -} => {- d :: ld -}
+                               | error e => error e
                                end
-                 | inright _ => inright (InstructionNotSupported i)
+                 | error _ => error (InstructionNotSupported i)
                  end
     end in sepBy line <$> (mapEmit b).
 
@@ -219,9 +219,9 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       let f'  : func A.register fv' :=
           ((fun v => @merge_scope _ [A.Word] _ _ (fun (n : v A.Word) => fst f v)), snd f) in
       match fFill f' with
-      | inleft (pa, fr, fn) => let fd := F.description fr in
+      | {- (pa, fr, fn) -} => let fd := F.description fr in
                                match param fv as p return forall (x : allocation A.machineVar (A.Word :: p)), _ with
-                               | [] => fun _ => inright NoLoopVariable
+                               | [] => fun _ => error NoLoopVariable
                                | ty :: pt => 
                                  fun x => match x with
                                           | (count, (lv, pa')) =>
@@ -231,7 +231,7 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                                                *<> line *<>* blockWrite (cleanup fn)) *<> line *<> C.epilogue fd
                                           end 
                                end pa
-      | inright e => inright e
+      | error e => error e
       end
   .
 
