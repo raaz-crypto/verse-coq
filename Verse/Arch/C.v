@@ -25,8 +25,8 @@ Module CP.
   Definition body b := brace (nest 4 (line <> b) <> line).
   Definition while c b := text "while" <> c <> line <> body b.
   Definition voidFunction (nm : string)
-             (args bdy : list Doc)
-    := void <_> text nm <> paren (commaSep args) <> line <> body (statements bdy).
+             (args : list Doc)
+    := void <_> text nm <> paren (commaSep args) <> line.
   
   Definition register (decl : Doc) := text "register" <_> decl.
   Definition deref    v            := paren (text "*" <> v).
@@ -220,11 +220,11 @@ Module CCodeGen <: CODEGEN C.
     let localDec := alloc_declare (local fv) (la fa) in
     let paramDec := alloc_declare (param fv) (pa fa) in
     lineSep [ text "#include <stdint.h>" ;
-                CP.voidFunction (fname fv) paramDec
-                                localDec
+                CP.voidFunction (fname fv) paramDec;
+                text "{" <> nest 4 (line <> CP.statements localDec)
             ].
 
-  Definition epilogue : frameDescription -> Doc := fun _ => NilDoc.
+  Definition epilogue : frameDescription -> Doc := fun _ => text "}".
 
   Definition loopWrapper (msgTy : type) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
     let loopCond := paren (doc n <_> text "> 0") in
@@ -235,3 +235,4 @@ Module CCodeGen <: CODEGEN C.
 
 End CCodeGen.
 
+Module CFunWrite := FUNWRITE C CFrame CCodeGen.
