@@ -138,8 +138,8 @@ Module CFrame <: FRAME C.
     match ty with
     | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
                                           let v := onStack ty ("l_" ++ Internal.nat_to_str n)%string in
-                                          inleft (v, addParam v f)
-    | _           => inright _
+                                          {- (v, addParam v f) -}
+    | _           => error _
     end
       ).
     
@@ -154,8 +154,8 @@ Module CFrame <: FRAME C.
     match ty with
     | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
                                           let v := onStack ty ("l_" ++ Internal.nat_to_str n) in
-                                          inleft (v, addLocal v f)
-    | _           => inright _
+                                          {- (v, addLocal v f) -}
+    | _           => error _
     end
         ).
       all : unfold In;
@@ -169,8 +169,8 @@ Module CFrame <: FRAME C.
           match ty with
           | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
                                                 let v := inRegister r in
-                                                inleft (v, addLocal v f)
-          | _           => inright _
+                                                {- (v, addLocal v f) -}
+          | _           => error _
           end
         ).
       
@@ -189,7 +189,7 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    inleft (doc i <> text ";").
+    {- doc i <> text ";" -}.
 
   Local Definition type_doc (t : type) := text (
                                               match t with
