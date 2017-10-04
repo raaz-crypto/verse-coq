@@ -178,15 +178,15 @@ End ARGInstances.
 
 Notation "A [- N -]"     := (index A N) (at level 69).
 Notation "! A"           := (index A 0) (at level 70).
-Notation "A <= B <+> C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
+Notation "A <= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
-Notation "A <= B <-> C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B <*> C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B </> C" := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B <%> C" := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B <|> C" := (assign (assign3 bitOr (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B <&> C" := (assign (assign3 bitAnd (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B <^> C" := (assign (assign3 bitXor (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [-] C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [*] C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [/] C" := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [%] C" := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [|] C" := (assign (assign3 bitOr (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [&] C" := (assign (assign3 bitAnd (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A <= B [^] C" := (assign (assign3 bitXor (toArg A) (toArg B) (toArg C)))  (at level 70).
 
 Notation "A <=+ B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
 Notation "A <=- B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
@@ -224,7 +224,7 @@ Inductive MyVar : varT :=
 .
 
 Import ListNotations.
-Definition prog : block MyVar  := [ X <= X <+> A[-2-]; X <= X << 5 ; X <=>> 5].
+Definition prog : block MyVar  := [ X <= X [+] A[-2-]; X <= X << 5 ; X <=>> 5].
 
 
 Require Import Verse.PrettyPrint.
