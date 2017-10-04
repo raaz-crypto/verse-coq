@@ -145,14 +145,14 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
   Definition localAlloc (f : F.frameState) (ty : type) (ua : userTy A.register ty) : A.machineVar ty * F.frameState + { FunError } :=
     match ua with
-    | inR _ ty r => match F.useRegister f r with
+    | inR r => match F.useRegister f r with
                    | inleft x => inleft x
                    | inright e => inright (match e with
                                            | or_introl _ _ => TypeNotSupported ty
                                            | or_intror _ _ => RegisterInUse r
                                            end)
                     end
-    | onS _ ty  => match F.onStack f ty with
+    | onS ty  => match F.onStack f ty with
                    | inleft x => inleft x
                    | inright _ => inright (TypeNotSupported ty)
                    end
