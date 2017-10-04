@@ -202,21 +202,17 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                      inleft (pa, fr', fill la (fill pa (fst f A.machineVar)))).
 
   Fixpoint blockWrite (b : block A.machineVar) : Doc + { FunError } :=
-        nest 4 <$>
-        match b with
-        | []      => inleft empty
-        | i :: bt => match C.emit i with
-                     | inleft d => match blockWrite bt with
-                                   | inleft ld => inleft (d <> ld)
-                                   | inright e => inright e
-                                   end
-                     | inright _ => inright (InstructionNotSupported i)
-                     end
-        end.
-
-  Notation "A <>* B" := (ap (PrettyPrint.append A) B) (at level 70).
-  Notation "A *<> B" := (ap (fun x => PrettyPrint.append x B) A) (at level 70).
-  Notation "A *<>* B":= (apA (ap PrettyPrint.append A) B) (at level 70).
+    let fix mapEmit (b : block A.machineVar) :=
+    match b with
+    | []      => inleft []
+    | i :: bt => match C.emit i with
+                 | inleft d => match mapEmit bt with
+                               | inleft ld => inleft (d :: ld)
+                               | inright e => inright e
+                               end
+                 | inright _ => inright (InstructionNotSupported i)
+                 end
+    end in sepBy line <$> (mapEmit b).
 
   Definition gen (fv : FunVars) (f : func A.register fv) : Doc + { FunError } :=
       let fv' := {| fname := fname fv; param := A.Word :: param fv; local := local fv |} in
@@ -228,11 +224,12 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                | [] => fun _ => inright NoLoopVariable
                                | ty :: pt => 
                                  fun x => match x with
-                                 | (count, (lv, pa')) =>
-                                   C.prologue fd <>* blockWrite (setup fn)
-                                              *<>* C.loopWrapper lv count <$> blockWrite (loop fn)
-                                              *<>* blockWrite (cleanup fn) *<> C.epilogue fd
-                                 end 
+                                          | (count, (lv, pa')) =>
+                                            C.prologue fd <>* nest 4 <$> (line <>* blockWrite (setup fn)
+                                                                               *<> line *<>*
+                                                                               (C.loopWrapper lv count <$> blockWrite (loop fn))
+                                                                               *<> line *<>* blockWrite (cleanup fn)) *<> line *<> C.epilogue fd
+                                          end 
                                end pa
       | inright e => inright e
       end
