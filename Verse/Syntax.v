@@ -5,6 +5,8 @@ Require Import List.
 Import  ListNotations.
 Require Import Coq.Sets.Ensembles.
 
+Set Implicit Arguments.
+
 (** * Syntactic types.
 
 In this module, we define coq types that captures various syntactic
@@ -123,6 +125,8 @@ Section Scoped.
     | t :: lt => v t * allocation lt
     end.
 
+  Definition emptyAllocation : allocation [] := tt.
+
   Fixpoint alloc_split l1 l2 : allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) :=
     match l1 return allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) with
     | []      => fun x => pair tt x
@@ -141,3 +145,6 @@ Section Scoped.
     end.
 
 End Scoped.
+
+Arguments fill [v CODE l].
+

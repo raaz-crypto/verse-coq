@@ -35,7 +35,7 @@ Section Function.
 
 End Function.
 
-Definition fscoped p l := forall (v : varT), scoped v p (scoped v l (Function v)).
+Definition fscoped v p l := scoped v p (scoped v l (Function v)).
 
-Definition func (reg : varT) (fv : FunVars) : Type := fscoped (param fv) (local fv) * userAlloc reg (local fv).
+Definition func (reg : varT) (fv : FunVars) : Type := (forall (v : varT), fscoped v (param fv) (local fv)) * userAlloc reg (local fv).
 

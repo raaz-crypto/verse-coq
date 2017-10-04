@@ -99,6 +99,9 @@ End C.
 Module CFrame <: FRAME C.
 
   Import C.
+
+  Inductive FrameError : Prop :=
+  | RegisterInUse (ty : type) : register ty -> FrameError.
   
   Definition frameState := C.frameDescription.
 
@@ -133,13 +136,9 @@ Module CFrame <: FRAME C.
     refine (
     let n := List.length (param (projT1 f)) in
     match ty with
-    | word 0 
-    | word 1 
-    | word 2
-
-    | word 3
-    | array _ _ _ => let v := onStack ty ("l_" ++ Internal.nat_to_str n)%string in
-                                      inleft (v, addParam v f)
+    | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
+                                          let v := onStack ty ("l_" ++ Internal.nat_to_str n)%string in
+                                          inleft (v, addParam v f)
     | _           => inright _
     end
       ).
@@ -153,12 +152,9 @@ Module CFrame <: FRAME C.
       refine (
     let n := List.length (param (projT1 f)) in
     match ty with
-    | word 0 
-    | word 1 
-    | word 2
-    | word 3
-    | array _ _ _ => let v := onStack ty ("l_" ++ Internal.nat_to_str n) in
-                     inleft (v, addLocal v f)
+    | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
+                                          let v := onStack ty ("l_" ++ Internal.nat_to_str n) in
+                                          inleft (v, addLocal v f)
     | _           => inright _
     end
         ).
@@ -167,24 +163,21 @@ Module CFrame <: FRAME C.
         unfold not; intro H; inversion H.
     Defined.
       
-    Definition useRegister (ty : type) (f : frameState) (r : register ty) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
+    Definition useRegister (ty : type) (f : frameState) (r : register ty) : (machineVar ty) * frameState + { not (In _ supportedType ty) \/ FrameError }.
       refine (
           let n := List.length (param (projT1 f)) in
           match ty with
-          | word 0 
-          | word 1 
-          | word 2
-
-          | word 3
-          | array _ _ _ => let v := inRegister r in
-                           inleft (v, addLocal v f)
+          | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
+                                                let v := inRegister r in
+                                                inleft (v, addLocal v f)
           | _           => inright _
           end
         ).
       
       all : unfold In;
         unfold supportedType;
-        unfold not; intro H; inversion H.
+        unfold not; refine (or_introl _ _);
+        intro H; inversion H.
     Defined.
 
     Definition description : frameState -> frameDescription := id.
@@ -196,7 +189,7 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    inleft (doc i).
+    inleft (doc i <> ";").
 
   Local Definition type_doc (t : type) := text (
                                               match t with
