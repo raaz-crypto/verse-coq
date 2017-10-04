@@ -189,7 +189,7 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    inleft (doc i <> ";").
+    inleft (doc i <> text ";").
 
   Local Definition type_doc (t : type) := text (
                                               match t with
