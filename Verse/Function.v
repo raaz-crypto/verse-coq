@@ -35,6 +35,9 @@ Section Function.
 
 End Function.
 
+Arguments inR [var ty] _.
+Arguments onS [var].
+
 Definition fscoped v p l := scoped v p (scoped v l (Function v)).
 
 Definition func (reg : varT) (fv : FunVars) : Type := (forall (v : varT), fscoped v (param fv) (local fv)) * userAlloc reg (local fv).
