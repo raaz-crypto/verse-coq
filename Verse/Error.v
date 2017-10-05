@@ -8,36 +8,39 @@ notation for it for ease of use in the rest of the program.
 
 Require Import Vector.
 Import VectorNotations.
+
+Global Notation "{- A -}" := (inleft A).
+Global Notation "'error' A" := (inright A) (at level 40).
+
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
-
-
+  
   Section Apply.
     Variable B   : Type.
     Definition ap (f : A -> B) (y : A + {Err}) :=
       match y with
-      | inleft  a    => inleft (f a)
+      | {- a -}    => {- f a -}
       | inright err  => inright err
       end.
 
     Definition apA (f : (A -> B) + {Err})(x : A + {Err}) :  B + {Err} :=
       match f, x with
-      | inleft f , inleft x  => inleft (f x)
+      | {- f -} , {- x -}  => {- f x -}
       | inright e, _         => inright e
       | _        , inright e => inright e
       end.
 
     Definition bind (x : A + {Err})(f : A -> B + {Err}) : B + {Err} :=
       match x with
-      | inleft a => f a
+      | {- a -} => f a
       | inright e => inright e
       end.
 
   End Apply.
   Definition recover (x : A + {Err}) : if x then A else Err
     := match x with
-       | inleft a => a
+       | {- a -} => a
        | inright b => b
        end.
 
@@ -59,9 +62,9 @@ Section Combine.
 
   Fixpoint combine  {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
   match verr with
-  | []                            => inleft []
+  | []                            => {- [] -}
   | inright err :: _              => inright err
-  | Vector.cons _ (inleft x) m xs => Vector.cons _ x m  <$> (@combine m xs)
+  | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (@combine m xs)
   end.
 
 End Combine.

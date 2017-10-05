@@ -1,4 +1,4 @@
-Require Import Types.Internal.
+ Require Import Types.Internal.
 Require Import Syntax.
 Require Import Language.
 Require Import String.
@@ -6,40 +6,39 @@ Require Import Coq.Sets.Ensembles.
 Require Import List.
 Import ListNotations.
 
+Set Implicit Arguments.
 
 Section Function.
 
-  Variable v : varT.
+  Variable var : varT.
   
-  Record Function t := function
+  Record Function   := function
                          {
-                           name    : string;
-                           setup   : block v;
-                           loop    : v t -> block v;
-                           cleanup : block v;
+                           setup   : block var;
+                           loop    : block var;
+                           cleanup : block var;
                          }.
 
-  Record FAllocation (pl lv rv : list type) (t : type) := fallocation
-                          {
-                            pa  : allocation v pl;
-                            lva : allocation v lv;
-                            lv  : v t;
-                            rva : allocation v rv;
-                          }.
+  Record FunVars   := funvars
+                        {
+                          fname   : string;
+                          param   : list type;
+                          local   : list type;
+                        }.
 
-  Definition fscoped (t : type) (pl lv rv : list type) (T : Type) := scoped v pl (scoped v lv (scoped v (t :: nil) (scoped v rv T))).
+  Inductive userTy : varT :=
+  | inR ty : var ty -> userTy ty
+  | onS ty : userTy ty
+  .
+
+  Definition userAlloc (local : list type) := allocation userTy local.
 
 End Function.
 
-Arguments name [v t] _ .
-Arguments setup [v t] _ .
-Arguments loop [v t] _ _ .
-Arguments cleanup [v t] _ .
+Arguments inR [var ty] _.
+Arguments onS [var].
 
-Arguments pa  [v pl lv rv t] _ .
-Arguments lva [v pl lv rv t] _ .
-Arguments lv  [v pl lv rv t] _ .
-Arguments rva [v pl lv rv t] _ .
+Definition fscoped v p l := scoped v p (scoped v l (Function v)).
 
-Definition func t pl lv rv := forall (v : varT),
-                              scoped v pl (scoped v lv (scoped v rv (Function v t))).
+Definition func (reg : varT) (fv : FunVars) : Type := (forall (v : varT), fscoped v (param fv) (local fv)) * userAlloc reg (local fv).
+
