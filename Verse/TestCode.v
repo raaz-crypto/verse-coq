@@ -64,7 +64,6 @@ Definition test : func C.register testVars :=
                cleanup := []
              |}, lalloc).
 
-About CFunWrite.gen.
 Definition code := CFunWrite.gen test.
 
 Compute (layout (recover code)).
