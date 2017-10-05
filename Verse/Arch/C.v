@@ -26,7 +26,7 @@ Module CP.
   Definition while c b := text "while" <> c <> line <> body b.
   Definition voidFunction (nm : string)
              (args : list Doc)
-    := void <_> text nm <> paren (commaSep args) <> line.
+    := void <_> text nm <> paren (commaSep args).
   
   Definition register (decl : Doc) := text "register" <_> decl.
   Definition deref    v            := paren (text "*" <> v).
@@ -230,7 +230,7 @@ Module CCodeGen <: CODEGEN C.
     let loopCond := paren (doc n <_> text "> 0") in
     CP.while loopCond
              (
-               d <> CP.statements [ CP.plusplus (doc v) ;  CP.minusminus (doc n) ]
+               d <> line <> CP.statements [ CP.plusplus (doc v) ;  CP.minusminus (doc n) ]
              ).
 
 End CCodeGen.
