@@ -3,6 +3,7 @@ Require Import Verse.Word.
 Require Import Nat.
 Require Streams.
 Require Import BinInt.
+
 (** * Types in Verse.
 
 Given below is the inductive type that captures data types used in the
@@ -14,9 +15,7 @@ Inductive type       : Type :=
 | word               : nat -> type
 | vector             : nat -> type -> type
 | array              : nat -> endian -> type -> type
-| sequence           : type -> type
 with endian : Type := bigE | littleE | hostE.
-
 
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
 (** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
@@ -35,10 +34,9 @@ denotes a vector of [power2n] elements.
 
 Fixpoint typeDenote (t : type) : Type :=
   match t with
-    | word   n      => Word.t (2^(n+3))
-    | vector n tw   => Vector.t (typeDenote tw) (2^n)
-    | array  n _ tw => Vector.t (typeDenote tw) n
-    | sequence tw   => Streams.Stream (typeDenote tw)
+    | word   n       => Word.t (2^(n+3))
+    | vector n tw    => Vector.t (typeDenote tw) (2^n)
+    | array  n _ tw  => Vector.t (typeDenote tw) n
   end.
 
 (** *** Bitwise and numeric functions.
@@ -54,7 +52,6 @@ Fixpoint numBinaryDenote (f : Z -> Z -> Z) t : typeDenote t -> typeDenote t -> t
   | word n        => numBinOp f
   | vector n tw   => Vector.map2 (numBinaryDenote f tw)
   | array  n _ tw => Vector.map2 (numBinaryDenote f tw)
-  | sequence tw   => Streams.zipWith (numBinaryDenote f tw)
   end.
 
 Fixpoint numUnaryDenote (f : Z -> Z)(t : type) : typeDenote t -> typeDenote t :=
@@ -62,7 +59,6 @@ Fixpoint numUnaryDenote (f : Z -> Z)(t : type) : typeDenote t -> typeDenote t :=
   | word n        => numUnaryOp f
   | vector n tw   => Vector.map (numUnaryDenote f tw)
   | array  n _ tw => Vector.map (numUnaryDenote f tw)
-  | sequence tw   => Streams.map (numUnaryDenote f tw)
   end.
 
 Fixpoint bitwiseBinaryDenote (f : bool -> bool -> bool) t : typeDenote t -> typeDenote t -> typeDenote t :=
@@ -70,7 +66,6 @@ Fixpoint bitwiseBinaryDenote (f : bool -> bool -> bool) t : typeDenote t -> type
   | word n        => bitwiseBinOp f
   | vector n tw   => Vector.map2 (bitwiseBinaryDenote f tw)
   | array  n _ tw => Vector.map2 (bitwiseBinaryDenote f tw)
-  | sequence tw   => Streams.zipWith (bitwiseBinaryDenote f tw)
   end.
 
 Fixpoint bitwiseUnaryDenote (f : bool -> bool)(t : type) : typeDenote t -> typeDenote t :=
@@ -78,7 +73,6 @@ Fixpoint bitwiseUnaryDenote (f : bool -> bool)(t : type) : typeDenote t -> typeD
   | word n        => bitwiseUnaryOp f
   | vector n tw   => Vector.map (bitwiseUnaryDenote f tw)
   | array  n _ tw => Vector.map (bitwiseUnaryDenote f tw)
-  | sequence tw   => Streams.map (bitwiseUnaryDenote f tw)
   end.
 
 
@@ -95,7 +89,7 @@ constructed are all well formed.
 
 *)
 
-Inductive BadType : Prop := BadVector | BadArray | BadSequence.
+Inductive BadType : Prop := BadVector | BadArray.
 
 
 (** Checks the well formedness of the type *)
@@ -105,11 +99,8 @@ Fixpoint typeCheck (ty : type) : type + {BadType}
   | word _                   => inleft ty
   | vector m (word n)        => inleft ty
   | vector _ _               => inright BadVector
-  | array  _ _ (sequence _)  => inright BadArray
   | array  _ _ (array _ _ _) => inright BadArray
   | array  m e typ           => array m e <$> typeCheck typ
-  | sequence (sequence _)    => inright BadSequence
-  | sequence typ             => sequence  <$> typeCheck typ
   end.
 
 (** Makes type smartly, i.e. typeCheck and recover the type *)
@@ -125,9 +116,6 @@ Definition VectorT  (n : nat) (ty : type)              := maketype (vector n ty)
 
 (** Smart variant of the constructor [array] *)
 Definition ArrayT   (n : nat) (e : endian) (ty : type) := maketype (array n e ty).
-
-(** Smart variant of the constructor sequence *)
-Definition SequenceT (ty : type) := maketype (sequence ty).
 
 
 (** * Some predicates on types *)

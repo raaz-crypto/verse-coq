@@ -3,104 +3,237 @@ Require Import Verse.Syntax.
 Require Import Verse.Function.
 Require Import Verse.Types.Internal.
 Require Import Verse.PrettyPrint.
+Require Import Verse.Types.
+Require Import Verse.Error.
+
 Require Import String.
 Require Import List.
 Import ListNotations.
 Require Import Ensembles.
 
+Set Implicit Arguments.
+
+(** * Architecture
+
+An architecture is characterised by its
+
+1. register set
+
+2. the instruction set
+
+An abstract assembly language program in this architecture uses both
+registers and stack variables. We abstract such variables in the type
+machine var. The architecture should provide a translation of the
+instruction that use machine vars to actual machine code.
+
+
+*)
+
 Module Type ARCH.
 
   (** Name of the architecture family *)
-
   Parameter name     : string.
 
   (** The registers for this architecture *)
-
   Parameter register : varT.
 
+  Parameter machineVar : varT.
 
-  Definition var     := machineVar register.
-
+  (** A way to embed register into the machine variable *)
+  Parameter embedRegister : forall {ty : type}, register ty -> machineVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter supportedInst : Ensemble (instruction var).
-  Parameter supportedTy   : Ensemble type.
+  Parameter Word          : type.
 
-  (*
+  Parameter supportedInst : Ensemble (instruction machineVar).
+  Parameter supportedType : Ensemble type.
 
-  Not need as of now.
+  (**
 
-  Fixpoint wfinstrB (b : block var) : Prop :=
-    match b with
-    | [] => True
-    | i :: bt => and (wfinstr i) (wfinstrB bt)
-    end.
+      The frame module (see below) incrementally builds a function
+      frame. While generating code we need to know the description of
+      the function, so that approprate prologue and epilogue can be
+      appended on to the user code. This type captures that
+      abstraction.
+
    *)
 
-  (** Generate code with assurance of well formedness **)
-
-  Parameter callConv : forall (paramTypes localTypes : listIn supportedTy),
-      allocation var (proj_l paramTypes ++ proj_l localTypes).
-
-
-  Parameter generate : forall {loopvar} {paramTypes localVar localReg}
-             (f : Function var loopvar)
-             (fa : FAllocation var paramTypes localVar localReg loopvar), Doc.
+  Parameter frameDescription : Type.
 
 End ARCH.
 
-Module ArchAux (A : ARCH).
 
-  Import A.
+(** * Frame management.
 
-  (* Allocate with loopvar being allocated in a register by user *)
-  Definition allocate loopvar
-             (p          : In _ supportedTy loopvar)
-             (paramTypes : listIn supportedTy)
-             (localVars  : listIn supportedTy)
-             (localReg   : listIn supportedTy)
-             (f      : func loopvar (proj_l paramTypes) (proj_l localVars) (proj_l localReg))
-             (lalloc : allocation var (loopvar :: (proj_l localReg)))
-  : Function A.var loopvar * FAllocation var (proj_l paramTypes) (proj_l localVars) (proj_l localReg) loopvar :=
+The next module abstracts the machine dependent frame management for
+functions in verse.  A verse function supports only statements that
+refer to the following types of variables.
 
-    let calloc            := callConv paramTypes localVars in
-    let (palloc, lvalloc) := alloc_split var (proj_l paramTypes) (proj_l localVars) calloc in
-    let lv                := fst (fst (alloc_split var (loopvar :: nil) (proj_l localReg) lalloc)) in
-    let lralloc           := snd (alloc_split var (loopvar :: nil) (proj_l localReg) lalloc) in
-    let f'                := fill var lralloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-          pa      := palloc;
-          lva     := lvalloc;
-          lv      := lv;
-          rva     := lralloc;
-        |}
-    in   
-    pair f' fa.
+1. The parameters
 
-  (* Allocate with loopvar being allocated on stack by callConv *)
-  Definition allocate' loopvar
-             (p          : In _ supportedTy loopvar)
-             (paramTypes : listIn supportedTy)
-             (localVars  : listIn supportedTy)
-             (localReg   : listIn supportedTy)
-             (f      : func loopvar (proj_l paramTypes) (proj_l localVars) (proj_l localReg))
-             (lalloc : allocation var (proj_l localReg))
-    : Function var loopvar * FAllocation var (proj_l paramTypes) (proj_l localVars) (proj_l localReg) loopvar :=
+2. The local variables.
 
-    let p3'               := (exist _ loopvar p) :: localVars in
-    let calloc            := callConv paramTypes ((exist _ loopvar p) :: localVars) in
-    let (palloc, ra)      := alloc_split var (proj_l paramTypes) (loopvar :: (proj_l localVars)) calloc in
-    let (lva,lvalloc)     := alloc_split var (loopvar :: nil) (proj_l localVars) ra in
-    let lv                := fst lva in
-    let f'                := fill var lalloc (fill var lvalloc (fill var palloc (f var))) in
-    let fa                := {|
-          pa      := palloc;
-          lva     := lvalloc;
-          lv      := lv;
-          rva     := lalloc;
-        |}
-    in   
-    pair f' fa.
+In particular, we do not have nested functions and hence all variables
+mentioned in the function are within the current frame.
 
-End ArchAux.  
+*)
+
+
+Module Type FRAME(A : ARCH).
+
+  (**
+
+  We incrementally build the frame description of the function. The
+  [frameState] captures the description of the function calling frame.
+  This includes information on the registers and stack locations used
+  for the parameters or local variables.
+
+
+  *)
+
+  Inductive FrameError : Prop :=
+  | RegisterInUse (ty : type) : A.register ty -> FrameError.
+
+  Parameter frameState : Type.
+
+  (** The state of the frame as seen from the callee when it is
+      entered.  At the point of entering, the stack frame only
+      consists of the parameter to the function and hence this is
+      parmeterised by the parameters of the function. Subsequent
+      functions allocate more stuff from the frame.
+
+      The frame also has comes with a name, the name of the function.
+      It is this name that allows it to be called from a C program.
+
+   *)
+
+  Parameter emptyFrame : forall s : string, frameState.
+  
+  Parameter paramAlloc : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+                                                       
+  Parameter onStack : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+
+  Parameter useRegister : forall (ty : type) (fr : frameState) (r : A.register ty), (A.machineVar ty) * frameState + { ~ A.supportedType ty \/ FrameError }.
+
+  Parameter description : frameState -> A.frameDescription.
+
+End FRAME.
+
+Module Type CODEGEN (A : ARCH).
+
+  (** Emit the code for a single instruction for *)
+  Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
+
+  (** Instruction(s) the save a given set of registers (on th stack) *)
+  Parameter prologue : A.frameDescription -> Doc.
+
+  (** Restore the contents of the given register set. *)
+  Parameter epilogue : A.frameDescription -> Doc.
+
+  Parameter loopWrapper : forall (msgTy : type), A.machineVar msgTy -> A.machineVar A.Word -> Doc -> Doc.
+
+End CODEGEN.
+
+Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
+
+  Inductive FunError : Prop :=
+  | InstructionNotSupported : instruction A.machineVar -> FunError
+  | NoLoopVariable          : FunError
+  | TypeNotSupported        : type -> FunError
+  | RegisterInUse (ty : type) : A.register ty -> FunError.
+
+  Definition localAlloc (f : F.frameState) (ty : type) (ua : userTy A.register ty) : A.machineVar ty * F.frameState + { FunError } :=
+    match ua with
+    | inR r => match F.useRegister f r with
+                   | {- x -} => {- x -}
+                  | error e => error (match e with
+                                           | or_introl _ _ => TypeNotSupported ty
+                                           | or_intror _ _ => RegisterInUse r
+                                           end)
+                    end
+    | onS ty  => match F.onStack f ty with
+                   | {- x -} => {- x -}
+                   | error _ => error (TypeNotSupported ty)
+                   end
+    end.
+  
+  Fixpoint pAlloc (p : list type) : forall (fr : F.frameState), F.frameState * allocation A.machineVar p + { FunError } :=
+    fun (fr : F.frameState) => 
+        match p with
+        | [] => {- (fr, emptyAllocation A.machineVar) -}
+        | ty :: pt => match F.paramAlloc fr ty with
+                      | {- (vty, fr') -} => match pAlloc pt fr' with
+                                             | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
+                                             | error e        => error e
+                                             end
+                      | error _         => error (TypeNotSupported ty)
+                      end
+        end.
+
+  Fixpoint lAlloc (l : list type) : forall (la : userAlloc A.register l) (fr : F.frameState), F.frameState * allocation A.machineVar l + { FunError } :=
+    match l with
+    | []       => fun _ (fr : F.frameState) =>
+                    {- (fr, emptyAllocation A.machineVar) -}
+    | ty :: lt => fun (la : userAlloc A.register (ty ::lt)) (fr : F.frameState) =>
+                    match localAlloc fr (fst la) with
+                    | {- (vty, fr') -} => match lAlloc lt (snd la) fr' with
+                                           | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
+                                           | error e        => error e
+                                           end
+                    | error e         => error e
+                    end
+    end.
+
+
+  Arguments lAlloc [l] _ _.
+
+  Definition fFill (fv : FunVars) (f : func A.register fv) : allocation A.machineVar (param fv) * F.frameState * Function A.machineVar + { FunError } :=
+    let ef := F.emptyFrame (fname fv) in
+(*    match pAlloc (param fv) ef with
+    | {- fr, pa -} => match lAlloc (snd f) fr with
+                         | {- fr', la -} => {- (fr', fill la (fill pa (fst f A.machineVar))) -}
+                         | error e        => error e
+                         end
+    | error e       => error e
+    end.*)
+  x <- pAlloc (param fv) ef; let (fr, pa) := x in
+                             y <- lAlloc (snd f) fr; (let (fr', la) := y in
+                                                     {- (pa, fr', fill la (fill pa (fst f A.machineVar))) -}).
+
+  Fixpoint blockWrite (b : block A.machineVar) : Doc + { FunError } :=
+    let fix mapEmit (b : block A.machineVar) :=
+    match b with
+    | []      => {- [] -}
+    | i :: bt => match C.emit i with
+                 | {- d -} => match mapEmit bt with
+                               | {- ld -} => {- d :: ld -}
+                               | error e => error e
+                               end
+                 | error _ => error (InstructionNotSupported i)
+                 end
+    end in sepBy line <$> (mapEmit b).
+
+  Definition gen (fv : FunVars) (f : func A.register fv) : Doc + { FunError } :=
+      let fv' := {| fname := fname fv; param := A.Word :: param fv; local := local fv |} in
+      let f'  : func A.register fv' :=
+          ((fun v => @merge_scope _ [A.Word] _ _ (fun (n : v A.Word) => fst f v)), snd f) in
+      match fFill f' with
+      | {- (pa, fr, fn) -} => let fd := F.description fr in
+                               match param fv as p return forall (x : allocation A.machineVar (A.Word :: p)), _ with
+                               | [] => fun _ => error NoLoopVariable
+                               | ty :: pt => 
+                                 fun x => match x with
+                                          | (count, (lv, pa')) =>
+                                            C.prologue fd <>* nest 4 <$> (line <>* blockWrite (setup fn)
+                                                                               *<> line *<>*
+                                                                               (C.loopWrapper lv count <$> blockWrite (loop fn))
+                                                                               *<> line *<>* blockWrite (cleanup fn)) *<> line *<> C.epilogue fd
+                                          end 
+                               end pa
+      | error e => error e
+      end
+  .
+
+  
+End FUNWRITE.
