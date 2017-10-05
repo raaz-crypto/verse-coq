@@ -186,7 +186,7 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     end.
 
 
-  Arguments lAlloc [l].
+  Arguments lAlloc [l] _ _.
 
   Definition fFill (fv : FunVars) (f : func A.register fv) : allocation A.machineVar (param fv) * F.frameState * Function A.machineVar + { FunError } :=
     let ef := F.emptyFrame (fname fv) in

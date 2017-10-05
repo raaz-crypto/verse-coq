@@ -36,7 +36,7 @@ Section Function.
 End Function.
 
 Arguments inR [var ty] _.
-Arguments onS [var].
+Arguments onS [var] _.
 
 Definition fscoped v p l := scoped v p (scoped v l (Function v)).
 

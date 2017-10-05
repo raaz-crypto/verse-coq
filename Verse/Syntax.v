@@ -146,5 +146,5 @@ Section Scoped.
 
 End Scoped.
 
-Arguments fill [v CODE l].
+Arguments fill [v CODE l] _ _.
 
