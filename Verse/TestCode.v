@@ -66,4 +66,5 @@ Definition test : func C.register testVars :=
 
 Definition code := CFunWrite.gen test.
 
-Compute (layout (recover code)).
+Compute (recover (layout <$> code)).
+
