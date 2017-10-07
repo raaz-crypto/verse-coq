@@ -105,33 +105,25 @@ Module CFrame <: FRAME C.
   
   Definition frameState := C.frameDescription.
 
-  Definition emptyFrame (s : string) : frameState.
-    refine (
+  Definition emptyFrame (s : string) : frameState :=
         let fv := {| fname := s; param := []; local := [] |} in
-        existT _ fv _
-      ).
-    constructor; simpl; constructor.
-    Defined.
+        existT _ fv (fallocation fv tt tt).
     
-  Definition addParam (ty : type) (a : machineVar ty) (f : frameState) : frameState.
-    refine (
-  existT _ {| fname := fname (projT1 f); param := ty :: param (projT1 f); local := local (projT1 f) |} {| pa := _; la := _ |}
-      ).
-    simpl.
-    exact ((a, pa (projT2 f))).
-    exact (la (projT2 f)).
-    
-  Defined.
+  Definition addParam (ty : type) (a : machineVar ty) (f : frameState) : frameState :=
+    let 'existT _ fv fa := f in
+    let fv' := {| fname := fname fv;
+                  param := ty ::param fv;
+                  local := local fv;
+               |} in
+    existT _ fv' (fallocation fv' (a, pa fa) (la fa)).
 
-  Definition addLocal (ty : type) (a : machineVar ty) (f : frameState) : frameState.
-    refine (
-        existT _ {| fname := fname (projT1 f); param := param (projT1 f); local := ty :: local (projT1 f) |} {| pa := _; la := _ |}
-      ).
-    simpl.
-    exact (pa (projT2 f)).
-    exact ((a, la (projT2 f))).
-  Defined.
-  
+  Definition addLocal (ty : type) (a : machineVar ty) (f : frameState) : frameState :=
+    let fv := {| fname := fname (projT1 f);
+                 param := param (projT1 f);
+                 local := ty :: local (projT1 f)
+              |} in
+    existT _ fv (fallocation fv (pa (projT2 f)) (a, la (projT2 f))).
+
   Definition paramAlloc (f : frameState) (ty : type) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
     refine (
     let n := List.length (param (projT1 f)) in
@@ -142,10 +134,8 @@ Module CFrame <: FRAME C.
     | _           => error _
     end
       ).
-    
-    all : unfold In;
-      unfold supportedType;
-      unfold not; intro H; inversion H.
+
+    all: inversion 1.
     Defined.
 
     Definition onStack (f : frameState) (ty : type) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
@@ -158,9 +148,8 @@ Module CFrame <: FRAME C.
     | _           => error _
     end
         ).
-      all : unfold In;
-        unfold supportedType;
-        unfold not; intro H; inversion H.
+
+      all : inversion 1.
     Defined.
       
     Definition useRegister (ty : type) (f : frameState) (r : register ty) : (machineVar ty) * frameState + { not (In _ supportedType ty) \/ FrameError }.
@@ -174,10 +163,7 @@ Module CFrame <: FRAME C.
           end
         ).
       
-      all : unfold In;
-        unfold supportedType;
-        unfold not; refine (or_introl _ _);
-        intro H; inversion H.
+      all : constructor; inversion 1.
     Defined.
 
     Definition description : frameState -> frameDescription := id.
