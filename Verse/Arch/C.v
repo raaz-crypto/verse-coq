@@ -129,7 +129,7 @@ Module CFrame <: FRAME C.
     let n := List.length (param (projT1 f)) in
     match ty with
     | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
-                                          let v := onStack ty ("l_" ++ Internal.nat_to_str n)%string in
+                                          let v := onStack ty ("p_" ++ Internal.nat_to_str n)%string in
                                           {- (v, addParam v f) -}
     | _           => error _
     end
@@ -140,7 +140,7 @@ Module CFrame <: FRAME C.
 
     Definition onStack (f : frameState) (ty : type) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
       refine (
-    let n := List.length (param (projT1 f)) in
+    let n := List.length (local (projT1 f)) in
     match ty with
     | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
                                           let v := onStack ty ("l_" ++ Internal.nat_to_str n) in
