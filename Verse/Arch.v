@@ -108,11 +108,11 @@ Module Type FRAME(A : ARCH).
 
    *)
 
-  Parameter emptyFrame : forall s : string, frameState.
+  Parameter emptyFrame : string -> frameState.
   
-  Parameter paramAlloc : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+  Parameter paramAlloc : frameState -> forall ty : type, A.machineVar ty * frameState + { ~ A.supportedType ty }.
                                                        
-  Parameter onStack : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+  Parameter onStack : frameState -> forall ty : type, A.machineVar ty    * frameState + { ~ A.supportedType ty }.
 
   Parameter useRegister : forall (ty : type) (fr : frameState) (r : A.register ty), (A.machineVar ty) * frameState + { ~ A.supportedType ty \/ FrameError }.
 
