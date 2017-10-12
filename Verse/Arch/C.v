@@ -186,11 +186,23 @@ Module CCodeGen <: CODEGEN C.
                                               | _      => ""%string
                                               end).
 
-  Local Definition declareArray (a : Doc)(n : nat) (ty : type) := type_doc ty  <_> a <> bracket (decimal n).
+  Local Fixpoint declareArray (a : Doc)(n : nat) (ty : type) :=
+    match ty with
+    | @Internal.array m _ ty => (declareArray a m ty) <> bracket (decimal n)
+    | _                      => type_doc ty <_> a <> bracket (decimal n)
+    end.
 
+  (*
+  Local Definition declareArray (a : Doc)(n : nat) (ty : type) := type_doc ty  <_> a <> bracket (decimal n).
+   *)
   Definition declare {varty : type}(v : machineVar varty) : Doc :=
     let vDoc := doc v in
     match varty with
+    | @Internal.array 1 _ ty => let vStar := text "*" <> vDoc in
+                                match ty with
+                                | @Internal.array n _ ty => declareArray vStar n ty
+                                | _                      => type_doc varty <_> vStar
+                                end
     | @Internal.array n _ ty => declareArray vDoc n ty
     | _                      => type_doc varty <_> vDoc
     end.
