@@ -108,11 +108,11 @@ Module Type FRAME(A : ARCH).
 
    *)
 
-  Parameter emptyFrame : forall s : string, frameState.
+  Parameter emptyFrame : string -> frameState.
   
-  Parameter paramAlloc : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+  Parameter paramAlloc : frameState -> forall ty : type, A.machineVar ty * frameState + { ~ A.supportedType ty }.
                                                        
-  Parameter onStack : forall (f : frameState) (ty : type), (A.machineVar ty) * frameState + { ~ A.supportedType ty }.
+  Parameter onStack : frameState -> forall ty : type, A.machineVar ty    * frameState + { ~ A.supportedType ty }.
 
   Parameter useRegister : forall (ty : type) (fr : frameState) (r : A.register ty), (A.machineVar ty) * frameState + { ~ A.supportedType ty \/ FrameError }.
 
@@ -163,11 +163,10 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
         match p with
         | [] => {- (fr, emptyAllocation A.machineVar) -}
         | ty :: pt => match F.paramAlloc fr ty with
-                      | {- (vty, fr') -} => match pAlloc pt fr' with
-                                             | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
-                                             | error e        => error e
-                                             end
-                      | error _         => error (TypeNotSupported ty)
+                      | {- (vty, fr') -} => x <- pAlloc pt fr';
+                                              let (fr'', a) := x in
+                                              {- (fr'', (vty, a)) -}
+                      | error _          => error (TypeNotSupported ty)
                       end
         end.
 
@@ -176,40 +175,30 @@ Module FUNWRITE (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     | []       => fun _ (fr : F.frameState) =>
                     {- (fr, emptyAllocation A.machineVar) -}
     | ty :: lt => fun (la : userAlloc A.register (ty ::lt)) (fr : F.frameState) =>
-                    match localAlloc fr (fst la) with
-                    | {- (vty, fr') -} => match lAlloc lt (snd la) fr' with
-                                           | {- (fr'', a) -} => {- (fr'', (vty, a)) -}
-                                           | error e        => error e
-                                           end
-                    | error e         => error e
-                    end
+                    x <- localAlloc fr (fst la);
+                      let (vty, fr') := x in
+                      y <- lAlloc lt (snd la) fr';
+                        let (fr'', a) := y in
+                        {- (fr'', (vty, a)) -}
     end.
-
 
   Arguments lAlloc [l] _ _.
 
   Definition fFill (fv : FunVars) (f : func A.register fv) : allocation A.machineVar (param fv) * F.frameState * Function A.machineVar + { FunError } :=
     let ef := F.emptyFrame (fname fv) in
-(*    match pAlloc (param fv) ef with
-    | {- fr, pa -} => match lAlloc (snd f) fr with
-                         | {- fr', la -} => {- (fr', fill la (fill pa (fst f A.machineVar))) -}
-                         | error e        => error e
-                         end
-    | error e       => error e
-    end.*)
-  x <- pAlloc (param fv) ef; let (fr, pa) := x in
-                             y <- lAlloc (snd f) fr; (let (fr', la) := y in
-                                                     {- (pa, fr', fill la (fill pa (fst f A.machineVar))) -}).
+    x <- pAlloc (param fv) ef;
+      let (fr, pa) := x in
+      y <- lAlloc (snd f) fr;
+        let (fr', la) := y in
+        {- (pa, fr', fill la (fill pa (fst f A.machineVar))) -}.
 
   Fixpoint blockWrite (b : block A.machineVar) : Doc + { FunError } :=
     let fix mapEmit (b : block A.machineVar) :=
     match b with
     | []      => {- [] -}
     | i :: bt => match C.emit i with
-                 | {- d -} => match mapEmit bt with
-                               | {- ld -} => {- d :: ld -}
-                               | error e => error e
-                               end
+                 | {- d -} => x <- mapEmit bt;
+                                {- d :: x -}
                  | error _ => error (InstructionNotSupported i)
                  end
     end in sepBy line <$> (mapEmit b).
