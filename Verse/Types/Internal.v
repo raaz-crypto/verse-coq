@@ -99,7 +99,6 @@ Fixpoint typeCheck (ty : type) : type + {BadType}
   | word _                   => inleft ty
   | vector m (word n)        => inleft ty
   | vector _ _               => inright BadVector
-  | array  _ _ (array _ _ _) => inright BadArray
   | array  m e typ           => array m e <$> typeCheck typ
   end.
 

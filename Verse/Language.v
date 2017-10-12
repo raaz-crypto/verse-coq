@@ -85,7 +85,7 @@ constants or indexed variables. The type arg captures this.
   | var      {ty : type} : v ty -> arg ty
   | const {ty : type} : constant ty  -> arg ty
   | index {b : nat}{e : endian}{ty : type}
-    : v (array b e ty) -> nat -> arg ty.
+    : arg (array b e ty) -> nat -> arg ty.
 
 
 
@@ -120,7 +120,7 @@ program block is merely a list of instructions.
   Definition block := list instruction.
 
   (* Generic well-formed checks on instructions *)
-
+(*
   Inductive isLval {ty : type} : arg ty -> Prop :=
    | vIsLval {vr : v ty} : isLval (var vr)
    | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)} {n}: isLval (index a n)
@@ -137,7 +137,7 @@ program block is merely a list of instructions.
     end.
 
   Definition wfvarB (b : block) : Prop := fold_left and (map wfvar b) True.
-
+*)
 End Language.
 
 
@@ -149,7 +149,7 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-Arguments wfvarB [v] _ .
+(*Arguments wfvarB [v] _ .*)
 
 
 
@@ -176,7 +176,7 @@ Section ARGInstances.
 
 End ARGInstances.
 
-Notation "A [- N -]"     := (index A N) (at level 69).
+Notation "A [- N -]"     := (index (toArg A) N) (at level 69).
 Notation "! A"           := (index A 0) (at level 70).
 Notation "A <= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
@@ -250,13 +250,15 @@ Section PrettyPrintingInstruction.
   Variable vPrint : forall ty : type, PrettyPrint (v ty).
 
   (** The pretty printing of our argument *)
+  Fixpoint argdoc (ty : type) (av : arg v ty) :=
+    match av with
+    | var v      => doc v
+    | const c    => doc c
+    | index v n  => argdoc _ v <> bracket (decimal n)
+    end.
+
   Global Instance arg_pretty_print : forall ty, PrettyPrint (arg v ty)
-    := { doc := fun av => match av with
-                          | var v      => doc v
-                          | const c    => doc c
-                          | index v n  => doc v <> bracket (decimal n)
-                          end
-       }.
+    := { doc := argdoc ty }.
 
   Local Definition opDoc {a : arity}(o : op a) :=
     match o with
