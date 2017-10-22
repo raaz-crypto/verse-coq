@@ -1,4 +1,4 @@
- Require Import Types.Internal.
+Require Import Types.Internal.
 Require Import Syntax.
 Require Import Language.
 Require Import String.
