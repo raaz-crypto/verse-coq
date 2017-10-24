@@ -130,6 +130,19 @@ Module Type CODEGEN (A : ARCH).
   (** Restore the contents of the given register set. *)
   Parameter epilogue : A.frameDescription -> Doc.
 
-  Parameter loopWrapper : forall (msgTy : type), A.machineVar msgTy -> A.machineVar A.Word -> Doc -> Doc.
+  (** Bulk cryptographic primitives like ciphers, hashes, etc, require
+      processing a sequence of blocks. This member function loops over
+      a sequence of blocks of message type msgTy and runs the body on
+      each of this block. It makes use of two machine variable. The
+      first is a variable that (at the start of the loop) points to
+      the start of the sequence and the second contains the number of
+      blocks in the sequence.  This higher order function takes care
+      of wrapping the body with an appropriate preamble and ensures
+      incrementing the blockPtr appropriately.  *)
+  Parameter loopWrapper : forall (blockType : type),
+      A.machineVar blockType -> (** The variable that points to the start of sequence *)
+      A.machineVar A.Word    -> (** The number of elements of the block               *)
+      Doc                    -> (** The body of the block                             *)
+      Doc.
 
 End CODEGEN.
