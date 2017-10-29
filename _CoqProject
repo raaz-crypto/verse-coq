@@ -1,9 +1,8 @@
 -R Verse Verse
 
 Verse/Arch.v
-Verse/Arch/C.v
 Verse/Error.v
-Verse/Function.v
+Verse/Compile.v
 Verse/Language.v
 Verse/Syntax.v
 Verse/Tactics.v
@@ -11,5 +10,5 @@ Verse/Types.v
 Verse/Types/Internal.v
 Verse/Word.v
 Verse/PrettyPrint.v
-Verse/TestCode.v
+
 
