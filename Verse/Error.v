@@ -6,8 +6,6 @@ notation for it for ease of use in the rest of the program.
 
 *)
 
-Require Import Vector.
-Import VectorNotations.
 
 Global Notation "{- A -}" := (inleft A).
 Global Notation "'error' A" := (inright A) (at level 40).
@@ -56,17 +54,29 @@ Global Notation "F <$> A" := (ap  F A) (at level 40, left associativity).
 Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
 Global Notation "X <- A ; B" := (bind A (fun X => B))(at level 81, right associativity, only parsing).
 
-Section Combine.
+Section Merge.
+  Require Import Vector.
+  Import VectorNotations.
+
   Variable A : Type.
   Variable Err : Prop.
 
-  Fixpoint combine  {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
+  Fixpoint mergeVector {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
   match verr with
   | []                            => {- [] -}
   | inright err :: _              => inright err
-  | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (@combine m xs)
+  | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (@mergeVector m xs)
   end.
 
-End Combine.
+  Require Import List.
+  Import ListNotations.
+  Fixpoint merge (actions : list (A + {Err})) : list A + {Err} :=
+    match actions with
+    | [] => {- [] -}
+    | error err :: _ => inright err
+    | cons {- x -} xs  => cons x <$> merge xs
+    end.
+End Merge.
 
-Arguments combine [A Err n] _.
+Arguments mergeVector [A Err n] _.
+Arguments merge [A Err] _.
