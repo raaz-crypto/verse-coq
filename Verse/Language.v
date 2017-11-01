@@ -119,6 +119,14 @@ program block is merely a list of instructions.
 
   Definition block := list instruction.
 
+
+  (* Body of a streaming *)
+  Record streaming ty := Record { setup    : block;
+                                  process  : v (Ref ty) -> block;
+                                  finalise : block
+                                }.
+
+
   (* Generic well-formed checks on instructions *)
 (*
   Inductive isLval {ty : type} : arg ty -> Prop :=
@@ -281,7 +289,7 @@ Section PrettyPrintingInstruction.
   Local Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
   Local Definition mkRot    (ty : type)(o : op unary) (x y : Doc)  :=
     let rotSuffix := match ty with
-                     | word w            => decimal (2 ^ (w + 3))%nat 
+                     | word w            => decimal (2 ^ (w + 3))%nat
                      | vector v (word w) => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
                      | _                 => text "Unsupported"
                      end in
@@ -290,7 +298,7 @@ Section PrettyPrintingInstruction.
     | rotR n => x <_> EQUALS <_> text "rotR" <> rotSuffix <> paren (commaSep [y ; decimal n])
     | _      => text "BadOp"
     end.
-            
+
   Local Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
 
   (** The pretty printing of assignment statements **)
@@ -302,7 +310,7 @@ Section PrettyPrintingInstruction.
                                 match u with
                                 | bitComp             => mkAssign u (doc x) empty (doc y)
                                 | shiftL n | shiftR n => mkAssign u (doc x) (doc y) (decimal n)
-                                | rotL n   | rotR n   => mkRot ty u (doc x)(doc y)  
+                                | rotL n   | rotR n   => mkRot ty u (doc x)(doc y)
                                 end
                               | @update1 _ ty u x      =>
                                 match u with
