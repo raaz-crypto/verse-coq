@@ -3,7 +3,7 @@
 Verse/Arch.v
 Verse/Arch/C.v
 Verse/Error.v
-Verse/Function.v
+Verse/Compile.v
 Verse/Language.v
 Verse/Syntax.v
 Verse/Tactics.v

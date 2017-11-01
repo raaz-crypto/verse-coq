@@ -60,20 +60,26 @@ Fixpoint appendSpace (a b : Doc) : Doc :=
 
 Notation  "A <>  B" := (append A B).
 Notation  "A <_> B" :=  (appendSpace A B) (at level 70).
+
+(*
 Notation "A <>* B" := (ap (PrettyPrint.append A) B) (at level 70).
 Notation "A *<> B" := (ap (fun x => PrettyPrint.append x B) A) (at level 70).
 Notation "A *<>* B":= (apA (ap PrettyPrint.append A) B) (at level 70).
-
+*)
 
 Definition combine (docs : list Doc) : Doc := List.fold_left append docs empty.
-Definition between (b e : string) (doc : Doc) := text b <> doc <> text e.
 
+Definition delimit (b e doc : Doc) := b <> doc <> e.
+Definition between b e := delimit (text b) (text e).
 Fixpoint sepBy (s : Doc) (docs : list Doc) : Doc :=
   match docs with
   | []        => empty
   | [x]       => x
   | (x :: xs) => (x <> s) <_> sepBy s xs
   end.
+
+
+Definition vcat docs := sepBy line docs.
 
 Fixpoint sepEndBy (s : Doc) (docs : list Doc) : Doc :=
   List.fold_left appendSpace (List.map (fun x => x <> s) docs) empty.

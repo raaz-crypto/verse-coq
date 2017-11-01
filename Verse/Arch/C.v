@@ -4,7 +4,7 @@ Require Import Types.
 Require Import Types.Internal.
 Require Import Language.
 Require Import Arch.
-Require Import Function.
+Require Import Compile.
 Require Import Word.
 Require Import Error.
 Require Import PrettyPrint.
@@ -14,49 +14,64 @@ Import ListNotations.
 Require Import String.
 Require Import Ensembles.
 Require Import Program.Basics.
-
+Require Vector.
+Import Vector.VectorNotations.
 Set Implicit Arguments.
 
-Module CP.
 
-  Definition void : Doc                    := text "void".
-  Definition uint_t   (n : nat)            := text "uint" <> decimal n <> text "_t".
-  Definition statements (x : list Doc) : Doc := sepBy (text ";" <> line) x <> text ";".
-  Definition body b := brace (nest 4 (line <> b) <> line).
-  Definition while c b := text "while" <> c <> line <> body b.
-  Definition voidFunction (nm : string)
-             (args : list Doc)
-    := void <_> text nm <> paren (commaSep args).
-  
-  Definition register (decl : Doc) := text "register" <_> decl.
-  Definition deref    v            := paren (text "*" <> v).
-  Definition assign   x y          := x <_> text "=" <_> y.
-  Definition plusplus d            := text "++" <> d.
-  Definition minusminus d          := text "--" <> d.
-                                                     
-End CP.
+Record CFrame := { cFunctionName     : string;
+                   nParams : nat;
+                   nLocals : nat;
+                   params            : Vector.t type nParams;
+                   locals            : Vector.t type nLocals;
+                   registers         : list (string * type)
+                }.
 
 
 Inductive creg : varT :=
   cr (ty : type) : string -> creg ty.
 
 Inductive cvar : varT :=
-| inRegister (ty : type) : creg ty -> cvar ty
-| onStack    (ty : type) : string -> cvar ty
+| inRegister     : forall ty : type, creg ty -> cvar ty
+| functionParam  : forall ty : type, nat -> cvar ty
+| onStack        : forall ty : type, nat -> cvar ty
 .
 
 Instance cRegPretty : forall ty, PrettyPrint (creg ty)
   := { doc := fun x => match x with
-                       | cr _ n => text "r_" <> text n
+                       | cr _ s => text "r" <> text s
                        end
      }.
 
 Instance cMachineVar : forall ty, PrettyPrint (cvar ty)
   := { doc := fun x => match x with
-                       | inRegister r => doc r
-                       | onStack _  s => text s
+                       | inRegister r    => doc r
+                       | functionParam _ p => text "p" <> doc p
+                       | onStack       _ s => text "s" <> doc s
                        end
      }.
+
+
+
+Module CP.
+
+  Definition void : Doc                    := text "void".
+  Definition uint_t   (n : nat)            := text "uint" <> decimal n <> text "_t".
+  Definition statements                    := sepEndBy (text ";" <> line).
+  Definition body b := brace (nest 4 (line <> b) <> line).
+  Definition while c b := text "while" <> c <> line <> body b.
+  Definition voidFunction (nm : string)
+             (args : list Doc)
+    := void <_> text nm <> paren (commaSep args).
+
+  Definition register (decl : Doc) := text "register" <_> decl.
+  Definition deref    v            := paren (text "*" <> v).
+  Definition assign   x y          := x <_> text "=" <_> y.
+  Definition plusplus d            := text "++" <> d.
+  Definition minusminus d          := text "--" <> d.
+
+End CP.
+
 
 Module C <: ARCH.
 
@@ -75,7 +90,7 @@ Module C <: ARCH.
   Definition embedRegister := inRegister.
 
   Definition supportedInst := Full_set (instruction machineVar).
-  
+
   Inductive typesSupported : Ensemble type :=
   | uint8           : typesSupported Word8
   | uint16          : typesSupported Word16
@@ -84,15 +99,27 @@ Module C <: ARCH.
   | carray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
+  Print sumbool.
+(*
+  Ltac crush_tySupport :=
+    match goals with
+    | [ |- typesSupported (array n e ty) ] => constructor
+    | [ |- typesInversion
+*)
+  Fixpoint typeCheck (ty : type) : {typesSupported ty} + {~ typesSupported ty}.
+    refine (match ty with
+            | word 0 | word 1 | word 2 | word 3  => left _
+            | array n e typ => match typeCheck typ with
+                               | left proof      => left (carray proof)
+                               | right disproof  => right _
+                               end
+            | _ => right _
+            end
+           ); repeat constructor; inversion 1; apply disproof; trivial.
+  Defined.
   Definition supportedType := typesSupported.
 
-  Record funAlloc (fv : FunVars) := fallocation
-                                      {
-                                        pa  : allocation machineVar (param fv);
-                                        la : allocation machineVar (local fv);
-                                      }.
-
-  Definition frameDescription := { fv : FunVars & funAlloc fv }.
+  Definition functionDescription := CFrame.
 
 End C.
 
@@ -100,73 +127,56 @@ Module CFrame <: FRAME C.
 
   Import C.
 
-  Inductive FrameError : Prop :=
-  | RegisterInUse (ty : type) : register ty -> FrameError.
-  
-  Definition frameState := C.frameDescription.
+  Definition frameState := CFrame.
 
   Definition emptyFrame (s : string) : frameState :=
-        let fv := {| fname := s; param := []; local := [] |} in
-        existT _ fv (fallocation fv tt tt).
+        {| cFunctionName := s; params := []; locals := [];  registers := nil |}.
+
+
+  Let newParam state ty :=
+    ( functionParam ty (nParams state),
+
+      {| cFunctionName := cFunctionName state;
+         params := ty :: params state;
+         locals := locals state;
+         registers := registers state
+      |}
+    ).
+  Let newLocal state ty :=
+    ( onStack ty (nLocals state),
+      {| cFunctionName := cFunctionName state;
+         params := params state;
+         locals := ty :: locals state;
+         registers := registers state
+      |}
+    ).
+
+
+    Definition addParam state ty :=
+      _ <- when C.typeCheck ty; {- newParam state ty -}.
+
+    Definition stackAlloc state ty :=
+      _ <- when C.typeCheck ty; {- newLocal state ty -}.
+
+
+    Let registerStrings state := List.map fst (registers state).
     
-  Definition addParam (ty : type) (a : machineVar ty) (f : frameState) : frameState :=
-    let 'existT _ fv fa := f in
-    let fv' := {| fname := fname fv;
-                  param := ty ::param fv;
-                  local := local fv;
-               |} in
-    existT _ fv' (fallocation fv' (a, pa fa) (la fa)).
-
-  Definition addLocal (ty : type) (a : machineVar ty) (f : frameState) : frameState :=
-    let fv := {| fname := fname (projT1 f);
-                 param := param (projT1 f);
-                 local := ty :: local (projT1 f)
-              |} in
-    existT _ fv (fallocation fv (pa (projT2 f)) (a, la (projT2 f))).
-
-  Definition paramAlloc (f : frameState) (ty : type) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
-    refine (
-    let n := List.length (param (projT1 f)) in
-    match ty with
-    | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
-                                          let v := onStack ty ("p_" ++ Internal.nat_to_str n)%string in
-                                          {- (v, addParam v f) -}
-    | _           => error _
-    end
-      ).
-
-    all: inversion 1.
-    Defined.
-
-    Definition onStack (f : frameState) (ty : type) : (machineVar ty) * frameState + { not (In _ supportedType ty) }.
-      refine (
-    let n := List.length (local (projT1 f)) in
-    match ty with
-    | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
-                                          let v := onStack ty ("l_" ++ Internal.nat_to_str n) in
-                                          {- (v, addLocal v f) -}
-    | _           => error _
-    end
-        ).
-
-      all : inversion 1.
-    Defined.
-      
-    Definition useRegister (ty : type) (f : frameState) (r : register ty) : (machineVar ty) * frameState + { not (In _ supportedType ty) \/ FrameError }.
-      refine (
-          let n := List.length (param (projT1 f)) in
-          match ty with
-          | word 0 | word 1 | word 2 | word 3 | array _ _ _ =>
-                                                let v := inRegister r in
-                                                {- (v, addLocal v f) -}
-          | _           => error _
-          end
-        ).
-      
-      all : constructor; inversion 1.
-    Defined.
-
-    Definition description : frameState -> frameDescription := id.
+    Definition useRegister state  ty (reg : creg ty ):=
+      match reg with
+      | cr _ nm =>
+           if C.typeCheck ty then
+            if in_dec string_dec nm (registerStrings state)
+            then None
+            else Some
+                   {| cFunctionName := cFunctionName state;
+                      params := params state;
+                      locals := locals state;
+                      registers := (nm , ty) :: registers state
+                   |}
+          else
+            None
+      end.
+    Definition description := @id CFrame.
 
 End CFrame.
 
@@ -175,27 +185,24 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    {- doc i <> text ";" -}.
+    {- nest 4 (line <> doc i <> text ";") -}.
 
-  Local Definition type_doc (t : type) := text (
-                                              match t with
-                                              | word 0 => "uint8_t"%string
-                                              | word 1 => "uint16_t"%string
-                                              | word 2 => "uint32_t"%string
-                                              | word 3 => "uint64_t"%string
-                                              | _      => ""%string
-                                              end).
+  Let type_doc (t : type) := text (
+                                 match t with
+                                 | word 0 => "uint8_t"%string
+                                 | word 1 => "uint16_t"%string
+                                 | word 2 => "uint32_t"%string
+                                 | word 3 => "uint64_t"%string
+                                 | _      => ""%string
+                                 end).
 
-  Local Fixpoint declareArray (a : Doc)(n : nat) (ty : type) :=
+  Let Fixpoint declareArray (a : Doc)(n : nat) (ty : type) :=
     match ty with
     | @Internal.array m _ ty => (declareArray a m ty) <> bracket (decimal n)
     | _                      => type_doc ty <_> a <> bracket (decimal n)
     end.
-
-  (*
-  Local Definition declareArray (a : Doc)(n : nat) (ty : type) := type_doc ty  <_> a <> bracket (decimal n).
-   *)
-  Definition declare {varty : type}(v : machineVar varty) : Doc :=
+  
+  Let declare {varty : type}(v : machineVar varty) : Doc :=
     let vDoc := doc v in
     match varty with
     | @Internal.array 1 _ ty => let vStar := text "*" <> vDoc in
@@ -207,22 +214,41 @@ Module CCodeGen <: CODEGEN C.
     | _                      => type_doc varty <_> vDoc
     end.
 
-  Fixpoint alloc_declare (l : list type) : forall a : allocation machineVar l, list Doc :=
-    match l with
-    | []        => fun _ => []
-    | (t :: lt) => fun a : allocation machineVar (t :: lt) => declare (fst a) :: (alloc_declare lt (snd a))
+  Let Fixpoint downTo (n : nat) : Vector.t nat n :=
+    match n with
+    | 0%nat => []
+    | S m => m :: downTo m
     end.
 
-  Definition prologue (f : frameDescription) : Doc :=
-    let 'existT _ fv fa := f in
-    let localDec := alloc_declare (local fv) (la fa) in
-    let paramDec := alloc_declare (param fv) (pa fa) in
-    lineSep [ text "#include <stdint.h>" ;
-                CP.voidFunction (fname fv) paramDec;
-                text "{" <> nest 4 (line <> CP.statements localDec)
-            ].
+    
+  Let declare_vector {n : nat}(vec : Vector.t type n) (mapper : type -> nat -> Doc) :=
+    Vector.to_list (Vector.map2 mapper vec (downTo n)).
 
-  Definition epilogue : frameDescription -> Doc := fun _ => text "}".
+  Let declare_params state := List.rev (declare_vector (params state) (fun ty n => declare (functionParam ty n))).
+  Let declare_locals state := declare_vector (locals state) (fun ty n => declare (onStack ty n)).
+
+  Let declare_registers state :=
+    let mapper arg := match arg with
+                      | (nm, typ) => text "register" <_> (declare (inRegister (cr typ nm)))
+                      end in
+    List.map mapper (registers state).
+
+  
+  Definition prologue state :=
+    let localDecls := vcat [ line;
+                             text "/* Local variables */";
+                             CP.statements (declare_locals state)
+                           ] in
+    let regDecls := vcat [ line;
+                             text "/* Register varialbes */";
+                             CP.statements (declare_registers state) ] in
+    vcat  [  text "#include <stdint.h>";
+               CP.voidFunction (cFunctionName state) (declare_params state);
+               text "{" ;
+               nest 4 (vcat [localDecls; regDecls])
+          ].
+
+  Definition epilogue := fun _ : CFrame => text "}".
 
   Definition loopWrapper (msgTy : type) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
     let loopCond := paren (doc n <_> text "> 0") in
@@ -233,4 +259,4 @@ Module CCodeGen <: CODEGEN C.
 
 End CCodeGen.
 
-Module CFunWrite := FUNWRITE C CFrame CCodeGen.
+Module CompileC := Compiler C CFrame CCodeGen.

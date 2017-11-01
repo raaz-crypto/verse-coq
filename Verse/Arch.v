@@ -50,15 +50,20 @@ Module Type ARCH.
 
   (**
 
-      The frame module (see below) incrementally builds a function
-      frame. While generating code we need to know the description of
-      the function, so that approprate prologue and epilogue can be
-      appended on to the user code. This type captures that
-      abstraction.
+      When generating code for a function, we need to know the following
+
+      1. How much additional space on the stack is to be reserved for use
+         by local variables.
+
+      2. What registers should be saved by the function.
+
+      3. Any other architecture specific information.
+
+      The functionDescription gives these information.
 
    *)
 
-  Parameter frameDescription : Type.
+  Parameter functionDescription : Type.
 
 End ARCH.
 
@@ -81,41 +86,53 @@ mentioned in the function are within the current frame.
 
 Module Type FRAME(A : ARCH).
 
-  (**
-
-  We incrementally build the frame description of the function. The
-  [frameState] captures the description of the function calling frame.
-  This includes information on the registers and stack locations used
-  for the parameters or local variables.
-
-
-  *)
-
-  Inductive FrameError : Prop :=
-  | RegisterInUse (ty : type) : A.register ty -> FrameError.
-
-  Parameter frameState : Type.
 
   (** The state of the frame as seen from the callee when it is
-      entered.  At the point of entering, the stack frame only
-      consists of the parameter to the function and hence this is
-      parmeterised by the parameters of the function. Subsequent
-      functions allocate more stuff from the frame.
-
-      The frame also has comes with a name, the name of the function.
-      It is this name that allows it to be called from a C program.
+      entered. The type [frameState] captures the description of the
+      function calling frame.  This includes information on the
+      registers and stack locations used for the parameters or local
+      variables.  The frame also has comes with a name, the name of
+      the function.  It is this name that allows it to be called from
+      a C program.
 
    *)
 
+  Parameter frameState : Type.
+
+  (** The expression [emptyFrame "foo"] creates an empty frame for a function named "foo" *)
   Parameter emptyFrame : string -> frameState.
+
+  (** ** Parameter and local varaible allocation
+
+  The next few function builds the function frame incrementally. We
+  can add a parameter to the function, allocate a local variable or
+  mark a register for use in the function.
+
+  *)
+
   
-  Parameter paramAlloc : frameState -> forall ty : type, A.machineVar ty * frameState + { ~ A.supportedType ty }.
-                                                       
-  Parameter onStack : frameState -> forall ty : type, A.machineVar ty    * frameState + { ~ A.supportedType ty }.
+  (** Add parameter to the function frame. *)
+  Parameter addParam : frameState ->
+                       forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
-  Parameter useRegister : forall (ty : type) (fr : frameState) (r : A.register ty), (A.machineVar ty) * frameState + { ~ A.supportedType ty \/ FrameError }.
+  (** Allocate a local varaible on the stack *)
+  Parameter stackAlloc : frameState ->
+                      forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
-  Parameter description : frameState -> A.frameDescription.
+  (** Mark a register for use *)
+  Parameter useRegister : frameState ->
+                          forall ty (r : A.register ty), option frameState.
+
+
+  
+  (** Finally we generate the function description from the frame
+      state. When creating the function description, we should call
+      this at the end after all the stack, register and parameters
+      have been fixed.
+   *)
+  Parameter description : frameState -> A.functionDescription.
+ 
+  
 
 End FRAME.
 
@@ -124,11 +141,13 @@ Module Type CODEGEN (A : ARCH).
   (** Emit the code for a single instruction for *)
   Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
 
-  (** Instruction(s) the save a given set of registers (on th stack) *)
-  Parameter prologue : A.frameDescription -> Doc.
+  (** Instruction(s) to be added to the begining of the code given its
+      frameState. These instructions typically allocated space on the
+      stack and save caller set of registers (on th stack) *)
+  Parameter prologue : A.functionDescription -> Doc.
 
   (** Restore the contents of the given register set. *)
-  Parameter epilogue : A.frameDescription -> Doc.
+  Parameter epilogue : A.functionDescription -> Doc.
 
   (** Bulk cryptographic primitives like ciphers, hashes, etc, require
       processing a sequence of blocks. This member function loops over
