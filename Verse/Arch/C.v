@@ -130,7 +130,7 @@ Module CFrame <: FRAME C.
   Definition frameState := CFrame.
 
   Definition emptyFrame (s : string) : frameState :=
-        {| cFunctionName := s; params := []; locals := [];  registers := [] |}.
+        {| cFunctionName := s; params := []; locals := [];  registers := nil |}.
 
 
   Let newParam state ty :=

@@ -101,7 +101,7 @@ Section Merge.
   Import ListNotations.
   Fixpoint merge (actions : list (A + {Err})) : list A + {Err} :=
     match actions with
-    | [] => {- [] -}
+    | nil => {- nil -}
     | error err :: _ => inright err
     | cons {- x -} xs  => cons x <$> merge xs
     end.
