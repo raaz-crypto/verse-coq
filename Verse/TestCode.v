@@ -10,35 +10,7 @@ Require Import Verse.Word.
 Require Import String.
 Require Import List.
 Import ListNotations.
-(*
-Import ListNotations.
 
-Section TempCode.
-
-  Variable Word
-Definition loopvar := Byte.
-Definition pl      := [Ref (ArrayT 5 hostE Byte); Word16].
-Definition lv      := [ArrayT 5 hostE (ArrayT 3 hostE Word16); Word16; Word32].
-
-Definition testVars := {| fname := "test"; param := pl; local := lv |}.
-
-Definition lalloc : allocation (userTy C.register) lv := (onS (ArrayT 5 hostE (ArrayT 3 hostE Word16)), (inR (cr Word16 "tmp"), (inR (cr Word32 "double"), tt))).
-
-Definition test : func C.register testVars :=
-  (fun v : varT =>
-     fun seq : v (Ref (ArrayT 5 hostE Byte)) => 
-       fun num : v Word16 =>
-         fun arr : v (ArrayT 5 hostE (ArrayT 3 hostE Word16)) =>
-           fun (tmp : v Word16) (double : v Word32) =>
-             {|
-               setup := [
-                         num <= tmp [*] arr[-1-][-2-]
-                       ];
-               loop  := [];
-               cleanup := [];
-             |}, lalloc).
-
-*)
 
 
 Section TestFunction.
