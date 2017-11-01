@@ -145,7 +145,6 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   End Function.
 
   Arguments compile _ _ _ [registerTypes] _ _.
-  Print compile.
 End Compiler.
 
 (*
