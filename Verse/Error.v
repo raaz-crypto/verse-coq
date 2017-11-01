@@ -13,9 +13,9 @@ Global Notation "'error' A" := (inright A) (at level 40).
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
-  
+
   Section Apply.
-    Variable B   : Type.
+    Variable B   :  Type.
     Definition ap (f : A -> B) (y : A + {Err}) :=
       match y with
       | {- a -}    => {- f a -}
@@ -44,7 +44,36 @@ Section Error.
 
 End Error.
 
+Section Conditionals.
 
+  (** Some type *)
+  Variable A : Type.
+
+  (** A decidable predicate on A *)
+  Variable P : A -> Prop.
+
+  (** The decision procedure for P *)
+  Variable decP : forall a : A, {P a} + {~ P a}.
+
+  (** Emit the value only whe the predicate is satisfied
+   *)
+  Definition when (a : A) : A + {~ P a} :=
+    match decP a with
+    | left _  => {- a -}
+    | right err => error err
+    end.
+
+  (** Emit the value unless the predicate is true. *)
+  Definition unless (a : A ) : A + {P a} :=
+    match decP a with
+    | left err => error err
+    | right _ => {- a -}
+    end.
+
+End Conditionals.
+
+Arguments when [A P] _ _.
+Arguments unless [A P] _ _.
 Arguments ap [A Err B] _ _.
 Arguments apA [A Err B] _ _.
 Arguments recover [A Err] _.
