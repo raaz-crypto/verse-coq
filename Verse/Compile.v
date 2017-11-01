@@ -107,8 +107,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
   Section Function.
 
+    Variable B : varT -> Type.
     (** The name of the function *)
-
     Variable name : string.
     (** Its parameters and stack variables *)
     Variable parameterTypes stackTypes : list type.
@@ -119,16 +119,14 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Variable registerVariables : allocation A.register registerTypes.
 
 
-
-    Variable functionBody : forall v,
-        scoped v parameterTypes
-               (scoped v stackTypes
-                       (scoped v registerTypes (list (instruction v))
-                       )
-               ).
+    Let BodyType v := scoped v parameterTypes
+                               (scoped v stackTypes
+                                       (scoped v registerTypes (B v))
+                               ).
 
     Let startState := F.emptyFrame name.
-    Definition compile :=
+
+    Definition genCompile (functionBody : forall v, BodyType v) :=
       pA <- params startState parameterTypes;
         let (pVars, paramState) := pA in
         lA <- stacks paramState stackTypes;
@@ -139,12 +137,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                              (fill sVars
                                    (fill pVars (functionBody A.machineVar))
                              ) in
-            let descr := F.description finalState in
-            delimit (C.prologue descr)  (C.epilogue descr) <$> compileInstructions code.
+            {- (F.description finalState, code) -}.
+
+
 
   End Function.
 
-  Arguments compile _ _ _ [registerTypes] _ _.
+  Arguments genCompile _ _ _ _ [registerTypes] _ _.
+
+
+  Definition compile name pts lts rts regs f
+    :=
+    result <-  @genCompile block name pts lts rts regs  f;
+    let (descr, code) := result  in
+    delimit (C.prologue descr)  (C.epilogue descr) <$> compileInstructions code.
+
+
+  Arguments compile _ _ _ [rts] _ _.
+
 End Compiler.
 
 (*
