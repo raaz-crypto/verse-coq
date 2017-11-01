@@ -1,6 +1,7 @@
 -R Verse Verse
 
 Verse/Arch.v
+Verse/Arch/C.v
 Verse/Error.v
 Verse/Compile.v
 Verse/Language.v
@@ -10,5 +11,5 @@ Verse/Types.v
 Verse/Types/Internal.v
 Verse/Word.v
 Verse/PrettyPrint.v
-
+Verse/TestCode.v
 
