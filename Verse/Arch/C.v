@@ -99,13 +99,6 @@ Module C <: ARCH.
   | carray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
-  Print sumbool.
-(*
-  Ltac crush_tySupport :=
-    match goals with
-    | [ |- typesSupported (array n e ty) ] => constructor
-    | [ |- typesInversion
-*)
   Fixpoint typeCheck (ty : type) : {typesSupported ty} + {~ typesSupported ty}.
     refine (match ty with
             | word 0 | word 1 | word 2 | word 3  => left _
