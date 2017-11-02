@@ -41,25 +41,24 @@ Section TestFunction.
       num <=| tmp;
       num <=& tmp;
       num <=^ tmp;
-      
+
       (* Unary operators *)
       num      <=~ tmp;
       tmp      <=  arr[-1-] <<  42;
       tmp      <=  arr[-1-] >>  42;
       num      <=  tmp     <*< 42;
       arr[-1-] <=  tmp     >*> 42;
-      
+
       (* Unary update operators *)
       tmp      <=<<  (42%nat);
       tmp      <=>>  (42%nat);
       num      <=<*< (42%nat);
       arr[-1-] <=>*> (42%nat)
     ].
-      
+
 End TestFunction.
 
-Definition regVars : allocation C.register [Word16] := (cr Word16 "temp", tt). 
-Definition code := CompileC.compile "testFunction" [ArrayT 5 hostE Word16; Byte; Byte] [Word16] regVars testFunction.
+Definition regVars : allocation C.register [_] := (cr Word16 "temp", tt).
+Definition code := CompileC.compile "testFunction" [_;_;_] [_] regVars testFunction.
 
 Compute (recover (layout <$> code)).
-
