@@ -1,5 +1,7 @@
 Require Import String.
 Require Import Verse.Types.Internal.
+Require Import Verse.Error.
+Require Import Nat.
 
 (** * Types in verse.
 
@@ -13,40 +15,40 @@ types and hence is discouraged.
 *)
 
 (** Standard word types/scalars *)
-Definition Byte   : type := WordT 0.
-Definition Word8  : type := WordT 0.
-Definition Word16 : type := WordT 1.
-Definition Word32 : type := WordT 2.
-Definition Word64 : type := WordT 3.
+Definition Byte   := word 0.
+Definition Word8  := word 0.
+Definition Word16 := word 1.
+Definition Word32 := word 2.
+Definition Word64 := word 3.
+
+Inductive BadVectorType : Prop := BadVectorTypeError.
 
 
+Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
+  match t with
+  | word n => match compare n m with
+              | LT => {- multiword (m - n) n -}
+             (* | _  => error BadVectorTypeError *)
+              end
+  | _ => error BadVectorTypeError
+  end.
 
-(** Standard vector types *)
-Definition Vector128_64   : type := VectorT 1 Word64.
-Definition Vector128_32   : type := VectorT 2 Word32.
-Definition Vector128_16   : type := VectorT 3 Word16.
-Definition Vector128_8    : type := VectorT 4 Word8.
-Definition Vector128Bytes : type := VectorT 4 Byte.
+Definition Vecor128 (t : type direct) := recover (vector 4 t).
+Definition Vector256 (t : type direct) := recover (vector 4 t).
 
-Definition Vector256_64   : type := VectorT 2 Word64.
-Definition Vector256_32   : type := VectorT 3 Word32.
-Definition Vector256_16   : type := VectorT 4 Word16.
-Definition Vector256_8    : type := VectorT 5 Word8.
-Definition Vector256Bytes : type := VectorT 5 Byte.
-
-(** The reference type. We use array of size 1 for reference types *)
-Definition Ref (ty : type) := array 1 hostE ty.
-
-Require Import Nat.
-
-Definition constant ty := typeDenote ty.
+Definition constant {k}(ty : type k):= typeDenote ty.
 
 Require Import PrettyPrint.
 
-Fixpoint constant_doc (ty : type) : constant ty -> Doc :=
-  match ty as ty0 return constant ty0 -> Doc with
-  | word n => fun w => text "0x" <> doc w
-  | _      => fun _ => text ""
-  end.
 
-Instance constant_pretty {ty : type} : PrettyPrint (constant ty) := { doc := constant_doc ty}.
+Definition constant_doc k (ty : type k)  : typeDenote ty -> Doc.
+  refine( match ty with
+          | word _         => fun w => text "0x" <> doc w
+          | multiword _ _  => fun w => doc w
+          | array _ _ _    => fun w => text ""
+          end
+        ); repeat simpl; apply vector_pretty_print.
+Defined.
+
+Global Instance constant_pretty k  (ty : type k) : PrettyPrint (constant ty)
+  := { doc := constant_doc k ty }.
