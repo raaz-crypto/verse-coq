@@ -47,7 +47,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Definition compileInstructions insts :=
     let emitter := fun i => liftInstructionError (C.emit i) in
-    vcat <$> merge (List.map emitter insts).
+    sepEndBy line <$> merge (List.map emitter insts).
 
   End CompileInstructions.
 
@@ -119,7 +119,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Variable registerVariables : allocation A.register registerTypes.
 
 
-    Let BodyType v := scoped v parameterTypes
+    Definition BodyType v := scoped v parameterTypes
                                (scoped v stackTypes
                                        (scoped v registerTypes (B v))
                                ).
