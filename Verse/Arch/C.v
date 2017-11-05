@@ -8,6 +8,7 @@ Require Import Compile.
 Require Import Word.
 Require Import Error.
 Require Import PrettyPrint.
+Require Import SeqFunction.
 
 Require Import List.
 Import ListNotations.
@@ -201,7 +202,7 @@ Module CCodeGen <: CODEGEN C.
     | @Internal.array 1 _ ty => let vStar := text "*" <> vDoc in
                                 match ty with
                                 | @Internal.array n _ ty => declareArray vStar n ty
-                                | _                      => type_doc varty <_> vStar
+                                | _                      => type_doc ty <_> vStar
                                 end
     | @Internal.array n _ ty => declareArray vDoc n ty
     | _                      => type_doc varty <_> vDoc
@@ -243,7 +244,7 @@ Module CCodeGen <: CODEGEN C.
 
   Definition epilogue := fun _ : CFrame => text "}".
 
-  Definition loopWrapper (msgTy : type) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
+  Definition loopWrapper (msgTy : type) (v : machineVar (Ref msgTy)) (n : machineVar Word) (d : Doc) : Doc :=
     let loopCond := paren (doc n <_> text "> 0") in
     CP.while loopCond
              (
@@ -253,3 +254,4 @@ Module CCodeGen <: CODEGEN C.
 End CCodeGen.
 
 Module CompileC := Compiler C CFrame CCodeGen.
+Module SeqCompileC := SeqCompiler C CFrame CCodeGen.
