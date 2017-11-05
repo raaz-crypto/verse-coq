@@ -25,6 +25,8 @@ Arguments bits [n] _.
 
 Arguments nil [A].
 
+(** Words meansured in units of bytes *)
+Definition bytes n := t (8 * n).
 
 Definition toZ {n}(x : t n) :=
   match x with
@@ -99,10 +101,6 @@ Module Base16.
       | 15 => "f"
       | _  => "-"
       end.
-               
-               
-               
-      
     Fixpoint ZToHex (n : nat)(z : Z) : string :=
       match n with
       | 0%nat             => EmptyString
