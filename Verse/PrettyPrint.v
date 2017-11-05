@@ -61,11 +61,11 @@ Fixpoint appendSpace (a b : Doc) : Doc :=
 Notation  "A <>  B" := (append A B).
 Notation  "A <_> B" :=  (appendSpace A B) (at level 70).
 
-(*
+
 Notation "A <>* B" := (ap (PrettyPrint.append A) B) (at level 70).
 Notation "A *<> B" := (ap (fun x => PrettyPrint.append x B) A) (at level 70).
 Notation "A *<>* B":= (apA (ap PrettyPrint.append A) B) (at level 70).
-*)
+
 
 Definition combine (docs : list Doc) : Doc := List.fold_left append docs empty.
 
