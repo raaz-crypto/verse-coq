@@ -159,9 +159,9 @@ Module Type CODEGEN (A : ARCH).
       of wrapping the body with an appropriate preamble and ensures
       incrementing the blockPtr appropriately.  *)
   Parameter loopWrapper : forall (blockType : type),
-      A.machineVar blockType -> (** The variable that points to the start of sequence *)
-      A.machineVar A.Word    -> (** The number of elements of the block               *)
-      Doc                    -> (** The body of the block                             *)
+      A.machineVar (Ref blockType) -> (** The variable that points to the start of sequence *)
+      A.machineVar A.Word          -> (** The number of elements of the block               *)
+      Doc                          -> (** The body of the block                             *)
       Doc.
 
 End CODEGEN.
