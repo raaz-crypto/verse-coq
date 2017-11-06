@@ -72,7 +72,7 @@ Module SeqCompiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                         compileInstructions (lblock f) *<>*
     compileInstructions (epi f).
 
-  Arguments preProcess [blockType pts lts rts] _.
+  Arguments preProcess [blockType pts lts rts] _ _ _ _.
 
   Definition compile name b pts lts rts regs f
     :=
