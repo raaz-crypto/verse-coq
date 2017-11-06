@@ -38,7 +38,7 @@ required to preserve the types of the variables.
 
  *)
 
-Definition subT {k}(u v : varT) := forall t, u k t -> v k t.
+Definition subT (u v : varT) := forall k t, u k t -> v k t.
 
 (** *** Abstract syntax trees.
 

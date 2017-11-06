@@ -81,11 +81,11 @@ constants or indexed variables. The type arg captures this.
 *)
 
 
-  Inductive arg : type -> Type :=
-  | var      {ty : type} : v ty -> arg ty
-  | const {ty : type} : constant ty  -> arg ty
-  | index {b : nat}{e : endian}{ty : type}
-    : arg (array b e ty) -> nat -> arg ty.
+  Inductive arg : varT :=
+  | var   : forall {k} {ty : type k}, v k ty -> arg k ty
+  | const : forall {k} {ty : type k}, constant ty  -> arg k ty
+  | index : forall {b : nat}{e : endian}{ty : type direct},
+     v memory (array b e ty) -> nat -> arg direct ty.
 
 
 
@@ -97,14 +97,14 @@ constants or indexed variables. The type arg captures this.
    *)
   Inductive assignment : Type :=
   | assign3
-    : forall ty, binop -> arg ty -> arg ty -> arg ty -> assignment
+    : forall ty, binop -> arg direct ty -> arg direct ty -> arg direct ty -> assignment
   (** e.g. x = y + z *)
   | assign2
-    : forall ty, uniop -> arg ty -> arg ty -> assignment (** e.g. x = ~ y   *)
+    : forall ty, uniop -> arg direct ty -> arg direct ty -> assignment (** e.g. x = ~ y   *)
   | update2
-    : forall ty, binop -> arg ty -> arg ty -> assignment (** e.g. x += y    *)
+    : forall ty, binop -> arg direct ty -> arg direct ty -> assignment (** e.g. x += y    *)
   | update1
-    : forall ty, uniop -> arg ty -> assignment           (** e.g. x ~= x    *)
+    : forall ty, uniop -> arg direct ty -> assignment          (** e.g. x ~= x    *)
   .
 
 (**
@@ -121,10 +121,10 @@ program block is merely a list of instructions.
 
 
   (* Body of a streaming *)
-  Record streaming ty := Record { setup    : block;
-                                  process  : v (Ref ty) -> block;
-                                  finalise : block
-                                }.
+  Record streaming (ty : type memory) := Record { setup    : block;
+                                                process  : v memory ty -> block;
+                                                finalise : block
+                                              }.
 
 
   (* Generic well-formed checks on instructions *)
@@ -149,8 +149,8 @@ program block is merely a list of instructions.
 End Language.
 
 
-Arguments var [v ty] _ .
-Arguments const [v ty] _ .
+Arguments var [v k ty] _ .
+Arguments const [v k ty] _ .
 Arguments index [v b e ty] _ _ .
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
@@ -170,21 +170,22 @@ using the following class.
 
 *)
 
-Class ARG (v : varT) (ty : type) t  := { toArg : t -> arg v ty }.
+Class ARG (v : varT)(k : kind)(ty : type k) t  := { toArg : t -> arg v k ty }.
 
 (** Instances of this class has been defined for both variables and constants *)
 
 Section ARGInstances.
   Variable v  : varT.
-  Variable ty : type.
+  Variable k  : kind.
+  Variable ty : type k .
 
-  Global Instance arg_of_arg  : ARG v ty (arg v ty) := { toArg := fun x => x  }.
-  Global Instance arg_of_v    : ARG v ty (v ty)     := { toArg := @var v ty   }.
-  Global Instance const_arg_v : ARG v ty (Types.constant ty) := { toArg := @const v ty }.
+  Global Instance arg_of_arg  : ARG v k ty (arg v k ty) := { toArg := fun x => x  }.
+  Global Instance arg_of_v    : ARG v k ty (v k ty)     := { toArg := @var v k ty   }.
+  Global Instance const_arg_v : ARG v k ty (Types.constant ty) := { toArg := @const v k ty }.
 
 End ARGInstances.
 
-Notation "A [- N -]"     := (index (toArg A) N) (at level 69).
+Notation "A [- N -]"     := (index A N) (at level 69).
 Notation "! A"           := (index A 0) (at level 70).
 Notation "A <= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
@@ -226,13 +227,13 @@ type to capture variables.
 *)
 
 Inductive MyVar : varT :=
-|  X : MyVar Word8
-|  Y : MyVar Word64
-|  A : MyVar (ArrayT 42 bigE Word8)
+|  X : MyVar direct Word8
+|  Y : MyVar direct Word64
+|  A : MyVar memory (array 42 bigE Word8)
 .
 
 Import ListNotations.
-Definition prog : block MyVar  := [ X <= X [+] A[-2-]; X <= X << 5 ; X <=>> 5].
+Definition prog : block MyVar := [ X <= X << 5 ; X <=>> 5; X <= X [+] (A[-2-])].
 
 
 Require Import Verse.PrettyPrint.
@@ -255,17 +256,17 @@ Section PrettyPrintingInstruction.
 
 
   (** The pretty printing instance for our variable *)
-  Variable vPrint : forall ty : type, PrettyPrint (v ty).
+  Variable vPrint : forall k ty, PrettyPrint (v k ty).
 
   (** The pretty printing of our argument *)
-  Fixpoint argdoc (ty : type) (av : arg v ty) :=
+  Fixpoint argdoc {k}(ty : type k ) (av : arg v k ty) :=
     match av with
     | var v      => doc v
     | const c    => doc c
-    | index v n  => argdoc _ v <> bracket (decimal n)
+    | index v n  => doc v <> bracket (decimal n)
     end.
 
-  Global Instance arg_pretty_print : forall ty, PrettyPrint (arg v ty)
+  Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
     := { doc := argdoc ty }.
 
   Local Definition opDoc {a : arity}(o : op a) :=
@@ -287,11 +288,11 @@ Section PrettyPrintingInstruction.
 
   Local Definition EQUALS := text "=".
   Local Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
-  Local Definition mkRot    (ty : type)(o : op unary) (x y : Doc)  :=
+  Local Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
     let rotSuffix := match ty with
-                     | word w            => decimal (2 ^ (w + 3))%nat
-                     | vector v (word w) => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
-                     | _                 => text "Unsupported"
+                     | word w     => decimal (2 ^ (w + 3))%nat
+                     | multiword v w => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
+                     | _          => text "Unsupported"
                      end in
     match o with
     | rotL n => x <_> EQUALS <_> text "rotL" <> rotSuffix <> paren (commaSep [y ; decimal n])
@@ -336,7 +337,7 @@ this pretty printing
 
  *)
 
-Instance PrettyPrintMyVar : forall ty : type, PrettyPrint (MyVar ty) :=
+Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
   { doc := fun v => text ( match v with
                            | X => "X"
                            | Y => "Y"
