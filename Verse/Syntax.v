@@ -26,7 +26,7 @@ of the value that the variable is required to hold.
 
  *)
 
-Definition varT := type -> Type.
+Definition varT := forall k, type k -> Type.
 
 (** ** Substitutions
 
@@ -38,7 +38,7 @@ required to preserve the types of the variables.
 
  *)
 
-Definition subT (u v : varT) := forall t, u t -> v t.
+Definition subT {k}(u v : varT) := forall t, u k t -> v k t.
 
 (** *** Abstract syntax trees.
 
@@ -48,7 +48,7 @@ essentially types parameterised by [varT].
 
 *)
 
-Definition astT := forall v : varT, Type.
+Definition astT := varT -> Type.
 
 (* Type definition for a list of types from an ensemble and a projection for the same *)
 
@@ -65,6 +65,7 @@ Definition proj_l {T : Type} {P : T -> Prop} : list {t : T | P t} -> list T := m
 
 Section Scoped.
 
+
   Variable v : varT.
 
   (**
@@ -75,15 +76,17 @@ Section Scoped.
 
    *)
 
-  Fixpoint scoped (l : list type)(CODE : Type) : Type :=
+  Fixpoint scoped (l : list (some type))(CODE : Type) : Type :=
     match l with
     | []       => CODE
-    | ty :: lt => v ty -> scoped lt CODE
+    | existT _ _ ty :: lt => v ty -> scoped lt CODE
     end.
 
+  (*
   (* Some auxiliaries to work with scopes *)
 
-  Fixpoint scopedApp {l : list type} {T T' : Type} : scoped l (T -> T') -> scoped l T -> scoped l T' :=
+
+  Fixpoint scopedApp {l : list (some type)} {T T' : Type} : scoped l (T -> T') -> scoped l T -> scoped l T' :=
     match l with
     | nil     => fun scf => scf
     | t :: lt => fun scf sc x => (scopedApp (scf x) (sc x))
@@ -110,7 +113,7 @@ Section Scoped.
     | t :: l1t => fun x v => split_scope (x v)
     end.
 
-
+   *)
   (** ** Allocation
 
     When generating code corresponding to the code fragment, we need a
@@ -119,14 +122,15 @@ Section Scoped.
 
    *)
 
-  Fixpoint allocation (l : list type) : Type :=
+  Fixpoint allocation (l : list (some type)) : Type :=
     match l with
     | []      => unit
-    | t :: lt => v t * allocation lt
+    | existT _ _ t :: lt => v t * allocation lt
     end.
 
   Definition emptyAllocation : allocation [] := tt.
 
+  (*
   Fixpoint alloc_split l1 l2 : allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) :=
     match l1 return allocation (l1 ++ l2) -> (allocation l1) * (allocation l2) with
     | []      => fun x => pair tt x
@@ -136,15 +140,15 @@ Section Scoped.
                    (alloc_split lt l2 (snd a))
     end.
 
+  *)
   (* This function fills in the variables from an allocation into a scoped code *)
 
-  Fixpoint fill {CODE} {l : list type} : allocation l -> scoped l CODE -> CODE :=
+  Fixpoint fill {CODE} {l : list (some type)} : allocation l -> scoped l CODE -> CODE :=
     match l with
-    | []       => fun a x => x
-    | ty :: lt => fun a x => fill (snd a) (x (fst a))
+    | []                 => fun a x => x
+    | existT _ _ _ :: lt => fun a x => fill (snd a) (x (fst a))
     end.
 
 End Scoped.
 
 Arguments fill [v CODE l] _ _.
-

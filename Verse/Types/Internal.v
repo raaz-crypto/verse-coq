@@ -29,6 +29,10 @@ Inductive type       : kind -> Type :=
 | array              : nat -> endian -> type direct -> type memory
 with endian : Type := bigE | littleE | hostE.
 
+(** Often we need to existentially quantify over types and other
+    objects. This definition is just for better readability.
+*)
+Definition some {P: Type} (A : P -> Type) := sigT A.
 
 (** ** Sematics of [type].
 
