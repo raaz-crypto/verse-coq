@@ -39,14 +39,14 @@ Module Type ARCH.
   Parameter machineVar : varT.
 
   (** A way to embed register into the machine variable *)
-  Parameter embedRegister : forall {ty : type}, register ty -> machineVar ty.
+  Parameter embedRegister : forall {k}{ty : type k}, register ty -> machineVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter Word          : type.
+  Parameter Word          : type direct.
 
   Parameter supportedInst : Ensemble (instruction machineVar).
-  Parameter supportedType : Ensemble type.
+  Parameter supportedType : forall {k}, Ensemble (type k).
 
   (**
 
@@ -113,15 +113,15 @@ Module Type FRAME(A : ARCH).
   
   (** Add parameter to the function frame. *)
   Parameter addParam : frameState ->
-                       forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                       forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
   (** Allocate a local varaible on the stack *)
   Parameter stackAlloc : frameState ->
-                      forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                      forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
   (** Mark a register for use *)
   Parameter useRegister : frameState ->
-                          forall ty (r : A.register ty), option frameState.
+                          forall k (ty : type k)(r : A.register ty), option frameState.
 
 
   
@@ -158,10 +158,10 @@ Module Type CODEGEN (A : ARCH).
       blocks in the sequence.  This higher order function takes care
       of wrapping the body with an appropriate preamble and ensures
       incrementing the blockPtr appropriately.  *)
-  Parameter loopWrapper : forall (blockType : type),
-      A.machineVar (Ref blockType) -> (** The variable that points to the start of sequence *)
-      A.machineVar A.Word          -> (** The number of elements of the block               *)
-      Doc                          -> (** The body of the block                             *)
+  Parameter loopWrapper : forall (blockType : type memory),
+      A.machineVar blockType -> (** The variable that points to the start of sequence *)
+      A.machineVar A.Word    -> (** The number of elements of the block               *)
+      Doc                    -> (** The body of the block                             *)
       Doc.
 
 End CODEGEN.
