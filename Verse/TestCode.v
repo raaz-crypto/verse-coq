@@ -16,8 +16,10 @@ Import ListNotations.
 Section TestFunction.
 
   Variable variable : varT.
+
+  Arguments variable [k] _.
   (* The parameters of the function *)
-  Variable arr     : variable (ArrayT 5 hostE Word16).
+  Variable arr     : variable (array 5 hostE Word16).
   Variable A B     : variable Byte.
   (* The local variables *)
   Variable num      : variable Word16.
@@ -58,7 +60,7 @@ Section TestFunction.
 
 End TestFunction.
 
-Definition regVars : allocation C.register [_] := (cr Word16 "temp", tt).
-Definition code := CompileC.compile "testFunction" [_;_;_] [_] regVars testFunction.
+Definition regVars : allocation C.register [existT _ _ _] := (cr Word16 "temp", tt).
+Definition code := CompileC.compile "testFunction" [existT _ _ _ ;existT _ _ _;existT _ _ _] [existT _ _ _] regVars testFunction.
 
 Compute (recover (layout <$> code)).
