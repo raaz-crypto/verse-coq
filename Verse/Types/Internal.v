@@ -21,7 +21,7 @@ multiwords.
 
 *)
 
-Inductive kind  : Prop := direct | memory.
+Inductive kind  : Type := direct | memory.
 
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
