@@ -21,8 +21,8 @@ compiled.
 
 Inductive CompileError : Prop :=
 | UnsupportedInstruction : forall {v : varT}, instruction v  -> CompileError
-| UnsupportedType        : type -> CompileError
-| UnavailableRegister    : forall {reg : varT}{ty : type}, reg ty -> CompileError.
+| UnsupportedType        : forall {k : kind}, type k -> CompileError
+| UnavailableRegister    : forall {reg : varT}{k : kind}{ty : type k}, reg k ty -> CompileError.
 
 (**
 
@@ -56,23 +56,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Variable singleAlloc   :
       F.frameState ->
-      forall ty : type, A.machineVar ty * F.frameState + { ~ A.supportedType ty}.
+      forall k (ty : type k), A.machineVar ty * F.frameState + { ~ A.supportedType ty}.
 
     Definition Allocation l := allocation A.machineVar l * F.frameState + { CompileError }.
 
     Let liftTypeError
         {X : Type}
-        {ty : type}
+        {k : kind}
+        {ty : type k}
         (action : X + { ~ A.supportedType ty}) : X + { CompileError }
       := match action  with
          | {- x -} => {- x -}
          | error _ => error (UnsupportedType ty)
          end.
 
-    Fixpoint generate (s0 : F.frameState)(l : list type) : Allocation l :=
+    Fixpoint generate (s0 : F.frameState)(l : list (some type)) : Allocation l :=
       match l with
       | []           => {- (emptyAllocation A.machineVar, s0) -}
-      | (ty :: rest)
+      | (existT _ _ ty :: rest)
         => a1 <- liftTypeError (singleAlloc s0 ty);
              let (v, s1) := a1
              in a2 <- generate s1 rest;
@@ -93,8 +94,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     allocation A.register l -> Allocation l  :=
     match l with
             | []          => fun s0 _  => {- (emptyAllocation A.machineVar, s0) -}
-            | (ty :: tys)
-              => fun s0 (rs : allocation A.register (ty :: tys)) =>
+            | (existT _ k ty :: tys)
+              => fun s0 (rs : allocation A.register (existT _ k ty :: tys)) =>
                    let (r,rest) := rs in
                    match F.useRegister s0 r with
                    | Some s1 => restAlloc <- registers s1 rest;
@@ -111,9 +112,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     (** The name of the function *)
     Variable name : string.
     (** Its parameters and stack variables *)
-    Variable parameterTypes stackTypes : list type.
+    Variable parameterTypes stackTypes : list (some type).
 
-    Variable registerTypes : list type.
+    Variable registerTypes : list (some type).
 
     (** Its register variables *)
     Variable registerVariables : allocation A.register registerTypes.
