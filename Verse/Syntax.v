@@ -28,6 +28,9 @@ of the value that the variable is required to hold.
 
 Definition varT := forall k, type k -> Type.
 
+(** Helper function that recovers the type of the given variable *)
+Definition Var {v : varT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+
 (** ** Substitutions
 
 One of the most important operations on variables is
@@ -152,3 +155,17 @@ Section Scoped.
 End Scoped.
 
 Arguments fill [v CODE l] _ _.
+
+
+(* A variable type that us used as a proxy. This variable is *)
+
+Inductive ProxyVar : varT :=
+| ProxyV : forall k (ty : type k), ProxyVar ty.
+
+Arguments ProxyV [k] _.
+
+Ltac declare func := apply (func ProxyVar);
+                     repeat match goal with
+                            | [ |- varT ]           => exact (ProxyVar)
+                            | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
+                            end.
