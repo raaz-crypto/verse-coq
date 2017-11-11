@@ -166,6 +166,5 @@ Arguments ProxyV [k] _.
 
 Ltac declare func := apply (func ProxyVar);
                      repeat match goal with
-                            | [ |- varT ]           => exact (ProxyVar)
                             | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
                             end.
