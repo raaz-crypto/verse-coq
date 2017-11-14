@@ -47,7 +47,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Definition compileInstructions insts :=
     let emitter := fun i => liftInstructionError (C.emit i) in
-    sepEndBy line <$> merge (List.map emitter insts).
+    C.sequenceInstructions <$> merge (List.map emitter insts).
 
 
   End CompileInstructions.
@@ -145,8 +145,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   End Function.
 
 
-  Let wrap descr (code : Doc + {CompileError}) :=
-    delimit (C.prologue descr) (C.epilogue descr) <$> code.
+  Let wrap descr (code : Doc + {CompileError}) := C.makeFunction descr <$> code.
 
 
 

@@ -146,14 +146,16 @@ Module Type CODEGEN (A : ARCH).
   (** Emit the code for a single instruction for *)
   Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
 
+  (** Sequence a list of instructions into *)
+  Parameter sequenceInstructions : list Doc -> Doc.
+
   (** Instruction(s) to be added to the begining of the code given its
       frameState. These instructions typically allocated space on the
       stack and save caller set of registers (on th stack) *)
-  Parameter prologue : A.functionDescription -> Doc.
 
-  (** Restore the contents of the given register set. *)
-  Parameter epilogue : A.functionDescription -> Doc.
-
+  (** Create a function given its description and body *)
+  Parameter makeFunction : A.functionDescription -> Doc -> Doc.
+ 
   (** Bulk cryptographic primitives like ciphers, hashes, etc, require
       processing a sequence of blocks. This member function loops over
       a sequence of blocks of message type msgTy and runs the body on
@@ -164,9 +166,9 @@ Module Type CODEGEN (A : ARCH).
       of wrapping the body with an appropriate preamble and ensures
       incrementing the blockPtr appropriately.  *)
   Parameter loopWrapper : forall (blockType : type memory),
-      A.machineVar blockType -> (** The variable that points to the start of sequence *)
-      A.machineVar A.Word    -> (** The number of elements of the block               *)
-      Doc                    -> (** The body of the block                             *)
+      A.machineVar blockType -> (** The variable that points to the start of sequence   *)
+      A.machineVar A.Word    -> (** The variable that contains number of elements left  *)
+      Doc                    -> (** The body of the block                               *)
       Doc.
 
 End CODEGEN.

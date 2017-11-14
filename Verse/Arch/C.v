@@ -198,6 +198,8 @@ Module CCodeGen <: CODEGEN C.
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
     {- doc i <> text ";" -}.
 
+  Definition sequenceInstructions ds := line <> vcat ds.
+
   Let type_doc (t : type direct) := text (
                                         match t with
                                         | word 0 => "uint8_t"%string
@@ -256,21 +258,18 @@ Module CCodeGen <: CODEGEN C.
     List.map mapper (registers state).
 
 
-  Definition prologue state :=
-    let localDecls := vcat [ line;
-                             CP.comment "Local variables";
+  Definition makeFunction state body :=
+    let localDecls := vcat [ CP.comment "Local variables";
                              CP.statements (declare_locals state)
                            ] in
-    let regDecls := vcat [ line;
-                             CP.comment "Register variables";
+    let regDecls := vcat [ CP.comment "Register variables";
                              CP.statements (declare_registers state) ] in
-    vcat  [  text "#include <stdint.h>";
-               CP.voidFunction (cFunctionName state) (declare_params state);
-               text "{" ;
-               nest 4 (vcat [localDecls; regDecls])
-          ].
+    let actualBody := vcat [localDecls; regDecls; body]
+    in vcat [ text "#include <stdint.h>";
+                CP.voidFunction (cFunctionName state) (declare_params state);
+                brace (nest 4 (line <> actualBody) <> line)
+            ].
 
-  Definition epilogue := fun _ : CFrame => text "}".
 
   Definition loopWrapper (msgTy : type memory) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
     let loopCond := paren (doc n <_> text "> 0") in
@@ -278,9 +277,9 @@ Module CCodeGen <: CODEGEN C.
                                 CP.minusminus (doc n);
                                 CP.comment "move to next block"
                              ] in
-    nest 4 (vcat [ CP.comment "Iterating over the blocks";
-                     CP.while loopCond (vcat [d; nextBlock])
-                 ]).
+       (vcat [ CP.comment "Iterating over the blocks";
+                 CP.while loopCond (vcat [d; nextBlock])
+             ]).
 
 End CCodeGen.
 
