@@ -19,42 +19,6 @@ Require Vector.
 Import Vector.VectorNotations.
 Set Implicit Arguments.
 
-
-Record CFrame := { cFunctionName     : string;
-                   nParams : nat;
-                   nLocals : nat;
-                   params            : Vector.t (some type) nParams;
-                   locals            : Vector.t (some type) nLocals;
-                   registers         : list (string * (some type))
-                }.
-
-
-Inductive creg : varT :=
-  cr : forall k (ty : type k), string -> creg ty.
-
-Arguments cr [k] _ _.
-Inductive cvar : varT :=
-| inRegister     : forall k (ty : type k), creg ty -> cvar ty
-| functionParam  : forall k (ty : type k), nat -> cvar ty
-| onStack        : forall k (ty : type k), nat -> cvar ty
-.
-
-Instance cRegPretty : forall k (ty : type k), PrettyPrint (creg ty)
-  := { doc := fun x => match x with
-                       | cr _ s => text "r" <> text s
-                       end
-     }.
-
-Instance cMachineVar : forall k (ty : type k), PrettyPrint (cvar ty)
-  := { doc := fun x => match x with
-                       | inRegister r    => doc r
-                       | functionParam _ p => text "p" <> doc p
-                       | onStack       _ s => text "s" <> doc s
-                       end
-     }.
-
-
-
 Module CP.
 
   Definition void : Doc                    := text "void".
@@ -72,7 +36,52 @@ Module CP.
   Definition plusplus d            := text "++" <> d.
   Definition minusminus d          := text "--" <> d.
 
+  Definition comment s   := between ("/*    ") ("    */") (text s).
+  Definition blockPtrVariableName := "blockPtr".
+
 End CP.
+
+
+Record CFrame := { cFunctionName     : string;
+                   nParams : nat;
+                   nLocals : nat;
+                   iterateOn         : option (type memory);
+                   params            : Vector.t (some type) nParams;
+                   locals            : Vector.t (some type) nLocals;
+                   registers         : list (string * (some type))
+                }.
+
+
+Inductive creg : varT :=
+  cr : forall k (ty : type k), string -> creg ty.
+
+Arguments cr [k] _ _.
+Inductive cvar : varT :=
+| blockPtr       : forall (ty : type memory), cvar ty
+| counter        : cvar Word64
+| inRegister     : forall k (ty : type k), creg ty -> cvar ty
+| functionParam  : forall k (ty : type k), nat -> cvar ty
+| onStack        : forall k (ty : type k), nat -> cvar ty
+.
+
+Instance cRegPretty : forall k (ty : type k), PrettyPrint (creg ty)
+  := { doc := fun x => match x with
+                       | cr _ s => text "r" <> text s
+                       end
+     }.
+
+Instance cMachineVar : forall k (ty : type k), PrettyPrint (cvar ty)
+  := { doc := fun x => match x with
+                       | blockPtr ty => paren (text "*" <> text CP.blockPtrVariableName)
+                       | counter         => text "counter"
+                       | inRegister r    => doc r
+                       | functionParam _ p => text "p" <> doc p
+                       | onStack       _ s => text "s" <> doc s
+                       end
+     }.
+
+
+
 
 
 Module C <: ARCH.
@@ -125,12 +134,16 @@ Module CFrame <: FRAME C.
   Definition frameState := CFrame.
 
   Definition emptyFrame (s : string) : frameState :=
-        {| cFunctionName := s; params := []; locals := [];  registers := nil |}.
+        {| cFunctionName := s; iterateOn := None; params := []; locals := [];  registers := nil |}.
 
+  Definition iterateFrame (s : string) (ty : type memory) :=
+    let state := {| cFunctionName := s; iterateOn := Some ty; params := []; locals := [];  registers := nil |} in
+    _ <- when typeCheck ty; {- (blockPtr ty, counter, state) -}.
 
   Let newParam state k ty :=
     ( @functionParam k ty (nParams state),
-       {| cFunctionName := cFunctionName state;
+      {| cFunctionName := cFunctionName state;
+          iterateOn := iterateOn state;
           params := existT _ _ ty :: params state;
           locals := locals state;
           registers := registers state
@@ -140,6 +153,7 @@ Module CFrame <: FRAME C.
   Let newLocal state k ty :=
     ( @onStack k ty (nLocals state),
       {| cFunctionName := cFunctionName state;
+         iterateOn := iterateOn state;
          params := params state;
          locals := existT _ _ ty :: locals state;
          registers := registers state
@@ -165,6 +179,7 @@ Module CFrame <: FRAME C.
             then None
             else Some
                    {| cFunctionName := cFunctionName state;
+                      iterateOn := iterateOn state;
                       params := params state;
                       locals := locals state;
                       registers := (nm , existT _ k ty) :: registers state
@@ -181,7 +196,7 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    {- nest 4 (line <> doc i <> text ";") -}.
+    {- doc i <> text ";" -}.
 
   Let type_doc (t : type direct) := text (
                                         match t with
@@ -201,11 +216,6 @@ Module CCodeGen <: CODEGEN C.
   Let declare {k}{varty : type k}(v : @machineVar k varty) : Doc :=
     let vDoc := doc v in
     match varty in type k0 with
-    | @Internal.array 1 _ ty => let vStar := text "*" <> vDoc in
-                                match ty with
-                                | @Internal.array n _ ty => declareArray vStar n ty
-                                | _                      => type_doc ty <_> vStar
-                                end
     | @Internal.array n _ ty => declareArray vDoc n ty
     | @Internal.word  n      => type_doc (word n) <_> vDoc
     | _                      => text ""
@@ -225,7 +235,12 @@ Module CCodeGen <: CODEGEN C.
     let mapper := fun sty n => match sty with
                                | existT _ _ ty => declare (functionParam ty n)
                                end
-    in List.rev (declare_vector (params state) mapper).
+    in
+    let iteratorDecls := match iterateOn state with
+                         | Some ty => [ declare (blockPtr ty); declare counter ]%list
+                         | None    => []%list
+                         end
+    in iteratorDecls ++ List.rev (declare_vector (params state) mapper).
 
 
   Let declare_locals state :=
@@ -243,11 +258,11 @@ Module CCodeGen <: CODEGEN C.
 
   Definition prologue state :=
     let localDecls := vcat [ line;
-                             text "/* Local variables */";
+                             CP.comment "Local variables";
                              CP.statements (declare_locals state)
                            ] in
     let regDecls := vcat [ line;
-                             text "/* Register varialbes */";
+                             CP.comment "Register variables";
                              CP.statements (declare_registers state) ] in
     vcat  [  text "#include <stdint.h>";
                CP.voidFunction (cFunctionName state) (declare_params state);
@@ -259,14 +274,14 @@ Module CCodeGen <: CODEGEN C.
 
   Definition loopWrapper (msgTy : type memory) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
     let loopCond := paren (doc n <_> text "> 0") in
-    CP.while loopCond
-             (
-               d <> line <> CP.statements [ CP.plusplus (doc v) ;  CP.minusminus (doc n) ]
-             ).
+    let nextBlock := semiSep [CP.plusplus (text CP.blockPtrVariableName);
+                                CP.minusminus (doc n);
+                                CP.comment "move to next block"
+                             ] in
+    nest 4 (vcat [ CP.comment "Iterating over the blocks";
+                     CP.while loopCond (vcat [d; nextBlock])
+                 ]).
 
 End CCodeGen.
 
 Module CompileC := Compiler C CFrame CCodeGen.
-(*
-Module SeqCompileC := SeqCompiler C CFrame CCodeGen.
-*)
