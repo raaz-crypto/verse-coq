@@ -120,12 +120,6 @@ program block is merely a list of instructions.
   Definition block := list instruction.
 
 
-  (* Body of a streaming *)
-  Record streaming (ty : type memory) := Record { setup    : block;
-                                                process  : v memory ty -> block;
-                                                finalise : block
-                                              }.
-
 
   (* Generic well-formed checks on instructions *)
 (*
@@ -148,6 +142,16 @@ program block is merely a list of instructions.
 *)
 End Language.
 
+
+  (* The body of an iterator over a sequence of blocks of type [ty] *)
+Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
+                                                         process  : v memory ty -> block v;
+                                                         finalise : block v
+                                                       }.
+
+Arguments setup [ty v] _.
+Arguments process [ty v] _.
+Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
 Arguments const [v k ty] _ .
