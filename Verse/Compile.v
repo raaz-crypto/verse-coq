@@ -49,6 +49,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     let emitter := fun i => liftInstructionError (C.emit i) in
     sepEndBy line <$> merge (List.map emitter insts).
 
+
   End CompileInstructions.
 
 
@@ -81,6 +82,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                   in {- ((v,vs), s2) -}
       end.
 
+    Definition iterateFrame name ty := liftTypeError (F.iterateFrame name ty).
   End CompileAllocations.
 
   (** Generate a frame with the given set of parameters or die trying *)
@@ -107,10 +109,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
             end.
 
   Section Function.
+    Variable BODY : varT -> Type.
+    Variable startState : F.frameState.
 
-    Variable B : varT -> Type.
-    (** The name of the function *)
-    Variable name : string.
     (** Its parameters and stack variables *)
     Variable parameterTypes stackTypes : list (some type).
 
@@ -120,14 +121,13 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Variable registerVariables : allocation A.register registerTypes.
 
 
-    Definition BodyType v := scoped v parameterTypes
-                               (scoped v stackTypes
-                                       (scoped v registerTypes (B v))
-                               ).
+    Let BodyType v := scoped v parameterTypes
+                             (scoped v stackTypes
+                                     (scoped v registerTypes (BODY v))
+                             ).
 
-    Let startState := F.emptyFrame name.
 
-    Definition genCompile (functionBody : forall v, BodyType v) :=
+    Definition fillVars (functionBody : forall v, BodyType v) :=
       pA <- params startState parameterTypes;
         let (pVars, paramState) := pA in
         lA <- stacks paramState stackTypes;
@@ -144,15 +144,29 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
   End Function.
 
-  Arguments genCompile _ _ _ _ [registerTypes] _ _.
+
+  Let wrap descr (code : Doc + {CompileError}) :=
+    delimit (C.prologue descr) (C.epilogue descr) <$> code.
+
 
 
   Definition compile name pts lts rts regs f
-    :=
-    result <-  @genCompile block name pts lts rts regs  f;
-    let (descr, code) := result  in
-    delimit (C.prologue descr)  (C.epilogue descr) <$> compileInstructions code.
+    := let state := F.emptyFrame name
+       in result <- fillVars block state pts lts rts regs f;
+            let (descr, code) := result  in wrap descr (compileInstructions code).
 
+  Definition compileIterator ty name pts lts rts regs iterF
+    := S <- iterateFrame name ty;
+         let (iterVars, state) := S in
+         let (blockV, countV)  := iterVars
+         in result <- @fillVars (iterator ty) state pts lts rts regs iterF;
+              let (descr, iF) := result in
+              let setupCode       := compileInstructions (setup iF) in
+              let iterationCode   := compileInstructions (process iF blockV) in
+              let finaliseCode    := compileInstructions (finalise iF) in
+              let body            := s <- setupCode; i <-  iterationCode; f <- finaliseCode;
+                                       {- vcat [s; C.loopWrapper blockV countV i; f] -} in
+              wrap descr body.
 
   Arguments compile _ _ _ [rts] _ _.
 
