@@ -90,7 +90,7 @@ Module Type FRAME(A : ARCH).
   (** The state of the frame as seen from the callee when it is
       entered. The type [frameState] captures the description of the
       function calling frame.  This includes information on the
-      registers and stack locations used for the parameters or local
+      registers and stack locations used for the parameters and local
       variables.  The frame also has comes with a name, the name of
       the function.  It is this name that allows it to be called from
       a C program.
@@ -102,6 +102,15 @@ Module Type FRAME(A : ARCH).
   (** The expression [emptyFrame "foo"] creates an empty frame for a function named "foo" *)
   Parameter emptyFrame : string -> frameState.
 
+  (** The expression [itreateFrame "foo" ty] creates a function frame for a function that iterates
+      over blocks of type [ty]. It returns two machine variables the first is the variable the iterates
+      over the blocks and the other is a machine variables that keeps track of how many blocks are left
+      to be iterated over.
+   *)
+
+  Parameter iterateFrame : string -> forall ty : type memory,
+        (A.machineVar ty * A.machineVar A.Word) * frameState + { ~ A.supportedType ty }.
+
   (** ** Parameter and local varaible allocation
 
   The next few function builds the function frame incrementally. We
@@ -109,8 +118,6 @@ Module Type FRAME(A : ARCH).
   mark a register for use in the function.
 
   *)
-
-  
   (** Add parameter to the function frame. *)
   Parameter addParam : frameState ->
                        forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
@@ -124,15 +131,13 @@ Module Type FRAME(A : ARCH).
                           forall k (ty : type k)(r : A.register ty), option frameState.
 
 
-  
+
   (** Finally we generate the function description from the frame
       state. When creating the function description, we should call
       this at the end after all the stack, register and parameters
       have been fixed.
    *)
   Parameter description : frameState -> A.functionDescription.
- 
-  
 
 End FRAME.
 
