@@ -8,9 +8,7 @@ Require Import Nat.
 The verse EDSL supports the standard word types, vectors type, arrays
 and sequences. Users of Verse should use only types exported from this
 module in their verse programs. There is more to types and all its
-gory details are exposed from the module [Verse.Types.Internal]. Using
-the internal module directly can lead to creation of non-well formed
-types and hence is discouraged.
+gory details are exposed from the module [Verse.Types.Internal].
 
 *)
 
