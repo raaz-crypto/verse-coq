@@ -150,7 +150,7 @@ Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
                                                        }.
 
 Arguments setup [ty v] _.
-Arguments process [ty v] _.
+Arguments process [ty v] _ _.
 Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
