@@ -120,26 +120,6 @@ program block is merely a list of instructions.
   Definition block := list instruction.
 
 
-
-  (* Generic well-formed checks on instructions *)
-(*
-  Inductive isLval {ty : type} : arg ty -> Prop :=
-   | vIsLval {vr : v ty} : isLval (var vr)
-   | indexIsLval {b : nat} {e : endian} {a : v (array b e ty)} {n}: isLval (index a n)
-  .
-
-  Fixpoint wfvar (i : instruction) : Prop :=
-    match i with
-    | assign i => match i with
-                  | assign3 ty _ v1 _ _ => and (isValue ty) (isLval v1)
-                  | assign2 ty _ v1 _   => and (isValue ty) (isLval v1)
-                  | update2 ty _ v1 _   => and (isValue ty) (isLval v1)
-                  | update1 ty _ v1     => and (isValue ty) (isLval v1)
-                  end
-    end.
-
-  Definition wfvarB (b : block) : Prop := fold_left and (map wfvar b) True.
-*)
 End Language.
 
 
@@ -161,7 +141,7 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-(*Arguments wfvarB [v] _ .*)
+
 
 
 
