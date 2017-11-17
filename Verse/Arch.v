@@ -39,14 +39,14 @@ Module Type ARCH.
   Parameter machineVar : varT.
 
   (** A way to embed register into the machine variable *)
-  Parameter embedRegister : forall {ty : type}, register ty -> machineVar ty.
+  Parameter embedRegister : forall {k}{ty : type k}, register ty -> machineVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
-  Parameter Word          : type.
+  Parameter Word          : type direct.
 
   Parameter supportedInst : Ensemble (instruction machineVar).
-  Parameter supportedType : Ensemble type.
+  Parameter supportedType : forall {k}, Ensemble (type k).
 
   (**
 
@@ -90,7 +90,7 @@ Module Type FRAME(A : ARCH).
   (** The state of the frame as seen from the callee when it is
       entered. The type [frameState] captures the description of the
       function calling frame.  This includes information on the
-      registers and stack locations used for the parameters or local
+      registers and stack locations used for the parameters and local
       variables.  The frame also has comes with a name, the name of
       the function.  It is this name that allows it to be called from
       a C program.
@@ -102,6 +102,15 @@ Module Type FRAME(A : ARCH).
   (** The expression [emptyFrame "foo"] creates an empty frame for a function named "foo" *)
   Parameter emptyFrame : string -> frameState.
 
+  (** The expression [itreateFrame "foo" ty] creates a function frame for a function that iterates
+      over blocks of type [ty]. It returns two machine variables the first is the variable the iterates
+      over the blocks and the other is a machine variables that keeps track of how many blocks are left
+      to be iterated over.
+   *)
+
+  Parameter iterateFrame : string -> forall ty : type memory,
+        (A.machineVar ty * A.machineVar A.Word) * frameState + { ~ A.supportedType ty }.
+
   (** ** Parameter and local varaible allocation
 
   The next few function builds the function frame incrementally. We
@@ -109,30 +118,26 @@ Module Type FRAME(A : ARCH).
   mark a register for use in the function.
 
   *)
-
-  
   (** Add parameter to the function frame. *)
   Parameter addParam : frameState ->
-                       forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                       forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
   (** Allocate a local varaible on the stack *)
   Parameter stackAlloc : frameState ->
-                      forall ty, A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                      forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
   (** Mark a register for use *)
   Parameter useRegister : frameState ->
-                          forall ty (r : A.register ty), option frameState.
+                          forall k (ty : type k)(r : A.register ty), option frameState.
 
 
-  
+
   (** Finally we generate the function description from the frame
       state. When creating the function description, we should call
       this at the end after all the stack, register and parameters
       have been fixed.
    *)
   Parameter description : frameState -> A.functionDescription.
- 
-  
 
 End FRAME.
 
@@ -141,14 +146,16 @@ Module Type CODEGEN (A : ARCH).
   (** Emit the code for a single instruction for *)
   Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
 
+  (** Sequence a list of instructions into *)
+  Parameter sequenceInstructions : list Doc -> Doc.
+
   (** Instruction(s) to be added to the begining of the code given its
       frameState. These instructions typically allocated space on the
       stack and save caller set of registers (on th stack) *)
-  Parameter prologue : A.functionDescription -> Doc.
 
-  (** Restore the contents of the given register set. *)
-  Parameter epilogue : A.functionDescription -> Doc.
-
+  (** Create a function given its description and body *)
+  Parameter makeFunction : A.functionDescription -> Doc -> Doc.
+ 
   (** Bulk cryptographic primitives like ciphers, hashes, etc, require
       processing a sequence of blocks. This member function loops over
       a sequence of blocks of message type msgTy and runs the body on
@@ -158,10 +165,10 @@ Module Type CODEGEN (A : ARCH).
       blocks in the sequence.  This higher order function takes care
       of wrapping the body with an appropriate preamble and ensures
       incrementing the blockPtr appropriately.  *)
-  Parameter loopWrapper : forall (blockType : type),
-      A.machineVar (Ref blockType) -> (** The variable that points to the start of sequence *)
-      A.machineVar A.Word          -> (** The number of elements of the block               *)
-      Doc                          -> (** The body of the block                             *)
+  Parameter loopWrapper : forall (blockType : type memory),
+      A.machineVar blockType -> (** The variable that points to the start of sequence   *)
+      A.machineVar A.Word    -> (** The variable that contains number of elements left  *)
+      Doc                    -> (** The body of the block                               *)
       Doc.
 
 End CODEGEN.

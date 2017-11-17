@@ -6,27 +6,35 @@ Require Import Verse.Language.
 Require Import Verse.Syntax.
 Require Import Verse.PrettyPrint.
 Require Import Verse.Word.
-Require Import Verse.SeqFunction.
+Require Import Verse.Compile.
 
 Require Import String.
 Require Import List.
 Import ListNotations.
 
+Definition iterType := array 10 hostE Word16.
 Section TestFunction.
 
   Variable variable : varT.
+  Arguments variable [k] _.
   (* The parameters of the function *)
   Variable num : variable Word16.
+  Definition parameters := [Var num].
+
   (* The local variables *)
-  Variable arr      : variable (ArrayT 3 hostE Word16).
+  Variable arr      : variable (array 3 hostE Word16).
+
+  Definition locals := [Var arr].
   (* The temp register *)
   Variable tmp       : variable Word16.
   Variable double    : variable Word32.
 
-Definition test : ScopedSeqFunc Byte variable :=
+  Definition registers := [Var tmp; Var double].
+                            
+  Definition test : iterator iterType variable :=
   {|
     (* Try out all operators *)
-    prologue   := [
+    setup   := [
                 num <= tmp [+] Ox "abcd";
                   num <= tmp [-] num ; 
                   num      <= tmp      [*] arr[-1-] ;
@@ -58,14 +66,27 @@ Definition test : ScopedSeqFunc Byte variable :=
                   arr[-1-] <=>*> (42%nat);
                   double   <=<*< (42%nat)
               ]%list;
-    loop    := fun msg => [num <=  tmp [+] arr[-1-] ];
-    epilogue:= []
+    process    := fun msg => [num <=  tmp [+] msg[-1-] ];
+    finalise := []
   |}.
 
 End TestFunction.
 
-Definition regVars : allocation C.register [_;_] := (cr Word16 "temp", (cr Word32 "double", tt)).
 
-Definition code := SeqCompileC.compile "testFunction" _ [_] [_] [_;_] regVars test.
+Definition ps : list (some type).
+  declare parameters.
+Defined.
+
+Definition ls : list (some type).
+  declare locals.
+Defined.
+
+Definition rs : list (some type).
+  declare registers.
+Defined.
+
+Definition regVars : allocation C.register rs := (cr Word16 "temp", (cr Word32 "double", tt)).
+
+Definition code := CompileC.compileIterator iterType "testFunction" ps ls rs regVars test.
 
 Compute (layout (recover code)).

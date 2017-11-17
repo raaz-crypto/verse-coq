@@ -131,5 +131,17 @@ Definition decimal n := text (Internal.nat_to_str n).
 
 Class PrettyPrint a := { doc : a -> Doc}.
 
-Instance string_pretty : PrettyPrint string := { doc := text }.
+Instance string_pretty : PrettyPrint string := { doc := text    }.
 Instance nat_pretty    : PrettyPrint nat    := { doc := decimal }.
+
+
+Section PrettyPrintSeq.
+  Variable A : Type.
+  Variable APrettyPrint : PrettyPrint A.
+  Global Instance list_pretty_print : PrettyPrint (list A)
+    := { doc := fun l => bracket (semiSep (List.map doc l)) }.
+
+  Global Instance vector_pretty_print : forall n, PrettyPrint (Vector.t A n)
+    := { doc := fun v => doc (Vector.to_list v) }.
+
+End PrettyPrintSeq.

@@ -50,6 +50,11 @@ function install()
     make install
 }
 
+function clean()
+{
+    make clean
+}
+
 function usage()
 {
 
@@ -62,7 +67,7 @@ The set of allowed commands are
   * build     - build the project
   * html      - build the html documentation
   * install   - install the package in the current opam environment.
-
+  * clean
 EOF
 
 }
@@ -73,6 +78,7 @@ case $1 in
     build) build; ;;
     html) html; ;;
     install) install; ;;
+    clean) clean; ;;
     help) usage; ;;
     *) echo "$0:error:" unknown command "$1" ; usage ; ;;
 esac

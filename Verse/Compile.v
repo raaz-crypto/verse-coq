@@ -21,8 +21,8 @@ compiled.
 
 Inductive CompileError : Prop :=
 | UnsupportedInstruction : forall {v : varT}, instruction v  -> CompileError
-| UnsupportedType        : type -> CompileError
-| UnavailableRegister    : forall {reg : varT}{ty : type}, reg ty -> CompileError.
+| UnsupportedType        : forall {k : kind}, type k -> CompileError
+| UnavailableRegister    : forall {reg : varT}{k : kind}{ty : type k}, reg k ty -> CompileError.
 
 (**
 
@@ -47,7 +47,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Definition compileInstructions insts :=
     let emitter := fun i => liftInstructionError (C.emit i) in
-    sepEndBy line <$> merge (List.map emitter insts).
+    C.sequenceInstructions <$> merge (List.map emitter insts).
+
 
   End CompileInstructions.
 
@@ -56,23 +57,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Variable singleAlloc   :
       F.frameState ->
-      forall ty : type, A.machineVar ty * F.frameState + { ~ A.supportedType ty}.
+      forall k (ty : type k), A.machineVar ty * F.frameState + { ~ A.supportedType ty}.
 
     Definition Allocation l := allocation A.machineVar l * F.frameState + { CompileError }.
 
     Let liftTypeError
         {X : Type}
-        {ty : type}
+        {k : kind}
+        {ty : type k}
         (action : X + { ~ A.supportedType ty}) : X + { CompileError }
       := match action  with
          | {- x -} => {- x -}
          | error _ => error (UnsupportedType ty)
          end.
 
-    Fixpoint generate (s0 : F.frameState)(l : list type) : Allocation l :=
+    Fixpoint generate (s0 : F.frameState)(l : list (some type)) : Allocation l :=
       match l with
       | []           => {- (emptyAllocation A.machineVar, s0) -}
-      | (ty :: rest)
+      | (existT _ _ ty :: rest)
         => a1 <- liftTypeError (singleAlloc s0 ty);
              let (v, s1) := a1
              in a2 <- generate s1 rest;
@@ -80,6 +82,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                   in {- ((v,vs), s2) -}
       end.
 
+    Definition iterateFrame name ty := liftTypeError (F.iterateFrame name ty).
   End CompileAllocations.
 
   (** Generate a frame with the given set of parameters or die trying *)
@@ -93,8 +96,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     allocation A.register l -> Allocation l  :=
     match l with
             | []          => fun s0 _  => {- (emptyAllocation A.machineVar, s0) -}
-            | (ty :: tys)
-              => fun s0 (rs : allocation A.register (ty :: tys)) =>
+            | (existT _ k ty :: tys)
+              => fun s0 (rs : allocation A.register (existT _ k ty :: tys)) =>
                    let (r,rest) := rs in
                    match F.useRegister s0 r with
                    | Some s1 => restAlloc <- registers s1 rest;
@@ -106,27 +109,25 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
             end.
 
   Section Function.
+    Variable BODY : varT -> Type.
+    Variable startState : F.frameState.
 
-    Variable B : varT -> Type.
-    (** The name of the function *)
-    Variable name : string.
     (** Its parameters and stack variables *)
-    Variable parameterTypes stackTypes : list type.
+    Variable parameterTypes stackTypes : list (some type).
 
-    Variable registerTypes : list type.
+    Variable registerTypes : list (some type).
 
     (** Its register variables *)
     Variable registerVariables : allocation A.register registerTypes.
 
 
-    Definition BodyType v := scoped v parameterTypes
-                               (scoped v stackTypes
-                                       (scoped v registerTypes (B v))
-                               ).
+    Let BodyType v := scoped v parameterTypes
+                             (scoped v stackTypes
+                                     (scoped v registerTypes (BODY v))
+                             ).
 
-    Let startState := F.emptyFrame name.
 
-    Definition genCompile (functionBody : forall v, BodyType v) :=
+    Definition fillVars (functionBody : forall v, BodyType v) :=
       pA <- params startState parameterTypes;
         let (pVars, paramState) := pA in
         lA <- stacks paramState stackTypes;
@@ -143,15 +144,28 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
   End Function.
 
-  Arguments genCompile _ _ _ _ [registerTypes] _ _.
+
+  Let wrap descr (code : Doc + {CompileError}) := C.makeFunction descr <$> code.
+
 
 
   Definition compile name pts lts rts regs f
-    :=
-    result <-  @genCompile block name pts lts rts regs  f;
-    let (descr, code) := result  in
-    delimit (C.prologue descr)  (C.epilogue descr) <$> compileInstructions code.
+    := let state := F.emptyFrame name
+       in result <- fillVars block state pts lts rts regs f;
+            let (descr, code) := result  in wrap descr (compileInstructions code).
 
+  Definition compileIterator ty name pts lts rts regs iterF
+    := S <- iterateFrame name ty;
+         let (iterVars, state) := S in
+         let (blockV, countV)  := iterVars
+         in result <- @fillVars (iterator ty) state pts lts rts regs iterF;
+              let (descr, iF) := result in
+              let setupCode       := compileInstructions (setup iF) in
+              let iterationCode   := compileInstructions (process iF blockV) in
+              let finaliseCode    := compileInstructions (finalise iF) in
+              let body            := s <- setupCode; i <-  iterationCode; f <- finaliseCode;
+                                       {- vcat [s; C.loopWrapper blockV countV i; f] -} in
+              wrap descr body.
 
   Arguments compile _ _ _ [rts] _ _.
 
