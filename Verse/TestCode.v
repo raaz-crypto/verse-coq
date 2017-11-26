@@ -11,7 +11,8 @@ Require Import String.
 Require Import List.
 Import ListNotations.
 
-
+(* This can move out elsewhere *)
+Ltac function s := simple refine (@CompileC.compile s _ _ _ _ _).
 
 Section TestFunction.
 
@@ -21,7 +22,7 @@ Section TestFunction.
   (* The parameters of the function *)
   Variable arr     : variable (array 5 hostE Word16).
   Variable A B     : variable Byte.
-
+  Print Var.
   Definition parameters := [Var arr; Var A; Var B].
 
   (* The local variables *)
@@ -68,19 +69,15 @@ Section TestFunction.
 
 End TestFunction.
 
-Definition ps : list (some type).
-  declare parameters.
-Defined.
+Definition regVars := (cr Word16 "temp", tt).
 
-Definition ls : list (some type).
-  declare locals.
+Definition code : Doc + {Compile.CompileError}.
+  function "testFunction".
+     declare parameters.
+     declare locals.
+     declare registers.
+     exact regVars.
+     exact testFunction.
 Defined.
-
-Definition rs : list (some type).
-  declare registers.
-Defined.
-
-Definition regVars : allocation C.register rs := (cr Word16 "temp", tt).
-Definition code := CompileC.compile "testFunction" ps ls regVars testFunction.
 
 Compute (recover (layout <$> code)).
