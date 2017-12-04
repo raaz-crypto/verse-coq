@@ -11,8 +11,6 @@ Require Import String.
 Require Import List.
 Import ListNotations.
 
-(* This can move out elsewhere *)
-Ltac function s := simple refine (@CompileC.compile s _ _ _ _ _).
 
 Section TestFunction.
 
@@ -72,7 +70,7 @@ End TestFunction.
 Definition regVars := (cr Word16 "temp", tt).
 
 Definition code : Doc + {Compile.CompileError}.
-  function "testFunction".
+  CompileC.function "testFunction".
      declare parameters.
      declare locals.
      declare registers.

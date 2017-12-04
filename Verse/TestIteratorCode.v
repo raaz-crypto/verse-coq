@@ -12,8 +12,6 @@ Require Import String.
 Require Import List.
 Import ListNotations.
 
-Ltac function i s := simple refine (@CompileC.compileIterator i s _ _ _ _ _).
-
 Definition iterType := array 10 hostE Word16.
 Section TestFunction.
 
@@ -78,7 +76,7 @@ End TestFunction.
 Definition regVars := (cr Word16 "temp", (cr Word32 "double", tt)).
 
 Definition code : Doc + {Compile.CompileError}.
-  function iterType "testFunction".
+  CompileC.iterator iterType "testFunction".
      declare parameters.
      declare locals.
      declare registers.

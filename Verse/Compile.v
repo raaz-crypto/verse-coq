@@ -168,5 +168,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
               wrap descr body.
 
   Arguments compile _ _ _ [rts] _ _.
+  Arguments compileIterator _ _ _ _ [rts] _ _.
+
+  Ltac function s   := simple refine (@compile s _ _ _ _ _).
+  Ltac iterator i s := simple refine (@compileIterator i s _ _ _ _ _).
 
 End Compiler.
