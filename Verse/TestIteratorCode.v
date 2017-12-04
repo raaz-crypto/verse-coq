@@ -73,20 +73,15 @@ Section TestFunction.
 End TestFunction.
 
 
-Definition ps : list (some type).
-  declare parameters.
+Definition regVars := (cr Word16 "temp", (cr Word32 "double", tt)).
+
+Definition code : Doc + {Compile.CompileError}.
+  CompileC.iterator iterType "testFunction".
+     declare parameters.
+     declare locals.
+     declare registers.
+     exact regVars.
+     exact test.
 Defined.
-
-Definition ls : list (some type).
-  declare locals.
-Defined.
-
-Definition rs : list (some type).
-  declare registers.
-Defined.
-
-Definition regVars : allocation C.register rs := (cr Word16 "temp", (cr Word32 "double", tt)).
-
-Definition code := CompileC.compileIterator iterType "testFunction" ps ls rs regVars test.
 
 Compute (layout (recover code)).
