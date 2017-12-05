@@ -7,6 +7,7 @@ Require Import Verse.Syntax.
 Require Import Verse.PrettyPrint.
 Require Import Verse.Word.
 
+Require Import Omega.
 Require Import String.
 Require Import List.
 Import ListNotations.
@@ -20,7 +21,7 @@ Section TestFunction.
   (* The parameters of the function *)
   Variable arr     : variable (array 5 hostE Word16).
   Variable A B     : variable Byte.
-  Print Var.
+
   Definition parameters := [Var arr; Var A; Var B].
 
   (* The local variables *)
@@ -33,7 +34,8 @@ Section TestFunction.
 
   Definition registers := [Var tmp].
 
-  Definition testFunction : list (instruction variable) :=
+  Definition testFunction : list (instruction variable).
+    body
     [ num <= tmp [+] Ox "abcd";
       A   <= A [+] B;
       num <= tmp [-] num ;
@@ -64,6 +66,7 @@ Section TestFunction.
       num      <=<*< (42%nat);
       arr[-1-] <=>*> (42%nat)
     ].
+  Defined.
 
 End TestFunction.
 

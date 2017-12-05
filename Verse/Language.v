@@ -1,6 +1,8 @@
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
 Require Import Verse.Syntax.
+
+Require Import Omega.
 Require Vector.
 Require Import List.
 Require Import Coq.Sets.Ensembles.
@@ -85,9 +87,7 @@ constants or indexed variables. The type arg captures this.
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
   | const : forall {k} {ty : type k}, constant ty  -> arg k ty
   | index : forall {b : nat}{e : endian}{ty : type direct},
-     v memory (array b e ty) -> nat -> arg direct ty.
-
-
+     v memory (array b e ty) -> forall n : nat, n < b -> arg direct ty.
 
   (** ** Assignment statement.
 
@@ -119,8 +119,9 @@ program block is merely a list of instructions.
 
   Definition block := list instruction.
 
-
 End Language.
+
+Tactic Notation "body" uconstr(B) := (refine B; omega).
 
 
   (* The body of an iterator over a sequence of blocks of type [ty] *)
@@ -135,7 +136,7 @@ Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
 Arguments const [v k ty] _ .
-Arguments index [v b e ty] _ _ .
+Arguments index [v b e ty] _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
@@ -169,8 +170,8 @@ Section ARGInstances.
 
 End ARGInstances.
 
-Notation "A [- N -]"     := (index A N) (at level 69).
-Notation "! A"           := (index A 0) (at level 70).
+Notation "A [- N -]"     := (index A N _) (at level 69).
+Notation "! A"           := (index A 0 _) (at level 70).
 Notation "A <= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
 Notation "A <= B [-] C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
@@ -217,8 +218,10 @@ Inductive MyVar : varT :=
 .
 
 Import ListNotations.
-Definition prog : block MyVar := [ X <= X << 5 ; X <=>> 5; X <= X [+] (A[-2-])].
-
+Definition prog : block MyVar.
+  refine [ X <= X << 5 ; X <=>> 5; X <= X [+] (A[-2-])].
+  omega.
+Defined.
 
 Require Import Verse.PrettyPrint.
 
@@ -245,9 +248,9 @@ Section PrettyPrintingInstruction.
   (** The pretty printing of our argument *)
   Fixpoint argdoc {k}(ty : type k ) (av : arg v k ty) :=
     match av with
-    | var v      => doc v
-    | const c    => doc c
-    | index v n  => doc v <> bracket (decimal n)
+    | var v       => doc v
+    | const c     => doc c
+    | index v n _ => doc v <> bracket (decimal n)
     end.
 
   Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
