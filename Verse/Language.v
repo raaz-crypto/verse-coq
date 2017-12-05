@@ -136,7 +136,7 @@ Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
 Arguments const [v k ty] _ .
-Arguments index [v b e ty] _ _ .
+Arguments index [v b e ty] _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
