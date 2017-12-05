@@ -21,7 +21,7 @@ Section TestFunction.
   (* The parameters of the function *)
   Variable arr     : variable (array 5 hostE Word16).
   Variable A B     : variable Byte.
-  Print Var.
+
   Definition parameters := [Var arr; Var A; Var B].
 
   (* The local variables *)
