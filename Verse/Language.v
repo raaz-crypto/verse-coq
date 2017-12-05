@@ -119,8 +119,9 @@ program block is merely a list of instructions.
 
   Definition block := list instruction.
 
-
 End Language.
+
+Tactic Notation "body" uconstr(B) := (refine B; omega).
 
 
   (* The body of an iterator over a sequence of blocks of type [ty] *)

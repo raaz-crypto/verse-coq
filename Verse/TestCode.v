@@ -35,7 +35,7 @@ Section TestFunction.
   Definition registers := [Var tmp].
 
   Definition testFunction : list (instruction variable).
-    refine
+    body
     [ num <= tmp [+] Ox "abcd";
       A   <= A [+] B;
       num <= tmp [-] num ;
@@ -66,8 +66,8 @@ Section TestFunction.
       num      <=<*< (42%nat);
       arr[-1-] <=>*> (42%nat)
     ].
-    all: omega.
   Defined.
+
 End TestFunction.
 
 Definition regVars := (cr Word16 "temp", tt).

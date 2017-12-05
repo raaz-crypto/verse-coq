@@ -31,9 +31,9 @@ Section TestFunction.
   Variable double    : variable Word32.
 
   Definition registers := [Var tmp; Var double].
-                            
+
   Definition test : iterator iterType variable.
-    refine
+    body
       {|
         (* Try out all operators *)
         setup   := [
@@ -71,7 +71,6 @@ Section TestFunction.
         process    := fun msg => [num <=  tmp [+] msg[-1-] ];
         finalise := []
       |}.
-    all: omega.
   Defined.
 
 End TestFunction.
