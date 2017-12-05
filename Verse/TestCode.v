@@ -7,6 +7,7 @@ Require Import Verse.Syntax.
 Require Import Verse.PrettyPrint.
 Require Import Verse.Word.
 
+Require Import Omega.
 Require Import String.
 Require Import List.
 Import ListNotations.
@@ -33,7 +34,8 @@ Section TestFunction.
 
   Definition registers := [Var tmp].
 
-  Definition testFunction : list (instruction variable) :=
+  Definition testFunction : list (instruction variable).
+    refine
     [ num <= tmp [+] Ox "abcd";
       A   <= A [+] B;
       num <= tmp [-] num ;
@@ -64,7 +66,8 @@ Section TestFunction.
       num      <=<*< (42%nat);
       arr[-1-] <=>*> (42%nat)
     ].
-
+    all: omega.
+  Defined.
 End TestFunction.
 
 Definition regVars := (cr Word16 "temp", tt).
