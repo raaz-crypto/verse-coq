@@ -10,7 +10,7 @@ Require Import Recdef.
 Import String.
 Require Import Basics.
 Import Nat.
-
+Import ListNotations.
 (** * The Verse language as an inductive data type.
 
 This module exposes the abstract syntax of the verse programming
@@ -29,9 +29,9 @@ in operators that verse support.
 
 ** Arithmetic and bitwise operators.
 
-Most architectures allow various basic arithmetic, bitwise operations
-on values stored in the registers. These instructions can be of arity
-unary or binary.
+Most architectures allow various basic arithmetic and bitwise
+operations on values stored in the registers. These operations can be
+either [unary] or [binary].
 
 *)
 
@@ -121,7 +121,7 @@ program block is merely a list of instructions.
 
 End Language.
 
-Tactic Notation "body" uconstr(B) := (refine B; omega).
+
 
 
   (* The body of an iterator over a sequence of blocks of type [ty] *)
@@ -130,6 +130,8 @@ Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
                                                          finalise : block v
                                                        }.
 
+
+(* begin hide *)
 Arguments setup [ty v] _.
 Arguments process [ty v] _ _.
 Arguments finalise [ty v] _.
@@ -143,21 +145,25 @@ Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
 
+(* end hide *)
 
+(** * Notation.
 
+A user is expected to define a program by giving a list of
+[instruction]s. Expressing instructions directly using the
+constructors of the [arg] and [instruction] types can be painful. We
+expose some convenient notations for simplifying this task. Note that
+in the notations below, the operands of the instruction can either be
+variables or constants or indexed arrays.
 
-(** * Pretty Notation.
+ *)
 
-Expressing instructions directly as elements of the instruction type
-is painful. The first painful aspect comes from explictly having to
-lift each variable and constant to the argument level. This we solve
-using the following class.
-
-*)
+(* begin hide *)
 
 Class ARG (v : varT)(k : kind)(ty : type k) t  := { toArg : t -> arg v k ty }.
 
 (** Instances of this class has been defined for both variables and constants *)
+
 
 Section ARGInstances.
   Variable v  : varT.
@@ -169,6 +175,8 @@ Section ARGInstances.
   Global Instance const_arg_v : ARG v k ty (Types.constant ty) := { toArg := @const v k ty }.
 
 End ARGInstances.
+
+(* end hide *)
 
 Notation "A [- N -]"     := (index A N _) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
@@ -202,26 +210,62 @@ Notation "A <=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
 Notation "A <=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
 
-Require Import Verse.Word.
+(**
 
-(** * Example using this notation.
+One another irritant in writing code is that the array indexing needs
+proof that the bounds are not violated. We use the following tactic to
+dispose off all such obligations.
 
-To demonstrate the use of this notation we first define a inductive
-type to capture variables.
+*)
+
+Tactic Notation "body" uconstr(B) := (refine B; omega).
+
+
+
+(** ** Illustrative example of the notation.
+
+To demonstrate the use of this notation, we first an inductive type
+whose constructors are the variables of our program.
 
 *)
 
 Inductive MyVar : varT :=
 |  X : MyVar direct Word8
 |  Y : MyVar direct Word64
+|  Z : MyVar direct (Vector128 Word32)
 |  A : MyVar memory (array 42 bigE Word8)
 .
 
-Import ListNotations.
+
+(**
+
+For illustration consider the following (nonsensical) program
+fragment.  Notice that we can directly use the variables (as in [X],
+[Y], Z) or constants (the [Ox "..."] are appropriate constants) as
+operands of the programming fragment.
+
+
+ *)
+
+
+
+
+
+Require Vector.
+Import  Vector.VectorNotations.
+Require Import Verse.Word.
+
 Definition prog : block MyVar.
-  refine [ X <= X << 5 ; X <=>> 5; X <= X [+] (A[-2-])].
-  omega.
+  body [ X <= X << 5 ;
+         X <=>> 5;
+         X <= X [+] (A[-2-]);
+         X <= X [+] Ox "55";
+         Z <= Z [+] [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"]%vector
+       ]%list.
 Defined.
+
+
+
 
 Require Import Verse.PrettyPrint.
 
@@ -229,13 +273,15 @@ Require Import Verse.PrettyPrint.
 
 It is convenient to have a pretty printed syntax for instructions in
 verse. Since instructions are parameterised by variables, we give a
-C-like pretty printing for verse instructions. We start by defining a
-section for this where we parameterise over teh variable type and its
-pretty printing instance.
+C-like pretty printing for verse instructions defined over variables
+that can themselves be pretty printed. We start by defining a section
+for this where we parameterise over teh variable type and its pretty
+printing instance.
 
 
 *)
 
+(* begin hide *)
 Section PrettyPrintingInstruction.
 
   (** The variable type for our instructions *)
@@ -317,18 +363,32 @@ Section PrettyPrintingInstruction.
 
 End PrettyPrintingInstruction.
 
-(** ** Example pretty printing
+(* end hide *)
 
-Let us define pretty printing instance for the variable above to demonstrate the use of
-this pretty printing
 
- *)
+
+
+
+(**
+
+To get the above program frgment pretty printed all we need is pretty
+print instance for the variable type [MyVar].
+
+*)
 
 Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
   { doc := fun v => text ( match v with
                            | X => "X"
                            | Y => "Y"
+                           | Z => "Z"
                            | A => "A"
                            end
                          )
   }.
+
+
+(** The above program fragment is pretty printable because the
+underlying variable type ([MyVar] in this case), is pretty printable
+ *)
+
+Compute layout (doc prog).
