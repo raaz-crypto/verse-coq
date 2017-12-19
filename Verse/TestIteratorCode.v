@@ -1,19 +1,8 @@
-Require Import Verse.Error.
+Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Verse.Types.
-Require Import Verse.Types.Internal.
-Require Import Verse.Language.
-Require Import Verse.Syntax.
-Require Import Verse.PrettyPrint.
-Require Import Verse.Word.
-Require Import Verse.Compile.
 
-Require Import Omega.
-Require Import String.
-Require Import List.
-Import ListNotations.
 
-Definition iterType := array 10 hostE Word16.
+Definition iterType := Array 10 hostE Word16.
 Section TestFunction.
 
   Variable variable : varT.
@@ -23,7 +12,7 @@ Section TestFunction.
   Definition parameters := [Var num].
 
   (* The local variables *)
-  Variable arr      : variable (array 3 hostE Word16).
+  Variable arr      : variable (Array 3 hostE Word16).
 
   Definition locals := [Var arr].
   (* The temp register *)
@@ -75,6 +64,7 @@ Section TestFunction.
 
 End TestFunction.
 
+Require Import String.
 
 Definition regVars := (cr Word16 "temp", (cr Word32 "double", tt)).
 

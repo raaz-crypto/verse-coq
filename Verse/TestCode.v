@@ -1,16 +1,5 @@
-Require Import Verse.Error.
+Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Verse.Types.
-Require Import Verse.Types.Internal.
-Require Import Verse.Language.
-Require Import Verse.Syntax.
-Require Import Verse.PrettyPrint.
-Require Import Verse.Word.
-
-Require Import Omega.
-Require Import String.
-Require Import List.
-Import ListNotations.
 
 
 Section TestFunction.
