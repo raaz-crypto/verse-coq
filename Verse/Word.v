@@ -8,6 +8,8 @@ Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
+Open Scope Z_scope.
+(* end hide *)
 
 (** * Words.
 
@@ -17,7 +19,8 @@ the meanings of
 *)
 
 
-Open Scope Z_scope.
+
+
 Inductive t (n : nat) : Type :=
 | bits : Bvector n -> t n.
 
@@ -28,6 +31,7 @@ Arguments nil [A].
 (** Words meansured in units of bytes *)
 Definition bytes n := t (8 * n).
 
+(* begin hide *)
 Definition toZ {n}(x : t n) :=
   match x with
   | bits bv => binary_value n bv
@@ -110,21 +114,35 @@ Module Base16.
 
 End Base16.
 
+(* end hide *)
+
+(** We define a convenient function to represent word constants in hex
+notation. A 16-bit word of value AABB (in hex notation) can be
+represented as [Ox "aabb"].
+
+*)
+
 Definition Ox s := recover (Base16.hexToZ (4 * String.length s) s).
 
-Definition hex {n} (u : t n) :=
+(**
+
+Conversely we can convert a word constant to its hexadecimal string as
+follows
+
+*)
+Definition hex {n} (u : t n) : string:=
   match u with
   | bits bv => Base16.ZToHex n (binary_value n bv)
   end.
 
 
-(** This function lifts a numeric binary function  to WORDS *)
+(** This function lifts a numeric binary function to the word type *)
 Definition numBinOp {n} f  (x y : t n) : t n :=
   match x, y with
   | bits xv, bits yv => bits (Z_to_binary n (f (binary_value n xv)(binary_value n yv)))
   end.
 
-(** This function lifts a numeric unary function to WORDS *)
+(** This function lifts a numeric unary function to the word type *)
 Definition numUnaryOp {n : nat} f (x : t n) : t n :=
   match x with
   | bits xv => bits (Z_to_binary n (f (binary_value n xv)))
