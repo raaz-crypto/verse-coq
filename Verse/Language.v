@@ -255,12 +255,14 @@ Require Vector.
 Import  Vector.VectorNotations.
 Require Import Verse.Word.
 
+Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
+
 Definition prog : block MyVar.
   body [ X <= X << 5 ;
          X <=>> 5;
          X <= X [+] (A[-2-]);
          X <= X [+] Ox "55";
-         Z <= Z [+] [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"]%vector
+         Z <= Z [+] vec_const
        ]%list.
 Defined.
 
