@@ -1,5 +1,4 @@
--R Verse Verse
-
+-R . Verse
 Verse/Arch.v
 Verse/Arch/C.v
 Verse/Error.v
@@ -10,5 +9,6 @@ Verse/Types.v
 Verse/Types/Internal.v
 Verse/Word.v
 Verse/PrettyPrint.v
+Verse.v
 Verse/TestCode.v
 Verse/TestIteratorCode.v
