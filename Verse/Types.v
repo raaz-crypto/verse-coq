@@ -18,7 +18,7 @@ Definition Word8  := word 0.
 Definition Word16 := word 1.
 Definition Word32 := word 2.
 Definition Word64 := word 3.
-
+Definition Array  := array.
 Inductive BadVectorType : Prop := BadVectorTypeError.
 
 
