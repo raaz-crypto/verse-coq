@@ -1,14 +1,14 @@
--R . Verse
-Verse/Arch.v
-Verse/Arch/C.v
-Verse/Error.v
-Verse/Compile.v
-Verse/Language.v
-Verse/Syntax.v
-Verse/Types.v
-Verse/Types/Internal.v
-Verse/Word.v
-Verse/PrettyPrint.v
-Verse.v
-Verse/TestCode.v
-Verse/TestIteratorCode.v
+-R src Verse
+src/Verse/Arch.v
+src/Verse/Arch/C.v
+src/Verse/Error.v
+src/Verse/Compile.v
+src/Verse/Language.v
+src/Verse/Syntax.v
+src/Verse/Types.v
+src/Verse/Types/Internal.v
+src/Verse/Word.v
+src/Verse/PrettyPrint.v
+src/Verse.v
+src/Verse/TestCode.v
+src/Verse/TestIteratorCode.v
