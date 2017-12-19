@@ -5,10 +5,18 @@ Require Import Nat.
 
 (** * Types in verse.
 
-The verse EDSL supports the standard word types, vectors type, arrays
-and sequences. Users of Verse should use only types exported from this
-module in their verse programs. There is more to types and all its
-gory details are exposed from the module [Verse.Types.Internal].
+There are two kinds of types supported by verse [direct] and
+[memory]. A value of a direct type can potentially be stored in one of
+the machine registers. The supported direct types include the word
+types [Word8], [Word16] , [Word32] and [Word64] and the vector types
+[Vector128 w] and [Vector256 w] where [w] is any of the above word
+types.  Verse supports arrays of these direct types but arrays are
+memory types.
+
+
+A user is only expected to use the types exposed from this
+module. There is more to types and all its gory details are exposed
+from the module [Verse.Types.Internal].
 
 *)
 
@@ -19,9 +27,9 @@ Definition Word16 := word 1.
 Definition Word32 := word 2.
 Definition Word64 := word 3.
 Definition Array  := array.
+
+(* begin hide *)
 Inductive BadVectorType : Prop := BadVectorTypeError.
-
-
 Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
   match t with
   | word n => match compare n m with
@@ -30,12 +38,14 @@ Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
               end
   | _ => error BadVectorTypeError
   end.
+(* end hide *)
 
-Definition Vecor128 (t : type direct) := recover (vector 4 t).
+Definition Vecor128  (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
 Definition constant {k}(ty : type k):= typeDenote ty.
 
+(* begin hide *)
 Require Import PrettyPrint.
 
 
@@ -50,3 +60,4 @@ Defined.
 
 Global Instance constant_pretty k  (ty : type k) : PrettyPrint (constant ty)
   := { doc := constant_doc k ty }.
+(* end hide *)
