@@ -147,7 +147,7 @@ Arguments assign [v] _ .
 
 (* end hide *)
 
-(** * Notation.
+(** ** Notation.
 
 A user is expected to define a program by giving a list of
 [instruction]s. Expressing instructions directly using the
@@ -222,7 +222,7 @@ Tactic Notation "body" uconstr(B) := (refine B; omega).
 
 
 
-(** ** Illustrative example of the notation.
+(** *** Illustrative example of the notation.
 
 To demonstrate the use of this notation, we first an inductive type
 whose constructors are the variables of our program.
@@ -269,7 +269,7 @@ Defined.
 
 Require Import Verse.PrettyPrint.
 
-(** * Pretty printing of verse instructions.
+(** ** Pretty printing of verse instructions.
 
 It is convenient to have a pretty printed syntax for instructions in
 verse. Since instructions are parameterised by variables, we give a
