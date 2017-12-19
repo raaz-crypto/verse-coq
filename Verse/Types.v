@@ -40,7 +40,7 @@ Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
   end.
 (* end hide *)
 
-Definition Vecor128  (t : type direct) := recover (vector 4 t).
+Definition Vector128 (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
 Definition constant {k}(ty : type k):= typeDenote ty.
