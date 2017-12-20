@@ -180,34 +180,34 @@ End ARGInstances.
 
 Notation "A [- N -]"     := (index A N _) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
-Notation "A <= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
+Notation "A ::= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
-Notation "A <= B [-] C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [*] C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [/] C" := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [%] C" := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [|] C" := (assign (assign3 bitOr (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [&] C" := (assign (assign3 bitAnd (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A <= B [^] C" := (assign (assign3 bitXor (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [-] C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [*] C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [/] C" := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [%] C" := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [|] C" := (assign (assign3 bitOr (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [&] C" := (assign (assign3 bitAnd (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [^] C" := (assign (assign3 bitXor (toArg A) (toArg B) (toArg C)))  (at level 70).
 
-Notation "A <=+ B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
-Notation "A <=- B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
-Notation "A <=* B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
-Notation "A <=/ B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
-Notation "A <=% B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
-Notation "A <=| B " := (assign (update2 bitOr   (toArg A) (toArg B))) (at level 70).
-Notation "A <=& B " := (assign (update2 bitAnd   (toArg A) (toArg B))) (at level 70).
-Notation "A <=^ B " := (assign (update2 bitXor   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=+ B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
+Notation "A ::=- B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
+Notation "A ::=* B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=/ B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
+Notation "A ::=% B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=| B " := (assign (update2 bitOr   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=& B " := (assign (update2 bitAnd   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=^ B " := (assign (update2 bitXor   (toArg A) (toArg B))) (at level 70).
 
-Notation "A <=~ B "     := (assign (assign2 bitComp    (toArg A) (toArg B))) (at level 70).
-Notation "A <= B <*< N" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
-Notation "A <= B >*> N" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
-Notation "A <= B <<  N"  := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
-Notation "A <= B >>  N" := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
-Notation "A <=<< N "    := (assign (update1 (shiftL N) (toArg A))) (at level 70).
-Notation "A <=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70).
-Notation "A <=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
-Notation "A <=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
+Notation "A ::=~ B "     := (assign (assign2 bitComp    (toArg A) (toArg B))) (at level 70).
+Notation "A ::= B <*< N" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
+Notation "A ::= B >*> N" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
+Notation "A ::= B <<  N"  := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
+Notation "A ::= B >>  N" := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
+Notation "A ::=<< N "    := (assign (update1 (shiftL N) (toArg A))) (at level 70).
+Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70).
+Notation "A ::=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
+Notation "A ::=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
 
 (**
@@ -258,11 +258,11 @@ Require Import Verse.Word.
 Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
 
 Definition prog : block MyVar.
-  body [ X <= X << 5 ;
-         X <=>> 5;
-         X <= X [+] (A[-2-]);
-         X <= X [+] Ox "55";
-         Z <= Z [+] vec_const
+  body [ X ::= X << 5 ;
+         X ::=>> 5;
+         X ::= X [+] (A[-2-]);
+         X ::= X [+] Ox "55";
+         Z ::= Z [+] vec_const
        ]%list.
 Defined.
 
