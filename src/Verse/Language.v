@@ -264,8 +264,6 @@ Definition prog : block MyVar.
          X ::= X [+] Ox "55";
          Z ::= Z [+] vec_const
        ]%list.
-  refine [ X ::= X << 5 ; X ::=>> 5; X ::= X [+] (A[-2-])].
-  omega.
 Defined.
 
 
