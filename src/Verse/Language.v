@@ -9,6 +9,7 @@ Require Import Coq.Sets.Ensembles.
 Require Import Recdef.
 Import String.
 Require Import Basics.
+Require Import Arith.
 Import Nat.
 Import ListNotations.
 (** * The Verse language as an inductive data type.
@@ -119,12 +120,30 @@ program block is merely a list of instructions.
 
   Definition block := list instruction.
 
+  Section Looping.
+    Variable bound     : nat.
+    Variable ty        : type direct.
+    Variable e         : endian.
+    Variable A         : v memory (Array bound e ty).
+    Variable loopbody  : arg direct ty -> block.
+    Local Definition ithBlock (i : nat) : block :=
+      match lt_dec i bound with
+      | left pf => loopbody (index A i pf)
+      | _ => []
+      end.
+
+    Local Fixpoint each_loop i :=
+      match i with
+      | 0   => []
+      | S j => each_loop j
+      end ++ ithBlock i.
+
+    Definition foreach : block := each_loop bound.
+  End Looping.
 End Language.
 
 
-
-
-  (* The body of an iterator over a sequence of blocks of type [ty] *)
+(* The body of an iterator over a sequence of blocks of type [ty] *)
 Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
                                                          process  : v memory ty -> block v;
                                                          finalise : block v
