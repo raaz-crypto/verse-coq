@@ -142,6 +142,8 @@ program block is merely a list of instructions.
   End Looping.
 End Language.
 
+Arguments foreach [v bound ty e] _ _.
+
 
 (* The body of an iterator over a sequence of blocks of type [ty] *)
 Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
