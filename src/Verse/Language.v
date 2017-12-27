@@ -116,6 +116,7 @@ arrays or constants.
     Definition indices (a : v memory (array b e ty)) :  list (Indices a)
       := loopover b.
 
+    Definition indices_reversed a := List.rev (indices a).
 
   End ArrayIndexing.
 
