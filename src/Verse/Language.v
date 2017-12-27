@@ -78,17 +78,49 @@ through out.
 (** ** Arguments.
 
 Each verse program fragment consists of instructions applied to some
-arguments. Variables are one form of arguments, the other are
-constants or indexed variables. The type arg captures this.
+arguments. Variables are one form of arguments, but so does indexed
+arrays or constants.
 
 *)
-
-
   Inductive arg : varT :=
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
   | const : forall {k} {ty : type k}, constant ty  -> arg k ty
   | index : forall {b : nat}{e : endian}{ty : type direct},
-     v memory (array b e ty) -> forall n : nat, n < b -> arg direct ty.
+     v memory (array b e ty) -> {i : nat | i < b} -> arg direct ty.
+
+
+  Section ArrayIndexing.
+
+    Variable b : nat.
+    Variable e : endian.
+    Variable ty : type direct.
+    (** Type that captures a memory variables indices. *)
+
+    Definition Indices (_ : v memory (array b e ty)) : Set
+      := { i : nat | i < b }.
+
+
+    Local Definition ithIndex i : list { i | i < b} :=
+      match lt_dec i b with
+      | left pf => [exist _ i pf]
+      | right _ => []
+      end.
+
+
+    Local Fixpoint loopover i :=
+      match i with
+      | 0   => []
+      | S j => loopover j
+      end ++ ithIndex i.
+
+    Definition indices (a : v memory (array b e ty)) :  list (Indices a)
+      := loopover b.
+
+
+  End ArrayIndexing.
+
+  Arguments Indices [b e ty] _.
+  Arguments indices [b e ty] _.
 
   (** ** Assignment statement.
 
@@ -120,31 +152,17 @@ program block is merely a list of instructions.
 
   Definition block := list instruction.
 
-  Section Looping.
-    Variable bound     : nat.
-    Variable ty        : type direct.
-    Variable e         : endian.
-    Variable A         : v memory (Array bound e ty).
-    Variable loopbody  : arg direct ty -> block.
-    Local Definition ithBlock (i : nat) : block :=
-      match lt_dec i bound with
-      | left pf => loopbody (index A i pf)
-      | _ => []
-      end.
-
-    Local Fixpoint each_loop i :=
-      match i with
-      | 0   => []
-      | S j => each_loop j
-      end ++ ithBlock i.
-
-    Definition foreach : block := each_loop bound.
-  End Looping.
 End Language.
 
+(*
 Arguments foreach [v bound ty e] _ _.
+Arguments foreachIndex [v bound ty e] _ _.
 
 
+Definition foreach v bound ty e A loop := foreachIndex
+Variable loopbody  : arg direct ty -> block.
+
+*)
 (* The body of an iterator over a sequence of blocks of type [ty] *)
 Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
                                                          process  : v memory ty -> block v;
@@ -159,7 +177,7 @@ Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
 Arguments const [v k ty] _ .
-Arguments index [v b e ty] _ _ _.
+Arguments index [v b e ty]  _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
@@ -199,7 +217,10 @@ End ARGInstances.
 
 (* end hide *)
 
-Notation "A [- N -]"     := (index A N _) (at level 69).
+Print sig.
+
+
+Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
 Notation "A ::= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
 
@@ -281,7 +302,7 @@ Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345
 Definition prog : block MyVar.
   body [ X ::= X << 5 ;
          X ::=>> 5;
-         X ::= X [+] (A[-2-]);
+         X ::= X [+] (A[- 2 -]);
          X ::= X [+] Ox "55";
          Z ::= Z [+] vec_const
        ]%list.
@@ -319,7 +340,7 @@ Section PrettyPrintingInstruction.
     match av with
     | var v       => doc v
     | const c     => doc c
-    | index v n _ => doc v <> bracket (decimal n)
+    | index v (exist _ n _) => doc v <> bracket (decimal n)
     end.
 
   Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
