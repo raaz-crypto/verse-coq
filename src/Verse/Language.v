@@ -151,11 +151,11 @@ program block is merely a list of instructions.
   Definition block := list instruction.
 
 
-    Definition foreach {b : nat}(ixs : list {ix | ix < b}) (f : forall ix, ix < b -> block) :  block :=
-      let mapper := fun ix => match ix with
-                              | exist _ i pf => f i pf
-                              end
-      in List.concat (List.map mapper ixs).
+  Definition foreach {b : nat}(ixs : list {ix | ix < b}) (f : forall ix, ix < b -> block) :  block :=
+    let mapper := fun ix => match ix with
+                            | exist _ i pf => f i pf
+                            end
+    in List.concat (List.map mapper ixs).
 
 
 
@@ -164,7 +164,7 @@ End Language.
 
 Arguments Indices [v b e ty] _.
 Arguments indices [v b e ty] _.
-
+Arguments foreach [v b] _ _.
 (*
 Arguments foreach [v bound ty e] _ _.
 Arguments foreachIndex [v bound ty e] _ _.
