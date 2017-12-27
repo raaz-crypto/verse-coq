@@ -119,9 +119,6 @@ arrays or constants.
 
   End ArrayIndexing.
 
-  Arguments Indices [b e ty] _.
-  Arguments indices [b e ty] _.
-
   (** ** Assignment statement.
 
       One of the most important class of statement is the assignment
@@ -153,6 +150,10 @@ program block is merely a list of instructions.
   Definition block := list instruction.
 
 End Language.
+
+
+Arguments Indices [v b e ty] _.
+Arguments indices [v b e ty] _.
 
 (*
 Arguments foreach [v bound ty e] _ _.
