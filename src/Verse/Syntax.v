@@ -20,16 +20,16 @@ objects in verse namely variables, languages, substitutions etc.
 
 (** ** Variable type.
 
-Programs use variables.  The type [varT] captures coq types that can
+Programs use variables.  The type [VariableT] captures coq types that can
 potentially be variables in programs. It takes as parameter the [type]
 of the value that the variable is required to hold.
 
  *)
 
-Definition varT := forall k, type k -> Type.
+Definition VariableT := forall k, type k -> Type.
 
 (** Helper function that recovers the type of the given variable *)
-Definition Var {v : varT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
 
   (** ** Scopes.
 
@@ -41,7 +41,7 @@ Definition Var {v : varT}{k}{t : type k} : v k t -> some type := fun _ => existT
 Section Scoped.
 
 
-  Variable v : varT.
+  Variable v : VariableT.
 
   (**
 
@@ -89,7 +89,7 @@ Arguments fill [v CODE l] _ _.
 
 (* A variable type that us used as a proxy. This variable is *)
 
-Inductive ProxyVar : varT :=
+Inductive ProxyVar : VariableT :=
 | ProxyV : forall k (ty : type k), ProxyVar ty.
 
 Arguments ProxyV [k] _.

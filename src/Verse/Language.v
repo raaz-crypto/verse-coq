@@ -71,7 +71,7 @@ through out.
 
 *)
 
-  Variable v   : varT.
+  Variable v   : VariableT.
 
 
 
@@ -82,7 +82,7 @@ arguments. Variables are one form of arguments, but so does indexed
 arrays or constants.
 
 *)
-  Inductive arg : varT :=
+  Inductive arg : VariableT :=
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
   | const : forall {k} {ty : type k}, constant ty  -> arg k ty
   | index : forall {b : nat}{e : endian}{ty : type direct},
@@ -175,7 +175,7 @@ Variable loopbody  : arg direct ty -> block.
 
 *)
 (* The body of an iterator over a sequence of blocks of type [ty] *)
-Record iterator (ty : type memory)(v : varT) := Record { setup    : block v;
+Record iterator (ty : type memory)(v : VariableT) := Record { setup    : block v;
                                                          process  : v memory ty -> block v;
                                                          finalise : block v
                                                        }.
@@ -210,13 +210,13 @@ variables or constants or indexed arrays.
 
 (* begin hide *)
 
-Class ARG (v : varT)(k : kind)(ty : type k) t  := { toArg : t -> arg v k ty }.
+Class ARG (v : VariableT)(k : kind)(ty : type k) t  := { toArg : t -> arg v k ty }.
 
 (** Instances of this class has been defined for both variables and constants *)
 
 
 Section ARGInstances.
-  Variable v  : varT.
+  Variable v  : VariableT.
   Variable k  : kind.
   Variable ty : type k .
 
@@ -282,7 +282,7 @@ whose constructors are the variables of our program.
 
 *)
 
-Inductive MyVar : varT :=
+Inductive MyVar : VariableT :=
 |  X : MyVar direct Word8
 |  Y : MyVar direct Word64
 |  Z : MyVar direct (Vector128 Word32)
@@ -340,7 +340,7 @@ printing instance.
 Section PrettyPrintingInstruction.
 
   (** The variable type for our instructions *)
-  Variable v : varT.
+  Variable v : VariableT.
 
 
   (** The pretty printing instance for our variable *)

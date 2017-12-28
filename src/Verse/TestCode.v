@@ -4,7 +4,7 @@ Require Import Verse.Arch.C.
 
 Section TestFunction.
 
-  Variable variable : varT.
+  Variable variable : VariableT.
 
   Arguments variable [k] _.
   (* The parameters of the function *)

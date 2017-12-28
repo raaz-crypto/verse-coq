@@ -52,11 +52,11 @@ Record CFrame := { cFunctionName     : string;
                 }.
 
 
-Inductive creg : varT :=
+Inductive creg : VariableT :=
   cr : forall k (ty : type k), string -> creg ty.
 
 Arguments cr [k] _ _.
-Inductive cvar : varT :=
+Inductive cvar : VariableT :=
 | blockPtr       : forall (ty : type memory), cvar ty
 | counter        : cvar Word64
 | inRegister     : forall k (ty : type k), creg ty -> cvar ty

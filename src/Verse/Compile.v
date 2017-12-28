@@ -20,9 +20,9 @@ compiled.
  *)
 
 Inductive CompileError : Prop :=
-| UnsupportedInstruction : forall {v : varT}, instruction v  -> CompileError
+| UnsupportedInstruction : forall {v : VariableT}, instruction v  -> CompileError
 | UnsupportedType        : forall {k : kind}, type k -> CompileError
-| UnavailableRegister    : forall {reg : varT}{k : kind}{ty : type k}, reg k ty -> CompileError.
+| UnavailableRegister    : forall {reg : VariableT}{k : kind}{ty : type k}, reg k ty -> CompileError.
 
 (**
 
@@ -109,7 +109,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
             end.
 
   Section Function.
-    Variable BODY : varT -> Type.
+    Variable BODY : VariableT -> Type.
     Variable startState : F.frameState.
 
     (** Its parameters and stack variables *)

@@ -5,7 +5,7 @@ Require Import Verse.Arch.C.
 Definition iterType := Array 10 hostE Word16.
 Section TestFunction.
 
-  Variable variable : varT.
+  Variable variable : VariableT.
   Arguments variable [k] _.
   (* The parameters of the function *)
   Variable num : variable Word16.

@@ -34,9 +34,9 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The registers for this architecture *)
-  Parameter register : varT.
+  Parameter register : VariableT.
 
-  Parameter machineVar : varT.
+  Parameter machineVar : VariableT.
 
   (** A way to embed register into the machine variable *)
   Parameter embedRegister : forall {k}{ty : type k}, register ty -> machineVar ty.
