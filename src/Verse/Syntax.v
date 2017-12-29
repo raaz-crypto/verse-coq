@@ -15,8 +15,6 @@ objects in verse namely variables, languages, substitutions etc.
  *)
 
 
-
-
 (** ** Variable type.
 
 Programs use variables.  The type [VariableT] captures coq types that can
