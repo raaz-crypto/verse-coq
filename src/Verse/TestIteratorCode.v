@@ -69,12 +69,9 @@ Require Import String.
 Definition regVars := (cr Word16 "temp", (cr Word32 "double", tt)).
 
 Definition code : Doc + {Compile.CompileError}.
-  CompileC.iterator iterType "testFunction".
-     declare parameters.
-     declare locals.
-     declare registers.
-     exact regVars.
-     exact test.
+  CompileC.iterator iterType "testFunction" parameters locals registers.
+  assignRegisters regVars.
+  statements test.
 Defined.
 
 Compute (layout (recover code)).

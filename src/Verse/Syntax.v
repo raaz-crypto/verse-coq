@@ -12,7 +12,6 @@ Set Implicit Arguments.
 In this module, we define coq types that captures various syntactic
 objects in verse namely variables, languages, substitutions etc.
 
-
  *)
 
 
@@ -26,10 +25,16 @@ of the value that the variable is required to hold.
 
  *)
 
-Definition VariableT := forall k, type k -> Type.
+Definition VariableT := forall {k : kind}, type k -> Type.
 
-(** Helper function that recovers the type of the given variable *)
-Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+Print VariableT.
+
+
+  (** A declaration is just a sequence of types *)
+  Definition Declaration := list (some type).
+
+ (** Helper function that recovers the type of the given variable *)
+  Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
 
   (** ** Scopes.
 
@@ -38,10 +43,12 @@ Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => e
   HOAS style scoped code fragments. Firstly, fix the variable type for
   the code fragment *)
 
+
 Section Scoped.
 
 
   Variable v : VariableT.
+
 
   (**
 
@@ -94,7 +101,13 @@ Inductive ProxyVar : VariableT :=
 
 Arguments ProxyV [k] _.
 
-Ltac declare func := apply (func ProxyVar);
-                     repeat match goal with
-                            | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
-                            end.
+Ltac declare ps  :=  match ps with
+                 | [] => exact []
+                 | _  => apply (ps ProxyVar);
+                         repeat match goal with
+                                | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
+                                end
+                 end.
+
+Ltac assignRegisters regs  := exact regs.
+Ltac statements       s     := exact s.

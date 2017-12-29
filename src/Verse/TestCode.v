@@ -22,7 +22,7 @@ Section TestFunction.
   Variable tmp       : variable Word16.
 
   Definition registers := [Var tmp].
-
+  Definition regAssignment := (cr Word16 "temp", tt).
   Definition testFunction : list (instruction variable).
     body
     [ num ::= tmp [+] Ox "abcd";
@@ -59,15 +59,12 @@ Section TestFunction.
 
 End TestFunction.
 
-Definition regVars := (cr Word16 "temp", tt).
 
 Definition code : Doc + {Compile.CompileError}.
-  CompileC.function "testFunction".
-     declare parameters.
-     declare locals.
-     declare registers.
-     exact regVars.
-     exact testFunction.
+
+  CompileC.function "testFunction" parameters locals registers.
+    assignRegisters regAssignment.
+    statements testFunction.
 Defined.
 
 Compute (recover (layout <$> code)).
