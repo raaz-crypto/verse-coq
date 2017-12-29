@@ -30,11 +30,12 @@ Definition VariableT := forall {k : kind}, type k -> Type.
 Print VariableT.
 
 
-  (** A declaration is just a sequence of types *)
-  Definition Declaration := list (some type).
+(** A declaration is just a sequence of types *)
+Definition Declaration              := list (some type).
+Definition Empty  : Declaration     := [].
 
- (** Helper function that recovers the type of the given variable *)
-  Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+(** Helper function that recovers the type of the given variable *)
+Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
 
   (** ** Scopes.
 
