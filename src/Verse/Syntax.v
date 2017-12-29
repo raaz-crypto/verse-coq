@@ -101,13 +101,13 @@ Inductive ProxyVar : VariableT :=
 
 Arguments ProxyV [k] _.
 
-Ltac declare ps  :=  match ps with
-                 | [] => exact []
-                 | _  => apply (ps ProxyVar);
-                         repeat match goal with
-                                | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
-                                end
-                 end.
+Ltac declare ps  := match (type of ps) with
+                    | VariableT -> _ => apply (ps ProxyVar);
+                                repeat match goal with
+                                       | [ |- @ProxyVar ?K ?T] => exact (@ProxyV K T)
+                                       end
+                    | _ => exact []
+                    end.
 
 Ltac assignRegisters regs  := exact regs.
 Ltac statements       s     := exact s.
