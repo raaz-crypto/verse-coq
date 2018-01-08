@@ -96,11 +96,15 @@ Module C <: ARCH.
 
   Definition machineVar := cvar.
 
+  Definition HostEndian := bigE.
+  
   Definition Word := Word64.
 
   Definition embedRegister := inRegister.
 
-  Definition supportedInst := Full_set (instruction machineVar).
+  Definition supportedInst := Language.supportedInst machineVar littleE.
+
+  Definition instCheck := Language.instCheck machineVar littleE.
 
   Inductive typesSupported : forall k, Ensemble (type k) :=
   | uint8           : typesSupported Word8
@@ -196,7 +200,7 @@ Module CCodeGen <: CODEGEN C.
   Import C.
 
   Definition emit (i : instruction (machineVar)) : Doc + { not (supportedInst i) } :=
-    {- doc i <> text ";" -}.
+    _ <- when instCheck i; {- doc i <> text ";" -}.
 
   Definition sequenceInstructions ds := line <> vcat ds.
 
