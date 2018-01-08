@@ -53,6 +53,8 @@ Inductive op    : arity -> Type :=
 | rotR    : nat -> op unary
 | shiftL  : nat -> op unary
 | shiftR  : nat -> op unary
+| mov     : op unary
+| nop     : op unary
 .
 
 Definition binop := op binary.
@@ -228,9 +230,6 @@ End ARGInstances.
 
 (* end hide *)
 
-Print sig.
-
-
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
 Notation "A ::= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
@@ -262,6 +261,8 @@ Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70
 Notation "A ::=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
 Notation "A ::=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
+Notation "A ::== B"      := (assign (assign2 nop (toArg A) (toArg B))) (at level 70).
+Notation "A <== B"       := (assign (assign2 mov (toArg A) (toArg B))) (at level 70).
 
 (**
 
@@ -372,6 +373,8 @@ Section PrettyPrintingInstruction.
     | rotR _   => text ">*>"
     | shiftL _ => text "<<"
     | shiftR _ => text ">>"
+    | mov      => text ""
+    | nop      => text ""
     end.
 
   Local Definition EQUALS := text "=".
@@ -397,15 +400,15 @@ Section PrettyPrintingInstruction.
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
                               | @assign2 _ ty u x y   =>
                                 match u with
-                                | bitComp             => mkAssign u (doc x) empty (doc y)
-                                | shiftL n | shiftR n => mkAssign u (doc x) (doc y) (decimal n)
-                                | rotL n   | rotR n   => mkRot ty u (doc x)(doc y)
+                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc y)
+                                | shiftL n | shiftR n  => mkAssign u (doc x) (doc y) (decimal n)
+                                | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
                                 end
                               | @update1 _ ty u x      =>
                                 match u with
-                                | bitComp             => mkAssign u (doc x) empty (doc x)
-                                | shiftL n | shiftR n => mkUpdate u (doc x) (decimal n)
-                                | rotL n   | rotR n   => mkRot ty u (doc x) (doc x)
+                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc x)
+                                | shiftL n | shiftR n  => mkUpdate u (doc x) (decimal n)
+                                | rotL n   | rotR n    => mkRot ty u (doc x) (doc x)
                                 end
                               end
        }.
