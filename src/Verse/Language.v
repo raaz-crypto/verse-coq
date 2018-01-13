@@ -271,7 +271,7 @@ dispose off all such obligations.
 
 *)
 
-Tactic Notation "body" uconstr(B) := (refine B; omega).
+Tactic Notation "body" uconstr(B) := (refine B; try omega).
 
 
 
