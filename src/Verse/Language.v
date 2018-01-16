@@ -164,32 +164,26 @@ program block is merely a list of instructions.
                   end
     end.
 
-  
+
   Let isEndian {k} {ty} (nHostE : endian) (a : arg k ty) :=
     let eqEndb (e f : endian) : bool :=
-        match e with
-        | littleE => match f with
-                    | littleE => true
-                    | _       => false
-                    end
-        | bigE   => match f with
-                    | bigE    => true
-                    | _       => false
-                    end
-        | hostE  => match f with
-                    | hostE   => true
-                    | _       => false
-                    end
+        match e, f with
+        | littleE, littleE
+        | bigE, bigE
+        | hostE, hostE     => true
+        | _, _             => false
         end
     in
     match a  with
     | @index _ ne _ _ _ => eqEndb ne nHostE
-    | _         => false
+    | _                 => false
     end.
   
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
     | assign e  => match e with
+                   | assign2 _ mov _ _
+                   | assign2 _ nop _ _    => false
                    | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
                    | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
