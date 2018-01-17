@@ -169,8 +169,7 @@ program block is merely a list of instructions.
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
-        | bigE, bigE
-        | hostE, hostE     => true
+        | bigE, bigE       => true
         | _, _             => false
         end
     in
@@ -178,7 +177,10 @@ program block is merely a list of instructions.
     | @index _ ne _ _ _ => eqEndb ne nHostE
     | _                 => false
     end.
-  
+
+  (** Function to check if a non-mov/store instruction uses arrays of offending endianness.
+      Passing hostE as parameter allows all arrays. **)
+
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
     | assign e  => match e with
