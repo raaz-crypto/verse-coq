@@ -77,6 +77,14 @@ Module Base16.
       | EmptyString => inleft sofar
       end.
 
+    Fixpoint trim_separators (s : string) : string:=
+      match s with
+      | EmptyString => EmptyString
+      | String c sp => match c with
+                       | " " | "_" | ":" | "-" => trim_separators sp
+                       | _                     => String c (trim_separators sp)
+                       end
+      end.
 
     Definition hexToZ (n : nat)(s : string) : t n + {EncodeError}
       := match Nat.compare n (4 * String.length s) with
@@ -122,7 +130,8 @@ represented as [Ox "aabb"].
 
 *)
 
-Definition Ox s := recover (Base16.hexToZ (4 * String.length s) s).
+Definition Ox s := let t := Base16.trim_separators s
+                   in recover (Base16.hexToZ (4 * String.length t) t).
 
 (**
 
