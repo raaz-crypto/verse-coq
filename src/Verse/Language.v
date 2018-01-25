@@ -417,7 +417,7 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
     := { doc := argdoc ty }.
 
-  Local Definition opDoc {a : arity}(o : op a) :=
+  Definition opDoc {a : arity}(o : op a) :=
     match o with
     | plus     => text "+"
     | minus    => text "-"
@@ -436,9 +436,9 @@ Section PrettyPrintingInstruction.
     | nop      => text ""
     end.
 
-  Local Definition EQUALS := text "=".
-  Local Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
-  Local Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
+  Definition EQUALS := text "=".
+  Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
     let rotSuffix := match ty with
                      | word w     => decimal (2 ^ (w + 3))%nat
                      | multiword v w => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
@@ -450,7 +450,7 @@ Section PrettyPrintingInstruction.
     | _      => text "BadOp"
     end.
 
-  Local Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
 
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
