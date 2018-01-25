@@ -12,7 +12,7 @@ Section TestFunction.
   Definition parameters := [Var num].
 
   (* The local variables *)
-  Variable arr      : variable (Array 3 hostE Word16).
+  Variable arr      : variable (Array 3 littleE Word16).
 
   Definition locals := [Var arr].
   (* The temp register *)

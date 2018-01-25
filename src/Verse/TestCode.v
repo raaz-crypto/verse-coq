@@ -8,7 +8,7 @@ Section TestFunction.
 
   Arguments variable [k] _.
   (* The parameters of the function *)
-  Variable arr     : variable (array 5 hostE Word16).
+  Variable arr     : variable (array 5 bigE Word16).
   Variable A B     : variable Byte.
 
   Definition parameters := [Var arr; Var A; Var B].

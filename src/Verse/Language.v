@@ -2,6 +2,7 @@ Require Import Verse.Types.Internal.
 Require Import Verse.Types.
 Require Import Verse.Syntax.
 
+Require Import Bool.
 Require Import Omega.
 Require Vector.
 Require Import List.
@@ -12,6 +13,7 @@ Require Import Basics.
 Require Import Arith.
 Import Nat.
 Import ListNotations.
+
 (** * The Verse language as an inductive data type.
 
 This module exposes the abstract syntax of the verse programming
@@ -53,6 +55,8 @@ Inductive op    : arity -> Type :=
 | rotR    : nat -> op unary
 | shiftL  : nat -> op unary
 | shiftR  : nat -> op unary
+| mov     : op unary
+| nop     : op unary
 .
 
 Definition binop := op binary.
@@ -148,6 +152,63 @@ program block is merely a list of instructions.
   | assign : assignment -> instruction
   .
 
+  Definition argErr i :=
+    match i with
+    | assign e => match e with
+                  | assign3 _ _ (const _) _ _ 
+                  | assign2 _ _ (const _) _   
+                  | update2 _ _ (const _) _   
+                  | update1 _ _ (const _)
+                  | assign2 _ mov (var _) _   => true
+                  | _                         => false
+                  end
+    end.
+
+
+  Let isEndian {k} {ty} (nHostE : endian) (a : arg k ty) :=
+    let eqEndb (e f : endian) : bool :=
+        match e, f with
+        | littleE, littleE
+        | bigE, bigE       => true
+        | _, _             => false
+        end
+    in
+    match a  with
+    | @index _ ne _ _ _ => eqEndb ne nHostE
+    | _                 => false
+    end.
+
+  (** Function to check if a non-mov/store instruction uses arrays of offending endianness.
+      Passing hostE as parameter allows all arrays. **)
+
+  Definition endianError (nHostE : endian) (i : instruction) :=
+    match i with
+    | assign e  => match e with
+                   | assign2 _ mov _ _
+                   | assign2 _ nop _ _    => false
+                   | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+                   | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update1 _ _ a1       => (isEndian nHostE a1)
+                   end
+    end
+  .
+  
+  Definition supportedInst (nhostE : endian) := fun i =>
+                                                  (argErr i = false
+                                                   /\
+                                                   endianError nhostE i = false).
+
+  Definition instCheck e i : {supportedInst e i} + {~ supportedInst e i}.
+    unfold supportedInst.
+    assert (lval_dec := bool_dec (argErr i) false).
+    assert (endian_dec := bool_dec (endianError e i) false).
+    destruct lval_dec.
+    destruct endian_dec.
+    all: solve
+           [constructor 1; repeat (constructor; trivial) | constructor 2; unfold not; intros; destruct H; contradiction].
+  Defined.
+
   Definition block := list instruction.
 
 
@@ -228,9 +289,6 @@ End ARGInstances.
 
 (* end hide *)
 
-Print sig.
-
-
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
 Notation "A ::= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
@@ -262,6 +320,8 @@ Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70
 Notation "A ::=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
 Notation "A ::=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
+Notation "A ::== B"      := (assign (assign2 nop (toArg A) (toArg B))) (at level 70).
+Notation "A <== B"       := (assign (assign2 mov (toArg A) (toArg B))) (at level 70).
 
 (**
 
@@ -357,7 +417,7 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
     := { doc := argdoc ty }.
 
-  Local Definition opDoc {a : arity}(o : op a) :=
+  Definition opDoc {a : arity}(o : op a) :=
     match o with
     | plus     => text "+"
     | minus    => text "-"
@@ -372,11 +432,13 @@ Section PrettyPrintingInstruction.
     | rotR _   => text ">*>"
     | shiftL _ => text "<<"
     | shiftR _ => text ">>"
+    | mov      => text ""
+    | nop      => text ""
     end.
 
-  Local Definition EQUALS := text "=".
-  Local Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
-  Local Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
+  Definition EQUALS := text "=".
+  Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
     let rotSuffix := match ty with
                      | word w     => decimal (2 ^ (w + 3))%nat
                      | multiword v w => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
@@ -388,7 +450,7 @@ Section PrettyPrintingInstruction.
     | _      => text "BadOp"
     end.
 
-  Local Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
 
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
@@ -397,15 +459,15 @@ Section PrettyPrintingInstruction.
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
                               | @assign2 _ ty u x y   =>
                                 match u with
-                                | bitComp             => mkAssign u (doc x) empty (doc y)
-                                | shiftL n | shiftR n => mkAssign u (doc x) (doc y) (decimal n)
-                                | rotL n   | rotR n   => mkRot ty u (doc x)(doc y)
+                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc y)
+                                | shiftL n | shiftR n  => mkAssign u (doc x) (doc y) (decimal n)
+                                | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
                                 end
                               | @update1 _ ty u x      =>
                                 match u with
-                                | bitComp             => mkAssign u (doc x) empty (doc x)
-                                | shiftL n | shiftR n => mkUpdate u (doc x) (decimal n)
-                                | rotL n   | rotR n   => mkRot ty u (doc x) (doc x)
+                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc x)
+                                | shiftL n | shiftR n  => mkUpdate u (doc x) (decimal n)
+                                | rotL n   | rotR n    => mkRot ty u (doc x) (doc x)
                                 end
                               end
        }.

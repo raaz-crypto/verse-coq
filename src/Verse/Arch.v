@@ -43,6 +43,7 @@ Module Type ARCH.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
+  Parameter HostEndian    : endian.
   Parameter Word          : type direct.
 
   Parameter supportedInst : Ensemble (instruction machineVar).
