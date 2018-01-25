@@ -176,3 +176,6 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                               [> declare p |  declare l | declare r | idtac | idtac ].
 
 End Compiler.
+
+
+Definition program {Err}(c : Doc + {Err}) := recover (layout <$> c).
