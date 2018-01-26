@@ -93,36 +93,6 @@ arrays or constants.
      v memory (array b e ty) -> {i : nat | i < b} -> arg direct ty.
 
 
-  Section ArrayIndexing.
-
-    Variable b : nat.
-    Variable e : endian.
-    Variable ty : type direct.
-    (** Type that captures a memory variables indices. *)
-
-    Definition Indices (_ : v memory (array b e ty)) : Set
-      := { i : nat | i < b }.
-
-
-    Local Definition ithIndex i : list { i | i < b} :=
-      match lt_dec i b with
-      | left pf => [exist _ i pf]
-      | right _ => []
-      end.
-
-
-    Local Fixpoint loopover i :=
-      match i with
-      | 0   => []
-      | S j => loopover j
-      end ++ ithIndex i.
-
-    Definition indices (a : v memory (array b e ty)) :  list (Indices a)
-      := loopover b.
-
-    Definition indices_reversed a := List.rev (indices a).
-
-  End ArrayIndexing.
 
   (** ** Assignment statement.
 
@@ -152,6 +122,11 @@ program block is merely a list of instructions.
   | assign : assignment -> instruction
   .
 
+  Definition block := list instruction.
+
+  (* begin hide *)
+
+  (* Some instruction error checking code *)
   Definition argErr i :=
     match i with
     | assign e => match e with
@@ -209,26 +184,22 @@ program block is merely a list of instructions.
            [constructor 1; repeat (constructor; trivial) | constructor 2; unfold not; intros; destruct H; contradiction].
   Defined.
 
-  Definition block := list instruction.
-
-
-  Definition foreach {b : nat}(ixs : list {ix | ix < b}) (f : forall ix, ix < b -> block) :  block :=
-    let mapper := fun ix => match ix with
-                            | exist _ i pf => f i pf
-                            end
-    in List.concat (List.map mapper ixs).
+  (* end hide *)
 
 
 
 End Language.
 
 
-Arguments Indices [v b e ty] _.
-Arguments indices [v b e ty] _.
-Arguments foreach [v b] _ _.
 
+(**
 
-(* The body of an iterator over a sequence of blocks of type [ty] *)
+Many cryptographic primitives work on streams of data that are divided
+into chunks of fixed size. The record [iterator] is essentially the
+body of the an iterator that works with such a stream of blocks of
+type [ty].
+
+*)
 Record iterator (ty : type memory)(v : VariableT)
   := Record { setup    : block v;
               process  : v memory ty -> block v;
@@ -252,7 +223,91 @@ Arguments assign [v] _ .
 
 (* end hide *)
 
-(** ** Notation.
+
+(** ** Helper functions.
+
+When working with verse we often need to write repetitive coding
+patterns. This section documents some helper functions to facilitate
+refactoring such code. Once can think of such helpers as "assembler
+macros" and one of the advantage of using a DSL is that such "macros"
+can be implemented in the host language; coq in this case.
+
+Firstly, we build some functions to take care of array indexing.
+
+
+ *)
+
+Section ArrayIndexing.
+
+  Variable v   : VariableT.
+  Variable b : nat.
+  Variable e : endian.
+  Variable ty : type direct.
+
+  (** Type that captures a memory variables indices. *)
+
+  Definition Indices (_ : v memory (array b e ty)) : Set
+    := { i : nat | i < b }.
+
+
+  (* begin hide *)
+  Local Definition ithIndex i : list { i | i < b} :=
+    match lt_dec i b with
+    | left pf => [exist _ i pf]
+    | right _ => []
+    end.
+
+
+  Local Fixpoint loopover i :=
+    match i with
+    | 0   => []
+    | S j => loopover j
+    end ++ ithIndex i.
+
+  (* end hide *)
+
+  (**
+      This function returns the list of valid indices of an array
+      variable. The indices are given starting from [0] to [b -
+      1]. Mostly used in conjunction with [foreach]
+
+  *)
+  Definition indices (a : v memory (array b e ty)) :  list (Indices a)
+    := loopover b.
+
+  (** This function is similar to indices but gives the indices in the
+      reverse order.  *)
+  Definition indices_reversed a := List.rev (indices a).
+
+
+  (**
+      This function allows mapping over all the input indices.
+
+      <<
+      foreach (indices A) statementsToTransformIthValue
+
+      >>
+
+   *)
+
+  Definition foreach (ixs : list {ix | ix < b})
+             (f : forall ix, ix < b -> block v)
+    := let mapper := fun ix => match ix with
+                               | exist _ i pf => f i pf
+                               end
+       in List.concat (List.map mapper ixs).
+
+End ArrayIndexing.
+
+(* begin hide *)
+Arguments Indices [v b e ty] _.
+Arguments indices [v b e ty] _.
+Arguments foreach [v b] _ _.
+
+(* end hide *)
+
+(** * Notation and Pretty printing.
+
 
 A user is expected to define a program by giving a list of
 [instruction]s. Expressing instructions directly using the
@@ -261,7 +316,14 @@ expose some convenient notations for simplifying this task. Note that
 in the notations below, the operands of the instruction can either be
 variables or constants or indexed arrays.
 
- *)
+It is convenient to have a pretty printed syntax for instructions in
+verse. We give a C-like pretty printing for verse instructions defined
+over variables that can themselves be pretty printed.
+
+*)
+
+
+
 
 (* begin hide *)
 
@@ -282,6 +344,8 @@ Section ARGInstances.
 End ARGInstances.
 
 (* end hide *)
+
+
 
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
@@ -327,70 +391,8 @@ dispose off all such obligations.
 
 Tactic Notation "body" uconstr(B) := (refine B; try omega).
 
-
-
-(** *** Illustrative example of the notation.
-
-To demonstrate the use of this notation, we first an inductive type
-whose constructors are the variables of our program.
-
-*)
-
-Inductive MyVar : VariableT :=
-|  X : MyVar direct Word8
-|  Y : MyVar direct Word64
-|  Z : MyVar direct (Vector128 Word32)
-|  A : MyVar memory (array 42 bigE Word8)
-.
-
-
-(**
-
-For illustration consider the following (nonsensical) program
-fragment.  Notice that we can directly use the variables (as in [X],
-[Y], Z) or constants (the [Ox "..."] are appropriate constants) as
-operands of the programming fragment.
-
-
- *)
-
-
-
-
-
-Require Vector.
-Import  Vector.VectorNotations.
-Require Import Verse.Word.
-
-Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
-
-Definition prog : block MyVar.
-  body [ X ::= X << 5 ;
-         X ::=>> 5;
-         X ::= X [+] (A[- 2 -]);
-         X ::= X [+] Ox "55";
-         Z ::= Z [+] vec_const
-       ]%list.
-Defined.
-
-
-
-
-Require Import Verse.PrettyPrint.
-
-(** ** Pretty printing of verse instructions.
-
-It is convenient to have a pretty printed syntax for instructions in
-verse. Since instructions are parameterised by variables, we give a
-C-like pretty printing for verse instructions defined over variables
-that can themselves be pretty printed. We start by defining a section
-for this where we parameterise over teh variable type and its pretty
-printing instance.
-
-
-*)
-
 (* begin hide *)
+Require Import Verse.PrettyPrint.
 Section PrettyPrintingInstruction.
 
   (** The variable type for our instructions *)
@@ -477,6 +479,20 @@ End PrettyPrintingInstruction.
 (* end hide *)
 
 
+(** *** Illustrative example of the notation.
+
+To demonstrate the use of this notation and its pretty printed form,
+we first define an inductive type whose constructors are the variables
+of our program.
+
+*)
+
+Inductive MyVar : VariableT :=
+|  X : MyVar direct Word8
+|  Y : MyVar direct Word64
+|  Z : MyVar direct (Vector128 Word32)
+|  A : MyVar memory (array 42 bigE Word8)
+.
 
 
 
@@ -486,6 +502,7 @@ To get the above program frgment pretty printed all we need is pretty
 print instance for the variable type [MyVar].
 
 *)
+
 
 Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
   { doc := fun v => text ( match v with
@@ -498,8 +515,38 @@ Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
   }.
 
 
+
+Require Vector.
+Import  Vector.VectorNotations.
+Require Import Verse.Word.
+
+
+(**
+
+For illustration consider the following (nonsensical) program
+fragment.  Notice that we can directly use the variables (as in [X],
+[Y], Z) or constants (the [Ox "..."] are appropriate constants) as
+operands of the programming fragment.
+
+
+ *)
+
+
+Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
+
+Definition prog : block MyVar.
+  body [ X ::= X << 5 ;
+         X ::=>> 5;
+         X ::= X [+] (A[- 2 -]);
+         X ::= X [+] Ox "55";
+         Z ::= Z [+] vec_const
+       ]%list.
+Defined.
+
+
 (** The above program fragment is pretty printable because the
 underlying variable type ([MyVar] in this case), is pretty printable
  *)
+
 
 Compute layout (doc prog).
