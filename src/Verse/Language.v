@@ -155,9 +155,9 @@ program block is merely a list of instructions.
   Definition argErr i :=
     match i with
     | assign e => match e with
-                  | assign3 _ _ (const _) _ _ 
-                  | assign2 _ _ (const _) _   
-                  | update2 _ _ (const _) _   
+                  | assign3 _ _ (const _) _ _
+                  | assign2 _ _ (const _) _
+                  | update2 _ _ (const _) _
                   | update1 _ _ (const _)
                   | assign2 _ mov (var _) _   => true
                   | _                         => false
@@ -193,7 +193,7 @@ program block is merely a list of instructions.
                    end
     end
   .
-  
+
   Definition supportedInst (nhostE : endian) := fun i =>
                                                   (argErr i = false
                                                    /\
@@ -226,15 +226,8 @@ End Language.
 Arguments Indices [v b e ty] _.
 Arguments indices [v b e ty] _.
 Arguments foreach [v b] _ _.
-(*
-Arguments foreach [v bound ty e] _ _.
-Arguments foreachIndex [v bound ty e] _ _.
 
 
-Definition foreach v bound ty e A loop := foreachIndex
-Variable loopbody  : arg direct ty -> block.
-
-*)
 (* The body of an iterator over a sequence of blocks of type [ty] *)
 Record iterator (ty : type memory)(v : VariableT) := Record { setup    : block v;
                                                          process  : v memory ty -> block v;
