@@ -232,10 +232,24 @@ refactoring such code. Once can think of such helpers as "assembler
 macros" and one of the advantage of using a DSL is that such "macros"
 can be implemented in the host language; coq in this case.
 
-Firstly, we build some functions to take care of array indexing.
-
-
  *)
+
+(** *** Array indexing
+
+The first set of helper functions gives convenient ways to work with
+array indices. One of the most important operations is to perform
+certain tasks for each element of the array. The [foreach] function
+can be used for this. The first argument of the [foreach] function is
+the list of indices of the array and its second argument is a function
+that takes an index and generates some instructions.  Let [A] be an
+array variable, then the function [indices A] gives such a list in
+increasing order starting from 0.  One can think of the [foreach
+(indices A) doSomethingWithIndex] as an unrolled loop that does some
+computation on every index of A. If one wants to perform such a loop
+in the reverse order on can use the function [indices_reversed]
+instead of [indices].
+
+*)
 
 Section ArrayIndexing.
 
@@ -246,9 +260,7 @@ Section ArrayIndexing.
 
   (** Type that captures a memory variables indices. *)
 
-  Definition Indices (_ : v memory (array b e ty)) : Set
-    := { i : nat | i < b }.
-
+  Definition Indices (_ : v memory (array b e ty)) := { i : nat | i < b }.
 
   (* begin hide *)
   Local Definition ithIndex i : list { i | i < b} :=
