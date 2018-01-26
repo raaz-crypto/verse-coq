@@ -229,10 +229,11 @@ Arguments foreach [v b] _ _.
 
 
 (* The body of an iterator over a sequence of blocks of type [ty] *)
-Record iterator (ty : type memory)(v : VariableT) := Record { setup    : block v;
-                                                         process  : v memory ty -> block v;
-                                                         finalise : block v
-                                                       }.
+Record iterator (ty : type memory)(v : VariableT)
+  := Record { setup    : block v;
+              process  : v memory ty -> block v;
+              finalise : block v
+            }.
 
 
 (* begin hide *)
