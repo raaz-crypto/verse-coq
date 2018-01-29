@@ -108,5 +108,6 @@ Ltac declare ps  := match (type of ps) with
                     | _ => exact []
                     end.
 
+Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
 Ltac assignRegisters regs  := exact regs.
 Ltac statements       s     := exact s.
