@@ -40,6 +40,9 @@ Fixpoint layout (d : Doc) : string :=
   | NilDoc    => ""
   end.
 
+Definition tryLayout {E : Prop}(d : Doc + {E}) := recover (layout <$> d).
+Arguments  tryLayout [E] _.
+
 Fixpoint append (a b : Doc) : Doc :=
   match a with
   | Text s dp => Text s (append dp b)
