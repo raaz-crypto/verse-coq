@@ -74,4 +74,4 @@ Definition code : Doc + {Compile.CompileError}.
   statements test.
 Defined.
 
-Compute (layout (recover code)).
+Compute (tryLayout code).
