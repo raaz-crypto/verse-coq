@@ -22,7 +22,7 @@ Section TestFunction.
   Variable tmp       : variable Word16.
 
   Definition registers := [Var tmp].
-  Definition regAssignment := (cr Word16 "temp", tt).
+  Definition regAssignment := (- cr Word16 "temp" -).
   Definition testFunction : list (instruction variable).
     body
     [ num ::= tmp [+] Ox "abcd";
