@@ -358,4 +358,4 @@ Module CCodeGen <: CODEGEN C.
 
 End CCodeGen.
 
-Module CompileC := Compiler C CFrame CCodeGen.
+Module Compile := Compiler C CFrame CCodeGen.
