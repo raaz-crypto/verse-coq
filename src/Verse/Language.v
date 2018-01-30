@@ -402,7 +402,7 @@ dispose off all such obligations.
 *)
 
 
-Tactic Notation "body" uconstr(B) := (refine B; repeat match goal with
+Tactic Notation "verse" uconstr(B) := (refine B; repeat match goal with
                                                        | [ |- _ mod _ < _ ] => apply NPeano.Nat.mod_upper_bound
                                                        | _                  => omega
                                                        end
@@ -552,7 +552,7 @@ operands of the programming fragment.
 Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
 
 Definition prog : block MyVar.
-  body [ X ::= X << 5 ;
+  verse [ X ::= X << 5 ;
          X ::=>> 5;
          X ::= X [+] (A[- 2 -]);
          X ::= X [+] Ox "55";

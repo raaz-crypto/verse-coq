@@ -22,7 +22,7 @@ Section TestFunction.
   Definition registers := [Var tmp; Var double].
 
   Definition test : iterator iterType variable.
-    body
+    verse
       {|
         (* Try out all operators *)
         setup   := [
