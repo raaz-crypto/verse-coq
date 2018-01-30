@@ -401,7 +401,12 @@ dispose off all such obligations.
 
 *)
 
-Tactic Notation "body" uconstr(B) := (refine B; try omega).
+
+Tactic Notation "body" uconstr(B) := (refine B; repeat match goal with
+                                                       | [ |- _ mod _ < _ ] => apply NPeano.Nat.mod_upper_bound
+                                                       | _                  => omega
+                                                       end
+                                     ).
 
 (* begin hide *)
 Require Import Verse.PrettyPrint.
