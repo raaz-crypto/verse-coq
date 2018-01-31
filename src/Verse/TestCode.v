@@ -67,7 +67,7 @@ End TestFunction.
 
 Definition code : Doc + {Compile.CompileError}.
 
-  CompileC.function "testFunction" parameters locals registers.
+  Compile.function "testFunction" parameters locals registers.
     assignRegisters regAssignment.
     statements testFunction.
 Defined.
