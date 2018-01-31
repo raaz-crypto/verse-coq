@@ -504,12 +504,13 @@ of our program.
 
 *)
 
-Inductive MyVar : VariableT :=
-|  X : MyVar direct Word8
-|  Y : MyVar direct Word64
-|  Z : MyVar direct (Vector128 Word32)
-|  A : MyVar memory (array 42 bigE Word8)
-.
+Module Demo.
+  Inductive MyVar : VariableT :=
+  |  X : MyVar direct Word8
+  |  Y : MyVar direct Word64
+  |  Z : MyVar direct (Vector128 Word32)
+  |  A : MyVar memory (array 42 bigE Word8)
+  .
 
 
 
@@ -530,15 +531,12 @@ Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
                            end
                          )
   }.
+  Import Vector.
+  Import Vector.VectorNotations.
+  Import Verse.Word.
 
 
-
-Require Vector.
-Import  Vector.VectorNotations.
-Require Import Verse.Word.
-
-
-(**
+  (**
 
 For illustration consider the following (nonsensical) program
 fragment.  Notice that we can directly use the variables (as in [X],
@@ -546,24 +544,25 @@ fragment.  Notice that we can directly use the variables (as in [X],
 operands of the programming fragment.
 
 
- *)
+   *)
 
 
-Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
+  Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
 
-Definition prog : block MyVar.
-  verse [ X ::= X << 5 ;
-         X ::=>> 5;
-         X ::= X [+] (A[- 2 -]);
-         X ::= X [+] Ox "55";
-         Z ::= Z [+] vec_const
-       ]%list.
-Defined.
-
-
-(** The above program fragment is pretty printable because the
-underlying variable type ([MyVar] in this case), is pretty printable
- *)
+  Definition prog : block MyVar.
+    verse [ X ::= X << 5 ;
+            X ::=>> 5;
+            X ::= X [+] (A[- 2 -]);
+            X ::= X [+] Ox "55";
+            Z ::= Z [+] vec_const
+          ]%list.
+  Defined.
 
 
-Compute layout (doc prog).
+  (** The above program fragment is pretty printable because the
+      underlying variable type ([MyVar] in this case), is pretty printable
+*)
+
+
+  Compute layout (doc prog).
+End Demo.
