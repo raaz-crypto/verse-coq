@@ -8,7 +8,7 @@ Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
-Open Scope Z_scope.
+Local Open Scope Z_scope.
 (* end hide *)
 
 (** * Words.
