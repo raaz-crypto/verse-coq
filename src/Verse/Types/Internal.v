@@ -64,7 +64,7 @@ Require Import BinInt.
 
 
 
-Fixpoint numBinaryDenote {k} (f : Z -> Z -> Z) (t : type k)
+Fixpoint numBinaryDenote {k} (f : N -> N -> N) (t : type k)
   : typeDenote t -> typeDenote t -> typeDenote t :=
   match t as t0 return typeDenote t0 -> typeDenote t0 -> typeDenote t0 with
   | word _        => numBinOp f
@@ -74,7 +74,7 @@ Fixpoint numBinaryDenote {k} (f : Z -> Z -> Z) (t : type k)
 
 
 
-Fixpoint numUnaryDenote {k}(f : Z -> Z)(t : type k)
+Fixpoint numUnaryDenote {k}(f : N -> N)(t : type k)
   : typeDenote t -> typeDenote t :=
   match t as t0 return typeDenote t0 -> typeDenote t0 with
   | word      _   => numUnaryOp f

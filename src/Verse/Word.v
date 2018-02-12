@@ -2,13 +2,13 @@
 Require Import Bvector.
 Require Import Verse.Error.
 Require Import Vector.
-Require Import Coq.ZArith.Zdigits.
+Require Import Coq.NArith.Ndigits.
 Require Import BinNums.
 Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
-Local Open Scope Z_scope.
+Local Open Scope N_scope.
 (* end hide *)
 
 (** * Words.
@@ -20,27 +20,25 @@ the meanings of
 
 
 
-
 Inductive t (n : nat) : Type :=
 | bits : Bvector n -> t n.
 
 Arguments bits [n] _.
 
-Arguments nil [A].
-
-(** Words meansured in units of bytes *)
+(** Words measured in units of bytes *)
 Definition bytes n := t (8 * n).
 
+
+(* Errors while encoding *)
+Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.
+
 (* begin hide *)
-Definition toZ {n}(x : t n) :=
+Definition toN {n}(x : t n) :=
   match x with
-  | bits bv => binary_value n bv
+  | bits bv => Bv2N n bv
   end.
 
 Open Scope string_scope.
-
-(* Encodings of constants *)
-Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.
 
 Module Base16.
 
@@ -49,7 +47,7 @@ Module Base16.
   Open Scope char_scope.
 
 
-    Definition hexDigit (c : ascii) : Z + {EncodeError}:=
+    Definition hexDigit (c : ascii) : N + {EncodeError}:=
     (match c with
      | "0" => inleft 0
      | "1" => inleft 1
@@ -68,12 +66,12 @@ Module Base16.
      | "e" | "E" => inleft 14
      | "f" | "F" => inleft 15
      | _ => inright BadBase16
-     end)%Z.
+     end)%N.
 
-    Fixpoint hexToZP (sofar : Z) (s : string) :=
-      let update := (fun x => sofar * 16 + x)%Z in
+    Fixpoint hexToNP (sofar : N) (s : string) :=
+      let update := (fun x => sofar * 16 + x)%N in
       match s with
-      | String c sp => x <- update <$> hexDigit c ;  hexToZP x sp
+      | String c sp => x <- update <$> hexDigit c ;  hexToNP x sp
       | EmptyString => inleft sofar
       end.
 
@@ -86,76 +84,79 @@ Module Base16.
                        end
       end.
 
-    Definition hexToZ (n : nat)(s : string) : t n + {EncodeError}
+    Definition hexToN (n : nat)(s : string) : t n + {EncodeError}
       := match Nat.compare n (4 * String.length s) with
-         | Eq => @bits n <$> (Z_to_binary n <$> hexToZP (0%Z) s)
+         | Eq => @bits n <$> (N2Bv_gen n <$> hexToNP (0%N) s)
          | Lt => inright TooManyDigits
          | Gt => inright TooFewDigits
          end.
 
-    Definition lastHexDigit z :=
-      match binary_value 4 (Z_to_binary 4 z) with
-      | 0 => "0"
-      | 1 => "1"
-      | 2 => "2"
-      | 3 => "3"
-      | 4 => "4"
-      | 5 => "5"
-      | 6 => "6"
-      | 7 => "7"
-      | 8 => "8"
-      | 9 => "9"
-      | 10 => "a"
-      | 11 => "b"
-      | 12 => "c"
-      | 13 => "d"
-      | 14 => "e"
-      | 15 => "f"
-      | _  => "-"
+    Definition lastHexDigit a :=
+      match Bv2N 4 (N2Bv_gen 4 a) with
+       | 0 => "0"
+       | 1 => "1"
+       | 2 => "2"
+       | 3 => "3"
+       | 4 => "4"
+       | 5 => "5"
+       | 6 => "6"
+       | 7 => "7"
+       | 8 => "8"
+       | 9 => "9"
+       | 10 => "a"
+       | 11 => "b"
+       | 12 => "c"
+       | 13 => "d"
+       | 14 => "e"
+       | 15 => "f"
+       | _  => "-"
       end.
-    Fixpoint ZToHex (n : nat)(z : Z) : string :=
+    Fixpoint NToHex (n : nat)(a : N) : string :=
       match n with
       | 0%nat             => EmptyString
-      | (S (S (S (S m)))) => ZToHex m (z / 16) ++ String (lastHexDigit z) EmptyString
-      | _                 => String (lastHexDigit z) EmptyString
+      | (S (S (S (S m)))) => NToHex m (a / 16) ++ String (lastHexDigit a) EmptyString
+      | _                 => String (lastHexDigit a) EmptyString
       end.
 
 End Base16.
 
 (* end hide *)
 
-(** We define a convenient function to represent word constants in hex
+(** ** Base16 representation.
+
+We define a convenient function to represent word constants in hex
 notation. A 16-bit word of value AABB (in hex notation) can be
 represented as [Ox "aabb"].
 
 *)
 
 Definition Ox s := let t := Base16.trim_separators s
-                   in recover (Base16.hexToZ (4 * String.length t) t).
+                   in recover (Base16.hexToN (4 * String.length t) t).
 
 (**
 
 Conversely we can convert a word constant to its hexadecimal string as
-follows
+follows:
 
 *)
 Definition hex {n} (u : t n) : string:=
   match u with
-  | bits bv => Base16.ZToHex n (binary_value n bv)
+  | bits bv => Base16.NToHex n (Bv2N n bv)
   end.
 
 
 (** This function lifts a numeric binary function to the word type *)
 Definition numBinOp {n} f  (x y : t n) : t n :=
   match x, y with
-  | bits xv, bits yv => bits (Z_to_binary n (f (binary_value n xv)(binary_value n yv)))
+  | bits xv, bits yv => bits (N2Bv_gen n (f (Bv2N n xv)(Bv2N n yv)))
   end.
 
 (** This function lifts a numeric unary function to the word type *)
 Definition numUnaryOp {n : nat} f (x : t n) : t n :=
   match x with
-  | bits xv => bits (Z_to_binary n (f (binary_value n xv)))
+  | bits xv => bits (N2Bv_gen n (f (Bv2N n xv)))
   end.
+
 
 (** We also give a way to define bitwise operations on the t type *)
 
