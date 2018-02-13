@@ -88,7 +88,7 @@ arrays or constants.
 *)
   Inductive arg : VariableT :=
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
-  | const : forall {k} {ty : type k}, constant ty  -> arg k ty
+  | const : forall {ty : type direct}, constant ty  -> arg direct ty
   | index : forall {b : nat}{e : endian}{ty : type direct},
      v memory (array b e ty) -> {i : nat | i < b} -> arg direct ty.
 
@@ -213,7 +213,7 @@ Arguments process [ty v] _ _.
 Arguments finalise [ty v] _.
 
 Arguments var [v k ty] _ .
-Arguments const [v k ty] _ .
+Arguments const [v ty] _ .
 Arguments index [v b e ty]  _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
@@ -351,9 +351,12 @@ Section ARGInstances.
 
   Global Instance arg_of_arg  : ARG v k ty (arg v k ty) := { toArg := fun x => x  }.
   Global Instance arg_of_v    : ARG v k ty (v k ty)     := { toArg := @var v k ty   }.
-  Global Instance const_arg_v : ARG v k ty (Types.constant ty) := { toArg := @const v k ty }.
+
 
 End ARGInstances.
+
+Global Instance const_arg_v (v : VariableT)(ty : type direct) : ARG v direct ty (Types.constant ty)
+  := { toArg := @const v ty }.
 
 (* end hide *)
 

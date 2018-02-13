@@ -43,21 +43,20 @@ Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
 Definition Vector128 (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
-Definition constant {k}(ty : type k):= typeDenote ty.
+Definition constant (ty : type direct) := StandardType.typeDenote ty.
 
 (* begin hide *)
 Require Import PrettyPrint.
 
 
-Definition constant_doc k (ty : type k)  : typeDenote ty -> Doc.
+Definition constant_doc (ty : type direct)  : constant ty -> Doc.
   refine( match ty with
           | word _         => fun w => text "0x" <> doc w
           | multiword _ _  => fun w => doc w
-          | array _ _ _    => fun w => text ""
           end
-        ); repeat simpl; apply vector_pretty_print.
+        ); repeat simpl;  try apply vector_pretty_print.
 Defined.
 
-Global Instance constant_pretty k  (ty : type k) : PrettyPrint (constant ty)
-  := { doc := constant_doc k ty }.
+Global Instance constant_pretty (ty : type direct) : PrettyPrint (constant ty)
+  := { doc := constant_doc ty }.
 (* end hide *)
