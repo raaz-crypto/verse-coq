@@ -157,17 +157,49 @@ Definition numUnaryOp {n : nat} f (x : t n) : t n :=
   | bits xv => bits (N2Bv_gen n (f (Bv2N n xv)))
   end.
 
+Definition liftBV (f : forall n,  Bvector n -> Bvector n) : forall n, t n -> t n :=
+  fun n x  =>
+    match x with
+    | bits xv => bits (f n xv)
+    end.
 
-(** We also give a way to define bitwise operations on the t type *)
+Definition liftBV2 (f : forall n,  Bvector n  -> Bvector n -> Bvector n) : forall n , t n -> t n -> t n :=
+  fun n x y =>
+    match x,y with
+    | bits xv, bits yv => bits (f n xv yv)
+    end.
 
-Definition bitwiseBinOp {n : nat} f (x y : t n) : t n :=
-  match x,y with
-  | bits xv, bits yv => bits (Vector.map2 f xv yv)
-  end.
+Definition AndW n := liftBV2 BVand n.
+Definition OrW  n := liftBV2 BVor  n.
+Definition XorW n := liftBV2 BVxor n.
+Definition NegW n := liftBV  Bneg  n.
 
-Definition bitwiseUnaryOp {n : nat} f (x : t n) : t n :=
-  match x with
-  | bits xv => bits (Vector.map f xv )
-  end.
+Module BOps.
+  Definition BShiftL m (n : nat) :=
+    match n with
+    | 0%nat    => fun vec => vec
+    | S np => fun vec => BshiftL_iter np vec m
+    end.
+
+  Definition BShiftR m (n : nat) :=
+    match n with
+    | 0%nat  => fun vec => vec
+    | S np   => fun vec => BshiftRl_iter np vec m
+    end.
+
+  Definition BRotL m n : Bvector n -> Bvector n :=
+    fun vec => BVor n (BShiftL m n vec) (BShiftR (n - m) n vec).
+
+  Definition BRotR m n : Bvector n -> Bvector n :=
+    fun vec => BVor n (BShiftR m n vec) (BShiftL (n - m) n vec).
+
+End BOps.
+
+Definition ShiftL m := liftBV (BOps.BShiftL m).
+Definition ShiftR m := liftBV (BOps.BShiftR m).
+Definition RotL m := liftBV (BOps.BRotL m).
+Definition RotR m := liftBV (BOps.BRotR m).
+
+
 
 Instance word_pretty (n : nat) : PrettyPrint (t n) := { doc := fun w => doc (@hex n w) }.
