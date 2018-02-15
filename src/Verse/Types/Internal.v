@@ -56,6 +56,8 @@ Module TypeDenote (W : WORD_SEMANTICS).
   | multiword m n  => Vector.t (W.wordDenote n) (2 ^ m)
   | array  n _ tw  => Vector.t (typeDenote tw) n
   end.
+
+  Arguments typeDenote [k] _.
 End TypeDenote.
 
 
