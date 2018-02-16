@@ -13,3 +13,6 @@ src/Verse/PrettyPrint.v
 src/Verse.v
 src/Verse/TestCode.v
 src/Verse/TestIteratorCode.v
+src/Verse/Tactics.v
+src/Verse/DecFacts.v
+

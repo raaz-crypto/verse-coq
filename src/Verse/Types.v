@@ -1,6 +1,10 @@
-Require Import String.
 Require Import Verse.Types.Internal.
+Require Import Verse.Word.
 Require Import Verse.Error.
+Require Import Verse.DecFacts.
+
+Require Import Bool.
+Require Import String.
 Require Import Nat.
 
 (** * Types in verse.
@@ -55,6 +59,11 @@ Definition Vector256 (t : type direct) := recover (vector 4 t).
 
 Definition constant (ty : type direct) := StandardType.typeDenote ty.
 
+Lemma constant_dec {k} (ty : type k) : forall (a b : constant ty), {a = b} + {a <> b}.
+  induction ty;
+  simpl; try apply vec_eq_dec; try apply bytes_dec; trivial.
+Qed.  
+  
 (* begin hide *)
 Require Import PrettyPrint.
 
