@@ -55,7 +55,6 @@ Inductive op    : arity -> Type :=
 | rotR    : nat -> op unary
 | shiftL  : nat -> op unary
 | shiftR  : nat -> op unary
-| mov     : op unary
 | nop     : op unary
 .
 
@@ -128,7 +127,6 @@ Module StandardWordOps : OP_SEMANTICS (StandardWord).
     | rotR    m    => RotR m (8 * 2^n)
     | shiftL  m    => ShiftL m (8 * 2^n)
     | shiftR  m    => ShiftR m (8 * 2^n)
-    | mov          => fun x => x
     | nop          => fun x => x
     end.
 
@@ -155,14 +153,18 @@ Section Language.
   Variable v   : VariableT.
 
 
+  (** Type that captures a memory variables indices. *)
+  Definition Indices b e ty (_ : v memory (array b e ty)) := { i : nat | i < b }.
 
-(** ** Arguments.
 
-Each verse program fragment consists of instructions applied to some
-arguments. Variables are one form of arguments, but so does indexed
-arrays or constants.
+  (** ** Arguments.
 
-*)
+      Each verse program fragment consists of instructions applied to
+      some arguments. Variables are one form of arguments, but so does
+      indexed arrays or constants.
+
+   *)
+
   Inductive arg : VariableT :=
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
   | const : forall {ty : type direct}, constant ty  -> arg direct ty
@@ -197,6 +199,7 @@ program block is merely a list of instructions.
 *)
   Inductive instruction : Type :=
   | assign : assignment -> instruction
+  | moveTo : forall b e ty, forall (x : v memory (array b e ty)), Indices b e ty x -> v direct ty -> instruction
   .
 
   Definition block := list instruction.
@@ -210,10 +213,10 @@ program block is merely a list of instructions.
                   | assign3 _ _ (const _) _ _
                   | assign2 _ _ (const _) _
                   | update2 _ _ (const _) _
-                  | update1 _ _ (const _)
-                  | assign2 _ mov (var _) _   => true
+                  | update1 _ _ (const _)     => true
                   | _                         => false
                   end
+    | _ => false
     end.
 
 
@@ -236,13 +239,13 @@ program block is merely a list of instructions.
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
     | assign e  => match e with
-                   | assign2 _ mov _ _
                    | assign2 _ nop _ _    => false
                    | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
                    | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update1 _ _ a1       => (isEndian nHostE a1)
                    end
+    | _ => false
     end
   .
 
@@ -267,7 +270,7 @@ program block is merely a list of instructions.
 
 End Language.
 
-
+Arguments Indices [v b e ty] _.
 
 (**
 
@@ -297,7 +300,7 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-
+Arguments moveTo [v b e ty] _ _ _.
 (* end hide *)
 
 
@@ -335,10 +338,6 @@ Section ArrayIndexing.
   Variable e : endian.
   Variable ty : type direct.
 
-  (** Type that captures a memory variables indices. *)
-
-  Definition Indices (_ : v memory (array b e ty)) := { i : nat | i < b }.
-
   (* begin hide *)
   Local Definition ithIndex i : list { i | i < b} :=
     match lt_dec i b with
@@ -356,11 +355,11 @@ Section ArrayIndexing.
   (* end hide *)
 
   (**
-      This function returns the list of valid indices of an array
-      variable. The indices are given starting from [0] to [b -
-      1]. Mostly used in conjunction with [foreach]
+     This function returns the list of valid indices of an array
+     variable. The indices are given starting from [0] to [b -
+     1]. Mostly used in conjunction with [foreach]
 
-  *)
+   *)
   Definition indices (a : v memory (array b e ty)) :  list (Indices a)
     := loopover b.
 
@@ -389,7 +388,7 @@ Section ArrayIndexing.
 End ArrayIndexing.
 
 (* begin hide *)
-Arguments Indices [v b e ty] _.
+
 Arguments indices [v b e ty] _.
 Arguments foreach [v b] _ _.
 
@@ -471,8 +470,7 @@ Notation "A ::=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70)
 Notation "A ::=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
 
 Notation "A ::== B"      := (assign (assign2 nop (toArg A) (toArg B))) (at level 70).
-Notation "A <== B"       := (assign (assign2 mov (toArg A) (toArg B))) (at level 70).
-
+Notation "'MOVE'  B 'TO'   A [- N -]"       := (moveTo A (exist _ (N%nat) _) B) (at level 200, A ident).
 (**
 
 One another irritant in writing code is that the array indexing needs
@@ -525,7 +523,6 @@ Section PrettyPrintingInstruction.
     | rotR _   => text ">*>"
     | shiftL _ => text "<<"
     | shiftR _ => text ">>"
-    | mov      => text ""
     | nop      => text ""
     end.
 
@@ -544,6 +541,12 @@ Section PrettyPrintingInstruction.
     end.
 
   Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Local Definition convertEndian e d :=
+    match e with
+    | bigE => text "bigEndian" <> paren d
+    | littleE => text "littleEndian" <> paren d
+    | _       => d
+    end.
 
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
@@ -552,13 +555,13 @@ Section PrettyPrintingInstruction.
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
                               | @assign2 _ ty u x y   =>
                                 match u with
-                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc y)
+                                | bitComp  | nop  => mkAssign u (doc x) empty (doc y)
                                 | shiftL n | shiftR n  => mkAssign u (doc x) (doc y) (decimal n)
                                 | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
                                 end
                               | @update1 _ ty u x      =>
                                 match u with
-                                | bitComp  | nop | mov => mkAssign u (doc x) empty (doc x)
+                                | bitComp  | nop  => mkAssign u (doc x) empty (doc x)
                                 | shiftL n | shiftR n  => mkUpdate u (doc x) (decimal n)
                                 | rotL n   | rotR n    => mkRot ty u (doc x) (doc x)
                                 end
@@ -568,6 +571,8 @@ Section PrettyPrintingInstruction.
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
                          | assign a => doc a
+                         | @moveTo _ _ e _  a (exist _ i _) b
+                           => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          end
        }.
 
