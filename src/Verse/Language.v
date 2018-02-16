@@ -78,9 +78,6 @@ Section Language.
 
   Arguments v_eq_dec [k ty] _.
 
-  Lemma nat_eq_decP : forall (m n : nat), (m = n) \/ (~ m = n).
-    intros. destruct (eq_dec m n); [left | right]; trivial.
-  Qed.
   Lemma exists_eq_dec T (T_dec : forall (a b : T), {a = b} + {a <> b})
                    (P : T -> Prop)
                    (P_eq_dec : forall (t : T) (p q : P t), {p = q} + {p <> q}) :
