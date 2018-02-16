@@ -78,6 +78,9 @@ Section Language.
 
   Arguments v_eq_dec [k ty] _.
 
+  Lemma nat_eq_decP : forall (m n : nat), (m = n) \/ (~ m = n).
+    intros. destruct (eq_dec m n); [left | right]; trivial.
+  Qed.
   Lemma exists_eq_dec T (T_dec : forall (a b : T), {a = b} + {a <> b})
                    (P : T -> Prop)
                    (P_eq_dec : forall (t : T) (p q : P t), {p = q} + {p <> q}) :
@@ -88,9 +91,7 @@ Section Language.
     destruct (T_dec x x0). subst. destruct (P_eq_dec _ p p0). subst p0.
     - left; trivial.
     - right; unfold not; intros; injection H; 
-        intros; inversion_sigma;
-        pose (eq_rect_eq_dec T_dec (fun a : T => P a) p H1);
-            rewrite <- e in H2; contradiction.
+        intros; pose (inj_pair2_eq_dec _ T_dec _ _ _ _ H0); contradiction.
     - right; congruence.
       Unset Keep Proof Equalities.
   Qed.
