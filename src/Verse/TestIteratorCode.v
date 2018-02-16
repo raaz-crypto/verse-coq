@@ -26,6 +26,7 @@ Section TestFunction.
       {|
         (* Try out all operators *)
         setup   := [
+                    MOVE tmp TO arr[- 1 -];
                     num ::= tmp [+] Ox "abcd";
                       num ::= tmp [-] num ; 
                       num      ::= tmp      [*] arr[-1-] ;
@@ -49,6 +50,7 @@ Section TestFunction.
                       tmp      ::=  arr[-1-] >>  42;
                       num      ::=  tmp     <*< 42;
                       arr[-1-] ::=  tmp     >*> 42;
+
 
                       (* Unary update operators *)
                       tmp      ::=<<  (42%nat);
