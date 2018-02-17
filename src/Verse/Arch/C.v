@@ -22,24 +22,31 @@ Set Implicit Arguments.
 
 Module CP.
 
-  Definition void : Doc                    := text "void".
-  Definition uint_t   (n : nat)            := text "uint" <> decimal n <> text "_t".
-  Definition statements                    := sepEndBy (text ";" <> line).
-  Definition body b := brace (nest 4 (line <> b) <> line).
-  Definition while c b := text "while" <> c <> line <> body b.
-  Definition voidFunction (nm : string)
-             (args : list Doc)
-    := void <_> text nm <> paren (commaSep args).
+  Definition void       := text "void".
+  Definition uint_t n   := text "uint" <> decimal n <> text "_t".
+  Definition statements := sepEndBy (text ";" <> line).
+  Definition body b     := brace (nest 4 (line <> b) <> line).
+  Definition while c b  := text "while" <> c <> line <> body b.
 
-  Definition register (decl : Doc) := text "register" <_> decl.
-  Definition deref    v            := paren (text "*" <> v).
-  Definition assign   x y          := x <_> text "=" <_> y.
-  Definition plusplus d            := text "++" <> d.
-  Definition minusminus d          := text "--" <> d.
+  Definition register d := text "register" <_> d.
+  Definition deref    v := paren (text "*" <> v).
 
-  Definition comment s   := PrettyPrint.between ("/*    ") ("    */") s.
+  Definition assign x y   := x <_> text "=" <_> y.
+  Definition plusplus d   := text "++" <> d.
+  Definition minusminus d := text "--" <> d.
   Definition blockPtrVariableName := "blockPtr".
 
+  Definition voidFunction nm args
+    := void <_> text nm <> paren (commaSep args).
+
+
+  Section CComment.
+    Variable A : Type.
+    Variable APrettyPrint : PrettyPrint A.
+
+    Definition comment (s : A)    := PrettyPrint.between ("/*    ") ("    */") (doc s).
+  End CComment.
+  Arguments comment [A APrettyPrint] _.
 End CP.
 
 
@@ -346,10 +353,10 @@ Module CCodeGen <: CODEGEN C.
 
 
   Definition makeFunction state body :=
-    let localDecls := vcat [ CP.comment (text "Local variables");
+    let localDecls := vcat [ CP.comment "Local variables";
                              CP.statements (declare_locals state)
                            ] in
-    let regDecls := vcat [ CP.comment (text "Register variables");
+    let regDecls := vcat [ CP.comment "Register variables";
                              CP.statements (declare_registers state) ] in
     let actualBody := vcat [localDecls; regDecls; body]
     in vcat [ text "#include <stdint.h>";
@@ -362,9 +369,9 @@ Module CCodeGen <: CODEGEN C.
     let loopCond := paren (doc n <_> text "> 0") in
     let nextBlock := semiSep [CP.plusplus (text CP.blockPtrVariableName);
                                 CP.minusminus (doc n);
-                                CP.comment (text "move to next block")
+                                CP.comment "move to next block"
                              ] in
-       (vcat [ CP.comment (text "Iterating over the blocks");
+       (vcat [ CP.comment "Iterating over the blocks";
                  CP.while loopCond (vcat [d; nextBlock])
              ]).
 
