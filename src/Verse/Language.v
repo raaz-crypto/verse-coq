@@ -197,8 +197,9 @@ program block is merely a list of instructions.
 
 *)
   Inductive instruction : Type :=
-  | assign : assignment -> instruction
-  | moveTo : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
+  | assign  : assignment -> instruction
+  | moveTo  : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
+  | destroy : forall {k ty}, v k ty -> instruction
   .
 
   Definition block := list instruction.
@@ -300,6 +301,7 @@ Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
 Arguments moveTo [v b e ty] _ _ _.
+Arguments destroy [v k ty ] _.
 (* end hide *)
 
 
@@ -572,6 +574,7 @@ Section PrettyPrintingInstruction.
                          | assign a => doc a
                          | @moveTo _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
+                         | destroy v => text "destroy" <_> doc v
                          end
        }.
 
