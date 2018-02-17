@@ -154,7 +154,7 @@ Section Language.
 
 
   (** Type that captures a memory variables indices. *)
-  Definition Indices b e ty (_ : v memory (array b e ty)) := { i : nat | i < b }.
+  Definition Indices {b e ty} (_ : v memory (array b e ty)) := { i : nat | i < b }.
 
 
   (** ** Arguments.
@@ -168,8 +168,7 @@ Section Language.
   Inductive arg : VariableT :=
   | var   : forall {k} {ty : type k}, v k ty -> arg k ty
   | const : forall {ty : type direct}, constant ty  -> arg direct ty
-  | index : forall {b : nat}{e : endian}{ty : type direct},
-     v memory (array b e ty) -> {i : nat | i < b} -> arg direct ty.
+  | index : forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)), Indices x  -> arg direct ty.
 
 
 
@@ -199,7 +198,7 @@ program block is merely a list of instructions.
 *)
   Inductive instruction : Type :=
   | assign : assignment -> instruction
-  | moveTo : forall b e ty, forall (x : v memory (array b e ty)), Indices b e ty x -> v direct ty -> instruction
+  | moveTo : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
   .
 
   Definition block := list instruction.
