@@ -3,8 +3,6 @@ Require Import Verse.Word.
 Require Import Arith.
 Import Nat.
 
-Require Import Coq.Program.Equality.
-
 (** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
 (** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
@@ -33,24 +31,6 @@ Inductive type       : kind -> Type :=
 | multiword          : nat -> nat    -> type direct
 | array              : align -> nat -> endian -> type direct -> type memory
 with endian : Type := bigE | littleE | hostE.
-
-Scheme Equality for kind.
-
-Lemma endian_eq_dec : forall (e1 e2 : endian), {e1 = e2} + {e1 <> e2}.
-  decide equality.
-Qed.
-
-Lemma ty_eq_dec : forall {k} (t1 t2 : type k), {t1 = t2} + {t1 <> t2}.
-  destruct k.
-  abstract (dependent destruction t1; dependent destruction t2; [try (right; congruence) ..];
-            [destruct (eq_dec n n0); [left | right ..]; try congruence | 
-             destruct (eq_dec n n1), (eq_dec n0 n2); [left | right .. ]; try congruence])
-  using directTy_eq_dec.
-
-  dependent destruction t1; dependent destruction t2.
-  destruct (eq_dec n n0); destruct (endian_eq_dec e e0); destruct (directTy_eq_dec t1 t2);
-    first [ left; congruence | right; congruence ].
-Qed.
 
 (** Often we need to existentially quantify over types and other
     objects. This definition is just for better readability.

@@ -8,6 +8,7 @@ Require Import BinNums.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
+
 Local Open Scope N_scope.
 
 Require Import Verse.DecFacts.
@@ -32,15 +33,6 @@ Definition bytes n := t (8 * n).
 
 (* Errors while encoding *)
 Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.
-
-Lemma bytes_dec : forall (n : nat) (a b : bytes n), {a = b} + {a <> b}.
-  unfold bytes. destruct a. destruct b0. 
-  unfold Bvector.Bvector in b, b0.
-  pose (vec_eq_dec bool bool_dec (8 * n) b b0).
-  destruct s.
-  left; apply f_equal; trivial.
-  right; unfold not; inversion 1; contradiction.
-Qed.
 
 (* begin hide *)
 Definition toN {n}(x : t n) :=

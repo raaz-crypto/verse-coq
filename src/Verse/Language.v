@@ -34,7 +34,6 @@ first.
 
 Require Export Verse.Language.Operators.
 
-
 (** * The abstract syntax tree.
 
 This section build up towards the the inductive type that capture the
@@ -74,55 +73,6 @@ Section Language.
 
   Let directarg := sigT (arg direct).
   
-  Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v _ ty), {v1 = v2} + {v1 <> v2}.
-
-  Arguments v_eq_dec [k ty] _.
-
-  Lemma exists_eq_dec T (T_dec : forall (a b : T), {a = b} + {a <> b})
-                   (P : T -> Prop)
-                   (P_eq_dec : forall (t : T) (p q : P t), {p = q} + {p <> q}) :
-                   forall (p1 p2 : {t : T | P t}), {p1 = p2} + {p1 <> p2}.
-  Proof.
-    Set Keep Proof Equalities.
-    destruct p1. destruct p2.
-    destruct (T_dec x x0). subst. destruct (P_eq_dec _ p p0). subst p0.
-    - left; trivial.
-    - right; unfold not; intros; injection H; 
-        intros; pose (inj_pair2_eq_dec _ T_dec _ _ _ _ H0); contradiction.
-    - right; congruence.
-      Unset Keep Proof Equalities.
-  Qed.
-
-  Axiom lt_unique : forall n m (p q : n < m), p = q.
-  Definition lt_eq_dec n m (p q : n < m) : {p = q} + {p <> q} := left (lt_unique n m p q).
-
-  Lemma arg_eq_dec : forall (a1 a2 : {ty : type direct & arg _ ty}), {a1 = a2} + {a1 <> a2}.
-    destruct a1, a2.
-    dependent destruction a; dependent destruction a0;
-      try (solve [(right; unfold not; inversion 1)]).
-    * destruct (ty_eq_dec x x0); subst; [ | right ; unfold not; inversion 1; contradiction ..].
-      destruct (v_eq_dec v0 v1); [left; congruence | right]; 
-        unfold not; inversion 1.
-      pose (inj_pair2_eq_dec _ ty_eq_dec _ _ _ _ H1); contradiction.
-    * destruct (ty_eq_dec x x0); subst; [ | right ; unfold not; inversion 1; contradiction ..].
-      destruct (constant_dec x0 c c0); [left; congruence | right];
-        unfold not; inversion 1.
-      pose (inj_pair2_eq_dec _ ty_eq_dec _ _ _ _ H1).
-      contradiction.
-    * destruct (ty_eq_dec x x0); destruct (eq_dec b b0);
-        destruct (endian_eq_dec e e0); destruct (ty_eq_dec x x0);
-          subst; [ | right; unfold not; inversion 1; contradiction ..].
-      destruct (v_eq_dec v0 v1).
-      destruct (exists_eq_dec _ eq_dec _ (fun n => lt_eq_dec n b0) s s0);
-        [ left; congruence | right ].
-      unfold not; inversion 1.
-      pose (inj_pair2_eq_dec _ eq_dec _ _ _ _ H2); contradiction.
-      right; unfold not; inversion 1.
-      pose (inj_pair2_eq_dec _ eq_dec _ _ _ _ H1).
-      pose (inj_pair2_eq_dec _ endian_eq_dec _ _ _ _ e).
-      pose (inj_pair2_eq_dec _ ty_eq_dec _ _ _ _ e1); contradiction.
-  Defined.        
-
   (** ** Assignment statement.
 
       One of the most important class of statement is the assignment
@@ -153,7 +103,7 @@ program block is merely a list of instructions.
   | destroy : forall {k ty}, v k ty -> instruction
   .
 
-  Definition block := list instruction.
+  Global Definition block := list instruction.
 
   (* begin hide *)
 
