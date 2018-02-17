@@ -37,7 +37,7 @@ Module CP.
   Definition plusplus d            := text "++" <> d.
   Definition minusminus d          := text "--" <> d.
 
-  Definition comment s   := PrettyPrint.between ("/*    ") ("    */") (text s).
+  Definition comment s   := PrettyPrint.between ("/*    ") ("    */") s.
   Definition blockPtrVariableName := "blockPtr".
 
 End CP.
@@ -160,6 +160,7 @@ Section PrintingInstruction.
     := { doc := fun i => match i with
                          | assign a => doc a
                          | moveTo a ix b => CAssign nop (Language.index a ix) empty (rval (toArg b))
+                         | destroy a     => CP.comment (text "destroy" <_> doc a)
                          end
        }.
 
@@ -345,10 +346,10 @@ Module CCodeGen <: CODEGEN C.
 
 
   Definition makeFunction state body :=
-    let localDecls := vcat [ CP.comment "Local variables";
+    let localDecls := vcat [ CP.comment (text "Local variables");
                              CP.statements (declare_locals state)
                            ] in
-    let regDecls := vcat [ CP.comment "Register variables";
+    let regDecls := vcat [ CP.comment (text "Register variables");
                              CP.statements (declare_registers state) ] in
     let actualBody := vcat [localDecls; regDecls; body]
     in vcat [ text "#include <stdint.h>";
@@ -361,9 +362,9 @@ Module CCodeGen <: CODEGEN C.
     let loopCond := paren (doc n <_> text "> 0") in
     let nextBlock := semiSep [CP.plusplus (text CP.blockPtrVariableName);
                                 CP.minusminus (doc n);
-                                CP.comment "move to next block"
+                                CP.comment (text "move to next block")
                              ] in
-       (vcat [ CP.comment "Iterating over the blocks";
+       (vcat [ CP.comment (text "Iterating over the blocks");
                  CP.while loopCond (vcat [d; nextBlock])
              ]).
 
