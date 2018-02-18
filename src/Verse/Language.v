@@ -56,10 +56,16 @@ Section Language.
 
    *)
 
-  Inductive arg : VariableT :=
-  | var   : forall {k} {ty : type k}, v k ty -> arg k ty
-  | const : forall {ty : type direct}, constant ty  -> arg direct ty
-  | index : forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)), Indices x  -> arg direct ty.
+  Inductive argKind := lval | rval.
+  Inductive arg : argKind -> VariableT :=
+  | var   : forall aK, forall {k} {ty : type k}, v k ty -> arg aK k ty
+  | const : forall {ty : type direct}, constant ty  -> arg rval direct ty
+  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)),
+        Indices x  -> arg aK direct ty
+  .
+
+  Definition larg := arg lval.
+  Definition rarg := arg rval.
 
 
 
@@ -71,14 +77,14 @@ Section Language.
    *)
   Inductive assignment : Type :=
   | assign3
-    : forall ty, binop -> arg direct ty -> arg direct ty -> arg direct ty -> assignment
+    : forall ty, binop -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
   (** e.g. x = y + z *)
   | assign2
-    : forall ty, uniop -> arg direct ty -> arg direct ty -> assignment (** e.g. x = ~ y   *)
+    : forall ty, uniop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x = ~ y   *)
   | update2
-    : forall ty, binop -> arg direct ty -> arg direct ty -> assignment (** e.g. x += y    *)
+    : forall ty, binop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x += y    *)
   | update1
-    : forall ty, uniop -> arg direct ty -> assignment          (** e.g. x ~= x    *)
+    : forall ty, uniop -> larg direct ty -> assignment                   (** e.g. x ~= x    *)
   .
 
 (**
@@ -98,20 +104,8 @@ program block is merely a list of instructions.
   (* begin hide *)
 
   (* Some instruction error checking code *)
-  Definition argErr i :=
-    match i with
-    | assign e => match e with
-                  | assign3 _ _ (const _) _ _
-                  | assign2 _ _ (const _) _
-                  | update2 _ _ (const _) _
-                  | update1 _ _ (const _)     => true
-                  | _                         => false
-                  end
-    | _ => false
-    end.
 
-
-  Let isEndian {k} {ty} (nHostE : endian) (a : arg k ty) :=
+  Let isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
@@ -120,7 +114,7 @@ program block is merely a list of instructions.
         end
     in
     match a  with
-    | @index _ ne _ _ _ => eqEndb ne nHostE
+    | @index _ _ ne _ _ _ => eqEndb ne nHostE
     | _                 => false
     end.
 
@@ -140,20 +134,10 @@ program block is merely a list of instructions.
     end
   .
 
-  Definition supportedInst (nhostE : endian) := fun i =>
-                                                  (argErr i = false
-                                                   /\
-                                                   endianError nhostE i = false).
+  Definition supportedInst (nhostE : endian) := fun i => endianError nhostE i = false.
 
-  Definition instCheck e i : {supportedInst e i} + {~ supportedInst e i}.
-    unfold supportedInst.
-    assert (lval_dec := bool_dec (argErr i) false).
-    assert (endian_dec := bool_dec (endianError e i) false).
-    destruct lval_dec.
-    destruct endian_dec.
-    all: solve
-           [constructor 1; repeat (constructor; trivial) | constructor 2; unfold not; intros; destruct H; contradiction].
-  Defined.
+  Definition instCheck e i : {supportedInst e i} + {~ supportedInst e i}
+      := bool_dec (endianError e i) false.
 
   (* end hide *)
 
@@ -183,9 +167,9 @@ Arguments setup [ty v] _.
 Arguments process [ty v] _ _.
 Arguments finalise [ty v] _.
 
-Arguments var [v k ty] _ .
+Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
-Arguments index [v b e ty]  _ _.
+Arguments index [v aK b e ty]  _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
@@ -307,24 +291,25 @@ over variables that can themselves be pretty printed.
 
 (* begin hide *)
 
-Class ARG (v : VariableT)(k : kind)(ty : type k) t  := { toArg : t -> arg v k ty }.
 
-(** Instances of this class has been defined for both variables and constants *)
-
+Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval k ty }.
+Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval k ty }.
 
 Section ARGInstances.
   Variable v  : VariableT.
   Variable k  : kind.
   Variable ty : type k .
 
-  Global Instance arg_of_arg  : ARG v k ty (arg v k ty) := { toArg := fun x => x  }.
-  Global Instance arg_of_v    : ARG v k ty (v k ty)     := { toArg := @var v k ty   }.
+  Global Instance larg_of_argv : LARG v k ty (arg v lval k ty) := { toLArg := fun t => t} .
+  Global Instance rarg_of_argv : RARG v k ty (arg v rval k ty) := { toRArg := fun t => t}.
+  Global Instance larg_of_v    : LARG v k ty (v k ty)    := { toLArg := fun t => var t}.
+  Global Instance rarg_of_v    : RARG v k ty (v k ty)    := { toRArg := fun t => var t}.
 
 
 End ARGInstances.
 
-Global Instance const_arg_v (v : VariableT)(ty : type direct) : ARG v direct ty (Types.constant ty)
-  := { toArg := @const v ty }.
+Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v direct ty (Types.constant ty)
+  := { toRArg := @const v ty }.
 
 (* end hide *)
 
@@ -332,36 +317,36 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : ARG v direct ty 
 
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
-Notation "A ::= B [+] C" := (assign (assign3 plus  (toArg A) (toArg B) (toArg C) ))  (at level 70).
+Notation "A ::= B [+] C" := (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) ))  (at level 70).
 
-Notation "A ::= B [-] C" := (assign (assign3 minus (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [*] C" := (assign (assign3 mul   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [/] C" := (assign (assign3 quot  (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [%] C" := (assign (assign3 rem   (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [|] C" := (assign (assign3 bitOr (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [&] C" := (assign (assign3 bitAnd (toArg A) (toArg B) (toArg C)))  (at level 70).
-Notation "A ::= B [^] C" := (assign (assign3 bitXor (toArg A) (toArg B) (toArg C)))  (at level 70).
+Notation "A ::= B [-] C" := (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [*] C" := (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [/] C" := (assign (assign3 quot  (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [%] C" := (assign (assign3 rem   (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [|] C" := (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [&] C" := (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [^] C" := (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
 
-Notation "A ::=+ B " := (assign (update2 plus  (toArg A) (toArg B))) (at level 70).
-Notation "A ::=- B " := (assign (update2 minus (toArg A) (toArg B))) (at level 70).
-Notation "A ::=* B " := (assign (update2 mul   (toArg A) (toArg B))) (at level 70).
-Notation "A ::=/ B " := (assign (update2 quot  (toArg A) (toArg B))) (at level 70).
-Notation "A ::=% B " := (assign (update2 rem   (toArg A) (toArg B))) (at level 70).
-Notation "A ::=| B " := (assign (update2 bitOr   (toArg A) (toArg B))) (at level 70).
-Notation "A ::=& B " := (assign (update2 bitAnd   (toArg A) (toArg B))) (at level 70).
-Notation "A ::=^ B " := (assign (update2 bitXor   (toArg A) (toArg B))) (at level 70).
+Notation "A ::=+ B " := (assign (update2 plus  (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=- B " := (assign (update2 minus (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=* B " := (assign (update2 mul   (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=/ B " := (assign (update2 quot  (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=% B " := (assign (update2 rem   (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=| B " := (assign (update2 bitOr (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=& B " := (assign (update2 bitAnd (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=^ B " := (assign (update2 bitXor (toLArg A) (toRArg B))) (at level 70).
 
-Notation "A ::=~ B "     := (assign (assign2 bitComp    (toArg A) (toArg B))) (at level 70).
-Notation "A ::= B <*< N" := (assign (assign2 (rotL N)   (toArg A) (toArg B))) (at level 70).
-Notation "A ::= B >*> N" := (assign (assign2 (rotR N)   (toArg A) (toArg B))) (at level 70).
-Notation "A ::= B <<  N"  := (assign (assign2 (shiftL N) (toArg A) (toArg B))) (at level 70).
-Notation "A ::= B >>  N" := (assign (assign2 (shiftR N) (toArg A) (toArg B))) (at level 70).
-Notation "A ::=<< N "    := (assign (update1 (shiftL N) (toArg A))) (at level 70).
-Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toArg A))) (at level 70).
-Notation "A ::=<*< N "    := (assign (update1 (rotL N) (toArg A))) (at level 70).
-Notation "A ::=>*> N "    := (assign (update1 (rotR N) (toArg A))) (at level 70).
+Notation "A ::=~ B "     := (assign (assign2 bitComp    (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::= B <*< N" := (assign (assign2 (rotL N)   (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::= B >*> N" := (assign (assign2 (rotR N)   (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::= B <<  N"  := (assign (assign2 (shiftL N) (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::= B >>  N" := (assign (assign2 (shiftR N) (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=<< N "    := (assign (update1 (shiftL N) (toLArg A))) (at level 70).
+Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toLArg A))) (at level 70).
+Notation "A ::=<*< N "    := (assign (update1 (rotL N)  (toLArg A))) (at level 70).
+Notation "A ::=>*> N "    := (assign (update1 (rotR N)  (toLArg A))) (at level 70).
 
-Notation "A ::== B"      := (assign (assign2 nop (toArg A) (toArg B))) (at level 70).
+Notation "A ::== B"      := (assign (assign2 nop (toLArg A) (toRArg B))) (at level 70).
 Notation "'MOVE'  B 'TO'   A [- N -]"       := (moveTo A (exist _ (N%nat) _) B) (at level 200, A ident).
 (**
 
@@ -390,14 +375,14 @@ Section PrettyPrintingInstruction.
   Variable vPrint : forall k ty, PrettyPrint (v k ty).
 
   (** The pretty printing of our argument *)
-  Fixpoint argdoc {k}(ty : type k ) (av : arg v k ty) :=
+  Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK k ty) :=
     match av with
     | var v       => doc v
     | const c     => doc c
     | index v (exist _ n _) => doc v <> bracket (decimal n)
     end.
 
-  Global Instance arg_pretty_print : forall k ty, PrettyPrint (arg v k ty)
+  Global Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg v aK k ty)
     := { doc := argdoc ty }.
 
   Definition opDoc {a : arity}(o : op a) :=
@@ -452,10 +437,11 @@ Section PrettyPrintingInstruction.
                                 | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
                                 end
                               | @update1 _ ty u x      =>
+                                let xdoc := doc x in
                                 match u with
-                                | bitComp  | nop  => mkAssign u (doc x) empty (doc x)
-                                | shiftL n | shiftR n  => mkUpdate u (doc x) (decimal n)
-                                | rotL n   | rotR n    => mkRot ty u (doc x) (doc x)
+                                | bitComp  | nop       => mkAssign u xdoc empty xdoc
+                                | shiftL n | shiftR n  => mkUpdate u xdoc (decimal n)
+                                | rotL n   | rotR n    => mkRot ty u xdoc xdoc
                                 end
                               end
        }.
@@ -534,6 +520,7 @@ operands of the programming fragment.
             X ::= X [+] Ox "55";
             Z ::= Z [+] vec_const
           ]%list.
+
   Defined.
 
 
