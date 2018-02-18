@@ -109,24 +109,23 @@ Section PrintingInstruction.
    | _       => v
    end.
 
-  Definition rval {k} {ty : type k} (a : arg cvar _ ty) :=
+  Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK k ty) :=
     match a with
-    | @Language.index _ _ e ty _ _ => fromMemory e ty (doc a)
-    | _                            => doc a
+    | @Language.index _ _ _ e ty _ _ => fromMemory e ty (doc a)
+    | _                              => doc a
     end.
 
-
-
-  Definition CAssign {a : arity} (o : op a) {k} {ty : type k} (a : arg cvar _ ty) (y z : Doc)  :=
+  Definition CAssign {a : arity}{aK : argKind}(o : op a) {k} {ty : type k}
+             (x : arg cvar aK _ ty) (y z : Doc)  :=
     let lhs := y <_> opDoc o <_> z
     in
-    match a with
-    | @Language.index _ _ e ty _ _ => CP.assign (doc a) (toMemory e ty lhs)
-    | _                            => CP.assign (doc a) lhs
+    match x with
+    | @Language.index _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
+    | _                              => CP.assign (doc x) lhs
     end.
 
 
-  Definition CRot (ty : type direct) (o : op unary) (a : arg cvar _ ty) (y : Doc)  :=
+  Definition CRot (ty : type direct) (o : op unary) (a : larg cvar _ ty) (y : Doc)  :=
     let rvl := match o with
                | rotL n => text "rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | rotR n => text "rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
@@ -134,14 +133,15 @@ Section PrintingInstruction.
                end
     in
     match a with
-    | @Language.index _ _ e ty _ _ => CP.assign (doc a) (toMemory e ty rvl)
+    | @Language.index _ _ _ e ty _ _ => CP.assign (doc a) (toMemory e ty rvl)
     | _                            => CP.assign (doc a) rvl
     end.
 
-  Definition CUpdate {a : arity}(o : op a) {k} {ty : type k} (a : arg cvar _ ty) (y : Doc) :=
-    match a with
-    | Language.index _ _  => CAssign o a (rval a) y
-    | _                   => doc a <_> opDoc o <> EQUALS <_> y
+  Definition CUpdate {a : arity}(o : op a) {aK : argKind}{k} {ty : type k}
+             (x : arg cvar aK _ ty) (y : Doc) :=
+    match x with
+    | Language.index _ _  => CAssign o  x (rval x) y
+    | _                   => doc x <_> opDoc o <> EQUALS <_> y
     end.
 
   Global Instance assignment_C_print : PrettyPrint (assignment cvar) | 0
@@ -163,10 +163,18 @@ Section PrintingInstruction.
                               end
        }.
 
+  (*
+
+  Definition moveToCopy {b}{e}{ty}(x : cvar (array b e ty))( i : Indices x ) (y : cvar ty)
+    : assignment cvar
+    := assign2 nop (Language.index x i) (var y).
+*)
+
+
   Global Instance instruction_C_print : PrettyPrint (instruction cvar) | 0
     := { doc := fun i => match i with
                          | assign a => doc a
-                         | moveTo a ix b => CAssign nop (Language.index a ix) empty (rval (toArg b))
+                         | moveTo x i y => doc  (assign2 nop (Language.index x i) (var y))
                          | destroy a     => CP.comment (text "destroy" <_> doc a)
                          end
        }.
