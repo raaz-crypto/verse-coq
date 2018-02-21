@@ -22,24 +22,31 @@ Set Implicit Arguments.
 
 Module CP.
 
-  Definition void : Doc                    := text "void".
-  Definition uint_t   (n : nat)            := text "uint" <> decimal n <> text "_t".
-  Definition statements                    := sepEndBy (text ";" <> line).
-  Definition body b := brace (nest 4 (line <> b) <> line).
-  Definition while c b := text "while" <> c <> line <> body b.
-  Definition voidFunction (nm : string)
-             (args : list Doc)
-    := void <_> text nm <> paren (commaSep args).
+  Definition void       := text "void".
+  Definition uint_t n   := text "uint" <> decimal n <> text "_t".
+  Definition statements := sepEndBy (text ";" <> line).
+  Definition body b     := brace (nest 4 (line <> b) <> line).
+  Definition while c b  := text "while" <> c <> line <> body b.
 
-  Definition register (decl : Doc) := text "register" <_> decl.
-  Definition deref    v            := paren (text "*" <> v).
-  Definition assign   x y          := x <_> text "=" <_> y.
-  Definition plusplus d            := text "++" <> d.
-  Definition minusminus d          := text "--" <> d.
+  Definition register d := text "register" <_> d.
+  Definition deref    v := paren (text "*" <> v).
 
-  Definition comment s   := PrettyPrint.between ("/*    ") ("    */") (text s).
+  Definition assign x y   := x <_> text "=" <_> y.
+  Definition plusplus d   := text "++" <> d.
+  Definition minusminus d := text "--" <> d.
   Definition blockPtrVariableName := "blockPtr".
 
+  Definition voidFunction nm args
+    := void <_> text nm <> paren (commaSep args).
+
+
+  Section CComment.
+    Variable A : Type.
+    Variable APrettyPrint : PrettyPrint A.
+
+    Definition comment (s : A)    := PrettyPrint.between ("/*    ") ("    */") (doc s).
+  End CComment.
+  Arguments comment [A APrettyPrint] _.
 End CP.
 
 
@@ -88,26 +95,37 @@ Section PrintingInstruction.
                                             | _      => text "Unsupported"
                                             end.
 
-  Definition toLE ty v := text ("verse_to_le") <> wordSize ty <> paren v.
-  Definition toBE ty v := text ("verse_to_be") <> wordSize ty <> paren v.
-  Definition fromLE ty v := text ("verse_from_le") <> wordSize ty <> paren v.
-  Definition fromBE ty v := text ("verse_from_be") <> wordSize ty <> paren v.
+  Definition toMemory e ty v :=
+   match e with
+   | littleE => text "verse_to_le" <> wordSize ty <> (paren v)
+   | bigE    => text "verse_to_be" <> wordSize ty <> (paren v)
+   | _       => v
+   end.
 
-  Definition rval {k} {ty : type k} (a : arg cvar _ ty) :=
+  Definition fromMemory e ty v :=
+   match e with
+   | littleE => text "verse_from_le" <> wordSize ty <> (paren v)
+   | bigE    => text "verse_form_be" <> wordSize ty <> (paren v)
+   | _       => v
+   end.
+
+  Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK k ty) :=
     match a with
-    | @Language.index _ _ littleE ty _ _ => fromLE ty (doc a)
-    | @Language.index _ _ bigE ty _ _    => fromBE ty (doc a)
-    | _                                  => doc a
+    | @Language.index _ _ _ e ty _ _ => fromMemory e ty (doc a)
+    | _                              => doc a
     end.
 
-  Definition CAssign {a : arity} (o : op a) {k} {ty : type k} (a : arg cvar _ ty) (y z : Doc)  :=
-    match a with
-    | @Language.index _ _ littleE ty _ _ => doc a <_> EQUALS <_> toLE ty (y <_> opDoc o <_> z)
-    | @Language.index _ _ bigE ty _ _ => doc a <_> EQUALS <_> toBE ty (y <_> opDoc o <_> z)
-    | _                                  => doc a <_> EQUALS <_> y <_> opDoc o <_> z
+  Definition CAssign {a : arity}{aK : argKind}(o : op a) {k} {ty : type k}
+             (x : arg cvar aK _ ty) (y z : Doc)  :=
+    let lhs := y <_> opDoc o <_> z
+    in
+    match x with
+    | @Language.index _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
+    | _                              => CP.assign (doc x) lhs
     end.
 
-  Definition CRot (ty : type direct) (o : op unary) (a : arg cvar _ ty) (y : Doc)  :=
+
+  Definition CRot (ty : type direct) (o : op unary) (a : larg cvar _ ty) (y : Doc)  :=
     let rvl := match o with
                | rotL n => text "rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | rotR n => text "rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
@@ -115,16 +133,15 @@ Section PrintingInstruction.
                end
     in
     match a with
-    | @Language.index _ _ littleE ty _ _ => doc a <_> EQUALS <_> toLE ty rvl
-    | @Language.index _ _ bigE ty _ _    => doc a <_> EQUALS <_> toBE ty rvl
-    | _                                  => doc a <_> EQUALS <_> rvl
+    | @Language.index _ _ _ e ty _ _ => CP.assign (doc a) (toMemory e ty rvl)
+    | _                            => CP.assign (doc a) rvl
     end.
 
-  Definition CUpdate {a : arity}(o : op a) {k} {ty : type k} (a : arg cvar _ ty) (y : Doc) :=
-    match a with
-    | @Language.index _ _ littleE ty _ _ => CAssign o a (rval a) y
-    | @Language.index _ _ bigE ty _ _    => CAssign o a (rval a) y
-    | _                                  => doc a <_> opDoc o <> EQUALS <_> y
+  Definition CUpdate {a : arity}(o : op a) {aK : argKind}{k} {ty : type k}
+             (x : arg cvar aK _ ty) (y : Doc) :=
+    match x with
+    | Language.index _ _  => CAssign o  x (rval x) y
+    | _                   => doc x <_> opDoc o <> EQUALS <_> y
     end.
 
   Global Instance assignment_C_print : PrettyPrint (assignment cvar) | 0
@@ -133,22 +150,32 @@ Section PrintingInstruction.
                               | update2 o x y   => CUpdate o x (rval y)
                               | @assign2 _ ty u x y   =>
                                 match u with
-                                | bitComp  | nop | mov => CAssign u x empty (rval y)
+                                | bitComp  | nop => CAssign u x empty (rval y)
                                 | shiftL n | shiftR n  => CAssign u x (rval y) (decimal n)
                                 | rotL n   | rotR n    => CRot u x (rval y)
                                 end
                               | @update1 _ ty u x      =>
                                 match u with
-                                | bitComp  | nop | mov => CAssign u x empty (rval x)
+                                | bitComp  | nop => CAssign u x empty (rval x)
                                 | shiftL n | shiftR n  => CUpdate u x (decimal n)
                                 | rotL n   | rotR n    => CRot u x (rval x)
                                 end
                               end
        }.
 
+  (*
+
+  Definition moveToCopy {b}{e}{ty}(x : cvar (array b e ty))( i : Indices x ) (y : cvar ty)
+    : assignment cvar
+    := assign2 nop (Language.index x i) (var y).
+*)
+
+
   Global Instance instruction_C_print : PrettyPrint (instruction cvar) | 0
     := { doc := fun i => match i with
                          | assign a => doc a
+                         | moveTo x i y => doc  (assign2 nop (Language.index x i) (var y))
+                         | destroy a     => CP.comment (text "destroy" <_> doc a)
                          end
        }.
 
@@ -168,7 +195,7 @@ Module C <: ARCH.
   Definition machineVar := cvar.
 
   Definition HostEndian := hostE.
-  
+
   Definition Word := Word64.
 
   Definition embedRegister := inRegister.

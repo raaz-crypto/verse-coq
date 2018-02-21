@@ -25,8 +25,6 @@ of the value that the variable is required to hold.
 
 Definition VariableT := forall {k : kind}, type k -> Type.
 
-Print VariableT.
-
 
 (** A declaration is just a sequence of types *)
 Definition Declaration              := list (some type).

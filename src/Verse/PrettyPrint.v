@@ -133,7 +133,7 @@ End Internal.
 Definition decimal n := text (Internal.nat_to_str n).
 
 Class PrettyPrint a := { doc : a -> Doc}.
-
+Instance doc_pretty    : PrettyPrint Doc    := { doc := fun x => x }.
 Instance string_pretty : PrettyPrint string := { doc := text    }.
 Instance nat_pretty    : PrettyPrint nat    := { doc := decimal }.
 
