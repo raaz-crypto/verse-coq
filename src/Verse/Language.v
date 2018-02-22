@@ -45,7 +45,7 @@ Section Language.
 
 
   (** Type that captures a memory variables indices. *)
-  Definition Indices {b e ty} (_ : v memory (array b e ty)) := { i : nat | i < b }.
+  Definition Indices {a : align}{b e ty} (_ : v memory (array a b e ty)) := { i : nat | i < b }.
 
 
   (** ** Arguments.
@@ -60,7 +60,7 @@ Section Language.
   Inductive arg : argKind -> VariableT :=
   | var   : forall aK, forall {k} {ty : type k}, v k ty -> arg aK k ty
   | const : forall {ty : type direct}, constant ty  -> arg rval direct ty
-  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)),
+  | index : forall aK, forall {a : align}{b : nat}{e : endian}{ty : type direct} (x : v memory (array a b e ty)),
         Indices x  -> arg aK direct ty
   .
 
@@ -95,7 +95,7 @@ program block is merely a list of instructions.
 *)
   Inductive instruction : Type :=
   | assign  : assignment -> instruction
-  | moveTo  : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
+  | moveTo  : forall a b e ty, forall (x : v memory (array a b e ty)), Indices x -> v direct ty -> instruction
   | destroy : forall {k ty}, v k ty -> instruction
   .
 
@@ -114,7 +114,7 @@ program block is merely a list of instructions.
         end
     in
     match a  with
-    | @index _ _ ne _ _ _ => eqEndb ne nHostE
+    | @index _ _ _ ne _ _ _ => eqEndb ne nHostE
     | _                 => false
     end.
 
@@ -145,7 +145,7 @@ program block is merely a list of instructions.
 
 End Language.
 
-Arguments Indices [v b e ty] _.
+Arguments Indices [v a b e ty] _.
 
 (**
 
@@ -169,13 +169,13 @@ Arguments finalise [ty v] _.
 
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
-Arguments index [v aK b e ty]  _ _.
+Arguments index [v aK a b e ty]  _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-Arguments moveTo [v b e ty] _ _ _.
+Arguments moveTo [v a b e ty] _ _ _.
 Arguments destroy [v k ty ] _.
 (* end hide *)
 
@@ -236,12 +236,12 @@ Section ArrayIndexing.
      1]. Mostly used in conjunction with [foreach]
 
    *)
-  Definition indices (a : v memory (array b e ty)) :  list (Indices a)
+  Definition indices {a : align}(arr : v memory (array a b e ty)) :  list (Indices arr)
     := loopover b.
 
   (** This function is similar to indices but gives the indices in the
       reverse order.  *)
-  Definition indices_reversed a := List.rev (indices a).
+  Definition indices_reversed {a : align}(arr : v memory (array a b e ty)) := List.rev (indices arr).
 
 
   (**
@@ -449,7 +449,7 @@ Section PrettyPrintingInstruction.
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
                          | assign a => doc a
-                         | @moveTo _ _ e _  a (exist _ i _) b
+                         | @moveTo _ _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          | destroy v => text "destroy" <_> doc v
                          end
@@ -473,7 +473,7 @@ Module Demo.
   |  X : MyVar direct Word8
   |  Y : MyVar direct Word64
   |  Z : MyVar direct (Vector128 Word32)
-  |  A : MyVar memory (array 42 bigE Word8)
+  |  A : MyVar memory (Array 42 bigE Word8)
   .
 
 
