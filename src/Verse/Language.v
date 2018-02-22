@@ -265,7 +265,7 @@ End ArrayIndexing.
 
 (* begin hide *)
 
-Arguments indices [v b e ty] _.
+Arguments indices [v b e ty] _ _.
 Arguments foreach [v b] _ _.
 
 (* end hide *)
