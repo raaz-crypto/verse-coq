@@ -14,4 +14,4 @@ src/Verse.v
 src/Verse/TestCode.v
 src/Verse/TestIteratorCode.v
 src/Verse/DecFacts.v
-
+src/Verse/Semantics.v
