@@ -3,13 +3,9 @@ Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
 
-Require Import Equality.
-Require Import Eqdep_dec.
 Require Import Bool.
 Require Import Omega.
 Require Import List.
-Import String.
-Import Nat.
 Import ListNotations.
 
 (* end hide *)
