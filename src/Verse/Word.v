@@ -4,14 +4,13 @@ Require Import Verse.Error.
 Require Import Vector.
 Require Import Coq.NArith.Ndigits.
 Require Import BinNums.
-
+Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
 
 Local Open Scope N_scope.
 
-Require Import Verse.DecFacts.
 (* end hide *)
 
 (** * Words.

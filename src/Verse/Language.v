@@ -71,8 +71,6 @@ Section Language.
   Definition larg := arg lval.
   Definition rarg := arg rval.
 
-  Let directarg := sigT (arg direct).
-  
   (** ** Assignment statement.
 
       One of the most important class of statement is the assignment
