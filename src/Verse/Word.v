@@ -8,7 +8,9 @@ Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
+
 Local Open Scope N_scope.
+
 (* end hide *)
 
 (** * Words.
@@ -27,7 +29,6 @@ Arguments bits [n] _.
 
 (** Words measured in units of bytes *)
 Definition bytes n := t (8 * n).
-
 
 (* Errors while encoding *)
 Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.

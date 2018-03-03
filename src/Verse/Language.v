@@ -2,6 +2,7 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
+
 Require Import Bool.
 Require Import Omega.
 Require Import List.
@@ -28,7 +29,6 @@ first.
 *)
 
 Require Export Verse.Language.Operators.
-
 
 (** * The abstract syntax tree.
 
@@ -67,8 +67,6 @@ Section Language.
   Definition larg := arg lval.
   Definition rarg := arg rval.
 
-
-
   (** ** Assignment statement.
 
       One of the most important class of statement is the assignment
@@ -99,7 +97,7 @@ program block is merely a list of instructions.
   | destroy : forall {k ty}, v k ty -> instruction
   .
 
-  Definition block := list instruction.
+  Global Definition block := list instruction.
 
   (* begin hide *)
 
@@ -146,6 +144,7 @@ program block is merely a list of instructions.
 End Language.
 
 Arguments Indices [v a b e ty] _.
+
 
 (**
 

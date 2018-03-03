@@ -1,8 +1,7 @@
 Require Import Verse.Error.
 Require Import Verse.Word.
-Require Import Nat.
-
-
+Require Import Arith.
+Import Nat.
 
 (** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)

@@ -1,7 +1,9 @@
-Require Import String.
 Require Import Verse.Types.Internal.
 Require Import Verse.Error.
+
 Require Import Nat.
+
+Require Import Vector.
 
 (** * Types in verse.
 
@@ -54,6 +56,25 @@ Definition Vector128 (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
 Definition constant (ty : type direct) := StandardType.typeDenote ty.
+
+(* An interpretation of the standard constants in a given semantics *)
+
+Module Type CONST_SEMANTICS (W : WORD_SEMANTICS).
+  Parameter constWordDenote : forall n, StandardWord.wordDenote n -> W.wordDenote n.
+End CONST_SEMANTICS.
+
+(* To lift the interpretation of constant words to other types *)
+Module ConstDenote (W : WORD_SEMANTICS) (C : CONST_SEMANTICS W).
+
+  Module T := TypeDenote W.
+
+  Fixpoint constDenote {ty : type direct} :=
+    match ty in type direct return constant ty -> T.typeDenote ty with
+    | word n        => @C.constWordDenote n
+    | multiword m n => map (@C.constWordDenote n)
+    end.
+
+End ConstDenote.
 
 (* begin hide *)
 Require Import PrettyPrint.
