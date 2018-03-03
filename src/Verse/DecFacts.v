@@ -51,15 +51,14 @@ Scheme Equality for align.
 Lemma ty_eq_dec : forall {k}, eq_dec (type k).
   unfold eq_dec; unfold decidable.
   destruct k.
-
-  abstract (dependent destruction t1; dependent destruction t2; [try (right; congruence) ..];
-            [destruct (nat_eq_dec n n0); [left | right ..]; try congruence |
-             destruct (nat_eq_dec n n1), (nat_eq_dec n0 n2); [left | right .. ]; try congruence])
+  abstract (dependent destruction t1; dependent destruction t2; [try (right; inversion 1; contradiction) ..];
+            [destruct (nat_eq_dec n n0); [left; congruence | right ; inversion 1; contradiction..] |
+             destruct (nat_eq_dec n n1), (nat_eq_dec n0 n2); [left; congruence | right; inversion 1; contradiction .. ]])
   using directTy_eq_dec.
 
   dependent destruction t1; dependent destruction t2.
   destruct (align_eq_dec a a0); destruct (nat_eq_dec n n0); destruct (endian_eq_dec e e0); destruct (directTy_eq_dec t1 t2);
-    first [ left; congruence | right; congruence ].
+    first [ left; congruence | right; inversion 1; contradiction ].
 Qed.
 
 Lemma bytes_eq_dec : forall (n : nat), eq_dec (bytes n).
@@ -82,7 +81,7 @@ Lemma op_eq_dec {a} : eq_dec (op a).
   unfold eq_dec; unfold decidable.
   destruct a; dependent destruction t1; dependent destruction t2;
     solve [left; congruence |
-           right; congruence |
-           destruct (nat_eq_dec n n0); solve [left; congruence | right; congruence]
+           right; inversion 1; contradiction |
+           destruct (nat_eq_dec n n0); solve [left; congruence | right; inversion 1; contradiction]
           ].
 Qed.
