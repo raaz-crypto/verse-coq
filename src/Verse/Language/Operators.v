@@ -4,6 +4,8 @@ Import Nat.
 Import Basics.
 Require Import NArith.
 
+Set Implicit Arguments.
+
 (** * Arithmetic and bitwise operators.
 
 Most architectures allow various basic arithmetic and bitwise
@@ -48,10 +50,19 @@ from its meaning on word types. We start with the meaning of [arity].
 
 *)
 
-Definition ArityDenote (a : arity) t :=  match a with
-                                         | binary => t -> t -> t
-                                         | unary  => t -> t
-                                         end.
+Definition LArityDenote a t : Type  := match a with
+                                       | unary    => t
+                                       | binary   => t * t
+                                       | ternary  => t * t * t
+                                       end.
+
+Definition ArityDenote larity rarity (t : Type) :=
+  let dest := LArityDenote larity t in
+  match rarity with
+  | unary   => t -> dest
+  | binary  => t -> t -> dest
+  | ternary => t -> t -> t -> dest
+  end.
 
 
 (**
@@ -64,40 +75,59 @@ words to all types.
 
 (* Require Import Verse.Types.*)
 
-Module Type OP_SEMANTICS(W : WORD_SEMANTICS).
-  Parameter wordOpDenote    : forall a n, op a  -> ArityDenote a (W.wordDenote n).
+Module Type OP_SEMANTICS (W : WORD_SEMANTICS).
+  Parameter wordOpDenote    : forall la ra n, op la ra -> ArityDenote la ra (W.wordDenote n).
 End OP_SEMANTICS.
 
 Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
 
   Module T := TypeDenote W.
 
-  Local Definition liftOpDenote m typ : forall a, (op a -> ArityDenote a typ)
-                                                    -> op a -> ArityDenote a (Vector.t typ m) :=
-    fun a => match a with
-             | binary => fun opD (op : op binary) => Vector.map2 (opD op)
-             | unary  => fun opD (op : op unary)  => Vector.map  (opD op)
-             end.
+  Local Definition vecSplit T1 T2 m (v : Vector.t (T1 * T2) m) :=
+    (Vector.map fst v, Vector.map snd v).
 
-  Fixpoint opDenote {a : arity}{k : kind}(t : type k) : op a -> ArityDenote a (T.typeDenote t) :=
-    match t as t0 return op a -> ArityDenote a (T.typeDenote t0) with
-    | word n => O.wordOpDenote a n
-    | multiword m n   => liftOpDenote (2 ^ m) (T.typeDenote (word n)) a (O.wordOpDenote a n)
-    | array _ n _ tw    => liftOpDenote n (T.typeDenote tw) a (opDenote tw)
+  Local Definition vecSplit2 T1 T2 T3 m (v : Vector.t (T1 * T2 * T3) m) :=
+    (vecSplit (Vector.map fst v), Vector.map snd v).
+
+  Local Definition vecApply T1 T2 m (v : Vector.t (T1 -> T2) m) := Vector.map2 apply v.
+
+  Local Definition liftOpDenote m typ la ra : (op la ra -> ArityDenote la ra typ) ->
+                                              op la ra -> ArityDenote la ra (Vector.t typ m) :=
+    match la, ra return (op la ra -> ArityDenote la ra typ) -> op la ra -> ArityDenote la ra (Vector.t typ m) with
+    | unary, unary   => fun opD op v => Vector.map (opD op) v
+    | binary, unary  => fun opD op v => vecSplit (Vector.map (opD op) v)
+    | ternary, unary => fun opD op v => vecSplit2 (Vector.map (opD op) v)
+
+    | unary, binary   => fun opD op v => Vector.map2 (opD op) v
+    | binary, binary  => fun opD op v1 v2 => vecSplit (Vector.map2 (opD op) v1 v2)
+    | ternary, binary => fun opD op v1 v2 => vecSplit2 (Vector.map2 (opD op) v1 v2)
+
+    | unary, ternary   => fun opD op v1 v2 v3 => Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3
+    | binary, ternary  => fun opD op v1 v2 v3 => vecSplit (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3)
+    | ternary, ternary => fun opD op v1 v2 v3 => vecSplit2 (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3)
     end.
 
-  Arguments opDenote [a k] t  _.
+  Fixpoint opDenote {la ra : arity}{k : kind}(t : type k) : op la ra -> ArityDenote la ra (T.typeDenote t) :=
+    match t as t0 return op la ra -> ArityDenote la ra (T.typeDenote t0) with
+    | word n => O.wordOpDenote n
+    | multiword m n   => liftOpDenote (2 ^ m) (T.typeDenote (word n)) (O.wordOpDenote n)
+    | array _ n _ tw    => liftOpDenote n (T.typeDenote tw) (opDenote tw)
+    end.
+
 End OpDenote.
 
 (** We now define the semantics of the operator in the standard interpretation *)
 Module StandardWordOps : OP_SEMANTICS (StandardWord).
   Import Verse.Word.
-  Definition wordOpDenote a n (o : op a) :=
-    match o in op a0 return ArityDenote a0 (StandardWord.wordDenote n) with
+  Definition wordOpDenote la ra n (o : op la ra) :=
+    let N_eucl (q r : N) := ((q / r)%N, N.modulo q r) in
+    match o in op la0 ra0 return ArityDenote la0 ra0 (StandardWord.wordDenote n) with
     | plus         => Word.numBinOp N.add
     | minus        => Word.numBinOp N.sub
     | mul          => Word.numBinOp N.mul
+    | exmul        => Word.numOverflowBinop N.mul
     | quot         => Word.numBinOp N.div
+    | eucl         => Word.numBigargExop N_eucl
     | rem          => Word.numBinOp N.modulo
     | bitOr        => AndW (8 * 2^n)
     | bitAnd       => OrW  (8 * 2^n)
