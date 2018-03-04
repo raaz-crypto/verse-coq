@@ -391,12 +391,14 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg v aK k ty)
     := { doc := argdoc ty }.
 
-  Definition opDoc {a : arity}(o : op a) :=
+  Definition opDoc {la ra : arity}(o : op la ra) :=
     match o with
     | plus     => text "+"
     | minus    => text "-"
     | mul      => text "*"
+    | exmul    => text "**"
     | quot     => text "/"
+    | eucl     => text "//"
     | rem      => text "%"
     | bitOr    => text "|"
     | bitAnd   => text "&"
@@ -410,8 +412,8 @@ Section PrettyPrintingInstruction.
     end.
 
   Definition EQUALS := text "=".
-  Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
-  Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
+  Definition mkAssign {la ra : arity}(o : op la ra)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Definition mkRot    {k}(ty : type k)(o : uniop) (x y : Doc)  :=
     let rotSuffix := match ty with
                      | word w     => decimal (2 ^ (w + 3))%nat
                      | multiword v w => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
@@ -423,7 +425,7 @@ Section PrettyPrintingInstruction.
     | _      => text "BadOp"
     end.
 
-  Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Definition mkUpdate {a : arity}(o : simop a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
   Local Definition convertEndian e d :=
     match e with
     | bigE => text "bigEndian" <> paren d
@@ -431,9 +433,17 @@ Section PrettyPrintingInstruction.
     | _       => d
     end.
 
+  Local Definition mkPair x y := paren (commaSep [x; y]).
+
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
     := { doc := fun assgn =>  match assgn with
+                              | extassign4 o lx ly rx ry rz => mkAssign o (mkPair (doc lx) (doc ly))
+                                                                        (mkPair (doc rx) (doc ry))
+                                                                        (doc rz)
+                              | extassign3 o lx ly rx ry    => mkAssign o (mkPair (doc lx) (doc ly))
+                                                                        (doc rx)
+                                                                        (doc ry)
                               | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
                               | @assign2 _ ty u x y   =>
