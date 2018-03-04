@@ -74,6 +74,10 @@ Section Language.
 
    *)
   Inductive assignment : Type :=
+  | extassign4
+    : forall ty, op binary ternary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+  | extassign3
+    : forall ty, op binary binary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
   | assign3
     : forall ty, binop -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
   (** e.g. x = y + z *)
@@ -103,7 +107,7 @@ program block is merely a list of instructions.
 
   (* Some instruction error checking code *)
 
-  Let isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
+  Definition isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
@@ -124,6 +128,8 @@ program block is merely a list of instructions.
     | assign e  => match e with
                    | assign2 _ nop _ _    => false
                    | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+                   | extassign4 _ _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
+                   | extassign3 _ _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
                    | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update1 _ _ a1       => (isEndian nHostE a1)
@@ -138,7 +144,6 @@ program block is merely a list of instructions.
       := bool_dec (endianError e i) false.
 
   (* end hide *)
-
 
 
 End Language.
@@ -169,6 +174,8 @@ Arguments finalise [ty v] _.
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
 Arguments index [v aK a b e ty]  _ _.
+Arguments extassign3 [v ty] _ _ _ _ _.
+Arguments extassign4 [v ty] _ _ _ _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
