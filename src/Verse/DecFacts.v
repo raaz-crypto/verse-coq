@@ -84,8 +84,8 @@ Ltac undep_eq :=
   match goal with
   | [ H : existT _ _ ?a = existT _ _ ?b |- _ ]
     => let He := fresh H in
-       assert (He : a = b); [refine (inj_pair2_eq_dec _ _ _ _ _ _ H);
-                             auto with decidable_prop | ];
+       assert (He : a = b) by (refine (inj_pair2_eq_dec _ _ _ _ _ _ H);
+                             auto with decidable_prop);
        rewrite He in *; clear H
   end.
 
@@ -97,8 +97,8 @@ Ltac crush_eq_dec := repeat aux_match; aux_solve
                      | [ H1 : ?T, H2 : ?T |- _ ]             => aux_destruct H1 H2 T
                      end)
   with aux_destruct H1 H2 T :=
-                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T);
-                                                    [solve_decidable | ]; destruct (T_eq_dec H1 H2) as [ eq | ];
+                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by solve_decidable;
+                                                    destruct (T_eq_dec H1 H2) as [ eq | ];
                                                     [ symmetry in eq; subst | ..]; clear T_eq_dec
   with aux_solve := try solve [left; constructor; trivial |
                                right; inversion 1; repeat undep_eq; try congruence; easy ].
