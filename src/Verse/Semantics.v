@@ -71,8 +71,24 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
                               | InvalidatedAt v iAt => InvalidUse v iAt i
                               end)
           end in
+      let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty) (val : T.typeDenote ty * T.typeDenote ty + {Invalid}) :=
+          match val with
+          | {- (val1, val2) -} => {- largUpdate a1 {- val1 -} (largUpdate a2 {- val2 -} S) -}
+          | error e => error (match e with
+                              | InvalidatedAt v iAt => InvalidUse v iAt i
+                              end)
+          end in
       match i with
       | assign ass => match ass with
+                      | extassign4 op la1 la2 ra1 ra2 ra3 =>
+                        validatePair la1 la2 (OP.opDenote _ op
+                                                          <$> (argDenote S ra1)
+                                                          <*> (argDenote S ra2)
+                                                          <*> (argDenote S ra3))
+                      | extassign3 op la1 la2 ra1 ra2     =>
+                        validatePair la1 la2 (OP.opDenote _ op
+                                                          <$> (argDenote S ra1)
+                                                          <*> (argDenote S ra2))
                       | assign3 op la ra1 ra2 => validate la (OP.opDenote _ op
                                                                           <$> (argDenote S ra1)
                                                                           <*> (argDenote S ra2))

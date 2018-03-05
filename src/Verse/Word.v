@@ -8,6 +8,8 @@ Require Import BigNumPrelude.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
+Require Import Arith.
+Import Basics.
 
 Local Open Scope N_scope.
 
@@ -145,6 +147,26 @@ Definition hex {n} (u : t n) : string:=
   | bits bv => Base16.NToHex n (Bv2N n bv)
   end.
 
+Local Definition mapPair {T U} (f : T -> U) (p : T * T) :=
+      let '(p1, p2) := p in (f p1, f p2).
+
+(* This function lifts numeric operations with overflow *)
+Definition numOverflowBinop {n} f (x y : t n) : t n * t n :=
+  let break_num m := (m / 2 ^ (N.of_nat n), m)
+  in
+  match x, y with
+  | bits xv, bits yv =>  mapPair (compose (@bits n) (N2Bv_gen n))
+                                 (break_num (f (Bv2N n xv) (Bv2N n yv)))
+  end.
+
+(* This function lifts a numeric binop with one big argument and two outputs *)
+Definition numBigargExop {n} f (x y z : t n) : t n * t n :=
+  let make_big x y := (2 ^ (N.of_nat n) * x + y) in
+  match x, y, z with
+  | bits xv, bits yv, bits zv => mapPair (compose (@bits n) (N2Bv_gen n))
+                                         (f (make_big (Bv2N n xv) (Bv2N n yv))
+                                            (Bv2N n zv))
+  end.
 
 (** This function lifts a numeric binary function to the word type *)
 Definition numBinOp {n} f  (x y : t n) : t n :=

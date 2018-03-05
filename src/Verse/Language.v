@@ -74,6 +74,10 @@ Section Language.
 
    *)
   Inductive assignment : Type :=
+  | extassign4
+    : forall ty, op binary ternary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+  | extassign3
+    : forall ty, op binary binary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
   | assign3
     : forall ty, binop -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
   (** e.g. x = y + z *)
@@ -103,7 +107,7 @@ program block is merely a list of instructions.
 
   (* Some instruction error checking code *)
 
-  Let isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
+  Definition isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
@@ -124,6 +128,8 @@ program block is merely a list of instructions.
     | assign e  => match e with
                    | assign2 _ nop _ _    => false
                    | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+                   | extassign4 _ _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
+                   | extassign3 _ _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
                    | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
                    | update1 _ _ a1       => (isEndian nHostE a1)
@@ -138,7 +144,6 @@ program block is merely a list of instructions.
       := bool_dec (endianError e i) false.
 
   (* end hide *)
-
 
 
 End Language.
@@ -169,6 +174,8 @@ Arguments finalise [ty v] _.
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
 Arguments index [v aK a b e ty]  _ _.
+Arguments extassign3 [v ty] _ _ _ _ _.
+Arguments extassign4 [v ty] _ _ _ _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
@@ -384,12 +391,14 @@ Section PrettyPrintingInstruction.
   Global Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg v aK k ty)
     := { doc := argdoc ty }.
 
-  Definition opDoc {a : arity}(o : op a) :=
+  Definition opDoc {la ra : arity}(o : op la ra) :=
     match o with
     | plus     => text "+"
     | minus    => text "-"
     | mul      => text "*"
+    | exmul    => text "**"
     | quot     => text "/"
+    | eucl     => text "//"
     | rem      => text "%"
     | bitOr    => text "|"
     | bitAnd   => text "&"
@@ -403,8 +412,8 @@ Section PrettyPrintingInstruction.
     end.
 
   Definition EQUALS := text "=".
-  Definition mkAssign {a : arity}(o : op a)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
-  Definition mkRot    {k}(ty : type k)(o : op unary) (x y : Doc)  :=
+  Definition mkAssign {la ra : arity}(o : op la ra)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Definition mkRot    {k}(ty : type k)(o : uniop) (x y : Doc)  :=
     let rotSuffix := match ty with
                      | word w     => decimal (2 ^ (w + 3))%nat
                      | multiword v w => text "V" <> decimal (2^v * 2^(w+3)) <> text "_" <> decimal (2^(w +3))
@@ -416,7 +425,7 @@ Section PrettyPrintingInstruction.
     | _      => text "BadOp"
     end.
 
-  Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Definition mkUpdate {a : arity}(o : simop a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
   Local Definition convertEndian e d :=
     match e with
     | bigE => text "bigEndian" <> paren d
@@ -424,9 +433,17 @@ Section PrettyPrintingInstruction.
     | _       => d
     end.
 
+  Local Definition mkPair x y := paren (commaSep [x; y]).
+
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
     := { doc := fun assgn =>  match assgn with
+                              | extassign4 o lx ly rx ry rz => mkAssign o (mkPair (doc lx) (doc ly))
+                                                                        (mkPair (doc rx) (doc ry))
+                                                                        (doc rz)
+                              | extassign3 o lx ly rx ry    => mkAssign o (mkPair (doc lx) (doc ly))
+                                                                        (doc rx)
+                                                                        (doc ry)
                               | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
                               | update2 o x y   => mkUpdate o (doc x) (doc y)
                               | @assign2 _ ty u x y   =>

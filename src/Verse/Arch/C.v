@@ -115,7 +115,7 @@ Section PrintingInstruction.
     | _                              => doc a
     end.
 
-  Definition CAssign {a : arity}{aK : argKind}(o : op a) {k} {ty : type k}
+  Definition CAssign {la ra : arity}{aK : argKind}(o : op la ra) {k} {ty : type k}
              (x : arg cvar aK _ ty) (y z : Doc)  :=
     let lhs := y <_> opDoc o <_> z
     in
@@ -125,7 +125,7 @@ Section PrintingInstruction.
     end.
 
 
-  Definition CRot (ty : type direct) (o : op unary) (a : larg cvar _ ty) (y : Doc)  :=
+  Definition CRot (ty : type direct) (o : uniop) (a : larg cvar _ ty) (y : Doc)  :=
     let rvl := match o with
                | rotL n => text "rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | rotR n => text "rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
@@ -137,7 +137,7 @@ Section PrintingInstruction.
     | _                                 => CP.assign (doc a) rvl
     end.
 
-  Definition CUpdate {a : arity}(o : op a) {aK : argKind}{k} {ty : type k}
+  Definition CUpdate {la ra : arity}(o : op la ra) {aK : argKind}{k} {ty : type k}
              (x : arg cvar aK _ ty) (y : Doc) :=
     match x with
     | Language.index _ _  => CAssign o  x (rval x) y
@@ -160,6 +160,7 @@ Section PrintingInstruction.
                                 | shiftL n | shiftR n  => CUpdate u x (decimal n)
                                 | rotL n   | rotR n    => CRot u x (rval x)
                                 end
+                              | _ => text "BadInst"
                               end
        }.
 
