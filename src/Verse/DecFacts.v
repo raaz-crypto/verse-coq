@@ -65,20 +65,10 @@ Definition bool_eq_dec : eq_dec bool := bool_dec.
 Hint Resolve dec_True dec_False dec_or dec_and dec_imp dec_not dec_iff nat_eq_dec bool_eq_dec
  : decidable_prop.
 
-(** [solve_decidable using lib] will solve goals about the
-    decidability of a proposition, assisted by an auxiliary
-    database of lemmas.  The database is intended to contain
-    lemmas stating the decidability of base propositions,
-    (e.g., the decidability of equality on a particular
-    inductive type). *)
-
-Tactic Notation "solve_decidable" "using" ident(db) :=
-  intros;
+Ltac solve_decidable :=
   match goal with
-  | |- decidable _ => solve [ auto 100 with decidable_prop db ]
+  | |- decidable _ => solve [ auto 100 with decidable_prop core ]
   end.
-
-Tactic Notation "solve_decidable" := solve_decidable using core.
 
 Ltac undep_eq :=
   match goal with
@@ -97,12 +87,12 @@ Ltac crush_eq_dec := repeat aux_match; aux_solve
                      | [ H1 : ?T, H2 : ?T |- _ ]             => aux_cases H1 H2 T
                      end)
   with aux_cases H1 H2 T :=
-                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by solve_decidable;
+                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by (intros; solve_decidable);
                                                     destruct (T_eq_dec H1 H2) as [ eq | ];
                                                     [ subst | ..]; clear T_eq_dec
   (* Heuristic for pairing up four hypothesis of the same type by alternation *)
   with aux_cases2 H1 H2 T :=
-                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by solve_decidable;
+                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by (intros; solve_decidable);
                                                     destruct (T_eq_dec H1 H2) as [ eq | ];
                                                     [ symmetry in eq; subst | ..]; clear T_eq_dec
   with aux_solve := try solve [left; constructor; trivial |
