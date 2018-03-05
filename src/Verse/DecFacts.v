@@ -93,10 +93,15 @@ Ltac crush_eq_dec := repeat aux_match; aux_solve
   with aux_match :=  (intros;
                      match goal with
                      | [ H1 : ?T, H2 : ?T, _ : _ <> _ |- _ ] => idtac
-                     | [ H1 : ?T, H2 : ?T, H3 : ?T |- _ ]    => aux_destruct H1 H3 T
-                     | [ H1 : ?T, H2 : ?T |- _ ]             => aux_destruct H1 H2 T
+                     | [ H1 : ?T, H2 : ?T, H3 : ?T |- _ ]    => aux_cases2 H1 H3 T
+                     | [ H1 : ?T, H2 : ?T |- _ ]             => aux_cases H1 H2 T
                      end)
-  with aux_destruct H1 H2 T :=
+  with aux_cases H1 H2 T :=
+                       let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by solve_decidable;
+                                                    destruct (T_eq_dec H1 H2) as [ eq | ];
+                                                    [ subst | ..]; clear T_eq_dec
+  (* Heuristic for pairing up four hypothesis of the same type by alternation *)
+  with aux_cases2 H1 H2 T :=
                        let T_eq_dec := fresh "T" in assert (T_eq_dec : eq_dec T) by solve_decidable;
                                                     destruct (T_eq_dec H1 H2) as [ eq | ];
                                                     [ symmetry in eq; subst | ..]; clear T_eq_dec
@@ -140,9 +145,9 @@ Lemma ty_eq_dec : forall {k}, eq_dec (type k).
   induction k.
   abstract (dependent destruction A1; dependent destruction A2; crush_eq_dec) using directTy_eq_dec.
   remember directTy_eq_dec.
-  dependent destruction A1; dependent destruction A2.
+  dependent destruction A1; dependent destruction A2;
   crush_eq_dec.
-Qed exporting.
+Qed.
 
 Lemma bytes_eq_dec : forall (n : nat), eq_dec (bytes n).
   destruct A1. destruct A2.
