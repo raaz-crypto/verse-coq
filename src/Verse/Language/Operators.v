@@ -120,14 +120,13 @@ End OpDenote.
 Module StandardWordOps : OP_SEMANTICS (StandardWord).
   Import Verse.Word.
   Definition wordOpDenote la ra n (o : op la ra) :=
-    let N_eucl (q r : N) := ((q / r)%N, N.modulo q r) in
     match o in op la0 ra0 return ArityDenote la0 ra0 (StandardWord.wordDenote n) with
     | plus         => Word.numBinOp N.add
     | minus        => Word.numBinOp N.sub
     | mul          => Word.numBinOp N.mul
     | exmul        => Word.numOverflowBinop N.mul
     | quot         => Word.numBinOp N.div
-    | eucl         => Word.numBigargExop N_eucl
+    | eucl         => Word.numBigargExop N.div_eucl
     | rem          => Word.numBinOp N.modulo
     | bitOr        => AndW (8 * 2^n)
     | bitAnd       => OrW  (8 * 2^n)
