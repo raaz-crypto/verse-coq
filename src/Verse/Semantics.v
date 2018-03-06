@@ -35,7 +35,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Definition argDenote (S : State) {k} {ty : type k} {aK} (a : arg v aK _ ty) : T.typeDenote ty + {Invalid} :=
       match a in (arg _ _ _ ty) return T.typeDenote ty + {Invalid} with
       | var av           => S _ _ av
-      | Language.const c => {- C.constDenote c -}
+      | Language.Ast.const c => {- C.constDenote c -}
       | index x i        => (fun y => nth_order y (proj2_sig i)) <$> S _ _ x
       end.
 

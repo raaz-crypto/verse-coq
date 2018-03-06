@@ -109,9 +109,10 @@ Section PrintingInstruction.
    | _       => v
    end.
 
+
   Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK k ty) :=
     match a with
-    | @Language.index _ _ _ _ e ty _ _ => fromMemory e ty (doc a)
+    | @Language.Ast.index _ _ _ _ e ty _ _ => fromMemory e ty (doc a)
     | _                              => doc a
     end.
 
@@ -120,7 +121,7 @@ Section PrintingInstruction.
     let lhs := y <_> opDoc o <_> z
     in
     match x with
-    | @Language.index _ _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
+    | @Language.Ast.index _ _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
     | _                                => CP.assign (doc x) lhs
     end.
 
@@ -133,14 +134,14 @@ Section PrintingInstruction.
                end
     in
     match a with
-    | @Language.index _ _ _ _ e ty _ _  => CP.assign (doc a) (toMemory e ty rvl)
+    | @Language.Ast.index _ _ _ _ e ty _ _  => CP.assign (doc a) (toMemory e ty rvl)
     | _                                 => CP.assign (doc a) rvl
     end.
 
   Definition CUpdate {la ra : arity}(o : op la ra) {aK : argKind}{k} {ty : type k}
              (x : arg cvar aK _ ty) (y : Doc) :=
     match x with
-    | Language.index _ _  => CAssign o  x (rval x) y
+    | Language.Ast.index _ _  => CAssign o  x (rval x) y
     | _                   => doc x <_> opDoc o <> EQUALS <_> y
     end.
 
@@ -175,7 +176,7 @@ Section PrintingInstruction.
   Global Instance instruction_C_print : PrettyPrint (instruction cvar) | 0
     := { doc := fun i => match i with
                          | assign a => doc a
-                         | moveTo x i y => doc  (assign2 nop (Language.index x i) (var y))
+                         | moveTo x i y => doc  (assign2 nop (Language.Ast.index x i) (var y))
                          | destroy a     => CP.comment (text "destroy" <_> doc a)
                          end
        }.
@@ -201,9 +202,9 @@ Module C <: ARCH.
 
   Definition embedRegister := inRegister.
 
-  Definition supportedInst := Language.supportedInst machineVar hostE.
+  Definition supportedInst := Language.Ast.supportedInst machineVar hostE.
 
-  Definition instCheck := Language.instCheck machineVar hostE.
+  Definition instCheck := Language.Ast.instCheck machineVar hostE.
 
   Inductive typesSupported : forall k, Ensemble (type k) :=
   | uint8           : typesSupported Word8

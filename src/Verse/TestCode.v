@@ -28,7 +28,7 @@ Section TestFunction.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ].
   Defined.
 
-  Definition testFunction : list (instruction variable).
+  Definition testFunction : block variable.
     verse
     [ num ::= tmp [+] Ox "abcd";
       A   ::= A [+] B;
