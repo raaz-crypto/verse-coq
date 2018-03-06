@@ -129,22 +129,20 @@ to access the cached values.
 
   Require Vector.
 
-  Definition Cache (arr : v memory (array a b e ty)) := Indices arr -> v direct ty.
+  Definition Cache (arr : v memory (array a b e ty)) := forall i, i < b  -> v direct ty.
 
   Definition cache (arr : v memory (array a b e ty)) (regs : Vector.t (v direct ty) b)
-    : Cache arr
-    := fun ix => match ix with
-              | exist _ i pf => Vector.nth_order regs pf
-              end.
+    : Cache arr := fun _ pf  => Vector.nth_order regs pf.
+
 
 
   (** This macro loads the array to the corresponding chached variables *)
   Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache arr) : block v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
-                      let arrI := index arr (exist _ i pf) in
-                      let chI := var (ch ix) in
-                      [ assign (assign2 nop arrI chI) ]
+                      let arrI := index arr ix in
+                      let chI := var (ch i pf) in
+                      [ assign (assign2 nop chI arrI) ]
             ).
 
   (**
@@ -165,8 +163,7 @@ to access the cached values.
   Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache arr)  : block v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
-                      [ moveTo arr ix (ch ix) ]
-            ).
+                      [ moveTo arr ix (ch i pf) ]).
 
   (**
       This function is similar [moveCacheBack], except that it
@@ -176,9 +173,9 @@ to access the cached values.
   Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache arr) : block v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
-                      let arrI := index arr (exist _ i pf) in
-                      let chI := var (ch ix) in
-                      [ assign (assign2 nop chI arrI) ]
+                      let arrI := index arr ix in
+                      let chI := var (ch i pf) in
+                      [ assign (assign2 nop arrI chI) ]
             ).
 
 
