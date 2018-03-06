@@ -162,7 +162,7 @@ to access the cached values.
          efficient to just move those explicitly.
 
    *)
-  Definition moveCacheBack (arr : v memory (array a b e ty)) (ch : Cache arr)  : block v :=
+  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache arr)  : block v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       [ moveTo arr ix (ch ix) ]
@@ -187,6 +187,11 @@ End ArrayUtils.
 
 (* begin hide *)
 
+Arguments Cache [v a b e ty]  _.
+Arguments cache   [v a b e ty] _ _ _.
+Arguments loadCache [v a b e ty] _ _.
+Arguments moveBackCache [v a b e ty] _ _.
+Arguments backupCache [v a b e ty] _ _.
 Arguments indices [v a b e ty] _.
 Arguments foreach [v b] _.
 
