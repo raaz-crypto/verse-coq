@@ -185,7 +185,7 @@ End ArrayUtils.
 (* begin hide *)
 
 Arguments Cache [v a b e ty]  _.
-Arguments cache   [v a b e ty] _ _ _.
+Arguments cache   [v a b e ty] _ _ _ _ .
 Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
