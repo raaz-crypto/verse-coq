@@ -98,6 +98,7 @@ dispose off all such obligations.
 Tactic Notation "verse" uconstr(B) := (refine B; repeat match goal with
                                                         | [ |- _ mod _ < _ ] => apply NPeano.Nat.mod_upper_bound
                                                         | [ |- _ <= ?T      ] => try (unfold T); omega
+                                                        | [ |- _ < ?T      ] => try (unfold T); omega
                                                         | _                 => omega
                                                        end
                                      ).
