@@ -4,7 +4,10 @@ src/Verse/Arch/C.v
 src/Verse/Error.v
 src/Verse/Compile.v
 src/Verse/Language.v
+src/Verse/Language/Ast.v
 src/Verse/Language/Operators.v
+src/Verse/Language/Utils.v
+src/Verse/Language/Pretty.v
 src/Verse/Syntax.v
 src/Verse/Types.v
 src/Verse/Types/Internal.v
