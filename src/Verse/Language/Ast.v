@@ -98,7 +98,7 @@ program block is merely a list of instructions.
   Inductive instruction : Type :=
   | assign  : assignment -> instruction
   | moveTo  : forall a b e ty, forall (x : v memory (array a b e ty)), Indices x -> v direct ty -> instruction
-  | destroy : forall {k ty}, v k ty -> instruction
+  | CLOBBER : forall {k ty}, v k ty -> instruction
   .
 
   Global Definition block := list instruction.
@@ -181,5 +181,5 @@ Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
 Arguments moveTo [v a b e ty] _ _ _.
-Arguments destroy [v k ty ] _.
+Arguments CLOBBER [v k ty ] _.
 (* end hide *)

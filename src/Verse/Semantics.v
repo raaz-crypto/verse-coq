@@ -104,7 +104,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
                                      (error (InvalidatedAt ra i))
                                      <$>
                                      validate (index x ix) (@argDenote S _ _ rval (var ra))
-      | destroy ra     => {- largUpdate (var ra)
+      | CLOBBER ra     => {- largUpdate (var ra)
                                         (error (InvalidatedAt ra i))
                                         S -}
       end.

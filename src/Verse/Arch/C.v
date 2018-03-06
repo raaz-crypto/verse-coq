@@ -177,7 +177,7 @@ Section PrintingInstruction.
     := { doc := fun i => match i with
                          | assign a => doc a
                          | moveTo x i y => doc  (assign2 nop (Language.Ast.index x i) (var y))
-                         | destroy a     => CP.comment (text "destroy" <_> doc a)
+                         | CLOBBER a     => CP.comment (text "CLOBBER" <_> doc a)
                          end
        }.
 

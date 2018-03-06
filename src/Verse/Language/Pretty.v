@@ -200,7 +200,7 @@ Section PrettyPrintingInstruction.
                          | assign a => doc a
                          | @moveTo _ _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
-                         | destroy v => text "destroy" <_> doc v
+                         | CLOBBER v => text "CLOBBER" <_> doc v
                          end
        }.
 

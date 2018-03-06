@@ -59,7 +59,7 @@ Section TestFunction.
       tmp      ::=>>  (42%nat);
       num      ::=<*< (42%nat);
       arr[-1-] ::=>*> (42%nat);
-      destroy arr
+      CLOBBER arr
     ].
   Defined.
 
