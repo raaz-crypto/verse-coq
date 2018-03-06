@@ -190,6 +190,7 @@ Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
 Arguments indices [v a b e ty] _.
-Arguments foreach [v b] _.
+Arguments foreach [v b] _ _.
+About foreach.
 
 (* end hide *)
