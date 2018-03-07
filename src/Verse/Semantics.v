@@ -30,7 +30,8 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Definition State := forall k (ty : type k), v ty -> T.typeDenote ty + {Invalid}.
 
     Inductive StateError : Prop :=
-    | InvalidUse : forall {k} {ty : type k}, v ty -> instruction v -> instruction v -> StateError.
+    | InvalidUse : forall {k} {ty : type k}, v ty -> instruction v -> instruction v -> StateError
+    | OperatorError : O.OpError -> instruction v -> StateError.
 
     Definition argDenote (S : State) {k} {ty : type k} {aK} (a : arg v aK _ ty) : T.typeDenote ty + {Invalid} :=
       match a in (arg _ _ _ ty) return T.typeDenote ty + {Invalid} with
@@ -64,16 +65,25 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
 
     Definition instructionDenote (i : instruction v) (S : State) : State + {StateError} :=
       (* Auxiliary function to update arg values only when Valid *)
-      let validate {k} {ty : type k} (a : larg v _ ty) (val : T.typeDenote ty + {Invalid}) :=
+      let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty)
+                       (val : T.typeDenote ty * T.typeDenote ty + {O.OpError} + {Invalid})
+          : State + {StateError} :=
           match val with
-          | {- _ -} => {- largUpdate a val S -}
+          | {- oval -} => match oval with
+                          | {- (val1, val2) -} => {- largUpdate a1 {- val1 -} (largUpdate a2 {- val2 -} S) -}
+                          | error e => error (OperatorError e i)
+                          end
           | error e => error (match e with
                               | InvalidatedAt v iAt => InvalidUse v iAt i
                               end)
           end in
-      let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty) (val : T.typeDenote ty * T.typeDenote ty + {Invalid}) :=
+      let validate {k} {ty : type k} (a : larg v _ ty)
+                   (val : T.typeDenote ty + {O.OpError} + {Invalid}) : State + {StateError} :=
           match val with
-          | {- (val1, val2) -} => {- largUpdate a1 {- val1 -} (largUpdate a2 {- val2 -} S) -}
+          | {- oval -} => match oval with
+                          | {- val' -} => {- largUpdate a {- val' -} S -}
+                          | error e => error (OperatorError e i)
+                          end
           | error e => error (match e with
                               | InvalidatedAt v iAt => InvalidUse v iAt i
                               end)
@@ -103,7 +113,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
       | moveTo x ix ra => largUpdate (var ra)
                                      (error (InvalidatedAt ra i))
                                      <$>
-                                     validate (index x ix) (@argDenote S _ _ rval (var ra))
+                                     validate (index x ix) (inleft <$> (@argDenote S _ _ rval (var ra)))
       | CLOBBER ra     => {- largUpdate (var ra)
                                         (error (InvalidatedAt ra i))
                                         S -}
