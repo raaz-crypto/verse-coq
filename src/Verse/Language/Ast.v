@@ -101,7 +101,7 @@ program block is merely a list of instructions.
   | CLOBBER : forall {k ty}, v k ty -> instruction
   .
 
-  Global Definition block := list instruction.
+  Global Definition code := list instruction.
   (* begin hide *)
 
   (* Some instruction error checking code *)
@@ -159,9 +159,9 @@ type [ty].
 
 *)
 Record iterator (ty : type memory)(v : VariableT)
-  := Record { setup    : block v;
-              process  : v memory ty -> block v;
-              finalise : block v
+  := Record { setup    : code v;
+              process  : v memory ty -> code v;
+              finalise : code v
             }.
 
 

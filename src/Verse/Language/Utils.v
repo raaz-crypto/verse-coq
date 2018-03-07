@@ -100,7 +100,7 @@ instead of [indices].
    *)
 
   Definition foreach (ixs : list {ix | ix < b})
-             (f : forall ix, ix < b -> block v)
+             (f : forall ix, ix < b -> code v)
     := let mapper := fun ix => match ix with
                                | exist _ i pf => f i pf
                                end
@@ -137,7 +137,7 @@ to access the cached values.
 
 
   (** This macro loads the array to the corresponding chached variables *)
-  Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache arr) : block v :=
+  Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache arr) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in
@@ -160,7 +160,7 @@ to access the cached values.
          efficient to just move those explicitly.
 
    *)
-  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache arr)  : block v :=
+  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache arr)  : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       [ moveTo arr ix (ch i pf) ]).
@@ -170,7 +170,7 @@ to access the cached values.
       preserves the values in the cache variables. The cached
       variables can then be reused in the rest of the program.
    *)
-  Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache arr) : block v :=
+  Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache arr) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in

@@ -154,20 +154,20 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Definition compile name pts lts rts regs f
       := let state := F.emptyFrame name
-         in result <- fillVars block state pts lts rts regs f;
+         in result <- fillVars code state pts lts rts regs f;
               let (descr, code) := result  in wrap descr (compileInstructions code).
 
     Definition compileIterator ty name pts lts rts regs iterF
       := S <- iterateFrame name ty;
            let (iterVars, state) := S in
-           let (blockV, countV)  := iterVars
+           let (codeV, countV)  := iterVars
            in result <- @fillVars (iterator ty) state pts lts rts regs iterF;
                 let (descr, iF) := result in
                 let setupCode       := compileInstructions (setup iF) in
-                let iterationCode   := compileInstructions (process iF blockV) in
+                let iterationCode   := compileInstructions (process iF codeV) in
                 let finaliseCode    := compileInstructions (finalise iF) in
                 let body            := s <- setupCode; i <-  iterationCode; f <- finaliseCode;
-                                         {- vcat [s; C.loopWrapper blockV countV i; f] -} in
+                                         {- vcat [s; C.loopWrapper codeV countV i; f] -} in
                 wrap descr body.
 
     Arguments compile _ _ _ [rts] _ _.

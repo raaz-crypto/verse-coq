@@ -23,12 +23,12 @@ Section TestFunction.
 
   Definition registers := [Var tmp].
   Definition regAssignment := (- cr Word16 "temp" -).
-  Definition someInstruction i (_ : i < 5) : block variable.
+  Definition someInstruction i (_ : i < 5) : code variable.
     Import Nat.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ].
   Defined.
 
-  Definition testFunction : block variable.
+  Definition testFunction : code variable.
     verse
     [ num ::= tmp [+] Ox "abcd";
       A   ::= A [+] B;
