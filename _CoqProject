@@ -18,3 +18,4 @@ src/Verse/TestCode.v
 src/Verse/TestIteratorCode.v
 src/Verse/DecFacts.v
 src/Verse/Semantics.v
+src/Verse/Semantics/EmptySemantics.v
