@@ -23,16 +23,18 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     (* We need a decidable equality on v to be able to update state at specified variables *)
     Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), {v1 = v2} + {v1 <> v2}.
 
-    (* An invalidated variable carries along it's destructing instruction *)
+    (* Variable errors *)
     Inductive Invalid : Prop :=
-    | InvalidatedAt : forall {k} (ty : type k), v ty -> instruction v -> Invalid.
+    | InvalidatedAt : forall {k} (ty : type k), v ty -> instruction v -> Invalid
+    | OperatorError : O.OpError -> instruction v -> Invalid.
 
     Definition State := forall k (ty : type k), v ty -> T.typeDenote ty + {Invalid}.
 
     Inductive StateError : Prop :=
     | InvalidUse : forall {k} {ty : type k}, v ty -> instruction v -> instruction v -> StateError
-    | OperatorError : O.OpError -> instruction v -> StateError.
+    | IncorrectRval : O.OpError -> instruction v -> instruction v -> StateError.
 
+    (* Extracts from Stat the value denoted by an arg *)
     Definition argDenote (S : State) {k} {ty : type k} {aK} (a : arg v aK _ ty) : T.typeDenote ty + {Invalid} :=
       match a in (arg _ _ _ ty) return T.typeDenote ty + {Invalid} with
       | var av           => S _ _ av
@@ -64,30 +66,27 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
       end val.
 
     Definition instructionDenote (i : instruction v) (S : State) : State + {StateError} :=
+      let pushErr Err T (p : T * T + {Err}) := match p with
+                                              | {- (a, b) -} => ({- a -}, {- b -})
+                                              | error e      => (error e, error e)
+                                              end in
+      let liftOpErr {T} (v : T + {O.OpError}) := match v with
+                                                 | {- v -} => {- v -}
+                                                 | error e => error (OperatorError e i)
+                                                 end in
       (* Auxiliary function to update arg values only when Valid *)
-      let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty)
-                       (val : T.typeDenote ty * T.typeDenote ty + {O.OpError} + {Invalid})
-          : State + {StateError} :=
+      let validate {k} {ty : type k} (a : larg v _ ty) val S :=
           match val with
-          | {- oval -} => match oval with
-                          | {- (val1, val2) -} => {- largUpdate a1 {- val1 -} (largUpdate a2 {- val2 -} S) -}
-                          | error e => error (OperatorError e i)
-                          end
+          | {- oval -} => {- largUpdate a (liftOpErr oval) S -}
           | error e => error (match e with
                               | InvalidatedAt v iAt => InvalidUse v iAt i
+                              | OperatorError oe iAt => IncorrectRval oe iAt i
                               end)
           end in
-      let validate {k} {ty : type k} (a : larg v _ ty)
-                   (val : T.typeDenote ty + {O.OpError} + {Invalid}) : State + {StateError} :=
-          match val with
-          | {- oval -} => match oval with
-                          | {- val' -} => {- largUpdate a {- val' -} S -}
-                          | error e => error (OperatorError e i)
-                          end
-          | error e => error (match e with
-                              | InvalidatedAt v iAt => InvalidUse v iAt i
-                              end)
-          end in
+      let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty) val :=
+          let '(val1, val2) := pushErr _ _ val in
+          S' <- validate a1 val1 S; validate a2 val2 S' in
+
       match i with
       | assign ass => match ass with
                       | extassign4 op la1 la2 ra1 ra2 ra3 =>
@@ -102,18 +101,23 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
                       | assign3 op la ra1 ra2 => validate la (OP.opDenote _ op
                                                                           <$> (argDenote S ra1)
                                                                           <*> (argDenote S ra2))
+                                                          S
                       | assign2 op la ra1     => validate la (OP.opDenote _ op
                                                                           <$> (argDenote S ra1))
+                                                          S
                       | update2 op la ra1     => validate la (OP.opDenote _ op
                                                                           <$> (argDenote S la)
                                                                           <*> (argDenote S ra1))
+                                                          S
                       | update1 op la         => validate la (OP.opDenote _ op
                                                                           <$> (argDenote S la))
+                                                          S
                       end
       | moveTo x ix ra => largUpdate (var ra)
                                      (error (InvalidatedAt ra i))
                                      <$>
                                      validate (index x ix) (inleft <$> (@argDenote S _ _ rval (var ra)))
+                                     S
       | CLOBBER ra     => {- largUpdate (var ra)
                                         (error (InvalidatedAt ra i))
                                         S -}

@@ -51,15 +51,17 @@ from its meaning on word types. We start with the meaning of [arity].
 
 *)
 
-Local Definition LArityDenote a t : Type  := match a with
-                                       | unary    => t
-                                       | binary   => t * t
-                                       | ternary  => t * t * t
-                                       end.
+Local Definition lArityDenote Err a t : Type  :=
+  let t' := t + {Err} in
+  match a with
+  | unary    => t'
+  | binary   => t' * t'
+  | ternary  => t' * t' * t'
+  end.
 
-Definition ArityDenote larity rarity (t : Type) :=
-  let dest := LArityDenote larity t in
-  match rarity with
+Definition arityDenote Err la ra (t : Type) :=
+  let dest := lArityDenote Err la t in
+  match ra with
   | unary   => t -> dest
   | binary  => t -> t -> dest
   | ternary => t -> t -> t -> dest
@@ -87,41 +89,49 @@ Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
   Import O.
   Module T := TypeDenote W.
 
-  Local Fixpoint liftErr Err T m (v : Vector.t (T + {Err}) m) : Vector.t T m + {Err} :=
-    match v with
-    | Vector.nil _ => {- Vector.nil _ -}
-    | Vector.cons _ t _ vt => t' <- t; Vector.cons _ t' _ <$> (liftErr vt)
-    end.
+  Section VectorAux.
 
-  Local Definition opVecSplit Err T1 T2 m (v : Vector.t (T1 * T2 + {Err}) m) :=
-    pair <$> liftErr (Vector.map (ap fst) v) <*>  liftErr (Vector.map (ap snd) v).
+    Variable Err : Prop.
+    Variable T1 T2 T3 : Type.
+    Variable m : nat.
 
-  Local Definition opVecSplit2 Err T1 T2 T3 m (v : Vector.t (T1 * T2 * T3 + {Err}) m) :=
-    pair <$> opVecSplit (Vector.map (ap fst) v) <*> liftErr (Vector.map (ap snd) v).
+    Local Fixpoint liftErr T m (v : Vector.t (T + {Err}) m) :=
+      match v with
+      | Vector.nil _ => {- Vector.nil _ -}
+      | Vector.cons _ t _ vt => t' <- t; Vector.cons _ t' _ <$> (liftErr vt)
+      end.
 
-  Local Definition vecApply T1 T2 m (v : Vector.t (T1 -> T2) m) := Vector.map2 apply v.
+    Local Definition opVecSplit v := pair (@liftErr T1 m (Vector.map fst v))
+                                          (@liftErr T2 m (Vector.map snd v)).
 
-  Local Definition liftOpDenote m typ la ra : (op la ra -> opArityDenote OpError la ra typ) ->
-                                              op la ra -> opArityDenote OpError la ra (Vector.t typ m) :=
-    match la, ra return (op la ra -> opArityDenote OpError la ra typ) ->
+    Local Definition opVecSplit2 v := pair (opVecSplit (Vector.map fst v))
+                                           (@liftErr T3 _ (Vector.map snd v)).
+
+    Local Definition vecApply (v : Vector.t (T1 -> T2) m) := Vector.map2 apply v.
+
+  End VectorAux.
+
+  Local Definition liftOpDenote m typ la ra : (op la ra -> arityDenote OpError la ra typ) ->
+                                              op la ra -> arityDenote OpError la ra (Vector.t typ m) :=
+    match la, ra return (op la ra -> arityDenote OpError la ra typ) ->
                         op la ra ->
-                        opArityDenote OpError la ra (Vector.t typ m)
+                        arityDenote OpError la ra (Vector.t typ m)
     with
-    | unary, unary   => fun opD op v => liftErr (Vector.map (opD op) v)
-    | binary, unary  => fun opD op v =>  (opVecSplit (Vector.map (opD op) v))
-    | ternary, unary => fun opD op v => (opVecSplit2 (Vector.map (opD op) v))
-    | unary, binary   => fun opD op v1 v2 => liftErr (Vector.map2 (opD op) v1 v2)
-    | binary, binary  => fun opD op v1 v2 => (opVecSplit (Vector.map2 (opD op) v1 v2))
-    | ternary, binary => fun opD op v1 v2 => (opVecSplit2 (Vector.map2 (opD op) v1 v2))
-    | unary, ternary   => fun opD op v1 v2 v3 => liftErr (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3)
-    | binary, ternary  => fun opD op v1 v2 v3 =>  (opVecSplit (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3))
-    | ternary, ternary => fun opD op v1 v2 v3 =>  (opVecSplit2 (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3))
+    | unary, unary       => fun opD op v => liftErr (Vector.map (opD op) v)
+    | binary, unary      => fun opD op v =>  (opVecSplit (Vector.map (opD op) v))
+    | ternary, unary     => fun opD op v => (opVecSplit2 (Vector.map (opD op) v))
+    | unary, binary      => fun opD op v1 v2 => liftErr (Vector.map2 (opD op) v1 v2)
+    | binary, binary     => fun opD op v1 v2 => (opVecSplit (Vector.map2 (opD op) v1 v2))
+    | ternary, binary    => fun opD op v1 v2 => (opVecSplit2 (Vector.map2 (opD op) v1 v2))
+    | unary, ternary     => fun opD op v1 v2 v3 => liftErr (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3)
+    | binary, ternary    => fun opD op v1 v2 v3 =>  (opVecSplit (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3))
+    | ternary, ternary   => fun opD op v1 v2 v3 =>  (opVecSplit2 (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3))
     end.
 
-  Fixpoint opDenote {la ra : arity}{k : kind}(t : type k) : op la ra -> opArityDenote OpError la ra (T.typeDenote t) :=
-    match t as t0 return op la ra -> opArityDenote OpError la ra (T.typeDenote t0) with
-    | word n => wordOpDenote n
-    | multiword m n   => liftOpDenote (2 ^ m) (T.typeDenote (word n)) (O.wordOpDenote n)
+  Fixpoint opDenote {la ra : arity}{k : kind}(t : type k) : op la ra -> arityDenote OpError la ra (T.typeDenote t) :=
+    match t as t0 return op la ra -> arityDenote OpError la ra (T.typeDenote t0) with
+    | word n            => wordOpDenote n
+    | multiword m n     => liftOpDenote (2 ^ m) (T.typeDenote (word n)) (O.wordOpDenote n)
     | array _ n _ tw    => liftOpDenote n (T.typeDenote tw) (opDenote tw)
     end.
 
