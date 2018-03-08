@@ -159,10 +159,10 @@ type [ty].
 
 *)
 Record iterator (ty : type memory)(v : VariableT)
-  := Record { setup    : code v;
-              process  : v memory ty -> code v;
-              finalise : code v
-            }.
+  := { setup    : code v;
+       process  : v memory ty -> code v;
+       finalise : code v
+     }.
 
 
 (* begin hide *)
