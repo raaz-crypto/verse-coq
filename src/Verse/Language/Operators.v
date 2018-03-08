@@ -76,35 +76,11 @@ words to all types.
 
 (* Require Import Verse.Types.*)
 
-Definition opArityDenote (Error : Prop) larity rarity (t : Type) :=
-  let dest := LArityDenote larity t in
-  match rarity with
-  | unary   => t -> dest + {Error}
-  | binary  => t -> t -> dest + {Error}
-  | ternary => t -> t -> t -> dest + {Error}
-  end.
 
 Module Type OP_SEMANTICS (W : WORD_SEMANTICS).
   Parameter OpError : Prop.
-  Parameter wordOpDenote    : forall la ra n, op la ra -> opArityDenote OpError la ra (W.wordDenote n).
+  Parameter wordOpDenote    : forall la ra n, op la ra -> arityDenote OpError la ra (W.wordDenote n).
 End OP_SEMANTICS.
-
-Module Type NoOP_SEMANTICS (W : WORD_SEMANTICS).
-  Parameter wordOpDenote    : forall la ra n, op la ra -> ArityDenote la ra (W.wordDenote n).
-End NoOP_SEMANTICS.
-
-Inductive NoOpError := NoError.
-Module LiftOpSemantics (W : WORD_SEMANTICS) (O : NoOP_SEMANTICS W) <: OP_SEMANTICS W.
-
-  Definition OpError := NoOpError.
-  Definition wordOpDenote la ra n (o : op la ra) :=
-    (match ra return @ArityDenote la ra _ -> @opArityDenote OpError la ra _ with
-    | unary => fun oD => compose inleft oD
-    | binary => fun oD => compose (compose inleft) oD
-    | ternary => fun oD => compose (compose (compose inleft)) oD
-     end) (O.wordOpDenote n o).
-
-End LiftOpSemantics.
 
 Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
 
@@ -152,30 +128,32 @@ Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
 End OpDenote.
 
 (** We now define the semantics of the operator in the standard interpretation *)
-Module StandardWordOps : NoOP_SEMANTICS (StandardWord).
+Module StandardWordOps : OP_SEMANTICS (StandardWord).
   Import Verse.Word.
-  Definition wordOpDenote la ra n (o : op la ra) :=
-    match o in op la0 ra0 return ArityDenote la0 ra0 (StandardWord.wordDenote n) with
-    | plus         => Word.numBinOp N.add
-    | minus        => Word.numBinOp N.sub
-    | mul          => Word.numBinOp N.mul
-    | exmul        => Word.numOverflowBinop N.mul
-    | quot         => Word.numBinOp N.div
-    | eucl         => Word.numBigargExop N.div_eucl
-    | rem          => Word.numBinOp N.modulo
-    | bitOr        => AndW (8 * 2^n)
-    | bitAnd       => OrW  (8 * 2^n)
-    | bitXor       => XorW (8 * 2^n)
-    | bitComp      => NegW (8 * 2^n)
-    | rotL    m    => RotL m (8 * 2^n)
-    | rotR    m    => RotR m (8 * 2^n)
-    | shiftL  m    => ShiftL m (8 * 2^n)
-    | shiftR  m    => ShiftR m (8 * 2^n)
-    | nop          => fun x => x
+
+  Definition OpError := False.
+
+  Definition wordOpDenote la ra n (o : op la ra) : arityDenote OpError la ra (StandardWord.wordDenote n) :=
+    match o in op la0 ra0 return arityDenote OpError la0 ra0 (StandardWord.wordDenote n) with
+    | plus         => fun a b => {- Word.numBinOp N.add a b -}
+    | minus        => fun a b => {- Word.numBinOp N.sub a b -}
+    | mul          => fun a b => {- Word.numBinOp N.mul a b -}
+    | exmul        => fun a b => Word.mapP inleft (Word.numOverflowBinop N.mul a b)
+    | quot         => fun a b => {- Word.numBinOp N.div a b -}
+    | eucl         => fun a b c => Word.mapP inleft (Word.numBigargExop N.div_eucl a b c)
+    | rem          => fun a b => {- Word.numBinOp N.modulo a b -}
+    | bitOr        => fun a b => {- AndW (8 * 2^n) a b -}
+    | bitAnd       => fun a b => {- OrW  (8 * 2^n) a b -}
+    | bitXor       => fun a b => {- XorW (8 * 2^n) a b -}
+    | bitComp      => fun a => {- NegW (8 * 2^n) a -}
+    | rotL    m    => fun a => {- RotL m (8 * 2^n) a -}
+    | rotR    m    => fun a => {- RotR m (8 * 2^n) a -}
+    | shiftL  m    => fun a => {- ShiftL m (8 * 2^n) a -}
+    | shiftR  m    => fun a => {- ShiftR m (8 * 2^n) a -}
+    | nop          => fun x => {- x -}
     end.
 
 End StandardWordOps.
 
-Module StandardOpSemantics := LiftOpSemantics StandardWord StandardWordOps.
 (** And here is the standard meaning of operations lifted to the type world *)
-Module StandardOps := OpDenote StandardWord StandardOpSemantics.
+Module StandardOps := OpDenote StandardWord StandardWordOps.
