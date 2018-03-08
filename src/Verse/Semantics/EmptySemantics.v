@@ -16,14 +16,14 @@ Module EmptyConsts <: CONST_SEMANTICS EmptyWord.
 
 End EmptyConsts.
 
-Module EmptyOps <: NoOP_SEMANTICS (EmptyWord).
+Module EmptyOps <: OP_SEMANTICS (EmptyWord).
 
-  Definition wordOpDenote la ra n (o : op la ra) : ArityDenote la ra (EmptyWord.wordDenote n).
+  Definition OpError := False.
+
+  Definition wordOpDenote la ra n (o : op la ra) : arityDenote OpError la ra (EmptyWord.wordDenote n).
     destruct o; repeat constructor.
   Defined.
 
 End EmptyOps.
 
-Module EmptyOpSemantics := LiftOpSemantics EmptyWord EmptyOps.
-
-Module EmptySemantics := Semantics EmptyWord EmptyConsts EmptyOpSemantics.
+Module EmptySemantics := Semantics EmptyWord EmptyConsts EmptyOps.
