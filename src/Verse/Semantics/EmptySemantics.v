@@ -19,26 +19,7 @@ End EmptyConsts.
 Module EmptyOps <: NoOP_SEMANTICS (EmptyWord).
 
   Definition wordOpDenote la ra n (o : op la ra) : ArityDenote la ra (EmptyWord.wordDenote n).
-    refine
-    match o with
-    | plus         => _
-    | minus        => _
-    | mul          => _
-    | exmul        => _
-    | quot         => _
-    | eucl         => _
-    | rem          => _
-    | bitOr        => _
-    | bitAnd       => _
-    | bitXor       => _
-    | bitComp      => _
-    | rotL    m    => _
-    | rotR    m    => _
-    | shiftL  m    => _
-    | shiftR  m    => _
-    | nop          => _
-    end.
-    all: repeat constructor.    (* there is a unique element of all function types *)
+    destruct o; repeat constructor.
   Defined.
 
 End EmptyOps.
