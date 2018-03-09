@@ -24,26 +24,26 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), {v1 = v2} + {v1 <> v2}.
 
     (* Variable errors *)
-    Inductive Invalid : Prop :=
-    | InvalidatedAt : forall {k} (ty : type k), v ty -> instruction v -> Invalid
-    | OperatorError : O.OpError -> instruction v -> Invalid.
+    Inductive VariableError : Prop :=
+    | InvalidatedAt : forall {k} (ty : type k), v ty -> instruction v -> VariableError
+    | OperationError : O.OpError -> instruction v -> VariableError.
 
-    Definition State := forall k (ty : type k), v ty -> T.typeDenote ty + {Invalid}.
+    Definition State := forall k (ty : type k), v ty -> T.typeDenote ty + {VariableError}.
 
     Inductive StateError : Prop :=
     | InvalidUse : forall {k} {ty : type k}, v ty -> instruction v -> instruction v -> StateError
-    | IncorrectRval : O.OpError -> instruction v -> instruction v -> StateError.
+    | OperatorError : O.OpError -> instruction v -> instruction v -> StateError.
 
     (* Extracts from Stat the value denoted by an arg *)
-    Definition argDenote (S : State) {k} {ty : type k} {aK} (a : arg v aK _ ty) : T.typeDenote ty + {Invalid} :=
-      match a in (arg _ _ _ ty) return T.typeDenote ty + {Invalid} with
+    Definition argDenote (S : State) {k} {ty : type k} {aK} (a : arg v aK _ ty) : T.typeDenote ty + {VariableError} :=
+      match a in (arg _ _ _ ty) return T.typeDenote ty + {VariableError} with
       | var av           => S _ _ av
       | Language.Ast.const c => {- C.constDenote c -}
       | index x i        => (fun y => nth_order y (proj2_sig i)) <$> S _ _ x
       end.
 
     (* The pattern match for stateUpdate is too gory to be illuminating *)
-    Definition stateUpdate k {ty : type k} (var : v ty) (f : T.typeDenote ty + {Invalid} -> T.typeDenote ty + {Invalid}) :
+    Definition stateUpdate k {ty : type k} (var : v ty) (f : T.typeDenote ty + {VariableError} -> T.typeDenote ty + {VariableError}) :
       State -> State.
       unfold State in *; intros; intros.
       destruct (kind_eq_dec k k0); subst.
@@ -54,8 +54,8 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Defined.
 
     (* Auxiliary function to lift an arg value change to State *)
-    Definition largUpdate {k} {ty : type k} (a : larg v _ ty) (val : T.typeDenote ty + {Invalid}) (S : State) : State :=
-      match a in arg _ lval _ ty  return T.typeDenote ty + {Invalid} -> State with
+    Definition largUpdate {k} {ty : type k} (a : larg v _ ty) (val : T.typeDenote ty + {VariableError}) (S : State) : State :=
+      match a in arg _ lval _ ty  return T.typeDenote ty + {VariableError} -> State with
       | @var _ lval _ _ av        => fun val' => stateUpdate av
                                                              (fun _ => val')
                                                              S
@@ -72,7 +72,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
                                               end in
       let liftOpErr {T} (v : T + {O.OpError}) := match v with
                                                  | {- v -} => {- v -}
-                                                 | error e => error (OperatorError e i)
+                                                 | error e => error (OperationError e i)
                                                  end in
       (* Auxiliary function to update arg values only when Valid *)
       let validate {k} {ty : type k} (a : larg v _ ty) val S :=
@@ -80,7 +80,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
           | {- oval -} => {- largUpdate a (liftOpErr oval) S -}
           | error e => error (match e with
                               | InvalidatedAt v iAt => InvalidUse v iAt i
-                              | OperatorError oe iAt => IncorrectRval oe iAt i
+                              | OperationError oe iAt => OperatorError oe iAt i
                               end)
           end in
       let validatePair {k} {ty : type k} (a1 a2 : larg v _ ty) val :=

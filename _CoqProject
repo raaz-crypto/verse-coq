@@ -19,3 +19,5 @@ src/Verse/TestIteratorCode.v
 src/Verse/DecFacts.v
 src/Verse/Semantics.v
 src/Verse/Semantics/EmptySemantics.v
+src/Verse/Semantics/BoundedOperations.v
+src/Verse/Semantics/BoundSemantics.v
