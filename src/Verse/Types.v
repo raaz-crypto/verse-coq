@@ -23,15 +23,14 @@ from the module [Verse.Types.Internal].
 *)
 
 (** Standard word types/scalars *)
-Definition Byte   := word 0.
-Definition Word8  := word 0.
-Definition Word16 := word 1.
-Definition Word32 := word 2.
-Definition Word64 := word 3.
+Notation Byte   := (word 0).
+Notation Word8  := (word 0).
+Notation Word16 := (word 1).
+Notation Word32 := (word 2).
+Notation Word64 := (word 3).
 
 (* Construct an array with no alignment restriction *)
-Definition Array  := array unaligned.
-
+Notation Array  := (array unaligned).
 
 (* Add additional alignment constraint on the array *)
 Definition Align  (n : nat) (ty : type memory) :=

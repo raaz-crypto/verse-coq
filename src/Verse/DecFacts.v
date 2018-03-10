@@ -121,23 +121,83 @@ End DecFacts.
 
 (** Decidable equality for Verse constructs *)
 
-Scheme Equality for kind.
-
-Lemma endian_eq_dec : eq_dec endian.
-  decide equality.
+Lemma kind_eq_dec : eq_dec kind.
+  refine (
+  fun k1 k2 => match k1, k2 with
+               | direct, direct => left eq_refl
+               | memory, memory => left eq_refl
+               | _, _           => right _
+               end); inversion 1.
 Defined.
 
-Scheme Equality for align.
+Lemma endian_eq_dec : eq_dec endian.
+  refine (fun e1 e2 => match e1, e2 with
+                       | hostE, hostE
+                       | bigE, bigE
+                       | littleE, littleE => left eq_refl
+                       | _, _ => right _
+                       end); inversion 1.
+Defined.
+
+Lemma align_eq_dec : eq_dec align.
+  refine (fun a1 a2 => let 'aligned n1 := a1 in
+                       let 'aligned n2 := a2 in
+                       if nat_eq_dec n1 n2
+                       then left _
+                       else right _
+         ); congruence.
+Defined.
 
 Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec align_eq_dec : decidable_prop.
 
+Lemma directTy_eq_dec : eq_dec (type direct).
+  refine (fun ty => match ty as ty0 in type direct return
+                          forall ty' : type direct, {ty0 = ty'} + {ty0 <> ty'} with
+                    | word n => fun ty' => match ty' as ty0' in type direct
+                                                 return
+                                                 {word n = ty0'} + {word n <> ty0'}
+                                           with
+                                           | word n' => _
+                                           | multiword _ _ => _
+                                           end
+                    | multiword m n => fun ty' => match ty' as ty0' in type direct
+                                                        return
+                                                        {multiword m n = ty0'} + {multiword m n <> ty0'}
+                                                  with
+                                                  | word _ => _
+                                                  | multiword m' n' => _
+                                                  end
+                    end).
+  all: crush_eq_dec.
+(*
+  refine (fun (ty ty' : type direct) => match ty in type direct, ty' as ty0' in type direct return {ty = ty0'} + {ty <> ty'} with
+                        | word n, word n' => if nat_eq_dec n n'
+                                             then _
+                                             else _
+                        | multiword n m, multiword n' m' => if nat_eq_dec n n'
+                                                            then if nat_eq_dec m m'
+                                                                 then left _
+                                                                 else right _
+                                                            else right _
+                        | _, _ => right _
+                        end).
+ *)
+(*
+  dependent destruction A1; dependent destruction A2; crush_eq_dec.
+ *)
+Defined.
+
+Hint Resolve directTy_eq_dec.
+
 Lemma ty_eq_dec : forall {k}, eq_dec (type k).
   induction k.
-  abstract (dependent destruction A1; dependent destruction A2; crush_eq_dec) using directTy_eq_dec.
-  remember directTy_eq_dec.
-  dependent destruction A1; dependent destruction A2;
+  apply directTy_eq_dec.
+  intros ty ty'.
+  refine (match ty, ty' with
+          | array a n e t, array a' n' e' t' => _
+          end).
   crush_eq_dec.
-Qed.
+Defined.
 
 Lemma bytes_eq_dec : forall (n : nat), eq_dec (bytes n).
   destruct A1. destruct A2.
