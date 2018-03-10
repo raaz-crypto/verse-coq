@@ -21,7 +21,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Variable v : VariableT.
 
     (* We need a decidable equality on v to be able to update state at specified variables *)
-    Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), {v1 = v2} + {v1 <> v2}.
+    Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), bool.
 
     (* Variable errors *)
     Inductive VariableError : Prop :=
