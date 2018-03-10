@@ -4,6 +4,7 @@ Require Import Verse.Types.
 Require Import Verse.Language.Operators.
 Require Import Verse.Error.
 Require Verse.Semantics.BoundedOperations.
+Require Import Verse.Semantics.
 
 Require Import Arith.
 Require Import NArith.
@@ -52,3 +53,5 @@ Module BoundedOps <: OP_SEMANTICS (BoundWord).
     end.
 
 End BoundedOps.
+
+Module BoundSemantics := CodeSemantics BoundWord ConstBounds BoundedOps.

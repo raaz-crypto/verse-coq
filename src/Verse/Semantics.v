@@ -126,3 +126,25 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
   End InstructionDenote.
 
 End Semantics.
+
+Module CodeSemantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS W).
+
+  Module S := Semantics W CW O.
+  Export S.
+
+  Section CodeDenote.
+
+    Variable v : VariableT.
+    Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), bool.
+    Variable init : State v.
+
+    Definition codeDenote c := List.fold_left
+                                 (fun s i => bind s (instructionDenote v_eq_dec i))
+                                 c
+                                 {- init -}
+                                 .
+  End CodeDenote.
+
+End CodeSemantics.
+
+Module StandardSemantics := CodeSemantics StandardWord StandardConsts StandardWordOps.
