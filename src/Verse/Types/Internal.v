@@ -24,7 +24,7 @@ Inductive align :=
 | aligned   : nat -> align  (* Aligned to 2^n bytes *)
 .
 
-Definition unaligned : align := aligned 0.
+Notation unaligned := (aligned 0).
 
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
