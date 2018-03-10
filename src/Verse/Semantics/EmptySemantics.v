@@ -26,4 +26,4 @@ Module EmptyOps <: OP_SEMANTICS (EmptyWord).
 
 End EmptyOps.
 
-Module EmptySemantics := Semantics EmptyWord EmptyConsts EmptyOps.
+Module EmptySemantics := CodeSemantics EmptyWord EmptyConsts EmptyOps.

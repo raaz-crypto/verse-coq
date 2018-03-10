@@ -62,6 +62,10 @@ Module Type CONST_SEMANTICS (W : WORD_SEMANTICS).
   Parameter constWordDenote : forall n, StandardWord.wordDenote n -> W.wordDenote n.
 End CONST_SEMANTICS.
 
+Module StandardConsts : CONST_SEMANTICS StandardWord.
+  Definition constWordDenote n := @id (StandardWord.wordDenote n).
+End StandardConsts.
+
 (* To lift the interpretation of constant words to other types *)
 Module ConstDenote (W : WORD_SEMANTICS) (C : CONST_SEMANTICS W).
 
