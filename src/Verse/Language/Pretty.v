@@ -87,14 +87,16 @@ Notation "A ::=>*> N "    := (assign (update1 (rotR N)  (toLArg A))) (at level 7
 Notation "A ::== B"      := (assign (assign2 nop (toLArg A) (toRArg B))) (at level 70).
 Notation "'MOVE'  B 'TO'   A [- N -]"       := (moveTo A (exist _ (N%nat) _) B) (at level 200, A ident).
 
-Notation "( A : B ) ::= C [*] D" := (assign (extassign3 exmul
+Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (assign (extassign3 exmul
                                                         (toLArg A) (toLArg B)
                                                         (toRArg C) (toRArg D)))
-                                      (at level 70, A at level 99).
-Notation "( A , B ) ::= ( C : D ) [/] E" := (assign (extassign4 eucl
+                                       (at level 70, A at level 99).
+Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (assign (extassign4 eucl
                                                                    (toLArg A) (toLArg B)
                                                                    (toRArg C) (toRArg D) (toRArg E)))
-                                              (at level 70, C at level 99, A at level 99).
+                                              (at level 70, C at level 99).
+
+
 (**
 
 One another irritant in writing code is that the array indexing needs
@@ -311,7 +313,9 @@ operands of the programming fragment.
             X ::=>> 5;
             X ::= X [+] (A[- 2 -]);
             X ::= X [+] Ox "55";
-            Z ::= Z [+] vec_const
+            Z ::= Z [+] vec_const;
+            MULTIPLY X AND X INTO (X : X);
+            (QUOT X, REM X) ::= (X : X) [/] X
           ]%list.
 
   Defined.
