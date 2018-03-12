@@ -94,6 +94,10 @@ dispose off all such obligations.
 
 *)
 
+Tactic Notation "verse_warn" :=
+  match goal with
+  | [ |- ?T ] => idtac "verse: unable to dispose of" T
+  end.
 
 Tactic Notation "verse" uconstr(B)
   := (refine B; repeat match goal with
@@ -102,9 +106,11 @@ Tactic Notation "verse" uconstr(B)
                        | [ |- _ < ?T        ]  => try (unfold T); omega
                        | [ |- LARG _ _ _ _  ]  => fail 44 "verse: possible ill-typed operands in instructions"
                        | [ |- RARG _ _ _ _  ]  => fail 44 "verse: possible ill-typed operands in instructions"
-                       | _                    => omega
-                       end
-     ).
+                       | [ |- _ <> _         ]  => omega
+                       | [ |- _ < _         ]  => omega
+                       | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
+                       | _                    => verse_warn; idtac "please handle these obligations yourself"
+                       end).
 
 (* begin hide *)
 Require Import Verse.PrettyPrint.
