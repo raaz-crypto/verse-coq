@@ -14,8 +14,8 @@ src/Verse/Types/Internal.v
 src/Verse/Word.v
 src/Verse/PrettyPrint.v
 src/Verse.v
-src/Verse/TestCode.v
-src/Verse/TestIteratorCode.v
+src/Verse/TestCode/TestCode.v
+src/Verse/TestCode/TestIteratorCode.v
 src/Verse/DecFacts.v
 src/Verse/Semantics.v
 src/Verse/Semantics/EmptySemantics.v
