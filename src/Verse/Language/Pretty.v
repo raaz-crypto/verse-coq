@@ -94,25 +94,47 @@ dispose off all such obligations.
 
 *)
 
-Tactic Notation "verse_warn" :=
+
+
+Ltac  verse_warn :=
   match goal with
   | [ |- ?T ] => idtac "verse: unable to dispose of" T
   end.
 
+Ltac verse_bounds_warn := verse_warn; idtac "possible array out of index".
+Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
+
 Tactic Notation "verse" uconstr(B)
   := (refine B; repeat match goal with
-                       | [ |- _ mod _ < _   ]  => apply NPeano.Nat.mod_upper_bound
+                       | [ |- _ mod _ < _   ]  => (apply NPeano.Nat.mod_upper_bound;omega)+verse_modulus_warn
                        | [ |- _ <= ?T        ]  => try (unfold T); omega
                        | [ |- _ < ?T        ]  => try (unfold T); omega
-                       | [ |- _ <> _         ]  => omega
-                       | [ |- _ < _         ]  => omega
+                       | [ |- _ < _         ]  => omega+verse_bounds_warn
+                       | [ |- _ <= _         ]  => omega+verse_bounds_warn
                        | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
-                       | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions";
-                                                fail 2 "verse: possible ill-typed operands in instructions"
-                       | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions";
-                                                fail 2 "verse: possible ill-typed operands in instructions"
+                       | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
+                       | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
                        | _                    => verse_warn; idtac "please handle these obligations yourself"
                        end).
+
+
+
+(* Local sample code to test error message
+Section TypeError.
+
+  Variable v : VariableT.
+  Variable A : v direct Word64.
+  Variable B : v direct Word32.
+  Variable C : v memory (Array 42 bigE Word64).
+
+  Definition badCode : code v.
+    Debug Off.
+    verse [A ::=  A [+] C[- (48 mod 42)%nat -] ]%list.
+
+  Defined.
+
+End TypeError.
+ *)
 
 (* begin hide *)
 Require Import Verse.PrettyPrint.
