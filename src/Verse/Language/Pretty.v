@@ -107,8 +107,10 @@ Tactic Notation "verse" uconstr(B)
                        | [ |- _ <> _         ]  => omega
                        | [ |- _ < _         ]  => omega
                        | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
-                       | [ |- LARG _ _ _ _  ]  => fail 2 "verse: possible ill-typed operands in instructions"
-                       | [ |- RARG _ _ _ _  ]  => fail 2 "verse: possible ill-typed operands in instructions"
+                       | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions";
+                                                fail 2 "verse: possible ill-typed operands in instructions"
+                       | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions";
+                                                fail 2 "verse: possible ill-typed operands in instructions"
                        | _                    => verse_warn; idtac "please handle these obligations yourself"
                        end).
 
