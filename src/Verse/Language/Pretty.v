@@ -86,6 +86,15 @@ Notation "A ::=>*> N "    := (assign (update1 (rotR N)  (toLArg A))) (at level 7
 
 Notation "A ::== B"      := (assign (assign2 nop (toLArg A) (toRArg B))) (at level 70).
 Notation "'MOVE'  B 'TO'   A [- N -]"       := (moveTo A (exist _ (N%nat) _) B) (at level 200, A ident).
+
+Notation "( A : B ) ::= C [*] D" := (assign (extassign3 exmul
+                                                        (toLArg A) (toLArg B)
+                                                        (toRArg C) (toRArg D)))
+                                      (at level 70, A at level 99).
+Notation "( A , B ) ::= ( C : D ) [/] E" := (assign (extassign4 eucl
+                                                                   (toLArg A) (toLArg B)
+                                                                   (toRArg C) (toRArg D) (toRArg E)))
+                                              (at level 70, C at level 99, A at level 99).
 (**
 
 One another irritant in writing code is that the array indexing needs
