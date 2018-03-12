@@ -11,20 +11,17 @@ Require Import NArith.
 
 Module BoundWord <: WORD_SEMANTICS.
 
-  Definition wordDenote n : Type :=
-    BoundedOperations.bounds n.
+  Definition wordDenote (n : nat) : Type :=
+    BoundedOperations.bounds.
 
 End BoundWord.
 
 Module ConstBounds <: CONST_SEMANTICS BoundWord.
 
-  Definition constWordDenote n (w : StandardWord.wordDenote n) : BoundWord.wordDenote n.
-    refine (let 'bits wv := w in
-            let len := 8 * 2^n in
-            exist _ (N.size_nat (Bv2N len wv), N.size_nat (Bv2N len wv)) _).
-    constructor;
-      [trivial | apply Bv2N_Nsize].
-  Defined.
+  Definition constWordDenote n (w : StandardWord.wordDenote n) : BoundWord.wordDenote n :=
+    let 'bits wv := w in
+    let len := 8 * 2^n in
+    (N.to_nat (N.log2 (Bv2N len wv)), N.to_nat (N.log2 (Bv2N len wv))).
 
 End ConstBounds.
 
