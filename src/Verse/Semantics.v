@@ -21,7 +21,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     Variable v : VariableT.
 
     (* We need a decidable equality on v to be able to update state at specified variables *)
-    Variable v_eq_dec : forall {k} {ty : type k} (v1 v2 : v ty), bool.
+    Variable v_eqb : forall {k} {ty : type k} (v1 v2 : v ty), bool.
 
     (* Variable errors *)
     Inductive VariableError : Prop :=
@@ -48,7 +48,7 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
       unfold State in *; intros; intros.
       destruct (kind_eq_dec k k0); subst.
       destruct (ty_eq_dec ty ty0); subst.
-      destruct (v_eq_dec X0 var); subst.
+      destruct (v_eqb X0 var); subst.
       exact (f (X _ _ var)).               (* update according to f at var *)
       all: exact (X _ _ X0).               (* use initial state value at all other points *)
     Defined.
