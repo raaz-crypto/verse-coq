@@ -129,15 +129,15 @@ to access the cached values.
 
   Require Vector.
 
-  Definition Cache (arr : v memory (array a b e ty)) := forall i, i < b  -> v direct ty.
+  Definition Cache := forall i, i < b  -> v direct ty.
 
-  Definition cache (arr : v memory (array a b e ty)) (regs : Vector.t (v direct ty) b)
-    : Cache arr := fun _ pf  => Vector.nth_order regs pf.
+  Definition cache (regs : Vector.t (v direct ty) b)
+    : Cache := fun _ pf  => Vector.nth_order regs pf.
 
 
 
   (** This macro loads the array to the corresponding chached variables *)
-  Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache arr) : code v :=
+  Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in
@@ -160,7 +160,7 @@ to access the cached values.
          efficient to just move those explicitly.
 
    *)
-  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache arr)  : code v :=
+  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache)  : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       [ moveTo arr ix (ch i pf) ]).
@@ -170,7 +170,7 @@ to access the cached values.
       preserves the values in the cache variables. The cached
       variables can then be reused in the rest of the program.
    *)
-  Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache arr) : code v :=
+  Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in
@@ -184,8 +184,6 @@ End ArrayUtils.
 
 (* begin hide *)
 
-Arguments Cache [v a b e ty]  _.
-Arguments cache   [v a b e ty] _ _ _ _ .
 Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
