@@ -118,26 +118,25 @@ rather tedious because it makes it difficult to use macros like
 [foreach].
 
 We solve the indexing problem as follows. We define the function
-[cacheIn] that takes an array variable [arr], and an orders set of the
-variables [v_0,v_1...] and returns the indexing function into the
-variables [v_0,...], i.e. the indexing function takes an index [i] and
-returns the [i]th variable [v_i]. We then use this indexing function
-to access the cached values.
-
+[varIndex] that takes a vector of variables [v_0,v_1...] and returns
+the indexing function into the variables [v_0,...], i.e. the indexing
+function takes an index [i] and returns the [i]th variable [v_i]. We
+then use this indexing function to access the cached values. The idea
+of variable indexing can be used even without array caching.
 
    *)
 
   Require Vector.
 
-  Definition Cache := forall i, i < b  -> v direct ty.
+  Definition VarIndex := forall i, i < b  -> v direct ty.
 
-  Definition cache (regs : Vector.t (v direct ty) b)
-    : Cache := fun _ pf  => Vector.nth_order regs pf.
+  Definition varIndex (regs : Vector.t (v direct ty) b)
+    : VarIndex := fun _ pf  => Vector.nth_order regs pf.
 
 
 
   (** This macro loads the array to the corresponding chached variables *)
-  Definition loadCache (arr : v memory (array a b e ty)) (ch : Cache) : code v :=
+  Definition loadCache (arr : v memory (array a b e ty)) (ch : VarIndex) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in
@@ -160,7 +159,7 @@ to access the cached values.
          efficient to just move those explicitly.
 
    *)
-  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : Cache)  : code v :=
+  Definition moveBackCache (arr : v memory (array a b e ty)) (ch : VarIndex)  : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       [ moveTo arr ix (ch i pf) ]).
@@ -170,7 +169,7 @@ to access the cached values.
       preserves the values in the cache variables. The cached
       variables can then be reused in the rest of the program.
    *)
-  Definition backupCache  (arr : v memory (array a b e ty)) (ch : Cache) : code v :=
+  Definition backupCache  (arr : v memory (array a b e ty)) (ch : VarIndex) : code v :=
     foreach (indices arr)
             (fun i pf => let ix := exist _ i pf in
                       let arrI := index arr ix in
@@ -183,7 +182,7 @@ to access the cached values.
 End ArrayUtils.
 
 (* begin hide *)
-Arguments cache [v b ty] _ _ _.
+Arguments varIndex [v b ty] _ _ _.
 Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
