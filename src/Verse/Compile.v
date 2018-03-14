@@ -22,7 +22,8 @@ compiled.
 Inductive CompileError : Prop :=
 | UnsupportedInstruction : forall {v : VariableT}, instruction v  -> CompileError
 | UnsupportedType        : forall {k : kind}, type k -> CompileError
-| UnavailableRegister    : forall {reg : VariableT}{k : kind}{ty : type k}, reg k ty -> CompileError.
+| UnavailableRegister    : forall {reg : VariableT}{k : kind}{ty : type k}, reg k ty -> CompileError
+| UnsupportedLocalArray  : type memory -> CompileError.
 
 (**
 
@@ -151,14 +152,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Let wrap descr (code : Doc + {CompileError}) := C.makeFunction descr <$> code.
 
 
+    Let Fixpoint noArray lts :=
+      match lts with
+      | [] => {- [] -}
+      | existT _ direct ty :: ltst => cons (existT _ direct ty) <$> (noArray ltst)
+      | existT _ memory ty  :: _    => error (UnsupportedLocalArray ty)
+      end.
 
     Definition compile name pts lts rts regs f
       := let state := F.emptyFrame name
-         in result <- fillVars code state pts lts rts regs f;
+         in lts' <- noArray lts;
+              rts' <- noArray rts;
+              result <- fillVars code state pts lts rts regs f;
               let (descr, code) := result  in wrap descr (compileInstructions code).
 
     Definition compileIterator ty name pts lts rts regs iterF
       := S <- iterateFrame name ty;
+           lts' <- noArray lts;
+           rts' <- noArray rts;
            let (iterVars, state) := S in
            let (codeV, countV)  := iterVars
            in result <- @fillVars (iterator ty) state pts lts rts regs iterF;
