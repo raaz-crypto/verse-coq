@@ -183,7 +183,7 @@ to access the cached values.
 End ArrayUtils.
 
 (* begin hide *)
-
+Arguments cache [v b ty] _ _ _.
 Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
