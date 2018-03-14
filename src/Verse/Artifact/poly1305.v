@@ -1,3 +1,13 @@
+(** * Using semantics to prove correctness of poly1305.
+
+The main goal of this artifact is to demonstrate how one can use the
+semantics of verse to prove the correctness of certain aspects of the
+message authentication scheme poly1305. The sample code uses 5, 64-bit
+variables to implement the operation in the field GF(2^130 - 5). We
+want to prove that there are no overflows in the implementation.
+
+*)
+
 Require Import Verse.
 Require Import Verse.Semantics.
 Require Import Verse.DecFacts.
@@ -64,4 +74,4 @@ Definition init : State var :=
     end.
 
 Definition finalS := (recover(codeDenote var_eqb init polymul)).
-Compute (finalS _ _ p).
+(* Compute (finalS _ _ p). *)
