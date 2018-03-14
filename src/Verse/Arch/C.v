@@ -254,8 +254,8 @@ Module CFrame <: FRAME C.
        |}
     ).
 
-  Let newLocal state k ty :=
-    ( @onStack k ty (nLocals state),
+  Let newLocal state ty :=
+    ( @onStack direct ty (nLocals state),
       {| cFunctionName := cFunctionName state;
          iterateOn := iterateOn state;
          params := params state;
@@ -269,13 +269,13 @@ Module CFrame <: FRAME C.
     _ <- when C.typeCheck ty; {- @newParam state k ty -}.
 
 
-  Definition stackAlloc state k ty :=
-    _ <- when C.typeCheck ty; {- @newLocal state k ty -}.
+  Definition stackAlloc state ty :=
+    _ <- when C.typeCheck ty; {- @newLocal state ty -}.
 
 
   Let registerStrings state := List.map fst (registers state).
 
-  Definition useRegister state k ty (reg : creg ty ):=
+  Definition useRegister state ty (reg : creg ty ):=
       match reg with
       | cr _ nm =>
            if C.typeCheck ty then
@@ -286,7 +286,7 @@ Module CFrame <: FRAME C.
                       iterateOn := iterateOn state;
                       params := params state;
                       locals := locals state;
-                      registers := (nm , existT _ k ty) :: registers state
+                      registers := (nm , existT _ direct ty) :: registers state
                    |}
           else
             None
