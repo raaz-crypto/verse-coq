@@ -54,65 +54,11 @@ Definition xreg_eqb {k} (ty : type k) (x1 x2 : xreg ty) : bool :=
   | _, _               => false*)
   end.
 
-Lemma eq_dec_refl {T} (T_eq_dec : eq_dec T) (t : T) : {p : t = t | T_eq_dec t t = left p}.
-  pose (T_eq_dec t t).
-  change (T_eq_dec t t) with s.
-  destruct s.
-  destruct e. exists eq_refl; trivial.
-  destruct n; trivial.
-Qed.
-
-Lemma eq_dec_neq {T} (T_eq_dec : eq_dec T) (t1 t2 : T) : t1 <> t2 -> { p : t1 <> t2 | T_eq_dec t1 t2 = right p}.
-  intros.
-  pose (T_eq_dec t1 t2).
-  change (T_eq_dec t1 t2) with s.
-  destruct s;
-    [contradiction | ].
-  exists n; trivial.
-Qed.
-
-Ltac crush_eqb_eq :=
-  repeat match goal with
-         | [ |- _ <-> _ ] => constructor
-         | [ |- _ -> _  ] => try trivial; intros
-         | [ |- ?H _ _ = true ] => idtac H; autounfold
-         | |- context [?H ?x ?x] => destruct (eq_dec_refl H x) as [eq deceq]; rewrite deceq; trivial
-         end.
-
 Lemma xreg_eqb_eq{k} (ty : type k) (x1 x2 : xreg ty) : xreg_eqb x1 x2 = true <-> x1 = x2.
   Hint Unfold xreg_eqb.
   dependent destruction x1; dependent destruction x2.
-  (*
-  crush_eq_dec.
-  crush_eqb_eq.*)
-  destruct (xRegName_eq_dec x x0); subst.
-  constructor.
-  intros; trivial.
-  intros; unfold xreg_eqb.
-  destruct (eq_dec_refl xRegName_eq_dec x0).
-  rewrite e.
-  trivial.
-  constructor.
-  intros; unfold xreg_eqb in *.
-  destruct (xRegName_eq_dec x x0); easy.
-  inversion 1; contradiction.
-(*  constructor.
-  intros; unfold xreg_eqb in *; easy.
-  inversion 1; easy.
-  constructor.
-  intros; unfold xreg_eqb in *; easy.
-  inversion 1; easy.
-  destruct (xRegName_eq_dec x x1); subst.
-  constructor.
-  intros; trivial.
-  intros; unfold xreg_eqb.
-  destruct (eq_dec_refl xRegName_eq_dec x1).
-  rewrite e.
-  trivial.
-  constructor.
-  intros; unfold xreg_eqb in *.
-  destruct (xRegName_eq_dec x x1); easy.
-  inversion 1; easy.*)
+  crush_eq_dec;
+  crush_eqb_eq.
 Qed.
 
 Tactic Notation "fill_ineq" uconstr(B) := (refine B; omega).

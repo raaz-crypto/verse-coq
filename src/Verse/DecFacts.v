@@ -67,8 +67,8 @@ Proof.
 Defined.
 
 Notation eq_dec A := (forall A1 A2 : A, {A1 = A2} + {A1 <> A2}) (only parsing).
-Definition nat_eq_dec : eq_dec nat := NPeano.Nat.eq_dec.
 
+Definition nat_eq_dec : eq_dec nat := NPeano.Nat.eq_dec.
 Definition bool_eq_dec : eq_dec bool := bool_dec.
 
 Hint Resolve dec_True dec_False dec_or dec_and dec_imp dec_not dec_iff nat_eq_dec bool_eq_dec
@@ -78,6 +78,25 @@ Ltac solve_decidable :=
   match goal with
   | |- decidable _ => solve [ auto 100 with decidable_prop core ]
   end.
+
+Lemma eq_dec_refl {T} (T_eq_dec : eq_dec T) (t : T)
+  : {p : t = t | T_eq_dec t t = left p}.
+  pose (T_eq_dec t t).
+  change (T_eq_dec t t) with s.
+  destruct s.
+  destruct e. exists eq_refl; trivial.
+  destruct n; trivial.
+Qed.
+
+Lemma eq_dec_neq {T} (T_eq_dec : eq_dec T) (t1 t2 : T)
+  : t1 <> t2 -> { p : t1 <> t2 | T_eq_dec t1 t2 = right p}.
+  intros.
+  pose (T_eq_dec t1 t2).
+  change (T_eq_dec t1 t2) with s.
+  destruct s;
+    [contradiction | ].
+  exists n; trivial.
+Qed.
 
 (* undep_eq not actually used any more *)
 (*
@@ -109,6 +128,16 @@ Ltac crush_eq_dec := repeat aux_match; aux_solve
   with aux_solve := try solve [left; constructor; trivial |
                                right; inversion 1; try congruence; easy ].
 
+Ltac crush_eqb_eq :=
+  repeat (match goal with
+          | [ |- _ <-> _ ] => constructor
+          | |- context [?H ?x ?x] => destruct (eq_dec_refl H x) as [eq deceq]; rewrite deceq; trivial
+          | H : ?a = ?b -> False |- context [?Heq_dec ?a ?b] => destruct (Heq_dec a b)
+          | |- _ -> _ => intros
+          | H : _ = _ |- _ => dependent destruction H
+          | _ => try contradiction
+          end; autounfold in *).
+
 Section DecFacts.
 
   Variable T : Type.
@@ -117,7 +146,7 @@ Section DecFacts.
   (* Boolean equality for decidable Types *)
   Definition eqdec_eqb := fun a b => if T_dec a b then true else false.
 
-  Definition eqdec_eqbeq : forall a b, eqdec_eqb a b = true <-> a = b.
+  Definition eqdec_eqb_eq : forall a b, eqdec_eqb a b = true <-> a = b.
     unfold eqdec_eqb. intros.
     destruct (T_dec a b);
       unfold iff; split; first [discriminate | contradiction | trivial].
@@ -125,7 +154,7 @@ Section DecFacts.
 
   (* Vector equality is decidable *)
   Definition vec_eq_dec n : eq_dec (Vector.t T n).
-    apply (Vector.eq_dec T eqdec_eqb eqdec_eqbeq).
+    apply (Vector.eq_dec T eqdec_eqb eqdec_eqb_eq).
   Defined.
 
 End DecFacts.
