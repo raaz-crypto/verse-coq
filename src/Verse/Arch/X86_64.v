@@ -160,7 +160,7 @@ Module X86 <: ARCH.
 
   Notation IsRegister reg arg := (isRegister reg arg = true).
 
-  Definition onStack {ty : type direct} {aK} (a : arg machineVar aK _ ty) :=
+  Definition onStack {k} {ty : type k} {aK} (a : arg machineVar aK _ ty) :=
     match a with
     | var (localStack _ _) | var (paramStack _ _) => true
     | _                  => false
@@ -187,7 +187,9 @@ Module X86 <: ARCH.
                                           /\ (isEndian xvar bigE a1 = true -> isMem a2 = false -> (ty = Word32 \/ ty = Word64) /\ onStack a2 = false)
                                           /\ (isEndian xvar bigE a1 = true -> isMem a2 = true -> isEndian xvar bigE a2 = true)
                                           /\ (isEndian xvar bigE a2 = true -> isMem a1 = true -> isEndian xvar bigE a1 = true)
-    | @moveTo _ _ _ _ ty a i v => (@isEndian xvar lval _ _ bigE (Ast.index a i) = true -> (ty = Word32 \/ ty = Word64) -> @onStack _ rval (var v) = false)
+    | @moveTo _ _ _ _ ty a i v => (@isEndian xvar lval _ _ bigE (Ast.index a i) = true ->
+                                   (ty = Word32 \/ ty = Word64) -> @onStack _ _ rval (var v) = false)
+    | CLOBBER v => @onStack _ _ rval (var v) = false
     | _ => False
     end.
 
