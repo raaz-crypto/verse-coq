@@ -57,6 +57,15 @@ Proof.
 tauto.
 Defined.
 
+Theorem iff_dec :
+  forall A B:Prop, A <-> B -> decidable A -> decidable B.
+Proof.
+  intros A B H AOR.
+  destruct AOR as [a | na].
+  left; apply H; easy.
+  right; intro; contradict na; apply H; easy.
+Defined.
+
 Notation eq_dec A := (forall A1 A2 : A, {A1 = A2} + {A1 <> A2}) (only parsing).
 Definition nat_eq_dec : eq_dec nat := NPeano.Nat.eq_dec.
 
