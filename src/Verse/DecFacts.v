@@ -70,6 +70,8 @@ Ltac solve_decidable :=
   | |- decidable _ => solve [ auto 100 with decidable_prop core ]
   end.
 
+(* undep_eq not actually used any more *)
+(*
 Ltac undep_eq :=
   match goal with
   | [ H : existT _ _ ?a = existT _ _ ?b |- _ ]
@@ -78,7 +80,7 @@ Ltac undep_eq :=
                              auto with decidable_prop);
        rewrite He in *; clear H
   end.
-
+*)
 Ltac crush_eq_dec := repeat aux_match; aux_solve
   with aux_match :=  (intros;
                      match goal with
@@ -96,7 +98,7 @@ Ltac crush_eq_dec := repeat aux_match; aux_solve
                                                     destruct (T_eq_dec H1 H2) as [ eq | ];
                                                     [ symmetry in eq; subst | ..]; clear T_eq_dec
   with aux_solve := try solve [left; constructor; trivial |
-                               right; inversion 1; repeat undep_eq; try congruence; easy ].
+                               right; inversion 1; try congruence; easy ].
 
 Section DecFacts.
 
@@ -127,7 +129,7 @@ Lemma kind_eq_dec : eq_dec kind.
                | direct, direct => left eq_refl
                | memory, memory => left eq_refl
                | _, _           => right _
-               end); inversion 1.
+               end); intro; exact (match H with end).
 Defined.
 
 Lemma endian_eq_dec : eq_dec endian.
@@ -206,15 +208,110 @@ Lemma bytes_eq_dec : forall (n : nat), eq_dec (bytes n).
 Defined.
 
 Hint Resolve ty_eq_dec bytes_eq_dec : decidable_prop.
-Lemma constant_eq_dec ty : eq_dec (constant ty).
-  dependent destruction ty; unfold constant; simpl; unfold StandardWord.wordDenote;
-  crush_eq_dec.
-Defined.
 
 Lemma op_eq_dec {la ra} : eq_dec (op la ra).
-  destruct la; destruct ra; dependent destruction A1; dependent destruction A2;
-    crush_eq_dec.
+  refine (
+  fun o1 o2 => match o1 as o1' in op la' ra'
+                     return forall o : op la' ra', {o1' = o} + {o1' <> o}
+               with
+               | plus    => fun o => match o as o' in op unary binary
+                                           return {plus = o'} + {plus <> o'}
+                                     with
+                                     | plus => _
+                                     | _    => _
+                                     end
+               | minus   => fun o => match o as o' in op unary binary
+                                           return {minus = o'} + {minus <> o'}
+                                     with
+                                     | minus => _
+                                     | _     => _
+                                     end
+               | mul     => fun o => match o as o' in op unary binary
+                                           return {mul = o'} + {mul <> o'}
+                                     with
+                                     | mul   => _
+                                     | _     => _
+                                     end
+               | quot     => fun o => match o as o' in op unary binary
+                                           return {quot = o'} + {quot <> o'}
+                                     with
+                                     | quot  => _
+                                     | _    => _
+                                      end
+               | rem      => fun o => match o as o' in op unary binary
+                                            return {rem = o'} + {rem <> o'}
+                                      with
+                                      | rem  => _
+                                      | _    => _
+                                      end
+               | bitOr    => fun o => match o as o' in op unary binary
+                                            return {bitOr = o'} + {bitOr <> o'}
+                                      with
+                                      | bitOr  => _
+                                      | _    => _
+                                      end
+               | bitAnd   => fun o => match o as o' in op unary binary
+                                            return {bitAnd = o'} + {bitAnd <> o'}
+                                      with
+                                      | bitAnd  => _
+                                      | _    => _
+                                      end
+               | bitXor   => fun o => match o as o' in op unary binary
+                                            return {bitXor = o'} + {bitXor <> o'}
+                                      with
+                                      | bitXor  => _
+                                      | _    => _
+                                      end
+               | bitComp  => fun o => match o as o' in op unary unary
+                                            return {bitComp = o'} + {bitComp <> o'}
+                                      with
+                                      | bitComp => _
+                                      | _       => _
+                                      end
+               | rotL n   => fun o => match o as o' in op unary unary
+                                            return {rotL n = o'} + {rotL n <> o'}
+                                      with
+                                      | rotL n' => _
+                                      | _       => _
+                                      end
+               | rotR n   => fun o => match o as o' in op unary unary
+                                            return {rotR n = o'} + {rotR n <> o'}
+                                      with
+                                      | rotR n' => _
+                                      | _       => _
+                                      end
+               | shiftL n   => fun o => match o as o' in op unary unary
+                                            return {shiftL n = o'} + {shiftL n <> o'}
+                                      with
+                                      | shiftL n' => _
+                                      | _       => _
+                                      end
+               | shiftR n   => fun o => match o as o' in op unary unary
+                                            return {shiftR n = o'} + {shiftR n <> o'}
+                                      with
+                                      | shiftR n' => _
+                                      | _         => _
+                                        end
+               | nop        => fun o => match o as o' in op unary unary
+                                              return {nop = o'} + {nop <> o'}
+                                        with
+                                        | nop  => _
+                                        | _    => _
+                                        end
+               | exmul      => fun o => match o as o' in op binary binary
+                                              return {exmul = o'} + {exmul <> o'}
+                                        with
+                                        | exmul => _
+                                        | _ => _
+                                        end
+               | eucl       => fun o => match o as o' in op binary ternary
+                                              return {eucl = o'} + {eucl <> o'}
+                                        with
+                                        | eucl  => _
+                                        | _     => _
+                                        end
+               end o2); solve [exact idProp | crush_eq_dec].
 Defined.
 
-Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec align_eq_dec ty_eq_dec bytes_eq_dec constant_eq_dec op_eq_dec
+Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec align_eq_dec ty_eq_dec bytes_eq_dec  op_eq_dec
   : decidable_prop.
