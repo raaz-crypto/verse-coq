@@ -18,23 +18,21 @@ Require Import Equality.
 Require Import ListDec.
 Require Import Omega.
 Require Import List.
-Import ListNotations.
 Require Import String.
 Require Import Ensembles.
 Require Vector.
-Import VectorNotations.
-Require Vectors.Fin.
 Require Import Bool.
 Set Implicit Arguments.
 
-Close Scope vector_scope.
+Import VectorNotations.
+Import ListNotations.
 
 Inductive xRegName := reg_a | reg_b | reg_c | reg_d | reg_di | reg_si
                       | reg_r8 | reg_r9 | reg_r10 | reg_r11 | reg_r12 | reg_r13 | reg_r14 | reg_r15.
 (*                      | reg_r (n : Fin.t 8) : xRegName.*)
 
 Hint Resolve Fin.eq_dec : decidable_prop.
-Lemma xRegName_eq_dec : eq_dec xRegName.
+Lemma xRegName_eq_dec : DecFacts.eq_dec xRegName.
   destruct A1; destruct A2; crush_eq_dec.
 Defined.
 
@@ -126,7 +124,7 @@ Module X86 <: ARCH.
 
   Definition isConst {k} {ty : type k} {aK} (a : arg machineVar aK _ ty) :=
     match a with
-    | const _ => true
+    | Ast.const _ => true
     | _       => false
     end.
 
@@ -209,7 +207,7 @@ Module XFrame <: FRAME X86.
   Definition emptyFrame s :=
     {| xFunctionName := s;
        numParams     := 0;
-       usedReg       := [];
+       usedReg       := List.nil;
        stackOffset   := 0
     |}.
 
@@ -221,7 +219,7 @@ Module XFrame <: FRAME X86.
                  |} in
     _ <- when X86.typeCheck ty; {- (inRegister (xr reg_di ty), inRegister (xr reg_si X86.Word), state) -}.
 
-  Definition CCregs : Vector.t xRegName 6 := [reg_di; reg_si; reg_d; reg_c; reg_r8; reg_r9]%vector.
+  Definition CCregs : Vector.t xRegName 6 := [reg_di; reg_si; reg_d; reg_c; reg_r8; reg_r9].
 
   Let newParam state k (ty : type k) :=
     match lt_dec (numParams state) 6 with
@@ -347,7 +345,7 @@ Local Definition xImm d := text "$" <> d.
 Local Fixpoint xArgdoc {aK}{k}(ty : type k ) (av : arg xvar aK k ty) :=
   match av with
   | var v       => doc v
-  | const c     => xImm (doc c)
+  | Ast.const c     => xImm (doc c)
   | Ast.index v (exist _ n _) => decimal (sizeOf ty * n) <> paren (doc v)
   end.
 
@@ -414,9 +412,9 @@ Local Definition store {ty : type direct} (la : larg _ direct ty) (ra : rarg _ d
                        match ra with
                        | var (inRegister x) => match la with
                                                | @Ast.index _ _ _ _ bigE _ _ _ => [bswap x]
-                                               | _ => []
+                                               | _ => List.nil
                                                end
-                       | _ => []
+                       | _ => List.nil
                        end).
 
 Instance xAssignmentPrint : PrettyPrint (assignment xvar)
@@ -457,7 +455,7 @@ Module xCodeGen <: CODEGEN X86.
                        text ".globl" <_> n;
                        text ".type" <_> n <> text ", @function";
                        empty;
-                       n <> text ":" ].
+                       n <> text ":" ]%list.
 
   Let BP := text "%rbp".
   Let SP := text "%rsp".
@@ -465,18 +463,18 @@ Module xCodeGen <: CODEGEN X86.
   Let pop r  := mkInst (text "pop" <> iSuffix Word) r.
 
   Let setupBP := [ push BP;
-                   mkInst (xOp nop Word) (biargs SP BP) ].
+                   mkInst (xOp nop Word) (biargs SP BP) ]%list.
 
-  Let allocStack n := if nat_eq_dec n 0 then [] else [mkInst (xOp minus Word) (biargs (xImm (decimal n)) SP)].
+  Let allocStack n := if nat_eq_dec n 0 then List.nil else [mkInst (xOp minus Word) (biargs (xImm (decimal n)) SP)]%list.
   Let preserveRegs l := map (fun n => push (doc (xr n Word))) l.
   Let restoreRegs l := map (fun n => pop (doc (xr n Word))) l.
-  Let clearStack n := if nat_eq_dec n 0 then [] else [mkInst (xOp plus Word) (biargs (xImm (decimal n)) SP)].
+  Let clearStack n := if nat_eq_dec n 0 then List.nil else [mkInst (xOp plus Word) (biargs (xImm (decimal n)) SP)]%list.
 
-  Let restoreBP := [mkInst (text "popq") BP].
+  Let restoreBP := [mkInst (text "popq") BP]%list.
 
-  Let ret := [text "ret"].
+  Let ret := [text "ret"]%list.
 
-  Let calleeSave := [reg_b; reg_r12; reg_r13; reg_r14; reg_r15].
+  Let calleeSave := [reg_b; reg_r12; reg_r13; reg_r14; reg_r15]%list.
   Let toSave l := filter (fun r => if in_dec xRegName_eq_dec r calleeSave then true else false) l.
   Let xComment s := text "#" <_> text s.
 
@@ -499,7 +497,7 @@ Module xCodeGen <: CODEGEN X86.
     let label := text ".loopstart" in
     let iterate := [ doc (mkInst (xOp plus Word) (biargs (xImm (decimal (sizeOf msgTy))) (doc v)));
                      mkInst (text "dec" <> iSuffix Word) (doc n);
-                     mkInst (text "jnz") label ] in
+                     mkInst (text "jnz") label ]%list in
     vcat ([label <> text ":"] ++ [nest 4 d] ++ iterate).
 
 End xCodeGen.
