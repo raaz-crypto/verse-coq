@@ -30,14 +30,7 @@ Notation Word32 := (word 2).
 Notation Word64 := (word 3).
 
 (* Construct an array with no alignment restriction *)
-Notation Array  := (array unaligned).
-
-(* Add additional alignment constraint on the array *)
-Definition Align  (n : nat) (ty : type memory) :=
-  match ty with
-  | array (aligned m) b e tw => array (aligned (Nat.max n m)) b e tw
-  end.
-
+Definition Array  := array.
 
 (* begin hide *)
 Inductive BadVectorType : Prop := BadVectorTypeError.

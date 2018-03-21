@@ -132,7 +132,7 @@ Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
     match t as t0 return op la ra -> arityDenote OpError la ra (T.typeDenote t0) with
     | word n            => wordOpDenote n
     | multiword m n     => liftOpDenote (2 ^ m) (T.typeDenote (word n)) (O.wordOpDenote n)
-    | array _ n _ tw    => liftOpDenote n (T.typeDenote tw) (opDenote tw)
+    | array n _ tw      => liftOpDenote n (T.typeDenote tw) (opDenote tw)
     end.
 
 End OpDenote.

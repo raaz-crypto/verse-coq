@@ -20,23 +20,17 @@ indicates this distinction in type.
 
 Inductive kind  : Type := direct | memory.
 
-Inductive align :=
-| aligned   : nat -> align  (* Aligned to 2^n bytes *)
-.
-
-Notation unaligned := (aligned 0).
-
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
 | multiword          : nat -> nat    -> type direct
-| array              : align -> nat -> endian -> type direct -> type memory
+| array              : nat -> endian -> type direct -> type memory
 with endian : Type := bigE | littleE | hostE.
 
 Fixpoint sizeOf {k} (ty : type k) :=
   match ty with
   | word n         => 2 ^ n
   | multiword m n  => 2 ^ m * 2 ^ n
-  | array _ n _ tw => n * sizeOf tw
+  | array n _ tw => n * sizeOf tw
   end.
 
 (** Often we need to existentially quantify over types and other
@@ -66,7 +60,7 @@ Module TypeDenote (W : WORD_SEMANTICS).
   match t with
   | word      n    => W.wordDenote n
   | multiword m n  => Vector.t (W.wordDenote n) (2 ^ m)
-  | array _ n _ tw  => Vector.t (typeDenote tw) n
+  | array n _ tw   => Vector.t (typeDenote tw) n
   end.
 
   Arguments typeDenote [k] _.

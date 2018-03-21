@@ -105,13 +105,13 @@ Module X86 <: ARCH.
   | uint16            : typesSupported Word16
   | uint32            : typesSupported Word32
   | uint64            : typesSupported Word64
-  | xarray {a n e ty} : typesSupported ty -> typesSupported (array a n e ty)
+  | xarray {n e ty} : typesSupported ty -> typesSupported (array n e ty)
   .
 
   Fixpoint typeCheck {k}(ty : type k) : {typesSupported ty} + {~ typesSupported ty}.
     refine (match ty with
             | word 0 | word 1 | word 2 | word 3  => left _
-            | array a n e typ => match @typeCheck direct typ with
+            | array n e typ => match @typeCheck direct typ with
                                | left proof      => left (xarray proof)
                                | right disproof  => right _
                                end
@@ -185,7 +185,7 @@ Module X86 <: ARCH.
                                           /\ (isEndian xvar bigE a1 = true -> isMem a2 = false -> (ty = Word32 \/ ty = Word64) /\ onStack a2 = false)
                                           /\ (isEndian xvar bigE a1 = true -> isMem a2 = true -> isEndian xvar bigE a2 = true)
                                           /\ (isEndian xvar bigE a2 = true -> isMem a1 = true -> isEndian xvar bigE a1 = true)
-    | @moveTo _ _ _ _ ty a i v => (@isEndian xvar lval _ _ bigE (Ast.index a i) = true ->
+    | @moveTo _  _ _ ty a i v => (@isEndian xvar lval _ _ bigE (Ast.index a i) = true ->
                                    (ty = Word32 \/ ty = Word64) -> @onStack _ _ rval (var v) = false)
     | CLOBBER v => @onStack _ _ rval (var v) = false
     | _ => False
@@ -358,7 +358,7 @@ Local Definition iSuffix {k} (ty : type k) := match ty with
                                                | Word16 => text "w"
                                                | Word32 => text "l"
                                                | Word64 => text "q"
-                                               | array _ _ _ _ => text "q"
+                                               | array _ _ _ => text "q"
                                                | _      => text "badType"
                                                end.
 
@@ -391,16 +391,16 @@ Local Definition bswap {k} (ty : type k) (x : xreg ty) :=
 Local Definition move {ty : type direct} (la : larg _ direct ty) (ra : rarg _ direct ty) :=
   let NOP := xOp nop ty in
   match la with
-  | @Ast.index _ _ _ _ bigE _ _ _ => match ra, ty with
+  | @Ast.index _  _ _ bigE _ _ _ => match ra, ty with
                                       | var (inRegister x), Word32
                                       | var (inRegister x), Word64 => vcat [ bswap x;
                                                                                mkInst NOP (biargs (doc ra) (doc la)) ]
-                                      | @Ast.index _ _ _ _ bigE _ _ _, _ => mkInst NOP (biargs (doc ra) (doc la))
+                                      | @Ast.index _  _ _ bigE _ _ _, _ => mkInst NOP (biargs (doc ra) (doc la))
                                       | _, _ => text "badInst"
                                       end
   | var (inRegister x) => match ra, ty with
-                          | @Ast.index _ _ _ _ bigE _ _ _, Word32
-                          | @Ast.index _ _ _ _ bigE _ _ _, Word64 => vcat [ mkInst NOP (biargs (doc ra) (doc la));
+                          | @Ast.index _  _ _ bigE _ _ _, Word32
+                          | @Ast.index _  _ _ bigE _ _ _, Word64 => vcat [ mkInst NOP (biargs (doc ra) (doc la));
                                                                              bswap x ]
                           | _, _ => mkInst NOP (biargs (doc ra) (doc la))
                           end
@@ -411,7 +411,7 @@ Local Definition store {ty : type direct} (la : larg _ direct ty) (ra : rarg _ d
   vcat ([ move la ra ] ++
                        match ra with
                        | var (inRegister x) => match la with
-                                               | @Ast.index _ _ _ _ bigE _ _ _ => [bswap x]
+                                               | @Ast.index _  _ _ bigE _ _ _ => [bswap x]
                                                | _ => List.nil
                                                end
                        | _ => List.nil

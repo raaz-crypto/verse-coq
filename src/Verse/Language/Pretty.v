@@ -253,7 +253,7 @@ Section PrettyPrintingInstruction.
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
                          | assign a => doc a
-                         | @moveTo _ _ _ e _  a (exist _ i _) b
+                         | @moveTo  _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          | CLOBBER v => text "CLOBBER" <_> doc v
                          end
