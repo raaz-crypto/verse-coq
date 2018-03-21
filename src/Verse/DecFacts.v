@@ -132,6 +132,7 @@ Ltac crush_eqb_eq :=
   repeat (match goal with
           | [ |- _ <-> _ ] => constructor
           | |- context [?H ?x ?x] => destruct (eq_dec_refl H x) as [eq deceq]; rewrite deceq; trivial
+          | H : ?a = ?a -> False |- _ => contradict H; trivial
           | H : ?a = ?b -> False |- context [?Heq_dec ?a ?b] => destruct (Heq_dec a b)
           | |- _ -> _ => intros
           | H : _ = _ |- _ => dependent destruction H
