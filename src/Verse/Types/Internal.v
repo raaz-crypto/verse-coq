@@ -32,6 +32,13 @@ Inductive type       : kind -> Type :=
 | array              : align -> nat -> endian -> type direct -> type memory
 with endian : Type := bigE | littleE | hostE.
 
+Fixpoint sizeOf {k} (ty : type k) :=
+  match ty with
+  | word n         => 2 ^ n
+  | multiword m n  => 2 ^ m * 2 ^ n
+  | array _ n _ tw => n * sizeOf tw
+  end.
+
 (** Often we need to existentially quantify over types and other
     objects. This definition is just for better readability.
 *)

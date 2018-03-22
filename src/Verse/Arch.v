@@ -125,11 +125,11 @@ Module Type FRAME(A : ARCH).
 
   (** Allocate a local varaible on the stack *)
   Parameter stackAlloc : frameState ->
-                      forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                      forall (ty : type direct), A.machineVar ty * frameState + { ~ A.supportedType ty }.
 
   (** Mark a register for use *)
   Parameter useRegister : frameState ->
-                          forall k (ty : type k)(r : A.register ty), option frameState.
+                          forall (ty : type direct)(r : A.register ty), option frameState.
 
 
 

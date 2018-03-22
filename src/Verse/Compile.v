@@ -22,7 +22,8 @@ compiled.
 Inductive CompileError : Prop :=
 | UnsupportedInstruction : forall {v : VariableT}, instruction v  -> CompileError
 | UnsupportedType        : forall {k : kind}, type k -> CompileError
-| UnavailableRegister    : forall {reg : VariableT}{k : kind}{ty : type k}, reg k ty -> CompileError.
+| UnavailableRegister    : forall {reg : VariableT}{k : kind}{ty : type k}, reg k ty -> CompileError
+| UnsupportedLocalArray  : type memory -> CompileError.
 
 (**
 
@@ -56,51 +57,52 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     End CompileInstructions.
 
-    Section CompileAllocations.
+    Local Definition Allocation l := allocation A.machineVar l * F.frameState + { CompileError }.
 
-      Variable singleAlloc   :
-        F.frameState ->
-        forall k (ty : type k), A.machineVar ty * F.frameState + { ~ A.supportedType ty}.
-
-      Definition Allocation l := allocation A.machineVar l * F.frameState + { CompileError }.
-
-      Let liftTypeError
+    Local Definition liftTypeError
           {X : Type}
           {k : kind}
           {ty : type k}
           (action : X + { ~ A.supportedType ty}) : X + { CompileError }
-        := match action  with
-           | {- x -} => {- x -}
-           | error _ => error (UnsupportedType ty)
-           end.
+      := match action  with
+         | {- x -} => {- x -}
+         | error _ => error (UnsupportedType ty)
+         end.
 
-      Fixpoint generate (s0 : F.frameState)(l : list (some type)) : Allocation l :=
-        match l with
-        | []           => {- (emptyAllocation A.machineVar, s0) -}
-        | (existT _ _ ty :: rest)
-          => a1 <- liftTypeError (singleAlloc s0 ty);
-               let (v, s1) := a1
-               in a2 <- generate s1 rest;
-                    let (vs,s2) := a2
-                    in {- ((v,vs), s2) -}
-        end.
-
-      Definition iterateFrame name ty := liftTypeError (F.iterateFrame name ty).
-    End CompileAllocations.
+    Definition iterateFrame name ty := liftTypeError (F.iterateFrame name ty).
 
     (** Generate a frame with the given set of parameters or die trying *)
-    Definition params := generate F.addParam.
+    Fixpoint params s0 l : Allocation l :=
+      match l with
+      | []           => {- (emptyAllocation A.machineVar, s0) -}
+      | (existT _ _ ty :: rest)
+        => a1 <- liftTypeError (F.addParam s0 ty);
+             let (v, s1) := a1
+             in a2 <- params s1 rest;
+                  let (vs,s2) := a2
+                  in {- ((v,vs), s2) -}
+      end.
 
     (** Generate a frame with the given set of stack varaibles or die trying *)
-    Definition stacks := generate F.stackAlloc.
-
+    Fixpoint stacks s0 l : Allocation l :=
+      match l with
+      | []           => {- (emptyAllocation A.machineVar, s0) -}
+      | (existT _ memory ty :: _) => error (UnsupportedLocalArray ty)
+      | (existT _ direct ty :: rest)
+        => a1 <- liftTypeError (F.stackAlloc s0 ty);
+             let (v, s1) := a1
+             in a2 <- stacks s1 rest;
+                  let (vs,s2) := a2
+                  in {- ((v,vs), s2) -}
+      end.
 
     Fixpoint registers {l} : F.frameState ->
                              allocation A.register l -> Allocation l  :=
       match l with
       | []          => fun s0 _  => {- (emptyAllocation A.machineVar, s0) -}
-      | (existT _ k ty :: tys)
-        => fun s0 (rs : allocation A.register (existT _ k ty :: tys)) =>
+      | (existT _ memory ty :: _) => fun _ _ => error (UnsupportedLocalArray ty)
+      | (existT _ direct ty :: tys)
+        => fun s0 (rs : allocation A.register (existT _ _ ty :: tys)) =>
              let (r,rest) := rs in
              match F.useRegister s0 r with
              | Some s1 => restAlloc <- registers s1 rest;
@@ -149,8 +151,6 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
 
     Let wrap descr (code : Doc + {CompileError}) := C.makeFunction descr <$> code.
-
-
 
     Definition compile name pts lts rts regs f
       := let state := F.emptyFrame name
