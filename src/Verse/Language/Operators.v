@@ -78,6 +78,7 @@ words to all types.
 
 (* Require Import Verse.Types.*)
 
+(*
 
 Module Type OP_SEMANTICS (W : WORD_SEMANTICS).
   Parameter OpError : Prop.
@@ -167,3 +168,5 @@ End StandardWordOps.
 
 (** And here is the standard meaning of operations lifted to the type world *)
 Module StandardOps := OpDenote StandardWord StandardWordOps.
+
+*)
