@@ -55,20 +55,22 @@ below provides the mechanism for this.
 
  *)
 
-Class typeC (t : Type) := { mkWord      : nat -> t;
-                            mkMultiword : nat -> nat  -> t;
-                            mkArray     : nat -> endian -> t -> t
-                          }.
+Class typeC (t : kind -> Type) := { mkWord      : nat -> t direct ;
+                                   mkMultiword : nat -> nat  -> t direct ;
+                                   mkArray     : nat -> endian -> t direct -> t memory
+                                 }.
 
 (**
 
 Final representations can be seen as giving certain semantics for
-types, in the sense that it gives meaning for each type. We use denote
-to get this meaning.
+types, in the sense that it gives meaning for each type. The parameter
+[t : kind -> Type] is the domain of interpretation of types. The
+following function can now be seen as the translation from types of
+verse into the domain of interpretation which is [t].
 
  *)
 
-Fixpoint typeDenote {t : Type}{tc : typeC t} {k} (ty : type k)  :  t  :=
+Fixpoint typeDenote {t : kind -> Type}{tc : typeC t} {k} (ty : type k)  :  t k  :=
     match ty with
     | word n        => mkWord n
     | multiword m n => mkMultiword m n
@@ -80,7 +82,7 @@ Fixpoint typeDenote {t : Type}{tc : typeC t} {k} (ty : type k)  :  t  :=
 (** ** Sematics of [type]'s as a final representation.
 
 A special case of final representation is to encode types as Coq
-types. All we need in this case is a representation of
+types. In this case the All we need in this case is a representation of
 words. Multi-words [multiword m n] are then defined as a vectors of
 these word type, and finally arrays are vectors over the element
 type. To support maximum flexibility, meaning of types are
@@ -88,12 +90,13 @@ parameterised by the definition of the word.
 
 *)
 
+Definition TypeDenote := fun _ : kind => Type.
 
-Definition mkTypeDenote (wordDenote : nat -> Type) : typeC Type
-  := {| mkWord := wordDenote;
-        mkMultiword := fun m n => Vector.t (wordDenote n)  (2 ^ m);
-        mkArray     := fun n _ t => Vector.t t n
-     |}.
+Definition mkTypeDenote (wordDenote : nat -> Type) : typeC TypeDenote
+    := {| mkWord := fun n => wordDenote n;
+          mkMultiword :=  fun m n => Vector.t (wordDenote n)  (2 ^ m);
+          mkArray     :=   fun n _ (t : Type) => Vector.t t n
+       |}.
 
 (** *** The standard word semantics.
 
@@ -108,7 +111,7 @@ demands.
 Require Import Verse.Word.
 Definition stdWordDenote : nat -> Type := fun n => Word.bytes (2^n).
 
-Definition StandardSemantics : typeC Type := mkTypeDenote stdWordDenote.
+Definition StandardSemantics : typeC TypeDenote := mkTypeDenote stdWordDenote.
 
 Import Verse.PrettyPrint.
 Global Instance word_constant_pretty n : PrettyPrint (stdWordDenote n) := word_pretty (8 * 2^n).
