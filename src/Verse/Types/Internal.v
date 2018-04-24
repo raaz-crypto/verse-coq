@@ -30,6 +30,13 @@ Inductive type       : kind -> Type :=
 .
 
 
+(** Compute the size of a type in bytes. *)
+Fixpoint sizeOf {k} (ty : type k) :=
+  match ty with
+  | word n         => 2 ^ n
+  | multiword m n  => 2 ^ m * 2 ^ n
+  | array n _ tw => n * sizeOf tw
+  end.
 
 
 (** Often we need to existentially quantify over types and other
