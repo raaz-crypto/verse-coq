@@ -23,7 +23,8 @@ of the value that the variable is required to hold.
 
  *)
 
-Definition VariableT := forall {k : kind}, type k -> Type.
+Definition GenVariableT (t : kind -> Type):= forall {k : kind}, t k -> Type.
+Definition VariableT := GenVariableT type.
 
 
 (** A declaration is just a sequence of types *)
