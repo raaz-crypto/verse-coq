@@ -46,7 +46,7 @@ Fixpoint sizeOf {k} (ty : type k) :=
 Definition some {P: Type} (A : P -> Type) := sigT A.
 
 
-(** * Final representation.
+(** ** Final representation.
 
 The data types give the initial representation of verse types. It is
 often easier to work with a final representation of types particularly
@@ -76,6 +76,60 @@ Fixpoint typeDenote {t : kind -> Type}{tc : typeC t} {k} (ty : type k)  :  t k  
     | multiword m n => mkMultiword m n
     | array n e t   => mkArray n e (typeDenote t)
     end.
+
+
+(** * Machine types and C language types
+
+These are types that we encounter while translating code to C or for
+that matter machine language. We capture the translation via an
+explicit type and a final representation.
+
+*)
+
+Inductive UnsupportedType : Prop :=
+| unsupported : forall k : kind, type k -> UnsupportedType.
+
+Arguments unsupported [k] _.
+Inductive CType : kind -> Type :=
+| uint8_t  : CType direct
+| uint16_t : CType direct
+| uint32_t : CType direct
+| uint64_t : CType direct
+| CArray   : nat -> CType direct    -> CType memory
+| CPtr     : forall k : kind, CType k -> CType memory
+.
+
+Import Verse.Error.
+Definition wordToCWord (n : nat) : CType direct + { UnsupportedType } :=
+  match n with
+  | 0 => {- uint8_t  -}
+  | 1 => {- uint16_t -}
+  | 2 => {- uint32_t -}
+  | 3 => {- uint64_t -}
+  | _ => error (unsupported (word n))
+  end.
+
+
+Instance CTypeDenote : typeC (fun k : kind => (CType k + { UnsupportedType }))
+   := {| mkWord      := wordToCWord;
+         mkMultiword := fun m n  => error (unsupported (multiword m n));
+         mkArray     := fun n _ t => CArray n <$> t
+      |}.
+
+
+
+
+Inductive MachineType : kind -> Type :=
+| Sized    : nat -> MachineType direct
+| Address  : nat -> MachineType memory.
+
+(** An address inside the machine. There is no alignment restriction on it. *)
+Definition byteAddress := Address 0.
+
+Definition aligned (n : nat)(addr : MachineType memory) : MachineType memory :=
+  match addr with
+  | Address m => Address (max m n)
+  end.
 
 
 
