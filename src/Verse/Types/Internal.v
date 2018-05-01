@@ -60,6 +60,14 @@ Class typeC (t : kind -> Type) := { mkWord      : nat -> t direct ;
                                    mkArray     : nat -> endian -> t direct -> t memory
                                  }.
 
+(** Clearly the verse types are themselves an instance of the above type class *)
+
+Instance type_is_typeC : typeC type :=
+  { mkWord      := word;
+    mkMultiword := multiword;
+    mkArray     := array
+  }.
+
 (**
 
 Final representations can be seen as giving certain semantics for
