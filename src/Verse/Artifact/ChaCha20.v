@@ -61,7 +61,10 @@ Section ChaCha20.
                             x12; x13; x14; x15
                           ]%vector.
 
-  (** It is useful to have a uniform way to index the state variables *)
+  (** It is useful to have a uniform way to index the state variables. TODO using this
+      can you simplify the round code.
+   *)
+
   Definition X : VarIndex progvar 16 Word := varIndex stateVars.
 
   Definition registers : Declaration := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
