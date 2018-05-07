@@ -117,7 +117,7 @@ Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over ze
 
 Tactic Notation "verse" uconstr(B)
   := (refine B; repeat match goal with
-                       | [ |- _ mod _ < _   ]  => (apply NPeano.Nat.mod_upper_bound;omega)+verse_modulus_warn
+                       | [ |- context [?A mod ?B] ]  => (assert (A mod B < B); [apply NPeano.Nat.mod_upper_bound | ];omega)+verse_modulus_warn
                        | [ |- _ <= ?T        ]  => try (unfold T); omega
                        | [ |- _ < ?T        ]  => try (unfold T); omega
                        | [ |- _ < _         ]  => omega+verse_bounds_warn
