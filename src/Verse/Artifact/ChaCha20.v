@@ -5,6 +5,8 @@ An implementation of ChaCha20 stream cipher in verse.
 *)
 
 Require Import Verse.
+Require Import Verse.Arch.C.
+
 Require Vector.
 Import VectorNotations.
 Close Scope vector_scope.
@@ -67,7 +69,7 @@ Section ChaCha20.
 
   Definition X : VarIndex progvar 16 Word := varIndex stateVars.
 
-  Definition registers : Declaration := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
+  Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
 
 
 
@@ -153,8 +155,6 @@ Section ChaCha20.
 
 End ChaCha20.
 
-Require Import Verse.Arch.C.
-
 Definition regVars := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x3",
                          cr Word "x4",  cr Word "x5",  cr Word "x6",  cr Word "x7",
                          cr Word "x8",  cr Word "x9",  cr Word "x10", cr Word "x11",
@@ -163,10 +163,15 @@ Definition regVars := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x
                       -).
 
 
+About registers.
 Definition code : Doc + {Compile.CompileError}.
-  Compile.iterator iterType "chacha20blocks" parameters stack registers.
+  Compile.iterator Block "chacha20blocks" parameters stack registers.
   assignRegisters regVars.
   statements ChaCha20Iterator.
 Defined.
 
-Compute (tryLayout code).
+Print code.
+
+(* Warning this bombs *)
+
+(* Compute (tryLayout code). *)
