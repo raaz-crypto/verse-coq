@@ -84,7 +84,7 @@ Section ChaCha20.
             a ::=+ b; d ::=^ a; d ::=<*< 8;
             c ::=+ d; b ::=^ c; b ::=<*< 12
           ].
-    Qed.
+    Defined.
 
     (** Chacha20 is a stream cipher where each block is processed by
       xoring the block with the state matrix obtained after the
@@ -99,7 +99,7 @@ Section ChaCha20.
         x8  ::== key[- 4 -] ; x9  ::== key[- 5 -] ; x10 ::== key[- 6 -] ; x11 ::== key[- 7 -];
         x12 ::== ctr        ; x13 ::== iv[- 0 -]  ; x14 ::== iv[- 1 -]  ; x15 ::== iv[- 2 -]
       ].
-  Qed.
+  Defined.
 
   (** A double round consists of 4-Quarter round on the columns of the
       matrix followed by 4-Quarter rounds on the diagonals
@@ -131,21 +131,21 @@ Section ChaCha20.
         x12 ::=+ ctr        ; x13 ::=+ iv[- 0 -]  ; x14 ::=+ iv[- 1 -]  ; x15 ::=+ iv[- 2 -]
       ].
 
-  Qed.
+  Defined.
 
   (** The code that computes the chacha20 key stream into the state matrix *)
   Definition COMPUTE_STREAM := List.concat [ INITSTATE; ROUND20; UPDATE].
 
   Definition XORBLOCK (B : progvar Block)(i : nat) (_ : i < 16)  : code progvar.
     verse [ Temp ::== B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
-  Qed.
+  Defined.
 
   Definition LoadCounter : code progvar.
     verse [ ctr ::== ctrRef[- 0 -] ].
-  Qed.
+  Defined.
   Definition StoreCounter : code progvar.
     verse [ MOVE ctr TO ctrRef[- 0 -] ].
-  Qed.
+  Defined.
 
   Definition ChaCha20Iterator : iterator Block progvar :=
     {| setup := LoadCounter;
@@ -172,6 +172,7 @@ Defined.
 
 Print code.
 
+Compute (tryLayout code).
 (* Warning this bombs *)
 
 (* Compute (tryLayout code). *)
