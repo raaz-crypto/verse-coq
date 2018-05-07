@@ -9,12 +9,13 @@ Section TestFunction.
   Arguments variable [k] _.
   (* The parameters of the function *)
   Variable num : variable Word16.
-  Definition parameters := [Var num].
-
-  (* The local variables *)
   Variable arr      : variable (Array 3 littleE Word16).
+  Definition parameters := [Var num; Var arr].
+  
+  (* The local variables *)
 
-  Definition locals := [Var arr].
+  Definition locals : list (some type) := [].
+  
   (* The temp register *)
   Variable tmp       : variable Word16.
   Variable double    : variable Word32.
