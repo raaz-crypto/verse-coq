@@ -152,3 +152,21 @@ Section ChaCha20.
     |}.
 
 End ChaCha20.
+
+Require Import Verse.Arch.C.
+
+Definition regVars := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x3",
+                         cr Word "x4",  cr Word "x5",  cr Word "x6",  cr Word "x7",
+                         cr Word "x8",  cr Word "x9",  cr Word "x10", cr Word "x11",
+                         cr Word "x12", cr Word "x13", cr Word "x14", cr Word "x15",
+                         cr Counter "ctr", cr Word "Tmp"
+                      -).
+
+
+Definition code : Doc + {Compile.CompileError}.
+  Compile.iterator iterType "chacha20blocks" parameters stack registers.
+  assignRegisters regVars.
+  statements ChaCha20Iterator.
+Defined.
+
+Compute (tryLayout code).
