@@ -66,9 +66,7 @@ Section ChaCha20.
 
   Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
 
-  (** It is useful to have a uniform way to index the state variables. TODO using this
-      can you simplify the round code.
-   *)
+  (** It is useful to have a uniform way to index the state variables. *)
 
   Definition X : VarIndex progvar 16 Word := varIndex stateVars.
 
