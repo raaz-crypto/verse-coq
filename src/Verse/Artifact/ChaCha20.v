@@ -37,7 +37,8 @@ Section ChaCha20.
   Variable key      : progvar Key.
   Variable iv       : progvar IV.
   Variable ctrRef   : progvar (Array 1 hostE Counter).
-  Definition parameters : Declaration  := [Var key; Var iv; Var ctrRef].
+  Definition parameters : Declaration
+    := [Var key; Var iv; Var ctrRef].
 
   (* We do not have local stack variables *)
   Definition stack : Declaration    := [].
@@ -63,13 +64,14 @@ Section ChaCha20.
                             x12; x13; x14; x15
                           ]%vector.
 
+  Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
+
   (** It is useful to have a uniform way to index the state variables. TODO using this
       can you simplify the round code.
    *)
 
   Definition X : VarIndex progvar 16 Word := varIndex stateVars.
 
-  Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
 
 
 
@@ -120,13 +122,14 @@ Section ChaCha20.
                                    QROUND x2 x7 x8  x13;
                                    QROUND x3 x4 x9  x14
                                  ] in
-    let doubleRound := colRound ++ diagRound in List.concat (List.repeat doubleRound 10).
+    let doubleRound := colRound ++ diagRound
+    in List.concat (List.repeat doubleRound 10).
 
 
   Definition UPDATE : code progvar.
     verse [
         x0  ::=+ C0         ; x1  ::=+ C1         ; x2  ::=+ C2         ; x3  ::=+ C3;
-        x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -]  ; x7 ::=+ key[- 3 -];
+        x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -]; x7 ::=+ key[- 3 -];
         x8  ::=+ key[- 4 -] ; x9  ::=+ key[- 5 -] ; x10 ::=+ key[- 6 -] ; x11 ::=+ key[- 7 -];
         x12 ::=+ ctr        ; x13 ::=+ iv[- 0 -]  ; x14 ::=+ iv[- 1 -]  ; x15 ::=+ iv[- 2 -]
       ].
@@ -134,9 +137,11 @@ Section ChaCha20.
   Defined.
 
   (** The code that computes the chacha20 key stream into the state matrix *)
+
   Definition COMPUTE_STREAM := List.concat [ INITSTATE; ROUND20; UPDATE].
 
-  Definition XORBLOCK (B : progvar Block)(i : nat) (_ : i < 16)  : code progvar.
+  Definition XORBLOCK (B : progvar Block)(i : nat) (_ : i < 16)
+    : code progvar.
     verse [ Temp ::== B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
   Defined.
 
@@ -149,18 +154,24 @@ Section ChaCha20.
 
   Definition ChaCha20Iterator : iterator Block progvar :=
     {| setup := LoadCounter;
-       process := fun blk => COMPUTE_STREAM ++ foreach (indices blk) (XORBLOCK blk) ++ [ ctr ::=+ Ox "00:00:00:01"];
+       process := fun blk =>
+                    COMPUTE_STREAM
+                      ++ foreach (indices blk) (XORBLOCK blk)
+                      ++ [ ctr ::=+ Ox "00:00:00:01"];
        finalise := StoreCounter
     |}.
 
 End ChaCha20.
 
-Definition regVars := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x3",
-                         cr Word "x4",  cr Word "x5",  cr Word "x6",  cr Word "x7",
-                         cr Word "x8",  cr Word "x9",  cr Word "x10", cr Word "x11",
-                         cr Word "x12", cr Word "x13", cr Word "x14", cr Word "x15",
-                         cr Counter "ctr", cr Word "Tmp"
-                      -).
+(** Let us allocate the registers.  *)
+
+Definition regVars
+  := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x3",
+        cr Word "x4",  cr Word "x5",  cr Word "x6",  cr Word "x7",
+        cr Word "x8",  cr Word "x9",  cr Word "x10", cr Word "x11",
+        cr Word "x12", cr Word "x13", cr Word "x14", cr Word "x15",
+        cr Counter "ctr", cr Word "Tmp"
+      -).
 
 
 About registers.
@@ -173,6 +184,3 @@ Defined.
 Print code.
 
 Compute (tryLayout code).
-(* Warning this bombs *)
-
-(* Compute (tryLayout code). *)
