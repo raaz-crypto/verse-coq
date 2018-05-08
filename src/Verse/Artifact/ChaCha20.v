@@ -51,10 +51,10 @@ Section ChaCha20.
        3. A temporary register
    *)
 
-  Variable x0 x1 x2 x3     : progvar Word.
-  Variable x4 x5 x6 x7     : progvar Word.
-  Variable x8 x9 x10 x11   : progvar Word.
-  Variable x12 x13 x14 x15 : progvar Word.
+  Variable x0  x1  x2  x3
+           x4  x5  x6  x7
+           x8  x9  x10 x11
+           x12 x13 x14 x15 : progvar Word.
   Variable ctr             : progvar Counter.
   Variable Temp            : progvar Word.
 
@@ -95,7 +95,7 @@ Section ChaCha20.
   Definition INITSTATE : code progvar.
     verse [
         x0  ::== C0         ; x1  ::== C1         ; x2  ::== C2         ; x3  ::== C3;
-        x4  ::== key[- 0 -] ; x5  ::== key[- 1 -] ; x6  ::== key[- 2 -]  ; x7 ::== key[- 3 -];
+        x4  ::== key[- 0 -] ; x5  ::== key[- 1 -] ; x6  ::== key[- 2 -] ; x7 ::== key[- 3 -];
         x8  ::== key[- 4 -] ; x9  ::== key[- 5 -] ; x10 ::== key[- 6 -] ; x11 ::== key[- 7 -];
         x12 ::== ctr        ; x13 ::== iv[- 0 -]  ; x14 ::== iv[- 1 -]  ; x15 ::== iv[- 2 -]
       ].
@@ -127,7 +127,7 @@ Section ChaCha20.
   Definition UPDATE : code progvar.
     verse [
         x0  ::=+ C0         ; x1  ::=+ C1         ; x2  ::=+ C2         ; x3  ::=+ C3;
-        x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -]; x7 ::=+ key[- 3 -];
+        x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -] ; x7  ::=+ key[- 3 -];
         x8  ::=+ key[- 4 -] ; x9  ::=+ key[- 5 -] ; x10 ::=+ key[- 6 -] ; x11 ::=+ key[- 7 -];
         x12 ::=+ ctr        ; x13 ::=+ iv[- 0 -]  ; x14 ::=+ iv[- 1 -]  ; x15 ::=+ iv[- 2 -]
       ].
