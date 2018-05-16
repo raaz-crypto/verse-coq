@@ -15,6 +15,20 @@ matrix:
       env: COQ_VER=8.6
       addons: {apt: {packages: [opam], sources: [avsm] }}
 
+    - os: linux
+      env: COQ_VER=8.7.2
+      addons: {apt: {packages: [opam], sources: [avsm] }}
+
+    - os: linux
+      env: COQ_VER=8.8.0
+      addons: {apt: {packages: [opam], sources: [avsm] }}
+
+
+  allow_failures:
+    - env: COQ_VER=8.8.0
+    - env: COQ_VER=8.7.2
+
+
 notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
