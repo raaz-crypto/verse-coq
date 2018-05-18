@@ -19,12 +19,15 @@ function init()
     mkdir -p "coq-$COQ_VER"
     opam init --root="$COQ_BUILD_DIR" --no-setup --yes
     setopamenv
-    opam install "coq.$COQ_VER" --yes
+    opam repo add coq-released https://coq.inria.fr/opam/released
+    opam pin add coq "$COQ_VER" --yes
+    opam install coq-bignums --yes
+    opam list
+    # opam install "coq.$COQ_VER" --yes
 }
 
 function configure()
 {
-    init
     setopamenv
     ./configure.sh
 }
@@ -33,7 +36,6 @@ function build()
 {
 
     configure
-    setopamenv
     coqtop -v
     make
 }
