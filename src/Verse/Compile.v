@@ -8,6 +8,8 @@ Require Import String.
 Require Import Coq.Sets.Ensembles.
 Require Import List.
 Import ListNotations.
+Require Import Vector.
+Import VectorNotations.
 
 Set Implicit Arguments.
 
@@ -57,7 +59,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     End CompileInstructions.
 
-    Local Definition Allocation l := allocation A.machineVar l * F.frameState + { CompileError }.
+    Local Definition Allocation {n} (l : Vector.t (some type) n) :=
+      allocation A.machineVar l * F.frameState + { CompileError }.
 
     Local Definition liftTypeError
           {X : Type}
@@ -72,7 +75,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Definition iterateFrame name ty := liftTypeError (F.iterateFrame name ty).
 
     (** Generate a frame with the given set of parameters or die trying *)
-    Fixpoint params s0 l : Allocation l :=
+    Fixpoint params {n} s0 (l : Vector.t (some type) n) : Allocation l :=
       match l with
       | []           => {- (emptyAllocation A.machineVar, s0) -}
       | (existT _ _ ty :: rest)
@@ -84,7 +87,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       end.
 
     (** Generate a frame with the given set of stack varaibles or die trying *)
-    Fixpoint stacks s0 l : Allocation l :=
+    Fixpoint stacks {n} s0 (l : Vector.t (some type) n) : Allocation l :=
       match l with
       | []           => {- (emptyAllocation A.machineVar, s0) -}
       | (existT _ memory ty :: _) => error (UnsupportedLocalArray ty)
@@ -96,7 +99,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                   in {- ((v,vs), s2) -}
       end.
 
-    Fixpoint registers {l} : F.frameState ->
+    Fixpoint registers {n} {l : Vector.t (some type) n} : F.frameState ->
                              allocation A.register l -> Allocation l  :=
       match l with
       | []          => fun s0 _  => {- (emptyAllocation A.machineVar, s0) -}
@@ -118,9 +121,12 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       Variable startState : F.frameState.
 
       (** Its parameters and stack variables *)
-      Variable parameterTypes stackTypes : list (some type).
+      Variable nP nS nR : nat.
 
-      Variable registerTypes : list (some type).
+      Variable parameterTypes : Vector.t (some type) nP.
+      Variable stackTypes : Vector.t (some type) nS.
+
+      Variable registerTypes : Vector.t (some type) nR.
 
       (** Its register variables *)
       Variable registerVariables : allocation A.register registerTypes.
@@ -152,16 +158,20 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Let wrap descr (code : Doc + {CompileError}) := C.makeFunction descr <$> code.
 
-    Definition compile name pts lts rts regs f
+    Definition compile {nP nL nR} name (pts : Vector.t (some type) nP)
+                                       (lts : Vector.t (some type) nL)
+                                       (rts : Vector.t (some type) nR) regs f
       := let state := F.emptyFrame name
          in result <- fillVars code state pts lts rts regs f;
               let (descr, code) := result  in wrap descr (compileInstructions code).
 
-    Definition compileIterator ty name pts lts rts regs iterF
+    Definition compileIterator {nP nL nR} ty name (pts : Vector.t (some type) nP)
+                                       (lts : Vector.t (some type) nL)
+                                       (rts : Vector.t (some type) nR) regs iterF
       := S <- iterateFrame name ty;
            let (iterVars, state) := S in
            let (codeV, countV)  := iterVars
-           in result <- @fillVars (iterator ty) state pts lts rts regs iterF;
+           in result <- @fillVars (iterator ty) state nP nL nR pts lts rts regs iterF;
                 let (descr, iF) := result in
                 let setupCode       := compileInstructions (setup iF) in
                 let iterationCode   := compileInstructions (process iF codeV) in
@@ -170,15 +180,15 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                          {- vcat [s; C.loopWrapper codeV countV i; f] -} in
                 wrap descr body.
 
-    Arguments compile _ _ _ [rts] _ _.
-    Arguments compileIterator _ _ _ _ [rts] _ _.
+    Arguments compile [nP nL nR] _ _ _ [rts] _ _.
+    Arguments compileIterator [nP nL nR] _ _ _ _ [rts] _ _.
 
   End Internal.
 
   Import Internal.
-  Ltac function s p l r := simple refine (@compile s _ _ _ _ _);
-                           [> declare p |  declare l | declare r | idtac | idtac ].
-  Ltac iterator i s p l r := simple refine (@compileIterator i s _ _ _ _ _);
-                              [> declare p |  declare l | declare r | idtac | idtac ].
+  Ltac function s p l r := simple refine (@compile _ _ _ s _ _ _ _ _);
+                           [> shelve | shelve | shelve | declare p |  declare l | declare r | idtac | idtac ].
+  Ltac iterator i s p l r := simple refine (@compileIterator _ _ _ i s _ _ _ _ _);
+                             [> shelve | shelve | shelve | declare p |  declare l | declare r | idtac | idtac ].
 
 End Compiler.

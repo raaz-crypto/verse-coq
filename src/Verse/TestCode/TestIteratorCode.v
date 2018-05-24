@@ -1,6 +1,8 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 
+Require Import Vector.
+Import VectorNotations.
 
 Definition iterType := Array 10 hostE Word16.
 Section TestFunction.
@@ -60,8 +62,8 @@ Section TestFunction.
                       arr[-1-] ::=>*> (42%nat);
                       double   ::=<*< (42%nat)
                   ]%list;
-        process    := fun msg => [num ::=  tmp [+] msg[-1-] ];
-        finalise := []
+        process    := fun msg => [num ::=  tmp [+] msg[-1-] ]%list;
+        finalise := []%list
       |}.
   Defined.
 

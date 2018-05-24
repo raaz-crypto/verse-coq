@@ -3,6 +3,8 @@ Require Import Verse.Types.Internal.
 Require Import Basics.
 Require Import List.
 Import  ListNotations.
+Require Import Vector.
+Import VectorNotations.
 Require Import Coq.Sets.Ensembles.
 
 Set Implicit Arguments.
@@ -29,7 +31,7 @@ Definition VariableT := GenVariableT type.
 
 (** A declaration is just a sequence of types *)
 Definition Declaration              := list (some type).
-Definition Empty  : Declaration     := [].
+Definition Empty  : Declaration     := []%list.
 
 (** Helper function that recovers the type of the given variable *)
 Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
@@ -56,9 +58,9 @@ Section Scoped.
 
    *)
 
-  Fixpoint scoped (l : list (some t))(CODE : Type) : Type :=
+  Fixpoint scoped n (l : Vector.t (some t) n)(CODE : Type) : Type :=
     match l with
-    | []       => CODE
+    | []                  => CODE
     | existT _ _ ty :: lt => v ty -> scoped lt CODE
     end.
 
@@ -71,9 +73,9 @@ Section Scoped.
 
    *)
 
-  Fixpoint allocation (l : list (some t)) : Type :=
+  Fixpoint allocation {n} (l : Vector.t (some t) n) : Type :=
     match l with
-    | []      => unit
+    | []                 => unit
     | existT _ _ t :: lt => v t * allocation lt
     end.
 
@@ -81,7 +83,7 @@ Section Scoped.
 
   (* This function fills in the variables from an allocation into a scoped code *)
 
-  Fixpoint fill {CODE} {l : list (some t)} : allocation l -> scoped l CODE -> CODE :=
+  Fixpoint fill {CODE} n {l : Vector.t (some t) n} : allocation l -> scoped l CODE -> CODE :=
     match l with
     | []                 => fun a x => x
     | existT _ _ _ :: lt => fun a x => fill (snd a) (x (fst a))
@@ -89,8 +91,7 @@ Section Scoped.
 
 End Scoped.
 
-Arguments fill [t v CODE l] _ _.
-
+Arguments fill [t0 v CODE n l] _ _.
 
 (* A variable type that us used as a proxy. This variable is *)
 

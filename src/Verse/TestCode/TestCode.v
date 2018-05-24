@@ -1,6 +1,8 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 
+Require Import Vector.
+Import VectorNotations.
 
 Section TestFunction.
 
@@ -25,7 +27,7 @@ Section TestFunction.
   Definition regAssignment := (- cr Word16 "temp" -).
   Definition someInstruction i (_ : i < 5) : code variable.
     Import Nat.
-    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ].
+    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
   Defined.
 
   Definition testFunction : code variable.
@@ -60,11 +62,12 @@ Section TestFunction.
       num      ::=<*< (42%nat);
       arr[-1-] ::=>*> (42%nat);
       CLOBBER arr
-    ].
+    ]%list.
   Defined.
 
 End TestFunction.
 
+Require Import Verse.Compile.
 
 Definition testcode : Doc + {Compile.CompileError}.
   Compile.function "testFunction" parameters locals registers.
