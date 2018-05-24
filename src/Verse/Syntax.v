@@ -64,6 +64,9 @@ Section Scoped.
     | existT _ _ ty :: lt => v ty -> scoped lt CODE
     end.
 
+  Inductive scopeVar : forall {n} (l : Vector.t (some type) n), VariableT :=
+  | headVar m (v : Vector.t (some type) (S m)) : scopeVar v (projT2 (hd v))
+  | restVar m (v : Vector.t (some type) (S m)) k (ty : type k) : scopeVar (tl v) ty.
 
   (** ** Allocation
 
@@ -73,11 +76,11 @@ Section Scoped.
 
    *)
 
-  Fixpoint allocation {n} (l : Vector.t (some t) n) : Type :=
-    match l with
-    | []                 => unit
-    | existT _ _ t :: lt => v t * allocation lt
-    end.
+  Fixpoint allocation n (l : Vector.t (some t) n) : Type :=
+    match n return Vector.t (some t) n -> Type with
+    | 0   => fun _  => unit
+    | S m => fun v0 => (v (projT2 (hd v0)) * allocation (tl v0))%type
+    end l.
 
   Definition emptyAllocation : allocation [] := tt.
 
