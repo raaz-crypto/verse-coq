@@ -64,9 +64,11 @@ Section Scoped.
     | existT _ _ ty :: lt => v ty -> scoped lt CODE
     end.
 
+  (* A dummy VariableT that can help instantiate scoped code *)
   Inductive scopeVar : forall {n} (l : Vector.t (some type) n), VariableT :=
   | headVar m (v : Vector.t (some type) (S m)) : scopeVar v (projT2 (hd v))
-  | restVar m (v : Vector.t (some type) (S m)) k (ty : type k) : scopeVar (tl v) ty.
+  | restVar m (v : Vector.t (some type) (S m)) k (ty : type k) : scopeVar (tl v) ty
+                                                                 -> scopeVar v ty.
 
   (** ** Allocation
 
@@ -95,6 +97,25 @@ Section Scoped.
 End Scoped.
 
 Arguments fill [t0 v CODE n l] _ _.
+
+Fixpoint mapAlloc v1 v2 (f : forall k (ty : type k), v1 _ ty -> v2 _ ty)
+         n (l : Vector.t (some type) n) : allocation v1 l -> allocation v2 l :=
+  match n return forall l : Vector.t (some type) n, allocation v1 l -> allocation v2 l with
+  | S n => fun l a1 => (f _ _ (fst a1), mapAlloc v1 v2 f (tl l) (snd a1))
+  | 0   => fun l _  => tt
+  end l.
+
+(* The dummy allocation for scoped code *)
+Fixpoint dummyAlloc {n} (l : Vector.t (some type) n) : allocation (scopeVar l) l :=
+  match n return forall l0 : Vector.t (some type) n, @allocation _ _ n l0 with
+   | S m => fun l0 => (headVar l0, mapAlloc _ _ (restVar l0) _ (dummyAlloc (tl l0)))
+   | 0   => fun _  => tt
+  end l.
+
+(* Generic scoped code filled out with the dummy VariableT *)
+Definition fillDummy n (l : Vector.t (some type) n) CODE
+                     (genC : forall v, scoped v l CODE) :=
+  fill (dummyAlloc l) (genC (scopeVar l)).
 
 (* A variable type that us used as a proxy. This variable is *)
 
