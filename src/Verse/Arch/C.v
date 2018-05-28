@@ -105,7 +105,7 @@ Section PrintingInstruction.
   Definition fromMemory e ty v :=
    match e with
    | littleE => text "verse_from_le" <> wordSize ty <> (paren v)
-   | bigE    => text "verse_form_be" <> wordSize ty <> (paren v)
+   | bigE    => text "verse_from_be" <> wordSize ty <> (paren v)
    | _       => v
    end.
 
@@ -128,8 +128,8 @@ Section PrintingInstruction.
 
   Definition CRot (ty : type direct) (o : uniop) (a : larg cvar _ ty) (y : Doc)  :=
     let rvl := match o with
-               | rotL n => text "rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
-               | rotR n => text "rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
+               | rotL n => text "verse_rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
+               | rotR n => text "verse_rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | _      => text "BadOp"
                end
     in
