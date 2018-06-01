@@ -74,3 +74,6 @@ Definition code : Doc + {Compile.CompileError}.
 Defined.
 
 Compute (tryLayout code).
+
+Require Import Verse.Extraction.Ocaml.
+Extraction "out" tryLayout code.
