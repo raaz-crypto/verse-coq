@@ -1,0 +1,24 @@
+opam-version: "1.2"
+maintainer: "ppk@cse.iitk.ac.in"
+homepage: "https://github.com/raaz/verse-coq"
+dev-repo: "https://github.com/raaz/verse-coq.git"
+bug-reports: "https://github.com/raaz/verse-coq/issues"
+authors: ["Piyush P Kurur"]
+license: "MIT"
+build: [
+  ["./configure.sh"]
+  [make "-j%{jobs}%"]
+]
+install: [
+  [make "install"]
+]
+remove: ["rm" "-R" "%{lib}%/coq/user-contrib/Foo"]
+depends: [
+  "coq" {>= "8.5" & < "8.6~"}
+]
+tags: [
+  "keyword:cryptography"
+  "category:Miscellaneous/Coq Extensions"
+  "date:2016-09-01"
+  "logpath:Foo"
+]

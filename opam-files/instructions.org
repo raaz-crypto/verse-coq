@@ -1,0 +1,18 @@
+* Steps to create a coq opam package
+** Creating a package
+   1. git clone git@github.com:user/opam-coq-archive.git
+   2. cd opam-coq-archive
+   3. mkdir -p released/packages/coq-verse/coq-verse.1.0.0
+   4. edit files
+      1. url
+      2. descr
+      3. opam
+   5. mv {url,descr,opam} to released/packages/coq-verse/coq-verse.1.0.0/
+   6. git add released/packages/coq-verse/coq-verse.1.0.0/
+      git commit -m 'Packaging foo version 1.0.0'
+** Testing a package
+   1. opam lint released/packages/coq-verse/coq-verse.1.0.0/
+   2. opam repo add ./released
+   3. opam install -v coq-verse
+** Submitting a packages
+   1. git push origin master
