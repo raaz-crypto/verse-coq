@@ -112,7 +112,7 @@ Ltac  verse_warn :=
   | [ |- ?T ] => idtac "verse: unable to dispose of" T
   end.
 
-Ltac verse_bounds_warn := verse_warn; idtac "possible array out of index".
+Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
 Tactic Notation "verse" uconstr(B)
