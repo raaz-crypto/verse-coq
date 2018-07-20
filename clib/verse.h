@@ -19,10 +19,10 @@ static inline uint32_t verse_bswap32(uint32_t x) { return _byteswap_ulong(x); }
 static inline uint64_t verse_bswap64(uint64_t x) { return _byteswap_uint64(x); }
 
 #elif defined(PLATFORM_OPENBSD)
-#include <sys/endian.h>
-static inline uint16_t verse_bswap16(uint16_t x) { return bswap16(x); }
-static inline uint32_t verse_bswap32(uint32_t x) { return bswap32(x); }
-static inline uint64_t verse_bswap64(uint64_t x) { return bswap64(x); }
+#include <endian.h>
+static inline uint16_t verse_bswap16(uint16_t x) { return swap16(x); }
+static inline uint32_t verse_bswap32(uint32_t x) { return swap32(x); }
+static inline uint64_t verse_bswap64(uint64_t x) { return swap64(x); }
 
 #elif defined(PLATFORM_LINUX) /* All other platforms */
 #include <byteswap.h>
