@@ -67,18 +67,15 @@ End TestFunction.
 
 
 Definition testcode : Doc + {Compile.CompileError}.
-
   Compile.function "testFunction" parameters locals registers.
-    assignRegisters regAssignment.
-    statements testFunction.
+  assignRegisters regAssignment.
+  statements testFunction.
 Defined.
 
-(* Compute (tryLayout code). *)
+(* Compute (tryLayout testcode). *)
 
 Require Import Verse.Extraction.Ocaml.
 
-Axiom main : unit.
+Definition main : unit := print_code testcode.
 
-Extract Constant main => "print_code testcode".
-
-Recursive Extraction tryLayout testcode print_code main.
+Recursive Extraction main.
