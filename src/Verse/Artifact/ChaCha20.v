@@ -179,6 +179,10 @@ Definition code : Doc + {Compile.CompileError}.
   statements ChaCha20Iterator.
 Defined.
 
-Print code.
+(* Extracting the code
 
-Compute (tryLayout code).
+*)
+
+Require Import Verse.Extraction.Ocaml.
+Definition main : unit := print_code code.
+Recursive Extraction main.
