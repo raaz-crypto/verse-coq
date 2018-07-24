@@ -8,7 +8,7 @@ cryptographic primitives.
 Configuring and installing
 --------------------------
 
-```
+```bash
 ./configure.sh
 make
 
@@ -21,7 +21,7 @@ You need `opam` for building and testing the source code for multiple
 versions of coq. You need to set the the environment variable $COQ_VER
 and run the script `./scripts/opam-build.sh`. Here is an example.
 
-```
+```bash
 COQ_VER=8.6 ./scripts/opam-build.sh build  # compile all the coq files
 COQ_VER=8.6 ./scripts/opam-build.sh html   # build html documentation
 
@@ -34,7 +34,7 @@ Verse is an _Embedded Domain Specific Language_ and as such generates
 the assembly language code as a Coq inductive type. Here is a tiny example
 which takes an array of 16-bit words and sets it to zero.
 
-```
+```coq
 
 Require Import Verse.
 
@@ -77,7 +77,7 @@ In the example above, we wrote a simple verse program. To get actual code
 targeting a real machine, we need to compile for a given architecture. Here
 we illustrate the use of portable C as the architecture.
 
-```
+```coq
 Require Import Verse.Arch.C.
 
 Definition code : Doc + {Compile.CompileError}.
@@ -87,11 +87,12 @@ Definition code : Doc + {Compile.CompileError}.
 Defined.
 ```
 
-Now we have defined compiled the above verse program into the coq variable `code`.
-The recommended way to get a string representation of the program is to export it to
-ocaml and print it. This is achieved as follows.
+Now that we have compiled the above verse program into the coq
+variable `code`.  The recommended way to get a string representation
+of the program is to export it to ocaml and print it. This is achieved
+as follows.
 
-```
+```coq
 (* Extracting the code
 
 *)
