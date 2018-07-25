@@ -31,7 +31,7 @@ End ZeroBuffer.
 Require Import Verse.Arch.C.
 
 Definition code : Doc + {Compile.CompileError}.
-  Compile.function "zeroblocks" parameters stack registers.
+  Compile.function "verse_zerobuf_c" parameters stack registers.
   assignRegisters (--).
   statements zeroBuf.
 Defined.

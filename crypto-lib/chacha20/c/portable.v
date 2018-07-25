@@ -172,9 +172,9 @@ Definition regVars
       -).
 
 
-About registers.
+
 Definition code : Doc + {Compile.CompileError}.
-  Compile.iterator Block "chacha20blocks" parameters stack registers.
+  Compile.iterator Block "verse_chacha20_c" parameters stack registers.
   assignRegisters regVars.
   statements ChaCha20Iterator.
 Defined.

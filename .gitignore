@@ -2,7 +2,7 @@
 *.glob
 *.v.d
 coq-*
+/Makefile
 *.aux
-Makefile
 *.bak
 *.conf
