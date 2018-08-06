@@ -174,4 +174,4 @@ for the c-code.
 *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (cfuncName : string) : unit := print_code (Internal.chacha20 cfuncName).
+Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.chacha20 cfuncName).
