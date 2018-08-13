@@ -6,7 +6,7 @@ An implementation of ChaCha20 stream cipher in verse.
 
 Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Verse.CryptoLib.ChaCha20.Common.
+Require Import Verse.CryptoLib.chacha20.common.
 Require Vector.
 Import VectorNotations.
 Close Scope vector_scope.
@@ -174,4 +174,4 @@ for the c-code.
 *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.chacha20 cfuncName).
+Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.chacha20 cfunName).
