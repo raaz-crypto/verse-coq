@@ -9,7 +9,9 @@ Require Import Verse.Arch.C.
 Require Import Verse.CryptoLib.chacha20.common.
 Require Vector.
 Import VectorNotations.
-Close Scope vector_scope.
+Delimit Scope vector_scope with vector.
+Require Import List.
+Import ListNotations.
 
 Module Internal.
 
@@ -26,7 +28,7 @@ Module Internal.
       := [Var key; Var iv; Var ctrRef].
 
   (* We do not have local stack variables *)
-    Definition stack : Declaration    := [].
+    Definition stack : Declaration    := Empty.
 
     (**
        Besides we have the following in registers
@@ -49,7 +51,7 @@ Module Internal.
                               x12; x13; x14; x15
                             ]%vector.
 
-    Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp]).
+    Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp])%list.
 
     (** It is useful to have a uniform way to index the state variables. *)
 
