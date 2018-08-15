@@ -1,41 +1,36 @@
-# The targets to build.
-
-CC=gcc
-ARCH=
-IMPLS = chacha20/c/portable.c
-ifdef TESTING
-IMPLS += test/c/zerobuffer.c
-.DEFAULT: main
-main: main.c libverse.a
-	gcc main.c libverse/verse.c libverse.a -o main
-endif
+IMPLS = chacha20/c/default                       # currently supported primitives.
+GIT_REPO=git@github.com:raaz-crypto/libverse.git # git repo where libverse reside
 
 
+#############################################################
+###    DO NOT change beyond this point unless you known   ###
+###    what you are doing.                                ###
+#############################################################
 
-SRC     = $(addprefix libverse/, ${IMPLS})
-COQ_SRC = $(addsuffix .v, $(basename ${SRC}))
-OBJ     = $(addsuffix .o, ${SRC})
-VERSE   = coqc -R ../src Verse
+ML_DIR      = mlsrc/
+ML_SRC      = $(addprefix ${ML_DIR}, $(addsuffix .ml, ${IMPLS}))
+ML_SRC_DIRS = $(addprefix ${ML_DIR}, $(dir ${IMPLS}))
+CODE_DIRS   = $(addprefix libverse/, $(dir ${IMPLS}))
 
 
+.PHONY: extract.v libverse clean
 
-.PHONY: clean
 
+libverse: extract.v
+	if [ ! -d libverse ]; then \
+		git clone ${GIT_REPO};\
+	fi
+	mkdir -p ${ML_SRC_DIRS}
+	mkdir -p ${CODE_DIRS}
+	coqc -R ../src Verse extract.v
+	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)
+	echo IMPLS=${IMPLS} > libverse/Implementations.mk
 
-libverse/%c : %v
-	mkdir -p $(dir $@)
-	${VERSE} $< | ocaml -stdin > $@
-
-%.c.o: %.c
-	${CC} -Wall -Werror  -c -I libverse -include verse.h  -o $@ $<
-
-libverse.a: ${OBJ}
-	ar -cvq libverse.a ${OBJ}
-
-libverse.tar.gz:
-	make TESTING=yes clean
-	make ${SRC}
-	tar czv libverse -f libverse.tar.gz
+extract.v: extract.m4
+	($(foreach imp,${IMPLS}, echo 'EXTRACT('${imp}')';)) \
+	| m4 -DVERSION="${VERSION}" -DVERSE_DIR=libverse -DML_DIR=${ML_DIR} extract.m4 - \
+	> extract.v
 
 clean:
-	rm -f ${SRC} ${OBJ} libverse.a main libverse.tar.gz
+	rm -f $(addprefix extract., v vo glob)
+	rm -rf mlsrc
