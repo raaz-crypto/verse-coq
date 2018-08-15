@@ -72,10 +72,12 @@ Definition testcode : Doc + {Compile.CompileError}.
   statements testFunction.
 Defined.
 
-(* Compute (tryLayout testcode). *)
+(* Compute (tryLayout testcode).
 
 Require Import Verse.Extraction.Ocaml.
 
 Definition main : unit := print_code testcode.
 
 Recursive Extraction main.
+
+*)
