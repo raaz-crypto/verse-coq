@@ -1,6 +1,10 @@
 IMPLS = chacha20/c/default                       # currently supported primitives.
-GIT_REPO=git@github.com:raaz-crypto/libverse.git # git repo where libverse reside
 
+ifdef CI  # On the continuous integration use the http for getting libverse.
+	GIT_REPO=https://github.com/raaz-crypto/libverse.git # git repo where libverse reside
+else
+	GIT_REPO=git@github.com:raaz-crypto/libverse.git # git repo where libverse reside
+endif
 
 #############################################################
 ###    DO NOT change beyond this point unless you known   ###
