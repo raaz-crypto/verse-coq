@@ -3,3 +3,4 @@ main
 *.a
 *.o
 mlsrc
+libverse
