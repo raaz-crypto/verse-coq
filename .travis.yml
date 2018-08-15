@@ -39,7 +39,8 @@ script:
   - ./scripts/opam-build.sh html
   - ./scripts/opam-build.sh install
   - eval `opam config env --root=coq-"$COQ_VER"`
-  - TESTING=yes make -C crypto-lib main
+  - make -C crypto-lib libverse
+  - make -C crypto-lib/libverse libverse.a
 after_success:
   - echo "All is well."
 after_failure:
