@@ -2,3 +2,5 @@ a.out
 main
 *.a
 *.o
+mlsrc
+libverse

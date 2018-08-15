@@ -23,3 +23,5 @@ src/Verse/Semantics/EmptySemantics.v
 src/Verse/Semantics/BoundedOperations.v
 src/Verse/Semantics/BoundSemantics.v
 src/Verse/Extraction/Ocaml.v
+src/Verse/CryptoLib/chacha20/common.v
+src/Verse/CryptoLib/chacha20/c/default.v
