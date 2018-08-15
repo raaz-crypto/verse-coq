@@ -1,3 +1,5 @@
+[![Build Staus][travis-status]][travis-raaz]
+
 Verse
 =====
 
@@ -110,9 +112,15 @@ get the actual code.
  coqc src/Verse/TestCode/TestCode.v -R src Verse | ocaml -stdin
 ```
 
----
+# A bigger example: libverse
 
-[![Build Staus][travis-status]][travis-raaz]
+A larger example for actual extracted code is [libverse], a small
+low-level cryptographic library primarily meant for being embedded in
+other high level libraries. The verse source code for [libverse]
+resides in the `src/Verse/CryptoLib` subdirectory `crypto-lib`
+contains helper scripts and makefile to build snapshot of `libverse`.
+
+
 
 [wiki]: <https://github.com/raaz-crypto/verse-coq/wiki> "Verse coq repo"
 [repo]: <https://github.com/raaz-crypto/verse-coq> "Verse on github"
@@ -122,3 +130,4 @@ get the actual code.
 [travis-status]: <https://secure.travis-ci.org/raaz-crypto/verse-coq.png> "Build status"
 
 [travis-raaz]: <https://travis-ci.org/raaz-crypto/verse-coq/>
+[libverse]: <https://github.com/raaz-crypto/libverse>
