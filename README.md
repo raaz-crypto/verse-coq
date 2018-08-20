@@ -116,9 +116,11 @@ get the actual code.
 
 A larger example for actual extracted code is [libverse], a small
 low-level cryptographic library primarily meant for being embedded in
-other high level libraries. The verse source code for [libverse]
-resides in the `src/Verse/CryptoLib` subdirectory `crypto-lib`
-contains helper scripts and makefile to build snapshot of `libverse`.
+other high level libraries. All the primitives in [libverse] are
+implemented in [verse], the coq source for which resides in
+`src/Verse/CryptoLib`. A snapshot of [libverse] is built for this coq
+source using the using the helper scripts, and makefile present in the
+directory `crypto-lib`.
 
 
 
