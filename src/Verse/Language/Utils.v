@@ -23,22 +23,103 @@ can be implemented in the host language; coq in this case.
 
  *)
 
+
+(* begin hide *)
+Module Internal.
+  Section Helper.
+
+    Variable b : nat.
+
+    Definition ithIndex i : list { i | i < b} :=
+    match lt_dec i b with
+    | left pf => [exist _ i pf]
+    | right _ => []
+    end.
+
+
+    Fixpoint loopover i :=
+      (match i with
+       | 0   => []
+       | S j => loopover j
+       end ++ ithIndex i)%list.
+
+  End Helper.
+
+  Definition loop b := loopover b b.
+
+  (*  TODO: Prove the correctness of loop
+
+      1. That the list is in increasing order
+      2. That all elements < b are in the list.
+
+   *)
+
+End Internal.
+Import Internal.
+
+
+(* end hide *)
+Section Looping.
+
+  (** ** Looping.
+
+     Verse supports bounded loops, i.e. loops that unfold into code.
+     A loop for us is parameterised by two quantities, a program
+     variable [v] and a bound [b]. A loop index is a some [i < b].
+
+   *)
+  Variable v : VariableT.
+  Variable b : nat.
+
+  (**
+
+       The [foreach] function is the most general looping function. It
+       takes as input a list of loop indices and executes (in
+       sequence) its body for each of these indices
+
+   *)
+
+  Definition foreach (ixs : list {ix | ix < b})
+             (f : forall ix, ix < b -> code v)
+    := let mapper := fun ix => match ix with
+                            | exist _ i pf => f i pf
+                            end
+       in List.concat (List.map mapper ixs).
+
+
+
+
+  (** The code fragment [iterate f] executes the commands [f 0, f 1,
+      ... f (b - 1)] in sequence.  Note that the program variable type
+      v and the bound b are both implicit argument that is infered
+      from the input argument [f].
+   *)
+  Definition iterate   := foreach (loop b).
+
+  (** Similar to [iterate] but does in the reverse order *)
+  Definition iterate_reverse := foreach (List.rev (loop b)).
+
+End Looping.
+
+Arguments foreach [v b] _ _.
+Arguments iterate   [v b] _.
+Arguments iterate_reverse [v b] _.
+
+
 Section ArrayUtils.
 
-(** ** Array Indexing.
+(** ** Looping over array indices.
 
-The first set of helper functions gives convenient ways to work with
-array indices. One of the most important operations is to perform
-certain tasks for each element of the array. The [foreach] function
-can be used for this. The first argument of the [foreach] function is
-the list of indices of the array and its second argument is a function
-that takes an index and generates some instructions.  Let [A] be an
+A common coding pattern is where we need to perform some action on all
+the elements in an array. We now give functions and types that
+simplify such looping over all the indices of the array. Let [A] be an
 array variable, then the function [indices A] gives such a list in
-increasing order starting from 0.  One can think of the [foreach
-(indices A) doSomethingWithIndex] as an unrolled loop that does some
-computation on every index of A. If one wants to perform such a loop
-in the reverse order on can use the function [indices_reversed]
-instead of [indices].
+increasing order starting from 0. We can then use [foreach] function
+defined above to actually loop over these indices using the idiom
+[foreach (indices A) doSomethingWithIndex]. The net result is an
+unrolled loop that does some computation on every index of A. If one
+wants to perform such a loop in the reverse order on can use the
+function [indices_reversed] instead of [indices].
 
 *)
 
@@ -51,78 +132,42 @@ instead of [indices].
   Variable ty : type direct.
 
 
-  (* begin hide *)
-  Local Definition ithIndex i : list { i | i < b} :=
-    match lt_dec i b with
-    | left pf => [exist _ i pf]
-    | right _ => []
-    end.
-
-
-  Local Fixpoint loopover i :=
-    (match i with
-     | 0   => []
-     | S j => loopover j
-     end ++ ithIndex i)%list.
-
-  (* end hide *)
 
   (**
      This function returns the list of valid indices of an array
      variable. The indices are given starting from [0] to [b -
-     1]. Mostly used in conjunction with [foreach]
+     1]. Mostly used in conjunction with [foreach].
 
    *)
   Definition indices (arr : v memory (array a b e ty)) :  list (Indices arr)
-    := loopover b.
+    := loop b.
 
   (** This function is similar to indices but gives the indices in the
       reverse order.  *)
   Definition indices_reversed (arr : v memory (array a b e ty)) := List.rev (indices arr).
 
 
-  (**
-      This function allows mapping over all the input indices.
 
-      <<
-      foreach (indices A) statementsToTransformIthValue
+  (** ** Indexing variables uniformly.
 
-      >>
-
-      If you want to perform the action in the reverse order you can use the following idiom
-
-      <<
-
-     foreach (indices_reversed A) statementsToTransformIthValue
-
-      >>
-
-   *)
-
-  Definition foreach (ixs : list {ix | ix < b})
-             (f : forall ix, ix < b -> code v)
-    := let mapper := fun ix => match ix with
-                               | exist _ i pf => f i pf
-                               end
-       in List.concat (List.map mapper ixs).
+Programming with arrays is convenient because it gives a uniform way
+to index elements which together with functions like [foreach], and
+[indices], gives concise representation of repetitive coding
+pattern. However, array indexing involves a memory operation which is
+much slower than using registers. A technique that is often uses is to
+"cache" the array in a set of registers [r0,r1...], and use this
+registers instead.  But now we loose the ability to index the elements
+uniformly which makes it tedious to write code that could otherwise be
+handled conveniently using macros like [foreach].
 
 
-  (** ** Array caching.
-
-Array indexing involves a memory operation which is much slower than
-using registers. It therefore makes sense to "cache" the array in a
-set of registers and use this registers instead. However, the problem
-with using a register cache is that we loose the ability to index the
-elements uniformly. This makes writing code with register caches
-rather tedious because it makes it difficult to use macros like
-[foreach].
-
-We solve the indexing problem as follows. We define the function
-[varIndex] that takes a vector of variables [v_0,v_1...] and returns
-the indexing function into the variables [v_0,...], i.e. the indexing
-function takes an index [i] and returns the [i]th variable [v_i]. We
-then use this indexing function to access the cached values. The idea
-of variable indexing can be used even without array caching.
+The indexing problem is to give a uniform way to index a sequence of
+program variables [v0,v1,...] using their position in the list as the
+index. We solve this indexing problem as follows: We define the
+function [varIndex] that takes a vector of variables [v_0,v_1...] and
+returns the indexing function into the variables [v_0,...], i.e. the
+indexing function takes an index [i] and returns the [i]th variable
+[v_i].
 
    *)
 
@@ -133,7 +178,13 @@ of variable indexing can be used even without array caching.
   Definition varIndex (regs : Vector.t (v direct ty) b)
     : VarIndex := fun _ pf  => Vector.nth_order regs pf.
 
+(**
 
+One important use case for uniform indexing is the caching of arrays
+into a sequence of registers. We now give some helper functions
+that load and store arrays into their register cache.
+
+*)
 
   (** This macro loads the array to the corresponding chached variables *)
   Definition loadCache (arr : v memory (array a b e ty)) (ch : VarIndex) : code v :=
@@ -187,6 +238,4 @@ Arguments loadCache [v a b e ty] _ _.
 Arguments moveBackCache [v a b e ty] _ _.
 Arguments backupCache [v a b e ty] _ _.
 Arguments indices [v a b e ty] _.
-Arguments foreach [v b] _ _.
-
 (* end hide *)
