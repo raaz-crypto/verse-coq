@@ -115,19 +115,28 @@ Ltac  verse_warn :=
 Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
-Tactic Notation "verse" uconstr(B)
-  := (refine B; repeat match goal with
-                       | [ |- context [?A mod ?B] ]  => (assert (A mod B < B); [apply NPeano.Nat.mod_upper_bound | ];omega)+verse_modulus_warn
-                       | [ |- _ <= ?T        ]  => try (unfold T); omega
-                       | [ |- _ < ?T        ]  => try (unfold T); omega
-                       | [ |- _ < _         ]  => omega+verse_bounds_warn
-                       | [ |- _ <= _         ]  => omega+verse_bounds_warn
-                       | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
-                       | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
-                       | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
-                       | _                    => verse_warn; idtac "please handle these obligations yourself"
-                       end).
+Hint Resolve NPeano.Nat.mod_upper_bound : verse.
 
+(* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
+
+*)
+Ltac verse_unfold :=  match goal with
+                       | [ |- _ <= ?T        ] => try (unfold T)
+                       | [ |- _ < ?T        ] => try (unfold T)
+                      end.
+
+Ltac verse_simplify := eauto with verse; assumption.
+
+Ltac verse_print_mesg :=  match goal with
+                          | [ |- _ < _         ]  => verse_bounds_warn
+                          | [ |- _ <= _         ]  => verse_bounds_warn
+                          | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
+                          | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
+                          | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
+                          | _                    => verse_warn; idtac "please handle these obligations yourself"
+                          end.
+
+Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; try omega; verse_print_mesg.
 
 
 (* Local sample code to test error message
