@@ -25,3 +25,4 @@ src/Verse/Semantics/BoundSemantics.v
 src/Verse/Extraction/Ocaml.v
 src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/default.v
+src/Verse/CryptoLib/sha2.v
