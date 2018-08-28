@@ -125,7 +125,7 @@ Ltac verse_unfold :=  match goal with
                        | [ |- _ < ?T        ] => try (unfold T)
                       end.
 
-Ltac verse_simplify := eauto with verse; assumption.
+Ltac verse_simplify := verse_unfold; eauto with verse; assumption.
 
 Ltac verse_print_mesg :=  match goal with
                           | [ |- _ < _         ]  => verse_bounds_warn
