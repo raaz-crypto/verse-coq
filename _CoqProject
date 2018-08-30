@@ -26,3 +26,4 @@ src/Verse/Extraction/Ocaml.v
 src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/default.v
 src/Verse/CryptoLib/sha2.v
+src/Verse/CryptoLib/sha2/c/portable.v
