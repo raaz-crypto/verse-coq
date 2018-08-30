@@ -9,7 +9,7 @@ Require Import Verse.CryptoLib.sha2.c.portable.
 
 Module Config <: CONFIG.
   Definition Word := Word32.
-  Definition ROUNDS := 63.
+  Definition ROUNDS := 64.
   Definition KVec := [ Ox "428a2f98";
                        Ox "71374491";
                        Ox "b5c0fbcf";

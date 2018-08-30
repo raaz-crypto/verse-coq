@@ -261,9 +261,9 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
       Show Proof.
     Defined.
 
-    Definition K (r : nat)(pf : r < S ROUNDS) : constant Word :=  Vector.nth_order KVec pf.
+    Definition K (r : nat)(pf : r < ROUNDS) : constant Word :=  Vector.nth_order KVec pf.
 
-    Definition STEP (r : nat) (pf : r < S ROUNDS) : code v.
+    Definition STEP (r : nat) (pf : r < ROUNDS) : code v.
       verse (
           let A := STATE r 0 in
           let B := STATE r 1 in
@@ -296,8 +296,8 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
       := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash ST.
 
 
-    Definition Round (r : nat)(rp : r < S ROUNDS) : code v :=
-      if leb r (ROUNDS - BLOCK_SIZE) then STEP r rp ++ SCHEDULE r else STEP r rp .
+    Definition Round (r : nat)(rp : r < ROUNDS) : code v :=
+      if leb r (ROUNDS - BLOCK_SIZE - 1) then STEP r rp ++ SCHEDULE r else STEP r rp .
 
     Definition ALL_ROUNDS : code v := iterate Round.
     Definition sha2 : iterator Block v :=

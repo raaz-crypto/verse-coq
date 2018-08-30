@@ -18,12 +18,10 @@ Module Type CONFIG.
   (** The word type for the hash *)
   Parameter Word : type direct.
 
-  (** The number of rounds _minus 1_ that is involved in hashing. The
-      _minus 1_ while slightly unnatural, makes subsequent code quite
-      convenient.  *)
+  (** The number of rounds that is involved in hashing. *)
   Parameters ROUNDS : nat.
 
   (** The round constants for the hash *)
-  Parameter KVec : Vector.t (constant Word) (S ROUNDS).
+  Parameter KVec : Vector.t (constant Word) ROUNDS.
 
 End CONFIG.
