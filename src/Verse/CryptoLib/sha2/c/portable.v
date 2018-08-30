@@ -7,7 +7,7 @@ Delimit Scope vector_scope with vector.
 Require Import List.
 Import ListNotations.
 
-Module Type SIGCODE (C : CONFIG).
+Module Type SIGMA (C : CONFIG).
 
   (** * Sigma functions.
 
@@ -25,52 +25,8 @@ in [temp].
   Parameter SIGS0 : forall v : VariableT, v direct C.Word -> v direct C.Word -> v direct C.Word -> code v.
   Parameter SIGS1 : forall v : VariableT, v direct C.Word -> v direct C.Word -> v direct C.Word -> code v.
 
-End SIGCODE.
+End SIGMA.
 
-Module SIG256 : SIGCODE (SHA256Config).
-  Section SIGS.
-    Variable v  : VariableT.
-    Variable t  : v direct Word32.
-    Variable tp : v direct Word32.
-    Variable x  : v direct Word32.
-
-    (* sigb0(x) = RotateR(x,2) ^ RotateR(x,13) ^ RotateR(x,22) *)
-
-
-    Definition SIGB0 : code v := [ t ::=  x >*> 9;
-                                   t ::=^ x;    (* t = x +  x >>> 9 *)
-                                   t ::=>*> 11; (* t = x >>> 11 + x >>> 20 *)
-                                   t ::=^ x;    (* t = x + x>>>11 + x>>>20 *)
-                                   t ::=>*> 2   (* t = x >>> 2 + x >>> 13 + x >>> 22 *)
-                                 ].
-    (* define sigb1(x) = RotateR(x,6) ^ RotateR(x,11) ^ RotateR(x,25) *)
-
-    Definition SIGB1 : code v := [ t ::= x >*> 14;
-                                   t ::=^ x;    (* t = x +  x >>> 14 *)
-                                   t ::=>*> 5;  (* t = x >>> 5 + x >>> 19 *)
-                                   t ::=^ x;    (* t = x + x>>>5 + x>>>19 *)
-                                   t ::=>*> 6   (* t = x >>> 6 + x >>> 11 + x >>> 25 *)
-
-                                 ].
-
-    (* sigs0(x)     (RotateR(x,7) ^ RotateR(x,18) ^ ShiftR(x,3)  *)
-    (* sigs1(x)     (RotateR(x,17) ^ RotateR(x,19) ^ ShiftR(x,10)  *)
-    Definition SIGS0 : code v := [ tp ::=  x >> 3;
-                                   t  ::=  x >*> 11;
-                                   t  ::=^ x;        (* t = x ^ x >>> 11                *)
-                                   t  ::=>*> 7;      (* t = x >>> 7 ^ x >>> 18          *)
-                                   t  ::=^ tp        (* t = x >>> 7 ^ x >>> 18 ^ x >> 3 *)
-                                 ].
-    Definition SIGS1 : code v := [ tp ::=  x >> 10;
-                                   t  ::=  x >*> 2;
-                                   t  ::=^ x;        (* t = x ^ x >>> 2                *)
-                                   t  ::=>*> 17;      (* t = x >>> 17 ^ x >>> 19       *)
-                                   t  ::=^ tp        (* t = x >>> 17 ^ x >>> 19 ^ x >> 10 *)
-                                 ].
-
-    End SIGS.
-
-End SIG256.
 (*
 
 #define SIGS1(x)     (RotateR(x,17) ^ RotateR(x,19) ^ ShiftR(x,10))
@@ -90,7 +46,7 @@ Definition rotateRight {A}{n} (vec : Vector.t A (S n)) : Vector.t A (S n) :=
   (x :: vecp)%vector.
 
 
-Module SHA2 (C : CONFIG)(CO : SIGCODE C).
+Module SHA2 (C : CONFIG)(CO : SIGMA C).
   (** We parameterise this section over the word type used. Sha256
       uses Word32 where as SHA512 uses Word64 *)
 
@@ -111,27 +67,11 @@ Module SHA2 (C : CONFIG)(CO : SIGCODE C).
     Arguments v [k] _.
 
 
-    (** The round constants as a vector *)
-    Definition CONSTANTS := Vector.t (constant Word) (S ROUNDS).
-
-    (** The hash state as a vector of variables.  *)
-    Definition STATE     := Vector.t (v Word) HASH_SIZE.
-
     (** The message schedule as a set of variables. We only need to
         keep track of a window of [BLOCK_SIZE] many [Word] at any
         given point of time
 
      *)
-
-    Definition MESG := Vector.t (v Word) BLOCK_SIZE.
-
-
-    Definition INTERNALS : Type :=  CONSTANTS * STATE * MESG.
-
-    Definition next (i : INTERNALS) :=
-      match i with
-      | (c,s,m) => (rotateLeft c, rotateRight s, rotateLeft m)
-      end.
 
     Section Helpers.
 
@@ -146,6 +86,73 @@ Module SHA2 (C : CONFIG)(CO : SIGCODE C).
 
     End Helpers.
 
+
+    (** * The main iterator for SHA2
+
+        We are now ready define the main iterator for the SHA2 hash.
+
+     *)
+
+    Section SHA2Iterator.
+
+
+
+    (** ** Program variables.
+
+        We begin by defining the program variables. Recall that, the
+        standard idiom of verse is to declare the parameters, local
+        variables, and register variables in that order.
+
+     *)
+
+    (** *** Parameters
+
+        SHA2 hashes are Merkel-Damgrad hash. Hence it needs only the
+        hash of the previous blocks to process the current block. Thus
+        there is only one parameter for the hash function namely the
+        hash of the previous block.
+
+     *)
+
+    Variable hash : v Hash.
+
+    Definition parameters : Declaration := [ Var hash ].
+
+    (** *** Local variables.
+
+        We keep the current block in a set of local variables. The
+        advantage of this is that on a register rich machine all of
+        them could be allocated in registers and thus could be faster.
+
+     *)
+
+    Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : v Word.
+
+    Definition message_variables := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
+
+    Definition locals : Declaration := List.map Var (Vector.to_list message_variables).
+
+
+
+
+    (** ** The state and temporary variables
+
+     We choose to put them in registers as there are the variables
+     that are frequently used.
+
+     *)
+
+
+    Variable a b c d e f g h : v Word.
+    Variable t tp temp       : v Word.
+
+    Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
+
+    Definition registers : Declaration := List.map Var (Vector.to_list state_variables ++ [ t ; tp ; temp]).
+
+
+
+
   (** * The hash transformation
 
   The hashing algorithm transforms a state consisting of [HASH_SIZE]
@@ -157,15 +164,10 @@ Module SHA2 (C : CONFIG)(CO : SIGCODE C).
 
 
 
-    Section HashTransformation.
 
-      (** Some temporary variables use in the message scheduling *)
+    Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
+    Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
 
-      Variable t tp temp : v Word.
-
-      Variable KV : CONSTANTS.
-      Variable SV : STATE.
-      Variable MV : MESG.
 
 
 
@@ -178,21 +180,18 @@ using the expression [ m += S0 mm15 + mm7 + S1 mm2 ]
    *)
 
 
-      Definition m (i : nat) : v Word.
-        verse (@Vector.nth_order _ _ MV (i mod BLOCK_SIZE) _).
-      Defined.
+    Definition M (r : nat) : v Word.
+      verse (W (r mod BLOCK_SIZE) _).
+    Defined.
 
-      Definition mm (r : nat) : v Word := m (16 - r).
+    Definition SCHEDULE (r : nat): code v :=
+      let m16 := M r in
+      let mm i := M (r + 16 - i) in
+      SIGS0 v t tp (mm 15)
+            ++ [ m16 ::=+ t; m16 ::=+ mm 7 ]
+            ++ SIGS1 v t tp (mm 2)
+            ++ [m16 ::=+ t ].
 
-
-      (** The SCHEDULE code fragment just does this update. *)
-
-      Definition SCHEDULE : code v :=
-        let m16 := Vector.hd MV in
-        SIGS0 v t tp (mm 15)
-              ++ [ m16 ::=+ t; m16 ::=+ mm 7 ]
-              ++ SIGS1 v t tp (mm 2)
-              ++ [m16 ::=+ t ].
 
 
     (** ** Individual rounds.
@@ -249,126 +248,64 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
 
  *)
 
-
-      Definition s (i : nat) : v Word.
-        verse (@Vector.nth_order _ _ SV (i mod HASH_SIZE) _).
-      Defined.
-
-      Definition STEP : code v :=
-        let a := s 0 in
-        let b := s 1 in
-        let c := s 2 in
-        let d := s 3 in
-        let e := s 4 in
-        let f := s 5 in
-        let g  := s 6 in
-        let h := s 7 in
-        let K := Vector.hd KV in
-        let M := Vector.hd MV in
-        [ temp ::= h [+] K ; temp ::=+ M ] (* temp = h + K + M *)
-          ++ CH t tp e f g                 (* t = CH e f g *)
-          ++ [ temp ::=+ t ]               (* temp = h + K + M + CH e f g *)
-          ++ SIGB1 v t e                   (* t = σ₁(e) *)
-          ++ [ temp ::=+ t;                (* temp = σ₁(e) + h + K + M + CH e f g *)
-               d ::=+ temp
-             ]
-          ++ MAJ t tp a b c
-          ++ [ temp ::=+ t ]       (* temp = σ₁(e) + h + K + M + CH e f g  + MAJ a b c*)
-          ++ SIGB0 v t a
-          ++ [ h ::= temp [+] t ].  (* h = σ₁(e) + h + K + M + CH e f g  + MAJ a b c + σ₀(e) *)
-
-
-
-    End HashTransformation.
-
-    (** * The main iterator for SHA2
-
-        We are now ready define the main iterator for the SHA2 hash.
-
-     *)
-
-    Section SHA2Iterator.
-
-
-
-    (** ** Program variables.
-
-        We begin by defining the program variables. Recall that, the
-        standard idiom of verse is to declare the parameters, local
-        variables, and register variables in that order.
-
-     *)
-
-    (** *** Parameters
-
-        SHA2 hashes are Merkel-Damgrad hash. Hence it needs only the
-        hash of the previous blocks to process the current block. Thus
-        there is only one parameter for the hash function namely the
-        hash of the previous block.
-
-     *)
-
-    Variable hash : v Hash.
-
-    Definition parameters : Declaration := [ Var hash ].
-
-    (** *** Local variables.
-
-        We keep the current block in a set of local variables. The
-        advantage of this is that on a register rich machine all of
-        them could be allocated in registers and thus could be faster.
-
-     *)
-
-    Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : v Word.
-
-    Definition message_variables := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-
-    Definition locals : Declaration := List.map Var (Vector.to_list message_variables).
-
-    Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
-
-
-    (** ** The state and temporary variables
-
-     We choose to put them in registers as there are the variables
-     that are frequently used.
-
-     *)
-
-    Variable a b c d e f g h : v Word.
-    Variable t tp temp       : v Word.
-
-    Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
-
-    Definition registers : Declaration := List.map Var (Vector.to_list state_variables ++ [ t ; tp ]).
-
     Definition ST : VarIndex v HASH_SIZE Word := varIndex state_variables.
-
-    Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
     Definition LOAD_STATE : code v := loadCache hash ST.
 
-    Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
-      verse [hash [- i -] ::=+ ST i _].
+
+
+    Definition STATE (r : nat) (i : nat) : v Word.
+      verse(
+          let rp  := r mod HASH_SIZE in
+          let idx := i + (16 - rp) in
+          ST (idx mod HASH_SIZE) _).
+      Show Proof.
     Defined.
 
-    Definition UPDATE : code v := foreach (indices hash) UPDATE_ITH.
+    Definition K (r : nat)(pf : r < S ROUNDS) : constant Word :=  Vector.nth_order KVec pf.
+
+    Definition STEP (r : nat) (pf : r < S ROUNDS) : code v.
+      verse (
+          let A := STATE r 0 in
+          let B := STATE r 1 in
+          let C := STATE r 2 in
+          let D := STATE r 3 in
+          let E := STATE r 4 in
+          let F := STATE r 5 in
+          let G := STATE r 6 in
+          let H := STATE r 7 in
+          let RK : constant Word := K r pf in
+          [ temp ::= H [+] RK ; temp ::=+ M r ] (* temp = h + K + M *)
+            ++ CH t tp E F G                 (* t = CH e f g *)
+            ++ [ temp ::=+ t ]               (* temp = h + K + M + CH e f g *)
+            ++ SIGB1 v t E                   (* t = σ₁(e) *)
+            ++ [ temp ::=+ t;                (* temp = σ₁(e) + h + K + M + CH e f g *)
+                 D ::=+ temp
+               ]
+            ++ MAJ t tp A B C
+            ++ [ temp ::=+ t ]       (* temp = σ₁(e) + h + K + M + CH e f g  + MAJ a b c*)
+            ++ SIGB0 v t A
+            ++ [ H ::= temp [+] t ]  (* h = σ₁(e) + h + K + M + CH e f g  + MAJ a b c + σ₀(e) *)
+        ).
+      Defined.
+
+    Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
+      verse ([ST i _ ::=+ hash [- i -]]).
+    Defined.
+
+    Definition UPDATE : code v
+      := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash ST.
 
 
-    Fixpoint ALL_ROUNDS (n : nat) (internal : INTERNALS) : code v :=
-      match n, internal with
-      | S np, (k,s,m) => STEP t tp temp k s m ++ SCHEDULE t tp m ++ ALL_ROUNDS np (next internal)
-      | _ , _         => []
-      end.
+    Definition Round (r : nat)(rp : r < S ROUNDS) : code v :=
+      if leb r (ROUNDS - BLOCK_SIZE) then STEP r rp ++ SCHEDULE r else STEP r rp .
 
-    Definition start_internals : INTERNALS := (KVec,state_variables,message_variables).
+    Definition ALL_ROUNDS : code v := iterate Round.
     Definition sha2 : iterator Block v :=
       {|
-        setup   := [];
+        setup   := LOAD_STATE;
         process := fun block => (LOAD_BLOCK block
-                                        ++ LOAD_STATE
-                                        ++ ALL_ROUNDS (S ROUNDS) start_internals
-                                        ++ UPDATE);
+                                         ++ ALL_ROUNDS
+                                         ++ UPDATE);
         finalise := []
       |}.
 
