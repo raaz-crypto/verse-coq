@@ -18,16 +18,19 @@ Module Type CONFIG.
   (** The word type for the hash *)
   Parameter Word : type direct.
 
-  (** The number of rounds that is involved in hashing *)
+  (** The number of rounds _minus 1_ that is involved in hashing. The
+      _minus 1_ while slightly unnatural, makes subsequent code quite
+      convenient.  *)
   Parameters ROUNDS : nat.
+
   (** The round constants for the hash *)
-  Parameter KVec : Vector.t (constant Word) ROUNDS.
+  Parameter KVec : Vector.t (constant Word) (S ROUNDS).
 
 End CONFIG.
 
 Module SHA256Config <: CONFIG.
   Definition Word := Word32.
-  Definition ROUNDS := 64.
+  Definition ROUNDS := 63.
   Definition KVec := [ Ox "428a2f98";
                        Ox "71374491";
                        Ox "b5c0fbcf";
@@ -98,7 +101,7 @@ End SHA256Config.
 
 Module SHA512Config <: CONFIG.
   Definition Word   := Word64.
-  Definition ROUNDS := 80.
+  Definition ROUNDS := 79.
   Definition KVec   := [ Ox "428a2f98d728ae22";
                          Ox "7137449123ef65cd";
                          Ox "b5c0fbcfec4d3b2f";
