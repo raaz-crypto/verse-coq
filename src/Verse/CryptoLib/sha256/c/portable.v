@@ -76,57 +76,29 @@ Module Config <: CONFIG.
                        Ox "c67178f2"
                      ]%vector.
 
+
+  (** The rotation and shift offsets for sha256 *)
+
+  Definition R00 := 2.  Definition R01 := 13. Definition R02 := 22.
+  Definition R10 := 6.  Definition R11 := 11. Definition R12 := 25.
+  Definition r00 := 7.  Definition r01 := 18. Definition s0  := 3.
+  Definition r10 := 17. Definition r11 := 19. Definition s1  := 10.
+
+  Lemma increasing_R's : R00 <= R01 <= R02 /\ R10 <= R11 <= R12.
+  Proof.
+    repeat (compute; constructor).
+  Qed.
+
+  Definition increasing_r's : r00 <= r01 /\ r10 <= r11.
+  Proof.
+    repeat (compute; constructor).
+  Qed.
+
 End Config.
 
 
-
-Module SIG <: SIGMA (Config).
-  Section SIGS.
-    Variable v  : VariableT.
-    Variable t  : v direct Config.Word.
-    Variable tp : v direct Config.Word.
-    Variable x  : v direct Config.Word.
-
-    (* sigb0(x) = RotateR(x,2) ^ RotateR(x,13) ^ RotateR(x,22) *)
-
-
-    Definition SIGB0 : code v := [ t ::=  x >*> 9;
-                                   t ::=^ x;    (* t = x +  x >>> 9 *)
-                                   t ::=>*> 11; (* t = x >>> 11 + x >>> 20 *)
-                                   t ::=^ x;    (* t = x + x>>>11 + x>>>20 *)
-                                   t ::=>*> 2   (* t = x >>> 2 + x >>> 13 + x >>> 22 *)
-                                 ].
-    (* define sigb1(x) = RotateR(x,6) ^ RotateR(x,11) ^ RotateR(x,25) *)
-
-    Definition SIGB1 : code v := [ t ::= x >*> 14;
-                                   t ::=^ x;    (* t = x +  x >>> 14 *)
-                                   t ::=>*> 5;  (* t = x >>> 5 + x >>> 19 *)
-                                   t ::=^ x;    (* t = x + x>>>5 + x>>>19 *)
-                                   t ::=>*> 6   (* t = x >>> 6 + x >>> 11 + x >>> 25 *)
-
-                                 ].
-
-    (* sigs0(x)     (RotateR(x,7) ^ RotateR(x,18) ^ ShiftR(x,3)  *)
-    (* sigs1(x)     (RotateR(x,17) ^ RotateR(x,19) ^ ShiftR(x,10)  *)
-    Definition SIGS0 : code v := [ tp ::=  x >> 3;
-                                   t  ::=  x >*> 11;
-                                   t  ::=^ x;        (* t = x ^ x >>> 11                *)
-                                   t  ::=>*> 7;      (* t = x >>> 7 ^ x >>> 18          *)
-                                   t  ::=^ tp        (* t = x >>> 7 ^ x >>> 18 ^ x >> 3 *)
-                                 ].
-    Definition SIGS1 : code v := [ tp ::=  x >> 10;
-                                   t  ::=  x >*> 2;
-                                   t  ::=^ x;        (* t = x ^ x >>> 2                *)
-                                   t  ::=>*> 17;      (* t = x >>> 17 ^ x >>> 19       *)
-                                   t  ::=^ tp        (* t = x >>> 17 ^ x >>> 19 ^ x >> 10 *)
-                                 ].
-
-    End SIGS.
-
-End SIG.
-
 Require Import Verse.Arch.C.
-Module SHA256 := SHA2 Config SIG.
+Module SHA256 := SHA2 Config.
 Import Config.
 
 Module Internal.
