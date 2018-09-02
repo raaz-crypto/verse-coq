@@ -6,3 +6,10 @@ coq-*
 *.aux
 *.bak
 *.conf
+*.css
+*.html
+*.tex
+*.s
+*.c
+*.sty
+*.tgz
