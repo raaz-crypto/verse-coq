@@ -20,10 +20,9 @@ ML_SRC_DIRS = $(addprefix ${ML_DIR}, $(dir ${IMPLS}))
 CODE_DIRS   = $(addprefix libverse/, $(dir ${IMPLS}))
 
 
-.PHONY: extract.v libverse clean
+.PHONY: extract.v libverse clean verse dist-clean
 
-
-libverse: extract.v
+libverse: verse extract.v
 	if [ ! -d libverse ]; then \
 		git clone ${GIT_REPO};\
 	fi
@@ -37,7 +36,12 @@ extract.v: extract.m4
 	($(foreach imp,${IMPLS}, echo 'EXTRACT('${imp}')';)) \
 	| m4 -DVERSION="${VERSION}" -DVERSE_DIR=libverse -DML_DIR=${ML_DIR} extract.m4 - \
 	> extract.v
+verse:
+	make -C ..
 
 clean:
 	rm -f $(addprefix extract., v vo glob)
 	rm -rf mlsrc
+
+dist-clean: clean
+	make -C .. clean
