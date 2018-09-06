@@ -20,7 +20,7 @@ src/Verse/TestCode/TestIteratorCode.v
 src/Verse/DecFacts.v
 src/Verse/Extraction/Ocaml.v
 src/Verse/CryptoLib/chacha20/common.v
-src/Verse/CryptoLib/chacha20/c/default.v
+src/Verse/CryptoLib/chacha20/c/portable.v
 src/Verse/CryptoLib/sha2.v
 src/Verse/CryptoLib/sha2/c/portable.v
 src/Verse/CryptoLib/sha256/c/portable.v
