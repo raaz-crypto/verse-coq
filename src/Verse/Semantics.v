@@ -59,10 +59,10 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
       | @var _ lval _ _ av        => fun val' => stateUpdate av
                                                              (fun _ => val')
                                                              S
-      | @index _ lval _ _ _ _ x i => fun val' => stateUpdate x
-                                                             (fun vec =>
-                                                                X <- vec; replace_order X (proj2_sig i) <$> val')
-                                                             S
+      | @index _ lval  _ _ _ x i => fun val' => stateUpdate x
+                                                         (fun vec =>
+                                                            X <- vec; replace_order X (proj2_sig i) <$> val')
+                                                         S
       end val.
 
     Definition instructionDenote (i : instruction v) (S : State) : State + {StateError} :=

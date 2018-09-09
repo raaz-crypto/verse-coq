@@ -180,16 +180,7 @@ Lemma endian_eq_dec : eq_dec endian.
                        end); inversion 1.
 Defined.
 
-Lemma align_eq_dec : eq_dec align.
-  refine (fun a1 a2 => let 'aligned n1 := a1 in
-                       let 'aligned n2 := a2 in
-                       if nat_eq_dec n1 n2
-                       then left _
-                       else right _
-         ); congruence.
-Defined.
-
-Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec align_eq_dec : decidable_prop.
+Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec : decidable_prop.
 
 Lemma directTy_eq_dec : eq_dec (type direct).
   refine (fun ty => match ty as ty0 in type direct return
@@ -235,7 +226,7 @@ Lemma ty_eq_dec : forall {k}, eq_dec (type k).
   apply directTy_eq_dec.
   intros ty ty'.
   refine (match ty, ty' with
-          | array a n e t, array a' n' e' t' => _
+          | array n e t, array n' e' t' => _
           end).
   crush_eq_dec.
 Defined.
@@ -352,5 +343,5 @@ Lemma op_eq_dec {la ra} : eq_dec (op la ra).
                end o2); solve [exact idProp | crush_eq_dec].
 Defined.
 
-Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec align_eq_dec ty_eq_dec bytes_eq_dec  op_eq_dec
+Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec ty_eq_dec bytes_eq_dec op_eq_dec
   : decidable_prop.

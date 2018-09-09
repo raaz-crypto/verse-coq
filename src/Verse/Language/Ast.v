@@ -45,7 +45,7 @@ Section AST.
 
 
   (** Type that captures a memory variable's indices. *)
-  Definition Indices {a b e ty} (_ : v memory (array a b e ty)) := { i : nat | i < b }.
+  Definition Indices {b e ty} (_ : v memory (array b e ty)) := { i : nat | i < b }.
 
 
   (** ** Arguments.
@@ -60,7 +60,7 @@ Section AST.
   Inductive arg : argKind -> VariableT :=
   | var   : forall aK, forall {k} {ty : type k}, v k ty -> arg aK k ty
   | const : forall {ty : type direct}, constant ty  -> arg rval direct ty
-  | index : forall aK, forall {a : align}{b : nat}{e : endian}{ty : type direct} (x : v memory (array a b e ty)),
+  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)),
         Indices x  -> arg aK direct ty
   .
 
@@ -97,7 +97,7 @@ program block is merely a list of instructions.
 *)
   Inductive instruction : Type :=
   | assign  : assignment -> instruction
-  | moveTo  : forall a b e ty, forall (x : v memory (array a b e ty)), Indices x -> v direct ty -> instruction
+  | moveTo  : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
   | CLOBBER : forall {k ty}, v k ty -> instruction
   .
 
@@ -115,7 +115,7 @@ program block is merely a list of instructions.
         end
     in
     match a  with
-    | @index _ _ _ ne _ _ _ => eqEndb ne nHostE
+    | @index  _ _ ne _ _ _ => eqEndb ne nHostE
     | _                 => false
     end.
 
@@ -147,7 +147,7 @@ program block is merely a list of instructions.
 
 End AST.
 
-Arguments Indices [v a b e ty] _.
+Arguments Indices [v b e ty] _.
 
 
 (**
@@ -172,7 +172,7 @@ Arguments finalise [ty v] _.
 
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
-Arguments index [v aK a b e ty]  _ _.
+Arguments index [v aK  b e ty]  _ _.
 Arguments extassign3 [v ty] _ _ _ _ _.
 Arguments extassign4 [v ty] _ _ _ _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
@@ -180,6 +180,6 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
-Arguments moveTo [v a b e ty] _ _ _.
+Arguments moveTo [v  b e ty] _ _ _.
 Arguments CLOBBER [v k ty ] _.
 (* end hide *)

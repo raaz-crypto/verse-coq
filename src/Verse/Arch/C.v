@@ -112,7 +112,7 @@ Section PrintingInstruction.
 
   Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK k ty) :=
     match a with
-    | @Language.Ast.index _ _ _ _ e ty _ _ => fromMemory e ty (doc a)
+    | @Language.Ast.index _ _ _ e ty _ _ => fromMemory e ty (doc a)
     | _                              => doc a
     end.
 
@@ -121,7 +121,7 @@ Section PrintingInstruction.
     let lhs := y <_> opDoc o <_> z
     in
     match x with
-    | @Language.Ast.index _ _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
+    | @Language.Ast.index _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
     | _                                => CP.assign (doc x) lhs
     end.
 
@@ -134,7 +134,7 @@ Section PrintingInstruction.
                end
     in
     match a with
-    | @Language.Ast.index _ _ _ _ e ty _ _  => CP.assign (doc a) (toMemory e ty rvl)
+    | @Language.Ast.index  _ _ _ e ty _ _  => CP.assign (doc a) (toMemory e ty rvl)
     | _                                 => CP.assign (doc a) rvl
     end.
 
@@ -217,10 +217,10 @@ Module C <: ARCH.
   Fixpoint typeCheck {k}(ty : type k) : {typesSupported ty} + {~ typesSupported ty}.
     refine (match ty with
             | word 0 | word 1 | word 2 | word 3  => left _
-            | array (aligned 0) n e typ => match @typeCheck direct typ with
-                                         | left proof      => left (carray proof)
-                                         | right disproof  => right _
-                                         end
+            | array n e typ => match @typeCheck direct typ with
+                              | left proof      => left (carray proof)
+                              | right disproof  => right _
+                              end
             | _ => right _
             end
            ); repeat constructor; inversion 1; apply disproof; trivial.
@@ -315,14 +315,14 @@ Module CCodeGen <: CODEGEN C.
 
   Let Fixpoint declareArray (a : Doc)(n : nat)(ty : type direct) :=
     match ty with
-    | @Internal.array _ m _ ty => (declareArray a m ty) <> bracket (decimal n)
+    | @Internal.array  m _ ty => (declareArray a m ty) <> bracket (decimal n)
     | _                      => type_doc ty <_> a <> bracket (decimal n)
     end.
 
   Let declare {k}{varty : type k}(v : @machineVar k varty) : Doc :=
     let vDoc := doc v in
     match varty in type k0 with
-    | @Internal.array _ n _ ty => declareArray vDoc n ty
+    | @Internal.array n _ ty => declareArray vDoc n ty
     | @Internal.word  n      => type_doc (word n) <_> vDoc
     | _                      => text ""
     end.

@@ -1,9 +1,14 @@
-Require Import Verse.Types.Internal.
+Require Vector.
+Require Import Arith.
+Import Nat.
 Require Import Verse.Error.
+Require Import Verse.Types.Internal.
+Require Import Verse.PrettyPrint.
 
-Require Import Nat.
-
-Require Import Vector.
+(** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
+(** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
+(** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
+(** printing power2np3 $ 2^{n+3} $ # 2<sup> n+3 </sup> # *)
 
 (** * Types in verse.
 
@@ -22,6 +27,7 @@ from the module [Verse.Types.Internal].
 
 *)
 
+
 (** Standard word types/scalars *)
 Notation Byte   := (word 0).
 Notation Word8  := (word 0).
@@ -29,15 +35,8 @@ Notation Word16 := (word 1).
 Notation Word32 := (word 2).
 Notation Word64 := (word 3).
 
-(* Construct an array with no alignment restriction *)
-Notation Array  := (array unaligned).
-
-(* Add additional alignment constraint on the array *)
-Definition Align  (n : nat) (ty : type memory) :=
-  match ty with
-  | array (aligned m) b e tw => array (aligned (Nat.max n m)) b e tw
-  end.
-
+(* Array constructor sticking with the convention  with no alignment restriction *)
+Definition Array  := array.
 
 (* begin hide *)
 Inductive BadVectorType : Prop := BadVectorTypeError.
@@ -54,33 +53,8 @@ Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
 Definition Vector128 (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
-Definition constant (ty : type direct) := StandardType.typeDenote ty.
+Definition constant (ty : type direct) := @typeDenote _ StandardSemantics direct ty.
 
-(* An interpretation of the standard constants in a given semantics *)
-
-Module Type CONST_SEMANTICS (W : WORD_SEMANTICS).
-  Parameter constWordDenote : forall n, StandardWord.wordDenote n -> W.wordDenote n.
-End CONST_SEMANTICS.
-
-Module StandardConsts : CONST_SEMANTICS StandardWord.
-  Definition constWordDenote n := @id (StandardWord.wordDenote n).
-End StandardConsts.
-
-(* To lift the interpretation of constant words to other types *)
-Module ConstDenote (W : WORD_SEMANTICS) (C : CONST_SEMANTICS W).
-
-  Module T := TypeDenote W.
-
-  Fixpoint constDenote {ty : type direct} :=
-    match ty in type direct return constant ty -> T.typeDenote ty with
-    | word n        => @C.constWordDenote n
-    | multiword m n => map (@C.constWordDenote n)
-    end.
-
-End ConstDenote.
-
-(* begin hide *)
-Require Import PrettyPrint.
 
 
 Definition constant_doc (ty : type direct)  : constant ty -> Doc.

@@ -8,7 +8,8 @@ Import Nat.
 (** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
 (** printing power2np3 $ 2^{n+3} $ # 2<sup> n+3 </sup> # *)
 
-(** * Types in full detail.
+
+(** * Types in its full glory.
 
 The Verse EDSL is a typed machine language consisting of [word]s,
 [multiword]s, and [array]s of which the first two, i.e. [word]s and
@@ -18,77 +19,161 @@ indicates this distinction in type.
 
 *)
 
-Inductive kind  : Type := direct | memory.
+Inductive kind   : Type := direct | memory.
+Inductive endian : Type := bigE | littleE | hostE.
 
-Inductive align :=
-| aligned   : nat -> align  (* Aligned to 2^n bytes *)
-.
-
-Notation unaligned := (aligned 0).
 
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
 | multiword          : nat -> nat    -> type direct
-| array              : align -> nat -> endian -> type direct -> type memory
-with endian : Type := bigE | littleE | hostE.
+| array              : nat -> endian -> type direct -> type memory
+.
 
+
+(** Compute the size of a type in bytes. *)
 Fixpoint sizeOf {k} (ty : type k) :=
   match ty with
   | word n         => 2 ^ n
   | multiword m n  => 2 ^ m * 2 ^ n
-  | array _ n _ tw => n * sizeOf tw
+  | array n _ tw => n * sizeOf tw
   end.
+
 
 (** Often we need to existentially quantify over types and other
     objects. This definition is just for better readability.
-*)
+ *)
+
 Definition some {P: Type} (A : P -> Type) := sigT A.
 
-(** ** Sematics of [type]'s.
 
-We need to provide a meaning to [type]'s by representing them in coq.
-As the base case, we need to specify what words mean. Multi-words
-[multiword m n] are then defined as a vectors of over the word type
-word type, and finally arrays are vectors over the element type. To
-support maximum flexibility, meaning of type are parameterised by the
-definition of the word.
+(** ** Final representation.
+
+The data types give the initial representation of verse types. It is
+often easier to work with a final representation of types particularly
+when we want to define semantics, pretty printing etc. The type class
+below provides the mechanism for this.
+
+ *)
+
+Class typeC (t : kind -> Type) := { mkWord      : nat -> t direct ;
+                                   mkMultiword : nat -> nat  -> t direct ;
+                                   mkArray     : nat -> endian -> t direct -> t memory
+                                 }.
+
+(** Clearly the verse types are themselves an instance of the above type class *)
+
+Instance type_is_typeC : typeC type :=
+  { mkWord      := word;
+    mkMultiword := multiword;
+    mkArray     := array
+  }.
+
+(**
+
+Final representations can be seen as giving certain semantics for
+types, in the sense that it gives meaning for each type. The parameter
+[t : kind -> Type] is the domain of interpretation of types. The
+following function can now be seen as the translation from types of
+verse into the domain of interpretation which is [t].
+
+ *)
+
+Fixpoint typeDenote {t : kind -> Type}{tc : typeC t} {k} (ty : type k)  :  t k  :=
+    match ty with
+    | word n        => mkWord n
+    | multiword m n => mkMultiword m n
+    | array n e t   => mkArray n e (typeDenote t)
+    end.
+
+
+(** * Machine types and C language types
+
+These are types that we encounter while translating code to C or for
+that matter machine language. We capture the translation via an
+explicit type and a final representation.
 
 *)
 
-Require Import PrettyPrint.
-Module Type WORD_SEMANTICS.
-  Parameter wordDenote : nat -> Type.
-End WORD_SEMANTICS.
+Inductive UnsupportedType : Prop :=
+| unsupported : forall k : kind, type k -> UnsupportedType.
 
-Module TypeDenote (W : WORD_SEMANTICS).
+Arguments unsupported [k] _.
+Inductive CType : kind -> Type :=
+| uint8_t  : CType direct
+| uint16_t : CType direct
+| uint32_t : CType direct
+| uint64_t : CType direct
+| CArray   : nat -> CType direct    -> CType memory
+| CPtr     : forall k : kind, CType k -> CType memory
+.
 
-  Fixpoint typeDenote {k : kind}(t : type k) : Type :=
-  match t with
-  | word      n    => W.wordDenote n
-  | multiword m n  => Vector.t (W.wordDenote n) (2 ^ m)
-  | array _ n _ tw  => Vector.t (typeDenote tw) n
+Import Verse.Error.
+Definition wordToCWord (n : nat) : CType direct + { UnsupportedType } :=
+  match n with
+  | 0 => {- uint8_t  -}
+  | 1 => {- uint16_t -}
+  | 2 => {- uint32_t -}
+  | 3 => {- uint64_t -}
+  | _ => error (unsupported (word n))
   end.
 
-  Arguments typeDenote [k] _.
-End TypeDenote.
+
+Instance CTypeDenote : typeC (fun k : kind => (CType k + { UnsupportedType }))
+   := {| mkWord      := wordToCWord;
+         mkMultiword := fun m n  => error (unsupported (multiword m n));
+         mkArray     := fun n _ t => CArray n <$> t
+      |}.
 
 
-(** *** The Standard word.
 
-We now define the standard word semantics. In this semantics the type [word n]
-denotes unsigned words of [power2n] bits.
+
+Inductive MachineType : kind -> Type :=
+| Sized    : nat -> MachineType direct
+| Address  : nat -> MachineType memory.
+
+(** An address inside the machine. There is no alignment restriction on it. *)
+Definition byteAddress := Address 0.
+
+Definition aligned (n : nat)(addr : MachineType memory) : MachineType memory :=
+  match addr with
+  | Address m => Address (max m n)
+  end.
+
+
+
+(** ** Sematics of [type]'s as a final representation.
+
+A special case of final representation is to encode types as Coq
+types. In this case the All we need in this case is a representation of
+words. Multi-words [multiword m n] are then defined as a vectors of
+these word type, and finally arrays are vectors over the element
+type. To support maximum flexibility, meaning of types are
+parameterised by the definition of the word.
 
 *)
 
+Definition TypeDenote := fun _ : kind => Type.
 
+Definition mkTypeDenote (wordDenote : nat -> Type) : typeC TypeDenote
+    := {| mkWord := fun n => wordDenote n;
+          mkMultiword :=  fun m n => Vector.t (wordDenote n)  (2 ^ m);
+          mkArray     :=   fun n _ (t : Type) => Vector.t t n
+       |}.
 
-Module StandardWord.
-  Definition wordDenote n := Word.bytes (2^n).
-End StandardWord.
+(** *** The standard word semantics.
 
+The standard semantics is were [word n] means unsigned integers of
+[power2n] bytes. We refrain for defining an instance declaration here
+because there are other word semantics that are equally useful for us.
+It is expected that one declares a local instance as the application
+demands.
 
-Global Instance word_constant_pretty n : PrettyPrint (StandardWord.wordDenote n) := word_pretty (8 * 2^n).
+*)
 
-Module StandardType := TypeDenote(StandardWord).
+Require Import Verse.Word.
+Definition stdWordDenote : nat -> Type := fun n => Word.bytes (2^n).
 
-Export StandardType.
+Definition StandardSemantics : typeC TypeDenote := mkTypeDenote stdWordDenote.
+
+Import Verse.PrettyPrint.
+Global Instance word_constant_pretty n : PrettyPrint (stdWordDenote n) := word_pretty (8 * 2^n).
