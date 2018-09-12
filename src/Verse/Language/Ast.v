@@ -8,6 +8,8 @@ Require Import Omega.
 Require Import List.
 Import ListNotations.
 
+Set Implicit Arguments.
+
 (* end hide *)
 
 (** * The Verse language as an inductive data type.
@@ -45,7 +47,7 @@ Section AST.
 
 
   (** Type that captures a memory variable's indices. *)
-  Definition Indices {b e ty} (_ : v memory (array b e ty)) := { i : nat | i < b }.
+  Definition Indices {b e ty} (_ : v (array b e ty)) := { i : nat | i < b }.
 
 
   (** ** Arguments.
@@ -58,10 +60,10 @@ Section AST.
 
   Inductive argKind := lval | rval.
   Inductive arg : argKind -> VariableT :=
-  | var   : forall aK, forall {k} {ty : type k}, v k ty -> arg aK k ty
-  | const : forall {ty : type direct}, constant ty  -> arg rval direct ty
-  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)),
-        Indices x  -> arg aK direct ty
+  | var   : forall aK, forall {k} {ty : type k}, v ty -> arg aK ty
+  | const : forall {ty : type direct}, constant ty  -> arg rval ty
+  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v (array b e ty)),
+        Indices x  -> arg aK ty
   .
 
   Definition larg := arg lval.
@@ -75,18 +77,18 @@ Section AST.
    *)
   Inductive assignment : Type :=
   | extassign4
-    : forall ty, op binary ternary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), op binary ternary -> larg ty -> larg ty -> rarg ty -> rarg ty -> rarg ty -> assignment
   | extassign3
-    : forall ty, op binary binary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), op binary binary -> larg ty -> larg ty -> rarg ty -> rarg ty -> assignment
   | assign3
-    : forall ty, binop -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), binop -> larg ty -> rarg ty -> rarg ty -> assignment
   (** e.g. x = y + z *)
   | assign2
-    : forall ty, uniop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x = ~ y   *)
+    : forall (ty : type direct), uniop -> larg ty -> rarg ty -> assignment (** e.g. x = ~ y   *)
   | update2
-    : forall ty, binop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x += y    *)
+    : forall (ty : type direct), binop -> larg ty -> rarg ty -> assignment (** e.g. x += y    *)
   | update1
-    : forall ty, uniop -> larg direct ty -> assignment                   (** e.g. x ~= x    *)
+    : forall (ty : type direct), uniop -> larg ty -> assignment                   (** e.g. x ~= x    *)
   .
 
 (**
@@ -97,8 +99,8 @@ program block is merely a list of instructions.
 *)
   Inductive instruction : Type :=
   | assign  : assignment -> instruction
-  | moveTo  : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
-  | CLOBBER : forall {k ty}, v k ty -> instruction
+  | moveTo  : forall b e ty, forall (x : v (array b e ty)), Indices x -> v ty -> instruction
+  | CLOBBER : forall k (ty : type k), v ty -> instruction
   .
 
   Global Definition code := list instruction.
@@ -106,7 +108,7 @@ program block is merely a list of instructions.
 
   (* Some instruction error checking code *)
 
-  Definition isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
+  Definition isEndian {aK} {k} {ty : type k} (nHostE : endian) (a : arg aK ty) :=
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
@@ -125,13 +127,13 @@ program block is merely a list of instructions.
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
     | assign e  => match e with
-                   | assign2 _ nop _ _    => false
-                   | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
-                   | extassign4 _ _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
-                   | extassign3 _ _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
-                   | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update1 _ _ a1       => (isEndian nHostE a1)
+                   | assign2 nop _ _    => false
+                   | assign3 _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+                   | extassign4 _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
+                   | extassign3 _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
+                   | assign2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update1 _ a1       => (isEndian nHostE a1)
                    end
     | _ => false
     end

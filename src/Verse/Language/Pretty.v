@@ -30,16 +30,16 @@ over variables that can themselves be pretty printed.
 (* begin hide *)
 
 
-Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval k ty }.
-Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval k ty }.
+Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval ty }.
+Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval ty }.
 
 Section ARGInstances.
   Variable v  : VariableT.
   Variable k  : kind.
   Variable ty : type k .
 
-  Global Instance larg_of_argv : LARG v k ty (arg v lval k ty) := { toLArg := fun t => t} .
-  Global Instance rarg_of_argv : RARG v k ty (arg v rval k ty) := { toRArg := fun t => t}.
+  Global Instance larg_of_argv : LARG v k ty (arg v lval ty) := { toLArg := fun t => t} .
+  Global Instance rarg_of_argv : RARG v k ty (arg v rval ty) := { toRArg := fun t => t}.
   Global Instance larg_of_v    : LARG v k ty (v k ty)    := { toLArg := fun t => var t}.
   Global Instance rarg_of_v    : RARG v k ty (v k ty)    := { toRArg := fun t => var t}.
 
@@ -168,14 +168,14 @@ Section PrettyPrintingInstruction.
   Variable vPrint : forall k ty, PrettyPrint (v k ty).
 
   (** The pretty printing of our argument *)
-  Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK k ty) :=
+  Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK ty) :=
     match av with
     | var v       => doc v
     | const c     => doc c
     | index v (exist _ n _) => doc v <> bracket (decimal n)
     end.
 
-  Global Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg v aK k ty)
+  Global Instance arg_pretty_print : forall aK k (ty : type k), PrettyPrint (arg v aK ty)
     := { doc := argdoc ty }.
 
 

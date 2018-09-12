@@ -130,13 +130,13 @@ Module X86 <: ARCH.
 
   Definition supportedType := typesSupported.
 
-  Definition isConst {k} {ty : type k} {aK} (a : arg machineVar aK _ ty) :=
+  Definition isConst {k} {ty : type k} {aK} (a : arg machineVar aK ty) :=
     match a with
     | Ast.const _ => true
     | _       => false
     end.
 
-  Definition isMem {ty : type direct} {aK} (a : arg machineVar aK _ ty) :=
+  Definition isMem {ty : type direct} {aK} (a : arg machineVar aK ty) :=
     match a with
     | Ast.index _ _ => true
     | _           => false
@@ -146,7 +146,7 @@ Module X86 <: ARCH.
     [plus; minus; bitOr; bitAnd; bitXor].
 
   Definition isRegister {k} {ty : type k} (r : xreg ty) :
-    forall {k'} {ty' : type k'} {aK} (a : arg xvar aK _ ty'), bool.
+    forall {k'} {ty' : type k'} {aK} (a : arg xvar aK ty'), bool.
     intros.
     destruct (kind_eq_dec k k'); [subst; destruct (ty_eq_dec ty ty'); [subst | ..] | ..].
     destruct a. destruct x. exact (xreg_eqb x r).
@@ -154,10 +154,10 @@ Module X86 <: ARCH.
   Defined.
 
   Inductive isRegName (r : xRegName) :
-    forall {k} {ty : type k} {aK}, arg xvar aK _ ty -> Prop :=
+    forall {k} {ty : type k} {aK}, arg xvar aK ty -> Prop :=
   | isRName : forall {k} (ty : type k) {aK}, isRegName r (@var _ aK _ _ (inRegister (xr r ty))).
 
-  Lemma isRegName_dec rn {k} {ty : type k} {aK} (a : arg xvar aK _ ty) : decidable (isRegName rn a).
+  Lemma isRegName_dec rn {k} {ty : type k} {aK} (a : arg xvar aK ty) : decidable (isRegName rn a).
     destruct a as [ ? ? ? v | | ]; [ destruct v as [ ? ? r | | ] | .. ]; [ destruct r | ..];
     crush_eq_dec.
   Qed.
@@ -166,7 +166,7 @@ Module X86 <: ARCH.
 
   Notation IsRegister reg arg := (isRegister reg arg = true).
 
-  Definition onStack {k} {ty : type k} {aK} (a : arg machineVar aK _ ty) :=
+  Definition onStack {k} {ty : type k} {aK} (a : arg machineVar aK ty) :=
     match a with
     | var (localStack _ _) | var (paramStack _ _) => true
     | _                  => false
@@ -189,10 +189,10 @@ Module X86 <: ARCH.
                                                        /\ (ty <> Word8 -> isRegName reg_d a1 -> isRegName reg_a a2 ->
                                                            isRegName reg_d a3 -> isRegName reg_a a4) (* (D,A)   <- D:A   / r/m 16/32/64 *)
     | assign (@assign2 _ ty nop a1 a2) => (ty = Word64 -> isConst a2 = true -> isMem a1 = false)
-                                          /\ (isConst a2 = true -> isMem a1 = true -> isEndian xvar bigE a1 = false)
-                                          /\ (isEndian xvar bigE a1 = true -> isMem a2 = false -> (ty = Word32 \/ ty = Word64) /\ onStack a2 = false)
-                                          /\ (isEndian xvar bigE a1 = true -> isMem a2 = true -> isEndian xvar bigE a2 = true)
-                                          /\ (isEndian xvar bigE a2 = true -> isMem a1 = true -> isEndian xvar bigE a1 = true)
+                                          /\ (isConst a2 = true -> isMem a1 = true -> isEndian bigE a1 = false)
+                                          /\ (isEndian bigE a1 = true -> isMem a2 = false -> (ty = Word32 \/ ty = Word64) /\ onStack a2 = false)
+                                          /\ (isEndian bigE a1 = true -> isMem a2 = true -> isEndian bigE a2 = true)
+                                          /\ (isEndian bigE a2 = true -> isMem a1 = true -> isEndian bigE a1 = true)
     | @moveTo _  _ _ ty a i v => (@isEndian xvar lval _ _ bigE (Ast.index a i) = true ->
                                    (ty = Word32 \/ ty = Word64) -> @onStack _ _ rval (var v) = false)
     | CLOBBER v => @onStack _ _ rval (var v) = false
@@ -350,14 +350,14 @@ Instance xMachineVar : forall k (ty : type k), PrettyPrint (xvar ty)
 
 Local Definition xImm d := text "$" <> d.
 
-Local Fixpoint xArgdoc {aK}{k}(ty : type k ) (av : arg xvar aK k ty) :=
+Local Fixpoint xArgdoc {aK}{k}(ty : type k ) (av : arg xvar aK ty) :=
   match av with
   | var v       => doc v
   | Ast.const c     => xImm (doc c)
   | Ast.index v (exist _ n _) => decimal (sizeOf ty * n) <> paren (doc v)
   end.
 
-Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg xvar aK k ty)
+Instance arg_pretty_print : forall aK k (ty : type k), PrettyPrint (arg xvar aK ty)
   := { doc := @xArgdoc _ _ ty }.
 
 
@@ -396,7 +396,7 @@ Local Definition mkInst i a := i <_> a.
 Local Definition bswap {k} (ty : type k) (x : xreg ty) :=
   mkInst (text "bswap" <> iSuffix ty) (doc x).
 
-Local Definition move {ty : type direct} (la : larg _ direct ty) (ra : rarg _ direct ty) :=
+Local Definition move {ty : type direct} (la : larg _ ty) (ra : rarg _ ty) :=
   let NOP := xOp nop ty in
   match la with
   | @Ast.index _  _ _ bigE _ _ _ => match ra, ty with
@@ -415,7 +415,7 @@ Local Definition move {ty : type direct} (la : larg _ direct ty) (ra : rarg _ di
   | _                  => mkInst NOP (biargs (doc ra) (doc la))
   end.
 
-Local Definition store {ty : type direct} (la : larg _ direct ty) (ra : rarg _ direct ty) :=
+Local Definition store {ty : type direct} (la : larg _ ty) (ra : rarg _ ty) :=
   vcat ([ move la ra ] ++
                        match ra with
                        | var (inRegister x) => match la with

@@ -110,14 +110,14 @@ Section PrintingInstruction.
    end.
 
 
-  Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK k ty) :=
+  Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK ty) :=
     match a with
     | @Language.Ast.index _ _ _ e ty _ _ => fromMemory e ty (doc a)
     | _                              => doc a
     end.
 
   Definition CAssign {la ra : arity}{aK : argKind}(o : op la ra) {k} {ty : type k}
-             (x : arg cvar aK _ ty) (y z : Doc)  :=
+             (x : arg cvar aK ty) (y z : Doc)  :=
     let lhs := y <_> opDoc o <_> z
     in
     match x with
@@ -126,7 +126,7 @@ Section PrintingInstruction.
     end.
 
 
-  Definition CRot (ty : type direct) (o : uniop) (a : larg cvar _ ty) (y : Doc)  :=
+  Definition CRot (ty : type direct) (o : uniop) (a : larg cvar ty) (y : Doc)  :=
     let rvl := match o with
                | rotL n => text "verse_rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | rotR n => text "verse_rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
@@ -139,7 +139,7 @@ Section PrintingInstruction.
     end.
 
   Definition CUpdate {la ra : arity}(o : op la ra) {aK : argKind}{k} {ty : type k}
-             (x : arg cvar aK _ ty) (y : Doc) :=
+             (x : arg cvar aK ty) (y : Doc) :=
     match x with
     | Language.Ast.index _ _  => CAssign o  x (rval x) y
     | _                   => doc x <_> opDoc o <> EQUALS <_> y
@@ -206,9 +206,9 @@ Module C <: ARCH.
 
   Definition embedRegister := inRegister.
 
-  Definition supportedInst := Language.Ast.supportedInst machineVar hostE.
+  Definition supportedInst := @Language.Ast.supportedInst machineVar hostE.
 
-  Definition instCheck := Language.Ast.instCheck machineVar hostE.
+  Definition instCheck := @Language.Ast.instCheck machineVar hostE.
 
   Inductive typesSupported : forall k, Ensemble (type k) :=
   | uint8           : typesSupported Word8
