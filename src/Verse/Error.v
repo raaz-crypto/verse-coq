@@ -1,3 +1,5 @@
+Set Implicit Arguments.
+
 (** * Representing Erros.
 
     We use the sumor type to represent constructs in the verse
@@ -106,6 +108,3 @@ Section Merge.
     | cons {- x -} xs  => cons x <$> merge xs
     end.
 End Merge.
-
-Arguments mergeVector [A Err n] _.
-Arguments merge [A Err] _.
