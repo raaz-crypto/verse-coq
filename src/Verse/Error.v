@@ -12,6 +12,18 @@ notation for it for ease of use in the rest of the program.
 Global Notation "{- A -}" := (inleft A).
 Global Notation "'error' A" := (inright A) (at level 40).
 
+Definition noErr T E (x : T + {E}) : Prop := exists t : T, x = inleft t.
+
+Definition getT T E (x : T + {E}) (p : noErr x) : T.
+  refine (match x as y return noErr y -> T with
+         | inleft t  => fun _ => t
+         | inright e => _
+          end p).
+  unfold noErr.
+  intro H; contradict H;
+  destruct 1; discriminate.
+Defined.
+
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
