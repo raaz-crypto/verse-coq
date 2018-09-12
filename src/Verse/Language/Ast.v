@@ -151,6 +151,102 @@ End AST.
 
 Arguments Indices [v b e ty] _.
 
+Section ASTFinal.
+
+  Variable t  : kind -> Type.
+  Variable tC : typeC t.
+
+  Variable constT : t direct -> Type.
+
+  (* We abandon index safety at the machine level *)
+
+  Class argC (a : GenVariableT t -> GenVariableT t) :=
+    { mkVar : forall v k (ty : t k), v k ty -> a v k ty;
+      mkConst : forall v (ty : t direct), constT ty -> a v direct ty;
+      mkIndex : forall v (b : nat) (e : endian) (ty : t direct),
+                       v memory (mkArray b e ty) -> nat -> a v direct ty
+    }.
+
+  (** An alternate way would be to write -
+
+        Variable v : GenVariableT t.
+
+        Class argC (a : GenVariableT t) := ...
+
+      This would then allow, for example, an architecture to allow
+      arrays to be pointed to by only some of it's registers.
+  *)
+
+  Variable v  : VariableT.
+  Variable vT : GenVariableT t.
+
+  Variable constTrans : forall (ty : type direct), constant ty -> constT (typeDenote ty).
+  Variable vTrans : forall k (ty : type k), v ty -> vT (typeDenote ty).
+
+  Variable aT  : GenVariableT t -> GenVariableT t.
+  Variable aTC : argC aT.
+
+  Definition argDenote aK k (ty : type k) (a : arg v aK ty) : aT vT (typeDenote ty) :=
+    match a with
+    | var _ _ x             => mkVar vT _ (vTrans x)
+    | const _ c             => mkConst vT (constTrans _ c)
+    | @index _ _ b e ty x i => mkIndex vT b e (typeDenote ty) (vTrans x) (proj1_sig i)
+    end.
+
+  (* Since the instruction type for an architecture will be defined
+     specifically for it's machineVar there is just a plain type *)
+
+  Class instructionC (instT : Type) :=
+    { mkUpdate1 : forall ty : t direct, uniop -> aT vT ty -> instT;
+      mkUpdate2 : forall ty : t direct, binop -> aT vT ty
+                                        -> aT vT ty -> instT;
+      mkAssign2 : forall ty : t direct, uniop -> aT vT ty
+                                        -> aT vT ty -> instT;
+      mkAssign3 : forall ty : t direct, binop -> aT vT ty -> aT vT ty
+                                        -> aT vT ty -> instT;
+      mkExtassign3 : forall ty : t direct, exop binary -> aT vT ty -> aT vT ty
+                                           -> aT vT ty -> aT vT ty -> instT;
+      mkExtassign4 : forall ty : t direct, exop ternary -> aT vT ty -> aT vT ty
+                                           -> aT vT ty -> aT vT ty -> aT vT ty -> instT;
+      mkMoveTo : forall b e ty, vT (mkArray b e ty) -> nat -> vT ty -> instT;
+      mkNOP : instT (* A NOP instruction for CLOBBER translate.
+                       This could, in a string translate, simply be
+                       the empty string
+                    *)
+    }.
+
+  Variable instT : Type.
+  Variable instTC : instructionC instT.
+
+  (* The vTrans that instDenote is implicitly parametrized upon is
+     would be a translation between ScopeVar and machineVar.
+     This can be inferred from an allocation into machineVar
+     provided by the user.
+  *)
+
+  Definition instDenote (i : instruction v) : instT :=
+    match i with
+    | assign a => match a with
+                  | update1 o la => mkUpdate1 o (argDenote la)
+                  | update2 o la ra => mkUpdate2 o (argDenote la)
+                                                 (argDenote ra)
+                  | assign2 o la ra => mkAssign2 o (argDenote la)
+                                                 (argDenote ra)
+                  | assign3 o la1 la2 ra =>
+                    mkAssign3 o (argDenote la1) (argDenote la2)
+                              (argDenote ra)
+                  | extassign3 o la1 la2 ra1 ra2 =>
+                    mkExtassign3 o (argDenote la1) (argDenote la2)
+                                 (argDenote ra1) (argDenote ra2)
+                  | extassign4 o la1 la2 ra1 ra2 ra3 =>
+                    mkExtassign4 o (argDenote la1) (argDenote la2)
+                                 (argDenote ra1) (argDenote ra2) (argDenote ra3)
+                  end
+    | @moveTo _ b e _ x i lv =>  mkMoveTo b e (vTrans x) (proj1_sig i) (vTrans lv)
+    | CLOBBER _ _ _  => mkNOP
+    end.
+
+End ASTFinal.
 
 (**
 
