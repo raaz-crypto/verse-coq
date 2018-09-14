@@ -124,12 +124,16 @@ Instance CTypeDenote : typeC (fun k : kind => (CType k + { UnsupportedType }))
          mkArray     := fun n _ t => CArray n <$> t
       |}.
 
-
-
-
 Inductive MachineType : kind -> Type :=
 | Sized    : nat -> MachineType direct
 | Address  : nat -> MachineType memory.
+
+(** Word denotation into a bound machine *)
+Definition wordToMachineWord (b : nat) (n : nat) : MachineType direct + { UnsupportedType } :=
+  if le_dec n b then
+    {- Sized n -}
+  else
+    error (unsupported (word n)).
 
 (** An address inside the machine. There is no alignment restriction on it. *)
 Definition byteAddress := Address 0.

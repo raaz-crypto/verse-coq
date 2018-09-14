@@ -33,6 +33,11 @@ Module Type ARCH.
   (** Name of the architecture family *)
   Parameter name     : string.
 
+  (** The Types of machine variables and a denotation of Verse types into them *)
+  Parameter machineType        : kind -> Type.
+
+  Parameter machineTypeDenote  : typeC (fun k : kind => machineType k + {UnsupportedType}).
+
   (** The registers for this architecture *)
   Parameter register : VariableT.
 

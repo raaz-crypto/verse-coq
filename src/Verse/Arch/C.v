@@ -190,6 +190,10 @@ Module C <: ARCH.
 
   Definition name : string := "Portable-C".
 
+  Definition machineType := CType.
+
+  Definition machineTypeDenote := CTypeDenote.
+
   (** The registers for this architecture *)
 
   Definition register := creg.

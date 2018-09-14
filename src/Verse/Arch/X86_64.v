@@ -88,6 +88,14 @@ Module X86 <: ARCH.
 
   Definition name : string := "X86-64".
 
+  Definition machineType := MachineType.
+
+  Instance machineTypeDenote : typeC (fun k : kind => machineType k + {Internal.UnsupportedType}) :=
+    {| mkWord      := wordToMachineWord 3;
+       mkMultiword := fun m n  => error (unsupported (multiword m n));
+       mkArray     := fun n _ t => {- byteAddress -}
+    |}.
+
   (** The registers for this architecture *)
 
   Definition register := xreg.
