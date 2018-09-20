@@ -234,52 +234,44 @@ Section ASTFinal.
   | instructionError  : UnsupportedInstruction -> CompileError
   .
 
+  Instance liftTypeError : Castable UnsupportedType CompileError :=
+    { cast := typeError }.
+
+  Instance liftInstructionError : Castable UnsupportedInstruction CompileError :=
+    { cast := instructionError }.
+
   Local Definition checkApp k (ty : type k) T (f : (noErr (typeDenote ty)) -> T + {CompileError}) : T + {CompileError} :=
     match isErr (typeDenote ty) with
     | left p  => f p
     | right p => error (typeError (unsupported ty))
     end.
 
-  Local Definition collectErrors T (t : T + {UnsupportedInstruction} + {UnsupportedType}) : T + {CompileError} :=
-    match t with
-    | {- {- t' -} -}  => {- t' -}
-    | error e         => error (typeError e)
-    | {- error e -}   => error (instructionError e)
-    end.
-
-  Local Definition liftInstError T (t : T + {UnsupportedInstruction} + {CompileError}) : T + {CompileError} :=
-    match t with
-    | {- {- t' -} -}  => {- t' -}
-    | error e         => error e
-    | {- error e -}   => error (instructionError e)
-    end.
-
   Definition instDenote (i : instruction v) : instT + {CompileError}.
     simple refine
     match i with
     | assign a => match a with
-                  | update1 o la           => checkApp _ (fun p =>  collectErrors (mkUpdate1 o <$> argDenote p la))
-                  | update2 o la ra        => checkApp _ (fun p => collectErrors (mkUpdate2 o <$> (argDenote p la)
+                  | update1 o la           => checkApp _ (fun p =>  collectErr (mkUpdate1 o <$> argDenote p la))
+                  | update2 o la ra        => checkApp _ (fun p => collectErr (mkUpdate2 o <$> (argDenote p la)
                                                                                                   <*> argDenote p ra))
-                  | assign2 o la ra        => checkApp _ (fun p => collectErrors (mkAssign2 o <$> argDenote p la
+                  | assign2 o la ra        => checkApp _ (fun p => collectErr (mkAssign2 o <$> argDenote p la
                                                                                                   <*> argDenote p ra))
                   | assign3 o la1 la2
-                            ra             => checkApp _ (fun p => collectErrors (mkAssign3 o <$> argDenote p la1
+                            ra             => checkApp _ (fun p => collectErr (mkAssign3 o <$> argDenote p la1
                                                                                                   <*> argDenote p la2
                                                                                                   <*> argDenote p ra))
                   | extassign3 o la1 la2
-                               ra1 ra2     => checkApp _ (fun p => collectErrors (mkExtassign3 o <$> argDenote p la1
+                               ra1 ra2     => checkApp _ (fun p => collectErr (mkExtassign3 o <$> argDenote p la1
                                                                                                      <*> argDenote p la2
                                                                                                      <*> argDenote p ra1
                                                                                                      <*> argDenote p ra2))
                   | extassign4 o la1 la2
-                               ra1 ra2 ra3 => checkApp _ (fun p => collectErrors (mkExtassign4 o <$> argDenote p la1
+                               ra1 ra2 ra3 => checkApp _ (fun p => collectErr (mkExtassign4 o <$> argDenote p la1
                                                                                                      <*> argDenote p la2
                                                                                                      <*> argDenote p ra1
                                                                                                      <*> argDenote p ra2
                                                                                                      <*> argDenote p ra3))
                   end
-    | @moveTo _ b e ty x i lv => liftInstError (checkApp ty (fun p => checkApp (array b e ty)
+    | @moveTo _ b e ty x i lv => collectErr (checkApp ty (fun p => checkApp (array b e ty)
                                                                 (fun p' => {- mkMoveTo b e _ _ (proj1_sig i) (vTrans p lv) -})))
     | CLOBBER _ _ _  => {- mkNOP -}
     end
