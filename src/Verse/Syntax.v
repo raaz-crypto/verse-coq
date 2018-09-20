@@ -44,8 +44,8 @@ Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => e
 
 Section Scoped.
 
-
-  Variable v : VariableT.
+  Variable t : kind -> Type.
+  Variable v : GenVariableT t.
 
 
   (**
@@ -56,7 +56,7 @@ Section Scoped.
 
    *)
 
-  Fixpoint scoped (l : list (some type))(CODE : Type) : Type :=
+  Fixpoint scoped (l : list (some t))(CODE : Type) : Type :=
     match l with
     | []       => CODE
     | existT _ _ ty :: lt => v ty -> scoped lt CODE
@@ -71,7 +71,7 @@ Section Scoped.
 
    *)
 
-  Fixpoint allocation (l : list (some type)) : Type :=
+  Fixpoint allocation (l : list (some t)) : Type :=
     match l with
     | []      => unit
     | existT _ _ t :: lt => v t * allocation lt
@@ -81,7 +81,7 @@ Section Scoped.
 
   (* This function fills in the variables from an allocation into a scoped code *)
 
-  Fixpoint fill {CODE} {l : list (some type)} : allocation l -> scoped l CODE -> CODE :=
+  Fixpoint fill {CODE} {l : list (some t)} : allocation l -> scoped l CODE -> CODE :=
     match l with
     | []                 => fun a x => x
     | existT _ _ _ :: lt => fun a x => fill (snd a) (x (fst a))
@@ -89,7 +89,7 @@ Section Scoped.
 
 End Scoped.
 
-Arguments fill [v CODE l] _ _.
+Arguments fill [t v CODE l] _ _.
 
 
 (* A variable type that us used as a proxy. This variable is *)
