@@ -24,8 +24,8 @@ Defined.
 
 Definition getT T E (x : T + {E}) (p : noErr x) : T.
   refine (match x as y return noErr y -> T with
-         | inleft t  => fun _ => t
-         | inright e => _
+         | {- t -} => fun _ => t
+         | error e => _
           end p).
   unfold noErr.
   intro H; contradict H;
