@@ -2,6 +2,7 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
+Require Import Verse.Error.
 
 Require Import Bool.
 Require Import Omega.
@@ -154,7 +155,7 @@ Arguments Indices [v b e ty] _.
 Section ASTFinal.
 
   Variable t  : kind -> Type.
-  Variable tC : typeC t.
+  Variable tC : typeC (fun k : kind => t k + {UnsupportedType}).
 
   Variable constT : t direct -> Type.
 
@@ -163,8 +164,9 @@ Section ASTFinal.
   Class argC (a : GenVariableT t -> GenVariableT t) :=
     { mkVar : forall v k (ty : t k), v k ty -> a v k ty;
       mkConst : forall v (ty : t direct), constT ty -> a v direct ty;
-      mkIndex : forall v (b : nat) (e : endian) (ty : t direct),
-                       v memory (mkArray b e ty) -> nat -> a v direct ty
+      mkIndex : forall v (b : nat) (e : endian) (ty : t direct)
+                (p : noErr (mkArray b e {- ty -})), v memory (getT p)
+                -> nat -> a v direct ty
     }.
 
   (** An alternate way would be to write -
@@ -180,35 +182,38 @@ Section ASTFinal.
   Variable v  : VariableT.
   Variable vT : GenVariableT t.
 
-  Variable constTrans : forall (ty : type direct), constant ty -> constT (typeDenote ty).
-  Variable vTrans : forall k (ty : type k), v ty -> vT (typeDenote ty).
+  Variable constTrans : forall (ty : type direct) (p : noErr (typeDenote ty)),
+                        constant ty -> constT (getT p).
+  Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
+                    v ty -> vT (getT p).
 
   Variable aT  : GenVariableT t -> GenVariableT t.
   Variable aTC : argC aT.
 
-  Definition argDenote aK k (ty : type k) (a : arg v aK ty) : aT vT (typeDenote ty) :=
-    match a with
-    | var _ _ x             => mkVar vT _ (vTrans x)
-    | const _ c             => mkConst vT (constTrans _ c)
-    | @index _ _ b e ty x i => mkIndex vT b e (typeDenote ty) (vTrans x) (proj1_sig i)
-    end.
+  Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) :=
+    match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'), aT vT (getT p') + {UnsupportedType} with
+    | var _ _ x             => fun p' => {- mkVar vT _ (vTrans p' x) -}
+    | const _ c             => fun p' => {- mkConst vT (constTrans _ p' c) -}
+    | @index _ _ b e ty x i => fun p' => error (unsupported ty)(*mkIndex vT b e (typeDenote ty) (vTrans p' x) (proj1_sig i)*)
+    end p.
 
   (* Since the instruction type for an architecture will be defined
      specifically for it's machineVar there is just a plain type *)
 
   Class instructionC (instT : Type) :=
-    { mkUpdate1 : forall ty : t direct, uniop -> aT vT ty -> instT;
+    { UnsupportedInstruction : Prop;
+      mkUpdate1 : forall ty : t direct, uniop -> aT vT ty -> instT + {UnsupportedInstruction};
       mkUpdate2 : forall ty : t direct, binop -> aT vT ty
-                                        -> aT vT ty -> instT;
+                                        -> aT vT ty -> instT + {UnsupportedInstruction};
       mkAssign2 : forall ty : t direct, uniop -> aT vT ty
-                                        -> aT vT ty -> instT;
+                                        -> aT vT ty -> instT + {UnsupportedInstruction};
       mkAssign3 : forall ty : t direct, binop -> aT vT ty -> aT vT ty
-                                        -> aT vT ty -> instT;
+                                        -> aT vT ty -> instT + {UnsupportedInstruction};
       mkExtassign3 : forall ty : t direct, exop binary -> aT vT ty -> aT vT ty
-                                           -> aT vT ty -> aT vT ty -> instT;
+                                           -> aT vT ty -> aT vT ty -> instT + {UnsupportedInstruction};
       mkExtassign4 : forall ty : t direct, exop ternary -> aT vT ty -> aT vT ty
-                                           -> aT vT ty -> aT vT ty -> aT vT ty -> instT;
-      mkMoveTo : forall b e ty, vT (mkArray b e ty) -> nat -> vT ty -> instT;
+                                           -> aT vT ty -> aT vT ty -> aT vT ty -> instT + {UnsupportedInstruction};
+      mkMoveTo : forall b e ty (p : noErr (mkArray b e {- ty -})), vT (getT p) -> nat -> vT ty -> instT + {UnsupportedInstruction};
       mkNOP : instT (* A NOP instruction for CLOBBER translate.
                        This could, in a string translate, simply be
                        the empty string
@@ -224,27 +229,65 @@ Section ASTFinal.
      provided by the user.
   *)
 
-  Definition instDenote (i : instruction v) : instT :=
+  Inductive CompileError : Prop :=
+  | typeError         : UnsupportedType -> CompileError
+  | instructionError  : UnsupportedInstruction -> CompileError
+  .
+
+  Local Definition checkApp k (ty : type k) T (f : (noErr (typeDenote ty)) -> T + {CompileError}) : T + {CompileError} :=
+    match isErr (typeDenote ty) with
+    | left p  => f p
+    | right p => error (typeError (unsupported ty))
+    end.
+
+  Local Definition collectErrors T (t : T + {UnsupportedInstruction} + {UnsupportedType}) : T + {CompileError} :=
+    match t with
+    | {- {- t' -} -}  => {- t' -}
+    | error e         => error (typeError e)
+    | {- error e -}   => error (instructionError e)
+    end.
+
+  Local Definition liftInstError T (t : T + {UnsupportedInstruction} + {CompileError}) : T + {CompileError} :=
+    match t with
+    | {- {- t' -} -}  => {- t' -}
+    | error e         => error e
+    | {- error e -}   => error (instructionError e)
+    end.
+
+  Definition instDenote (i : instruction v) : instT + {CompileError}.
+    simple refine
     match i with
     | assign a => match a with
-                  | update1 o la => mkUpdate1 o (argDenote la)
-                  | update2 o la ra => mkUpdate2 o (argDenote la)
-                                                 (argDenote ra)
-                  | assign2 o la ra => mkAssign2 o (argDenote la)
-                                                 (argDenote ra)
-                  | assign3 o la1 la2 ra =>
-                    mkAssign3 o (argDenote la1) (argDenote la2)
-                              (argDenote ra)
-                  | extassign3 o la1 la2 ra1 ra2 =>
-                    mkExtassign3 o (argDenote la1) (argDenote la2)
-                                 (argDenote ra1) (argDenote ra2)
-                  | extassign4 o la1 la2 ra1 ra2 ra3 =>
-                    mkExtassign4 o (argDenote la1) (argDenote la2)
-                                 (argDenote ra1) (argDenote ra2) (argDenote ra3)
+                  | update1 o la           => checkApp _ (fun p =>  collectErrors (mkUpdate1 o <$> argDenote p la))
+                  | update2 o la ra        => checkApp _ (fun p => collectErrors (mkUpdate2 o <$> (argDenote p la)
+                                                                                                  <*> argDenote p ra))
+                  | assign2 o la ra        => checkApp _ (fun p => collectErrors (mkAssign2 o <$> argDenote p la
+                                                                                                  <*> argDenote p ra))
+                  | assign3 o la1 la2
+                            ra             => checkApp _ (fun p => collectErrors (mkAssign3 o <$> argDenote p la1
+                                                                                                  <*> argDenote p la2
+                                                                                                  <*> argDenote p ra))
+                  | extassign3 o la1 la2
+                               ra1 ra2     => checkApp _ (fun p => collectErrors (mkExtassign3 o <$> argDenote p la1
+                                                                                                     <*> argDenote p la2
+                                                                                                     <*> argDenote p ra1
+                                                                                                     <*> argDenote p ra2))
+                  | extassign4 o la1 la2
+                               ra1 ra2 ra3 => checkApp _ (fun p => collectErrors (mkExtassign4 o <$> argDenote p la1
+                                                                                                     <*> argDenote p la2
+                                                                                                     <*> argDenote p ra1
+                                                                                                     <*> argDenote p ra2
+                                                                                                     <*> argDenote p ra3))
                   end
-    | @moveTo _ b e _ x i lv =>  mkMoveTo b e (vTrans x) (proj1_sig i) (vTrans lv)
-    | CLOBBER _ _ _  => mkNOP
-    end.
+    | @moveTo _ b e ty x i lv => liftInstError (checkApp ty (fun p => checkApp (array b e ty)
+                                                                (fun p' => {- mkMoveTo b e _ _ (proj1_sig i) (vTrans p lv) -})))
+    | CLOBBER _ _ _  => {- mkNOP -}
+    end
+    ;
+    rewrite <- (getTgetsT p).
+    exact p'.
+    exact (@vTrans _ (array b e ty) p' x).
+  Defined.
 
 End ASTFinal.
 
