@@ -79,6 +79,36 @@ Section Extract.
 
 End Extract.
 
+Class Castable (E1 E2 : Prop) := { cast : E1 -> E2 }.
+
+Instance idCast E : Castable E E := { cast := @id _ }.
+
+Section Lifts.
+
+  Variable T    : Type.
+  Variable E E1 E2 : Prop.
+
+  Variable E1toE : Castable E1 E.
+  Variable E2toE : Castable E2 E.
+
+  Definition liftErr (t : T + {E1}) : T + {E} :=
+    match t with
+    | {- t' -} => {- t' -}
+    | error e  => error (cast e)
+    end.
+
+  Definition collectErr (t : T + {E1} + {E2}) : T + {E} :=
+    match t with
+    | error e2       => error (cast e2)
+    | {- error e1 -} => error (cast e1)
+    | {- {- t' -} -} => {- t' -}
+    end.
+
+End Lifts.
+
+Arguments liftErr [T E E1 _] _.
+Arguments collectErr [T E E1 E2 _ _] _.
+
 Section Conditionals.
 
   (** Some type *)
