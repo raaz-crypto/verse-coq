@@ -14,6 +14,14 @@ Global Notation "'error' A" := (inright A) (at level 40).
 
 Definition noErr T E (x : T + {E}) : Prop := exists t : T, x = inleft t.
 
+Definition isErr T E (x : T + {E}) : { noErr x } + { ~ noErr x }.
+  refine (match x as y return x = y -> {noErr x} + {~ noErr x} with
+         | {- t -} => fun p => left (ex_intro _ t p)
+         | error e => fun p => right _
+          end eq_refl).
+  destruct 1 as [y H]. rewrite p in H. discriminate H.
+Defined.
+
 Definition getT T E (x : T + {E}) (p : noErr x) : T.
   refine (match x as y return noErr y -> T with
          | inleft t  => fun _ => t
