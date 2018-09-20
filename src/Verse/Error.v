@@ -12,32 +12,6 @@ notation for it for ease of use in the rest of the program.
 Global Notation "{- A -}" := (inleft A).
 Global Notation "'error' A" := (inright A) (at level 40).
 
-Definition noErr T E (x : T + {E}) : Prop := exists t : T, x = inleft t.
-
-Definition isErr T E (x : T + {E}) : { noErr x } + { ~ noErr x }.
-  refine (match x as y return x = y -> {noErr x} + {~ noErr x} with
-         | {- t -} => fun p => left (ex_intro _ t p)
-         | error e => fun p => right _
-          end eq_refl).
-  destruct 1 as [y H]. rewrite p in H. discriminate H.
-Defined.
-
-Definition getT T E (x : T + {E}) (p : noErr x) : T.
-  refine (match x as y return noErr y -> T with
-         | {- t -} => fun _ => t
-         | error e => _
-          end p).
-  unfold noErr.
-  intro H; contradict H;
-  destruct 1; discriminate.
-Defined.
-
-Lemma getTgetsT T E (x : T + {E}) (p : noErr x) : x = {- getT p -}.
-  destruct p.
-  rewrite e.
-  trivial.
-Defined.
-
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
@@ -71,6 +45,39 @@ Section Error.
        end.
 
 End Error.
+
+Section Extract.
+
+  Variable T : Type.
+  Variable E : Prop.
+
+  Definition noErr (x : T + {E}) : Prop := exists t : T, x = inleft t.
+
+  Definition isErr (x : T + {E}) : { noErr x } + { ~ noErr x }.
+    refine (match x as y return x = y -> {noErr x} + {~ noErr x} with
+            | {- t -} => fun p => left (ex_intro _ t p)
+            | error e => fun p => right _
+            end eq_refl).
+    destruct 1 as [y H]. rewrite p in H. discriminate H.
+  Defined.
+
+  Definition getT (x : T + {E}) (p : noErr x) : T.
+    refine (match x as y return noErr y -> T with
+            | {- t -} => fun _ => t
+            | error e => _
+            end p).
+    unfold noErr.
+    intro H; contradict H;
+      destruct 1; discriminate.
+  Defined.
+
+  Lemma getTgetsT (x : T + {E}) (p : noErr x) : x = {- getT p -}.
+    destruct p.
+    rewrite e.
+    trivial.
+  Defined.
+
+End Extract.
 
 Section Conditionals.
 
