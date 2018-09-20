@@ -32,6 +32,12 @@ Definition getT T E (x : T + {E}) (p : noErr x) : T.
   destruct 1; discriminate.
 Defined.
 
+Lemma getTgetsT T E (x : T + {E}) (p : noErr x) : x = {- getT p -}.
+  destruct p.
+  rewrite e.
+  trivial.
+Defined.
+
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
