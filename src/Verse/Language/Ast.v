@@ -214,7 +214,6 @@ Section ASTFinal.
   Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
                     v ty -> vT (getT p).
 
-
   Variable aTC : argC aT.
 
   Variable instT : Type.
@@ -237,12 +236,24 @@ Section ASTFinal.
     | right p => error (typeError (unsupported ty))
     end.
 
-  Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) :=
-    match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'), aT vT (getT p') + {UnsupportedType} with
-    | var _ _ x             => fun p' => {- mkVar vT _ (vTrans p' x) -}
-    | const _ c             => fun p' => {- mkConst vT (constTrans _ p' c) -}
-    | @index _ _ b e ty x i => fun p' => error (unsupported ty)(*mkIndex vT b e (typeDenote ty) (vTrans p' x) (proj1_sig i)*)
-    end p.
+    Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) : aT vT (getT p) + {CompileError}.
+    simple refine
+           (match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'),
+                aT vT (getT p') + {CompileError} with
+            | var _ _ x             => fun p' => {- mkVar vT _ (vTrans p' x) -}
+            | const _ c             => fun p' => {- mkConst vT (constTrans _ p' c) -}
+            | @index _ _ b e ty x i => fun p' => checkApp (array b e ty)
+                                                          (fun p'' => {- mkIndex vT b e
+                                                                                 (getT p') _ _
+                                                                                 (proj1_sig i) -})
+            end p);
+      rewrite <- (getTgetsT p').
+    exact p''.
+    exact (@vTrans _ (array b e ty) p'' x).
+  Defined.
+  (* argDenote cannot be written without it's argument p as the return
+      type is unspeciable otherwise
+  *)
 
 
   (* The vTrans that instDenote is implicitly parametrized upon is
@@ -255,7 +266,7 @@ Section ASTFinal.
     simple refine
     match i with
     | assign a => match a with
-                  | update1 o la           => checkApp _ (fun p =>  collectErr (mkUpdate1 o <$> argDenote p la))
+                  | update1 o la           => checkApp _ (fun p => collectErr (mkUpdate1 o <$> argDenote p la))
                   | update2 o la ra        => checkApp _ (fun p => collectErr (mkUpdate2 o <$> (argDenote p la)
                                                                                                   <*> argDenote p ra))
                   | assign2 o la ra        => checkApp _ (fun p => collectErr (mkAssign2 o <$> argDenote p la
