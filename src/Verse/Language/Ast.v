@@ -179,26 +179,12 @@ Section ASTFinal.
       arrays to be pointed to by only some of it's registers.
   *)
 
-  Variable v  : VariableT.
   Variable vT : GenVariableT t.
-
-  Variable constTrans : forall (ty : type direct) (p : noErr (typeDenote ty)),
-                        constant ty -> constT (getT p).
-  Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
-                    v ty -> vT (getT p).
-
   Variable aT  : GenVariableT t -> GenVariableT t.
-  Variable aTC : argC aT.
-
-  Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) :=
-    match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'), aT vT (getT p') + {UnsupportedType} with
-    | var _ _ x             => fun p' => {- mkVar vT _ (vTrans p' x) -}
-    | const _ c             => fun p' => {- mkConst vT (constTrans _ p' c) -}
-    | @index _ _ b e ty x i => fun p' => error (unsupported ty)(*mkIndex vT b e (typeDenote ty) (vTrans p' x) (proj1_sig i)*)
-    end p.
 
   (* Since the instruction type for an architecture will be defined
-     specifically for it's machineVar there is just a plain type *)
+     specifically for it's machineVar, instT is just a plain type
+  *)
 
   Class instructionC (instT : Type) :=
     { UnsupportedInstruction : Prop;
@@ -217,17 +203,22 @@ Section ASTFinal.
       mkNOP : instT (* A NOP instruction for CLOBBER translate.
                        This could, in a string translate, simply be
                        the empty string
-                    *)
+                     *)
     }.
+
+
+  Variable v  : VariableT.
+
+  Variable constTrans : forall (ty : type direct) (p : noErr (typeDenote ty)),
+                        constant ty -> constT (getT p).
+  Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
+                    v ty -> vT (getT p).
+
+
+  Variable aTC : argC aT.
 
   Variable instT : Type.
   Variable instTC : instructionC instT.
-
-  (* The vTrans that instDenote is implicitly parametrized upon is
-     would be a translation between ScopeVar and machineVar.
-     This can be inferred from an allocation into machineVar
-     provided by the user.
-  *)
 
   Inductive CompileError : Prop :=
   | typeError         : UnsupportedType -> CompileError
@@ -245,6 +236,20 @@ Section ASTFinal.
     | left p  => f p
     | right p => error (typeError (unsupported ty))
     end.
+
+  Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) :=
+    match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'), aT vT (getT p') + {UnsupportedType} with
+    | var _ _ x             => fun p' => {- mkVar vT _ (vTrans p' x) -}
+    | const _ c             => fun p' => {- mkConst vT (constTrans _ p' c) -}
+    | @index _ _ b e ty x i => fun p' => error (unsupported ty)(*mkIndex vT b e (typeDenote ty) (vTrans p' x) (proj1_sig i)*)
+    end p.
+
+
+  (* The vTrans that instDenote is implicitly parametrized upon is
+     would be a translation between ScopeVar and machineVar.
+     This can be inferred from an allocation into machineVar
+     provided by the user.
+  *)
 
   Definition instDenote (i : instruction v) : instT + {CompileError}.
     simple refine
