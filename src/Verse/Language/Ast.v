@@ -208,6 +208,14 @@ Section ASTFinal.
 
 End ASTFinal.
 
+(* The following implicit argument declarations seem to be necessary to
+   use the constructs without arguments. This is inspite of all arguments
+   being implicit, albeit not maximally inserted, even prior to these
+   declarations
+*)
+Arguments UnsupportedInstruction [t tC vT aT instT instructionC].
+Arguments mkNOP [t tC vT aT instT instructionC].
+
 (**
 
 Many cryptographic primitives work on streams of data that are divided
