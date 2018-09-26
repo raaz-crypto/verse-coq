@@ -77,6 +77,12 @@ Section Extract.
     trivial.
   Defined.
 
+  Lemma getTunique (x : T + {E}) (p1 p2 : noErr x) : getT p1 = getT p2.
+    destruct (x).
+    simpl; trivial.
+    contradict p1; destruct 1; discriminate.
+  Defined.
+
 End Extract.
 
 Class Castable (E1 E2 : Prop) := { cast : E1 -> E2 }.
