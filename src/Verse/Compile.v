@@ -31,7 +31,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
    *)
 
   Inductive AllocationError : Prop :=
-  | UnavailableRegister    : forall {k : kind}{ty : A.mType k}, A.register ty -> AllocationError
+  | UnavailableRegister    : forall {k}{ty : A.mType k}, A.register ty -> AllocationError
   | UnsupportedLocalArray  : type memory -> AllocationError.
 
   Inductive CompileError : Prop :=
@@ -54,8 +54,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                  end.
 
   (** Lifting a function on supported types to a function on all types that throws errors *)
-  Local Definition checkApp k (ty : type k) T
-                            (f : noErr (typeDenote ty) -> T + {CompileError})
+  Local Definition checkApp k (ty : type k) T f
     : T + {CompileError} :=
     match isErr (typeDenote ty) with
     | left p  => f p
@@ -65,32 +64,29 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   Section CodeDenote.
 
     Variable v : VariableT.
-    Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)), v ty -> A.mVar (getT p).
+    Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
+                             v ty -> A.mVar (getT p).
 
-    Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty)) : C.mArg A.mVar (getT p) + {CompileError}.
+    Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty))
+      : C.mArg A.mVar (getT p) + {CompileError}.
       simple refine
-             (match a in arg _ _ ty' return forall p' : noErr (typeDenote ty'),
-                  C.mArg A.mVar (getT p') + {CompileError} with
-              | var x             => fun p' => {- mkVar A.mVar _ (vTrans p' x) -}
-              | Ast.const c             => fun p' => {- mkConst A.mVar (A.mConstantDenote _ p' c) -}
-              | @Ast.index _ _ b e ty x i => fun p' => checkApp (array b e ty)
-                                                                (fun p'' => {- mkIndex A.mVar b e
-                                                                                       (getT p') _ _
-                                                                                       (proj1_sig i) -})
+             (match a in arg _ _ ty' with
+              | var x                     => fun p' =>
+                                               {- mkVar A.mVar _ (vTrans p' x) -}
+              | Ast.const c               => fun p' =>
+                                               {- mkConst A.mVar (A.mConstantDenote _ p' c) -}
+              | @Ast.index _ _ b e ty x i => fun p' =>
+                                               checkApp (array b e ty)
+                                                        (fun p'' => {- mkIndex A.mVar b e
+                                                                               (getT p') _ _
+                                                                               (proj1_sig i) -})
               end p);
         rewrite <- (getTgetsT p').
       exact p''.
       exact (@vTrans _ (array b e ty) p'' x).
     Defined.
     (* argDenote cannot be written without it's argument p as the return
-      type is unspeciable otherwise
-     *)
-
-
-    (* The vTrans that instDenote is implicitly parametrized upon is
-     would be a translation between ScopeVar and machineVar.
-     This can be inferred from an allocation into machineVar
-     provided by the user.
+      type is unspecifiable otherwise
      *)
 
     Definition instDenote (i : instruction v) : C.mInstruction + {CompileError}.
@@ -139,24 +135,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     (** Type definition marking a list of types as supported *)
     Local Definition suppTypes {n} (l : Vector.t (some type) n) :=
-      allocation (fun k (ty : type k) =>
-                    noErr (typeDenote ty))
-                 l.
+      allocation (fun k (ty : type k) => noErr (typeDenote ty)) l.
 
-    Local Fixpoint stAppend n1 n2 (l1 : Vector.t (some type) n1)
-          (l2 : Vector.t (some type) n2) :
-      suppTypes l1 -> suppTypes l2 ->  suppTypes (Vector.append l1 l2) :=
+    (** suppTypes works well with append *)
+    Local Fixpoint stAppend n1 n2
+                            (l1 : Vector.t (some type) n1)
+                            (l2 : Vector.t (some type) n2)
+      : suppTypes l1 -> suppTypes l2 ->  suppTypes (Vector.append l1 l2) :=
       (* why is notation not working here *)
       match l1 with
-      | []                  => fun _ p2  => p2
+      | []                   => fun _ p2  => p2
       | _ :: lt => fun p1 p2 => (fst p1, stAppend lt l2 (snd p1) p2)
       end.
 
     Arguments stAppend [n1 n2 l1 l2] _ _.
 
     (** Generate a proof of a type list being supported or throw an error *)
-    Local Fixpoint checkTypes {n} (l : Vector.t (some type) n) :
-      suppTypes l + {UnsupportedType} :=
+    Local Fixpoint checkTypes {n} (l : Vector.t (some type) n)
+      : suppTypes l + {UnsupportedType} :=
       match l with
       | []                  => {- tt -}
       | existT _ _ ty :: lt => match isErr (typeDenote ty) with
@@ -166,16 +162,17 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       end.
 
     (** Denotation of a list of supported types *)
-    Local Fixpoint typeListDenote {n} (l : Vector.t (some type) n)
-      : suppTypes l -> Vector.t (some A.mType) n :=
-      match n return forall l' : Vector.t (some type) n, suppTypes l' ->
-                                                         Vector.t (some A.mType) n with
-      | 0   => fun _ _ => []
+    Local Fixpoint typeListDenote {n}
+      : forall (l : Vector.t (some type) n), suppTypes l -> Vector.t (some A.mType) n :=
+      match n with
+      | 0   => fun _ _    => []
       | S m => fun l' pl' => existT _ _ (getT (fst pl')) :: typeListDenote (tl l') (snd pl')
-      end l.
+      end.
 
-    Fixpoint tlDenoteAppends {n1 n2} (l1 : Vector.t (some type) n1) (l2 : Vector.t (some type) n2)
-                          (gl1 : suppTypes l1) (gl2 : suppTypes l2) {struct l1}
+    (** Type list denotes work well with append *)
+    Fixpoint tlDenoteAppends {n1 n2}
+                             (l1 : Vector.t (some type) n1) (l2 : Vector.t (some type) n2)
+                             (gl1 : suppTypes l1) (gl2 : suppTypes l2) {struct l1}
       : typeListDenote (append l1 l2) (stAppend gl1 gl2) =
         append (typeListDenote l1 gl1) (typeListDenote l2 gl2).
       induction l1; simpl.
@@ -187,7 +184,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     (** A machine variable allocation corresponding to a list of supported types *)
     Local Definition Allocation (v : GenVariableT A.mType) n (l : Vector.t (some type) n)
-          (ml : suppTypes l)
+                                (ml : suppTypes l)
       := allocation v (typeListDenote l ml).
 
     Arguments Allocation _ [n l] _.
@@ -205,10 +202,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Local Definition FAllocation n (l : Vector.t (some type) n) (ml : suppTypes l)
       := (Allocation A.mVar ml * F.frameState)%type.
 
-
     (** Generate a frame with the given set of parameters *)
-    Fixpoint params {n} s0 (l : Vector.t (some type) n) : forall (p : suppTypes l), FAllocation l p :=
-
+    Fixpoint params {n} s0 (l : Vector.t (some type) n)
+      : forall (p : suppTypes l), FAllocation l p :=
       match l with
       | []           => fun _ => (emptyAllocation A.mVar, s0)
       | (existT _ _ ty :: rest) => fun p => 
@@ -217,9 +213,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                      ((v,vs), s2)
       end.
 
-    Arguments params [n] _ [l] _.
     (** Generate a frame with the given set of stack varaibles or die trying *)
-    Fixpoint stacks {n} s0 (l : Vector.t (some type) n) : forall (p : suppTypes l), FAllocation l p + {AllocationError} :=
+    Fixpoint stacks {n} s0 (l : Vector.t (some type) n)
+      : forall (p : suppTypes l), FAllocation l p + {AllocationError} :=
       match l with
       | []                        => fun _ => {- (emptyAllocation A.mVar, s0) -}
       | (existT _ memory ty :: _) => fun _ => error (UnsupportedLocalArray ty)
@@ -231,12 +227,11 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                in {- ((v,vs), s2) -}
       end.
 
-    Arguments stacks [n] _ [l] _.
-
-    Fixpoint registers {n} (l : Vector.t (some type) n) :
-      forall p : suppTypes l, F.frameState ->
-                              Allocation A.register p ->
-                              FAllocation l p + {AllocationError}  :=
+    (** Generate a frame given an allocation of the local register variables *)
+    Fixpoint registers {n} (l : Vector.t (some type) n)
+      : forall p : suppTypes l, F.frameState ->
+                                Allocation A.register p ->
+                                FAllocation l p + {AllocationError}  :=
       match l with
       | []          => fun p s0 _  => {- (emptyAllocation A.mVar, s0) -}
       | (existT _ memory ty :: _) => fun _ _ _ => error (UnsupportedLocalArray ty)
@@ -251,6 +246,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
              end
       end.
 
+    Arguments params [n] _ [l] _.
+    Arguments stacks [n] _ [l] _.
     Arguments registers [n] [l] _ _ _.
 
     (** Provide the translation from ScopeVar to the explicit machine
@@ -258,13 +255,13 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
      *)
     Fixpoint makeVTrans n (l : Vector.t (some type) n)
              (pl : suppTypes l) (a : Allocation A.mVar pl)
-             (k : kind) (ty : type k) (p : noErr (typeDenote ty)) (v : scopeVar l ty) :
+             k (ty : type k) (p : noErr (typeDenote ty)) (v : scopeVar l ty) :
       A.mVar (getT p).
       refine
         (match v in scopeVar l' ty' return forall (pl' : suppTypes l')
                                                   (a' : Allocation A.mVar pl')
                                                   (p' : noErr (typeDenote ty')),
-             A.mVar (getT p')
+                                                  A.mVar (getT p')
         with
         | headVar _ => _
         | @restVar m v0 k0 ty0 s => fun pl' a' p' =>
@@ -300,25 +297,24 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                     (scoped v registerTypes (BODY v))
                                             ).
 
-      (** Fills a generic Verse code block with the 'most general'
+      (** Fill a generic Verse code block with the 'most general'
           VariableT corresponding to it's scope *)
       Definition fillVars BODY (functionBody  : forall v, BodyType BODY v) :=
         fillDummy (fun v => mergeScope (mergeScope (functionBody v))).
 
-      (** Use the frame routines to provide an allocation *)
+      (** Use the frame routines to provide an allocation into machine variables *)
       Definition mkAlloc (pp : suppTypes parameterTypes)
                  (sp : suppTypes stackTypes)
                  (rp : suppTypes registerTypes)
                  (regs : forall x, Allocation _ x)
-                 : _ + {AllocationError}
-        :=
-                 let pA := params startState pp in
-                 let (pVars, paramState) := pA in
-                 lA *<- stacks paramState sp;
-                   let (sVars, stackState) := lA in
-                   rA *<- registers rp stackState (regs rp);
-                     let (rVars, finalState) := rA in
-                     {- (finalState, mergeAlloc (mergeAlloc pVars sVars) rVars) -}.
+        : _ + {AllocationError}
+        := let pA := params startState pp in
+           let (pVars, paramState) := pA in
+           lA *<- stacks paramState sp;
+             let (sVars, stackState) := lA in
+             rA *<- registers rp stackState (regs rp);
+               let (rVars, finalState) := rA in
+               {- (finalState, mergeAlloc (mergeAlloc pVars sVars) rVars) -}.
 
     End Function.
 
@@ -359,35 +355,30 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                    iterBlocks v :=
         fun codeV => appScoped (appScoped (appScoped (mkBlocks codeV))) (iterF v).
 
-      (** Generate allocation for an iterator function *)
+      (** Generate allocations for an iterator function *)
       Local Definition mkIAlloc (pT : noErr (typeDenote codeT))
             (codeV : A.mVar (getT pT))
             (pp : suppTypes parameterTypes)
             (sp : suppTypes stackTypes) (rp : suppTypes registerTypes)
             (regs : forall x, Allocation _ x)
-        : _ + {AllocationError} :=
-        let pA := params startState pp in
-        let (pVars, paramState) := pA in
-        let pts' := existT _ _ codeT :: parameterTypes in
-        let pp' : suppTypes pts' := (pT, pp) in
-        let pVars' : Allocation A.mVar pp' := (codeV, pVars) in
-        lA *<- stacks paramState sp;
-          let (sVars, stackState) := lA in
-          rA *<- registers rp stackState (regs rp);
-            let (rVars, finalState) := rA in
-            {- (finalState, mergeAlloc (mergeAlloc pVars' sVars) rVars) -}.
+        : _ + {AllocationError}
+        := let pA := params startState pp in
+           let (pVars, paramState) := pA in
+           let pts' := existT _ _ codeT :: parameterTypes in
+           let pp' : suppTypes pts' := (pT, pp) in
+           let pVars' : Allocation A.mVar pp' := (codeV, pVars) in
+           lA *<- stacks paramState sp;
+             let (sVars, stackState) := lA in
+             rA *<- registers rp stackState (regs rp);
+               let (rVars, finalState) := rA in
+               {- (finalState, mergeAlloc (mergeAlloc pVars' sVars) rVars) -}.
 
     End IteratorF.
     
     Arguments scopeLoopVar [nP nS nR] _ [parameterTypes stackTypes registerTypes] _.
     Arguments mkIAlloc _ [nP nS nR codeT parameterTypes stackTypes registerTypes] _ _ _ _ _ _.
-                                  
-    (** Pretty printing *)
 
-    Let write insts := C.sequenceInstructions (List.map C.emit insts).
-
-    Let wrap descr code := C.makeFunction descr code.
-
+    (** Compile generic Verse code into machine instructions *)
     Definition compile {nP nL nR} name
                        (pts : Vector.t (some type) nP)
                        (lts : Vector.t (some type) nL)
@@ -424,6 +415,12 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                let mLoop := C.loopWrapper codeV countV mProcess in
                let mCode := List.app (List.app mSetup mLoop) mFinalise in
                {- pair (F.description finalState) mCode -}.
+
+    (** Pretty printing *)
+
+    Let write insts := C.sequenceInstructions (List.map C.emit insts).
+
+    Let wrap descr code := C.makeFunction descr code.
 
     Definition show mCode : Doc + {CompileError} :=
       (fun code : A.functionDescription * list C.mInstruction =>
