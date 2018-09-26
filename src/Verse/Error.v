@@ -153,6 +153,7 @@ Arguments bind [A Err B] _ _.
 Global Notation "F <$> A" := (ap  F A) (at level 40, left associativity).
 Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
 Global Notation "X <- A ; B" := (bind A (fun X => B))(at level 81, right associativity, only parsing).
+Global Notation "X *<- A ; B" := (bind (liftErr A) (fun X => B))(at level 81, right associativity, only parsing).
 
 Section Merge.
   Require Import Vector.
