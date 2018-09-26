@@ -49,7 +49,6 @@ Section Scoped.
   Variable t : kind -> Type.
   Variable v : GenVariableT t.
 
-
   (**
 
       A scoped code fragment of type [CODE] with [n] variables of
@@ -64,7 +63,15 @@ Section Scoped.
     | existT _ _ ty :: lt => v ty -> scoped lt CODE
     end.
 
-  (* A dummy VariableT that can help instantiate scoped code *)
+  (** A way to apply functions inside a scope *)
+  Fixpoint appScoped n (l : Vector.t (some t) n) T1 T2 (f : T1 -> T2)
+    : scoped l T1 -> scoped l T2 :=
+    match l with
+    | []                  => fun s1 => f s1
+    | existT _ _ ty :: lt => fun s1 => fun x : v ty => appScoped lt f (s1 x)
+    end.
+
+  (** A dummy VariableT that can help instantiate scoped code *)
   Inductive scopeVar : forall {n} (l : Vector.t (some type) n), VariableT :=
   | headVar m (v : Vector.t (some type) (S m)) : scopeVar v (projT2 (hd v))
   | restVar m (v : Vector.t (some type) (S m)) k (ty : type k) : scopeVar (tl v) ty
@@ -86,17 +93,38 @@ Section Scoped.
 
   Definition emptyAllocation : allocation [] := tt.
 
-  (* This function fills in the variables from an allocation into a scoped code *)
+  Fixpoint mergeAllocation n1 n2 (l1 : Vector.t (some t) n1) (l2 : Vector.t (some t) n2)
+    : allocation l1 -> allocation l2 -> allocation (append l1 l2) :=
+    match l1 with
+    | []                  => fun _ a   => a
+    | existT _ _ ty :: lt => fun a1 a2 => (fst a1, mergeAllocation _ _ (snd a1) a2)
+    end.
 
-  Fixpoint fill {CODE} n {l : Vector.t (some t) n} : allocation l -> scoped l CODE -> CODE :=
-    match l with
-    | []                 => fun a x => x
-    | existT _ _ _ :: lt => fun a x => fill (snd a) (x (fst a))
+
+  Fixpoint mergeScope T n1 n2 (l1 : Vector.t (some t) n1) (l2 : Vector.t (some t) n2)
+             {struct l1} : scoped l1 (scoped l2 T) -> scoped (append l1 l2) T :=
+    match l1 as l1' return scoped l1' (scoped l2 T)
+                           -> scoped (append l1' l2) T with
+    | []        => id
+    | existT _ _ ty :: lt  => fun x vt => mergeScope _ _ _ (x vt)
     end.
 
 End Scoped.
 
-Arguments fill [t0 v CODE n l] _ _.
+Arguments appScoped [t0 v n l T1 T2] _ _.
+Arguments mergeAllocation [t0 v n1 n2 l1 l2] _ _.
+Arguments mergeScope [t0 v T n1 n2 l1 l2] _.
+
+(* This function fills in the variables from an allocation into a scoped code *)
+
+Fixpoint fill (CODE : VariableT -> Type) v n {l : Vector.t (some type) n}
+  : allocation v l -> scoped v l (CODE v) -> (CODE v) :=
+  match l with
+  | []                 => fun a x => x
+  | existT _ _ _ :: lt => fun a x => fill CODE v (snd a) (x (fst a))
+  end.
+
+Arguments fill [CODE v n l] _ _.
 
 Fixpoint mapAlloc v1 v2 (f : forall k (ty : type k), v1 _ ty -> v2 _ ty)
          n (l : Vector.t (some type) n) : allocation v1 l -> allocation v2 l :=
@@ -113,9 +141,12 @@ Fixpoint dummyAlloc {n} (l : Vector.t (some type) n) : allocation (scopeVar l) l
   end l.
 
 (* Generic scoped code filled out with the dummy VariableT *)
-Definition fillDummy n (l : Vector.t (some type) n) CODE
-                     (genC : forall v, scoped v l CODE) :=
+Definition fillDummy (CODE : VariableT -> Type) n (l : Vector.t (some type) n)
+                     (genC : forall v, scoped v l (CODE v)) :=
   fill (dummyAlloc l) (genC (scopeVar l)).
+
+Arguments fillDummy [CODE n l] _.
+
 
 (* A variable type that us used as a proxy. This variable is *)
 
