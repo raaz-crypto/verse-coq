@@ -159,6 +159,21 @@ Module Type CODEGEN (A : ARCH).
   Parameter mInstruction       : Type.
   Parameter mInstructionDenote : instructionC A.mTypeDenote A.mVar mArg mInstruction.
 
+  (** Bulk cryptographic primitives like ciphers, hashes, etc, require
+      processing a sequence of blocks. This member function loops over
+      a sequence of blocks of message type msgTy and runs the body on
+      each of this block. It makes use of two machine variable. The
+      first is a variable that (at the start of the loop) points to
+      the start of the sequence and the second contains the number of
+      blocks in the sequence.  This higher order function takes care
+      of wrapping the body with an appropriate preamble and ensures
+      incrementing the blockPtr appropriately.  *)
+  Parameter loopWrapper : forall (blockType : A.mType memory),
+      A.mVar blockType  -> (** The variable that points to the start of sequence   *)
+      A.mVar A.Word     -> (** The variable that contains number of elements left  *)
+      list mInstruction -> (** The body of the block                               *)
+      list mInstruction.
+
   (** Emit the code for a single instruction *)
   Parameter emit : forall (i : mInstruction), Doc.
 
@@ -172,19 +187,5 @@ Module Type CODEGEN (A : ARCH).
   (** Create a function given its description and body *)
   Parameter makeFunction : A.functionDescription -> Doc -> Doc.
  
-  (** Bulk cryptographic primitives like ciphers, hashes, etc, require
-      processing a sequence of blocks. This member function loops over
-      a sequence of blocks of message type msgTy and runs the body on
-      each of this block. It makes use of two machine variable. The
-      first is a variable that (at the start of the loop) points to
-      the start of the sequence and the second contains the number of
-      blocks in the sequence.  This higher order function takes care
-      of wrapping the body with an appropriate preamble and ensures
-      incrementing the blockPtr appropriately.  *)
-  Parameter loopWrapper : forall (blockType : A.mType memory),
-      A.mVar blockType -> (** The variable that points to the start of sequence   *)
-      A.mVar A.Word    -> (** The variable that contains number of elements left  *)
-      Doc                    -> (** The body of the block                               *)
-      Doc.
 
 End CODEGEN.
