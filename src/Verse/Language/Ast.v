@@ -188,18 +188,26 @@ Section ASTFinal.
 
   Class instructionC (instT : Type) :=
     { UnsupportedInstruction : Prop;
-      mkUpdate1 : forall ty : t direct, uniop -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkUpdate2 : forall ty : t direct, binop -> aT vT ty
-                                        -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkAssign2 : forall ty : t direct, uniop -> aT vT ty
-                                        -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkAssign3 : forall ty : t direct, binop -> aT vT ty -> aT vT ty
-                                        -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkExtassign3 : forall ty : t direct, exop binary -> aT vT ty -> aT vT ty
-                                           -> aT vT ty -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkExtassign4 : forall ty : t direct, exop ternary -> aT vT ty -> aT vT ty
-                                           -> aT vT ty -> aT vT ty -> aT vT ty -> instT + {UnsupportedInstruction};
-      mkMoveTo : forall b e ty (p : noErr (mkArray b e {- ty -})), vT (getT p) -> nat -> vT ty -> instT + {UnsupportedInstruction};
+      mkUpdate1 : forall ty : t direct, uniop ->
+                                        aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkUpdate2 : forall ty : t direct, binop ->
+                                        aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkAssign2 : forall ty : t direct, uniop ->
+                                        aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkAssign3 : forall ty : t direct, binop ->
+                                        aT vT ty -> aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkExtassign3 : forall ty : t direct, exop binary ->
+                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
+                                           instT + {UnsupportedInstruction};
+      mkExtassign4 : forall ty : t direct, exop ternary ->
+                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
+                                           instT + {UnsupportedInstruction};
+      mkMoveTo : forall b e ty (p : noErr (mkArray b e {- ty -})), vT (getT p) -> nat -> vT ty ->
+                                                                   instT + {UnsupportedInstruction};
       mkNOP : instT (* A NOP instruction for CLOBBER translate.
                        This could, in a string translate, simply be
                        the empty string
