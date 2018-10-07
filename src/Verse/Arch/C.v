@@ -434,7 +434,7 @@ Module CCodeGen <: CODEGEN C.
     in
     let iteratorDecls := match iterateOn state with
                          | Some ty => [ declare (blockPtr ty); declare counter ]%list
-                         | None    => []%list
+                         | None    => [ ]%list
                          end
     in iteratorDecls ++ List.rev (declare_vector (params state) mapper).
 

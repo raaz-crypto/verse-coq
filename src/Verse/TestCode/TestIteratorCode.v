@@ -16,7 +16,7 @@ Section TestFunction.
   
   (* The local variables *)
 
-  Definition locals : list (some type) := [].
+  Definition locals : list (some type) := [ ]%list.
   
   (* The temp register *)
   Variable tmp       : variable Word16.
@@ -63,7 +63,7 @@ Section TestFunction.
                       double   ::=<*< (42%nat)
                   ]%list;
         process    := fun msg => [num ::=  tmp [+] msg[-1-] ]%list;
-        finalise := []%list
+        finalise := [ ]%list
       |}.
   Defined.
 

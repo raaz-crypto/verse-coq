@@ -9,6 +9,7 @@ Require Import Verse.Arch.C.
 Require Import Verse.CryptoLib.chacha20.common.
 Require Vector.
 Import VectorNotations.
+Delimit Scope vector_scope with vector.
 Require Import List.
 Import ListNotations.
 
