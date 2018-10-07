@@ -99,9 +99,11 @@ program block is merely a list of instructions.
 
 *)
   Inductive instruction : Type :=
-  | assign  : assignment -> instruction
-  | moveTo  : forall b e ty, forall (x : v (array b e ty)), Indices x -> v ty -> instruction
-  | CLOBBER : forall k (ty : type k), v ty -> instruction
+  | assign    : assignment -> instruction
+  | increment : forall (ty : type direct), larg ty -> instruction
+  | decrement : forall (ty : type direct), larg ty -> instruction
+  | moveTo    : forall b e ty, forall (x : v (array b e ty)), Indices x -> v ty -> instruction
+  | CLOBBER   : forall k (ty : type k), v ty -> instruction
   .
 
   Global Definition code := list instruction.
@@ -188,6 +190,10 @@ Section ASTFinal.
 
   Class instructionC (instT : Type) :=
     { UnsupportedInstruction : Prop;
+      mkIncrement : forall ty : t direct, aT vT ty ->
+                                          instT + {UnsupportedInstruction};
+      mkDecrement : forall ty : t direct, aT vT ty ->
+                                          instT + {UnsupportedInstruction};
       mkUpdate1 : forall ty : t direct, uniop ->
                                         aT vT ty ->
                                         instT + {UnsupportedInstruction};
@@ -216,12 +222,15 @@ Section ASTFinal.
 
 End ASTFinal.
 
+Arguments instructionC [t _] _ _ _.
 (* The following implicit argument declarations seem to be necessary to
    use the constructs without arguments. This is inspite of all arguments
    being implicit, albeit not maximally inserted, even prior to these
    declarations
 *)
 Arguments UnsupportedInstruction [t tC vT aT instT instructionC].
+Arguments mkIncrement {t tC vT aT instT instructionC ty}.
+Arguments mkDecrement {t tC vT aT instT instructionC ty}.
 Arguments mkNOP [t tC vT aT instT instructionC].
 
 (**
@@ -254,6 +263,8 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
+Arguments increment [v ty] _.
+Arguments decrement [v ty] _.
 Arguments moveTo [v  b e ty] _ _ _.
 Arguments CLOBBER [v k ty ] _.
 (* end hide *)

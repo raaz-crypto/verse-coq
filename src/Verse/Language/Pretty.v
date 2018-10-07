@@ -55,6 +55,8 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v direct ty
 
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
+Notation "[++] A"        := (increment (toLArg A)) (at level 70).
+Notation "[--] A"        := (decrement (toLArg A)) (at level 70).
 Notation "A ::= B [+] C" := (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) ))  (at level 70).
 
 Notation "A ::= B [-] C" := (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
@@ -250,9 +252,13 @@ Section PrettyPrintingInstruction.
                               end
        }.
 
+  Definition mkDouble {la ra} (o : op la ra) (x : Doc) := opDoc o <> opDoc o <> x.
+
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
                          | assign a => doc a
+                         | increment a => mkDouble plus (doc a)
+                         | decrement a => mkDouble minus (doc a)
                          | @moveTo  _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          | CLOBBER v => text "CLOBBER" <_> doc v
@@ -323,6 +329,7 @@ operands of the programming fragment.
             X ::= X [+] (A[- 2 -]);
             X ::= X [+] Ox "55";
             Z ::= Z [+] vec_const;
+            [++] Y;
             MULTIPLY X AND X INTO (X : X);
             (QUOT X, REM X) ::= (X : X) [/] X
           ]%list.

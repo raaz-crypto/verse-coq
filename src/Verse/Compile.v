@@ -92,9 +92,11 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Definition instDenote (i : instruction v) : C.mInstruction + {CompileError}.
       simple refine
              match i with
+             | increment la => checkApp _ (fun p => collectErr (mkIncrement <$> (argDenote p la)))
+             | decrement la => checkApp _ (fun p => collectErr (mkIncrement <$> (argDenote p la)))
              | assign a => match a with
                            | update1 o la           => checkApp _ (fun p => collectErr (mkUpdate1 o <$> argDenote p la))
-                           | update2 o la ra        => checkApp _ (fun p => collectErr (mkUpdate2 o <$> (argDenote p la)
+                           | update2 o la ra        => checkApp _ (fun p => collectErr (mkUpdate2 o <$> argDenote p la
                                                                                                   <*> argDenote p ra))
                            | assign2 o la ra        => checkApp _ (fun p => collectErr (mkAssign2 o <$> argDenote p la
                                                                                                   <*> argDenote p ra))
