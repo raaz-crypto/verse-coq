@@ -422,7 +422,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     (** Pretty printing *)
 
-    Let write insts := C.sequenceInstructions (List.map C.emit insts).
+    Let write insts := C.emit insts.
 
     Let wrap descr code := C.makeFunction descr code.
 
