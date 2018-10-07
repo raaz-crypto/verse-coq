@@ -1,24 +1,194 @@
-Require Import Syntax.
-Require Import Language.
-Require Import Types.
-Require Import Types.Internal.
-Require Import Language.
 Require Import Arch.
-Require Import Compile.
-Require Import Word.
+Require Import Types.Internal.
 Require Import Error.
+Require Import Types.
+Require Import Syntax.
+Require Import Language.Ast.
+Require Import Compile.
+Require Import Language.
+Require Import Word.
 Require Import PrettyPrint.
-(* Require Import SeqFunction. *)
 
+Require Import String.
 Require Import List.
 Import ListNotations.
-Require Import String.
-Require Import Ensembles.
-Require Import Program.Basics.
-Require Vector.
-Import Vector.VectorNotations.
+Require Import Vector.
+Import VectorNotations.
 Require Import Arith.
+
 Set Implicit Arguments.
+
+Definition CConstant {k} (ty : CType k) : Type :=
+  match ty with
+  | uint8_t     => Word.bytes 1
+  | uint16_t    => Word.bytes 2
+  | uint32_t    => Word.bytes 4
+  | uint64_t    => Word.bytes 8
+  | _           => string
+  end.
+
+Ltac notPossible := let p := fresh "p" in
+                    let H := fresh "H" in
+                    intro p; contradict p;
+                    destruct 1 as [H]; compute in H;
+                    discriminate.
+
+Definition CConstantDenote (ty : type direct) : forall (p : noErr (typeDenote ty)),
+  constant ty -> CConstant (getT p).
+  refine (match ty with
+          | word 0 | word 1 | word 2 | word 3 => _
+          | _      => _
+          end);
+  first [ exact (fun _ => id) | notPossible ].
+Defined.
+
+Inductive creg : GenVariableT CType :=
+| cr k (ty : CType k) : string -> creg ty.
+
+Inductive cvar : GenVariableT CType :=
+| blockPtr         : forall k (ty : CType k), cvar (CPtr ty)
+| deref          : forall k (ty : CType k), cvar (CPtr ty) -> cvar ty
+| counter        : cvar uint64_t
+| inRegister     : forall k (ty : CType k), creg ty -> cvar ty
+| functionParam  : forall k (ty : CType k), nat -> cvar ty
+| onStack        : forall k (ty : CType k), nat -> cvar ty
+.
+
+Record CFrame := { cFunctionName     : string;
+                   nParams : nat;
+                   nLocals : nat;
+                   iterateOn         : option (CType memory);
+                   params            : Vector.t (some CType) nParams;
+                   locals            : Vector.t (some CType) nLocals;
+                   registers         : list (string * (some CType))
+                }.
+
+Module C <: ARCH.
+
+  Definition name : string := "Portable-C".
+
+  Definition mType := CType.
+  Definition mTypeDenote := CTypeDenote.
+
+  Definition mConstant := @CConstant direct.
+  Definition mConstantDenote := CConstantDenote.
+
+  Definition register := creg.
+  Definition mVar := cvar.
+
+  Definition HostEndian := hostE.
+
+  Definition Word := uint64_t.
+
+  Definition embedRegister := inRegister.
+
+  Definition functionDescription := CFrame.
+  
+End C.
+
+Module CFrame <: FRAME C.
+
+  Import C.
+
+  Definition frameState := CFrame.
+
+  Definition emptyFrame (s : string) : frameState :=
+        {| cFunctionName := s; iterateOn := None; params := []; locals := [];  registers := List.nil |}.
+
+  Definition iterateFrame (s : string) (ty : mType memory) :=
+    let state := {| cFunctionName := s; iterateOn := Some ty; params := []; locals := [];  registers := List.nil |} in
+    ((existT _ _ (blockPtr ty), counter), deref (blockPtr ty), state).
+
+  Let newParam state k ty :=
+    ( @functionParam k ty (nParams state),
+      {| cFunctionName := cFunctionName state;
+          iterateOn := iterateOn state;
+          params := existT _ _ ty :: params state;
+          locals := locals state;
+          registers := registers state
+       |}
+    ).
+
+  Let newLocal state ty :=
+    ( @onStack direct ty (nLocals state),
+      {| cFunctionName := cFunctionName state;
+         iterateOn := iterateOn state;
+         params := params state;
+         locals := existT _ _ ty :: locals state;
+         registers := registers state
+      |}
+    ).
+
+
+  Definition addParam state k ty :=
+    @newParam state k ty.
+
+
+  Definition stackAlloc state ty :=
+    @newLocal state ty.
+
+
+  Let registerStrings state := List.map fst (registers state).
+
+  Definition useRegister state ty (reg : creg ty ):=
+      match reg with
+      | cr _ nm =>
+        if in_dec string_dec nm (registerStrings state)
+        then None
+        else Some
+               {| cFunctionName := cFunctionName state;
+                  iterateOn := iterateOn state;
+                  params := params state;
+                  locals := locals state;
+                  registers := (nm , existT _ direct ty) :: registers state
+               |}
+      end.
+
+  Definition description := @id CFrame.
+
+End CFrame.
+
+Inductive carg (Cvar : GenVariableT CType) : GenVariableT CType :=
+| cv      k (ty : CType k)        : Cvar _ ty -> carg Cvar ty
+| cindex  (ty : CType direct) (e : endian) b : Cvar _ (CArray b ty) -> nat -> carg Cvar ty
+| cconst  (ty : CType direct)     : CConstant ty -> carg Cvar ty
+.
+
+Arguments cv [Cvar k ty] _.
+Arguments cindex [Cvar ty] _ [b] _ _.
+Arguments cconst [Cvar ty] _.
+
+Instance cargDenote : argC _ CConstant carg :=
+  {| mkVar   := fun Cvar k ty v => cv v;
+     mkConst := fun Cvar k c => cconst c;
+     mkIndex := fun Cvar b e ty p v i => cindex e v i
+  |}.
+
+Require Import Ensembles.
+
+Inductive CAssignment :=
+| Cassign3 : forall ty : CType direct, binop ->
+                                       carg cvar ty -> carg cvar ty -> carg cvar ty ->
+                                       CAssignment
+| Cassign2 : forall ty : CType direct, uniop ->
+                                       carg cvar ty -> carg cvar ty ->
+                                       CAssignment
+| Cupdate2 : forall ty : CType direct, binop ->
+                                       carg cvar ty -> carg cvar ty ->
+                                       CAssignment
+| Cupdate1 : forall ty : CType direct, uniop ->
+                                       carg cvar ty ->
+                                       CAssignment
+.
+
+Inductive cInstruction :=
+| Cincr k (ty : CType k) : carg cvar ty -> cInstruction
+| Cdecr (ty : CType direct) : carg cvar ty -> cInstruction   
+| Cassign  : CAssignment -> cInstruction
+| Citerate : cvar C.Word -> 
+             list cInstruction -> cInstruction
+| Cnop     : cInstruction 
+.
 
 Module CP.
 
@@ -47,86 +217,94 @@ Module CP.
     Definition comment (s : A)    := PrettyPrint.between ("/*    ") ("    */") (doc s).
   End CComment.
   Arguments comment [A APrettyPrint] _.
+
 End CP.
-
-
-Record CFrame := { cFunctionName     : string;
-                   nParams : nat;
-                   nLocals : nat;
-                   iterateOn         : option (type memory);
-                   params            : Vector.t (some type) nParams;
-                   locals            : Vector.t (some type) nLocals;
-                   registers         : list (string * (some type))
-                }.
-
-
-Inductive creg : VariableT :=
-  cr : forall k (ty : type k), string -> creg ty.
-
-Arguments cr [k] _ _.
-Inductive cvar : VariableT :=
-| blockPtr       : forall (ty : type memory), cvar ty
-| counter        : cvar Word64
-| inRegister     : forall k (ty : type k), creg ty -> cvar ty
-| functionParam  : forall k (ty : type k), nat -> cvar ty
-| onStack        : forall k (ty : type k), nat -> cvar ty
-.
-
-Instance cRegPretty : forall k (ty : type k), PrettyPrint (creg ty)
-  := { doc := fun x => match x with
-                       | cr _ s => text "r" <> text s
-                       end
-     }.
-
-Instance cMachineVar : forall k (ty : type k), PrettyPrint (cvar ty)
-  := { doc := fun x => match x with
-                       | blockPtr ty => paren (text "*" <> text CP.blockPtrVariableName)
-                       | counter         => text "counter"
-                       | inRegister r    => doc r
-                       | functionParam _ p => text "p" <> doc p
-                       | onStack       _ s => text "s" <> doc s
-                       end
-     }.
 
 Section PrintingInstruction.
 
-  Definition wordSize (ty : type direct) := match ty with
-                                            | word w => decimal (2 ^ (w + 3))%nat
-                                            | _      => text "Unsupported"
-                                            end.
+  Instance cRegPretty : forall k (ty : CType k), PrettyPrint (creg ty)
+    := { doc := fun x => match x with
+                         | cr _ s => text "r" <> text s
+                         end
+       }.
 
-  Definition toMemory e ty v :=
-   match e with
-   | littleE => text "verse_to_le" <> wordSize ty <> (paren v)
-   | bigE    => text "verse_to_be" <> wordSize ty <> (paren v)
-   | _       => v
-   end.
-
-  Definition fromMemory e ty v :=
-   match e with
-   | littleE => text "verse_from_le" <> wordSize ty <> (paren v)
-   | bigE    => text "verse_from_be" <> wordSize ty <> (paren v)
-   | _       => v
-   end.
-
-
-  Definition rval {aK : argKind}{k} {ty : type k} (a : arg cvar aK ty) :=
-    match a with
-    | @Language.Ast.index _ _ _ e ty _ _ => fromMemory e ty (doc a)
-    | _                              => doc a
+  Fixpoint vardoc {k} (ty : CType k) (x : cvar ty) :=
+    match x with
+    | blockPtr ty     => text CP.blockPtrVariableName
+    | deref v         => paren (text "*" <> vardoc v)
+    | counter         => text "counter"
+    | inRegister r    => doc r
+    | functionParam _ p => text "p" <> doc p
+    | onStack       _ s => text "s" <> doc s
     end.
 
-  Definition CAssign {la ra : arity}{aK : argKind}(o : op la ra) {k} {ty : type k}
-             (x : arg cvar aK ty) (y z : Doc)  :=
+  Global Instance cMachineVar : forall k (ty : CType k), PrettyPrint (cvar ty)
+    := { doc := @vardoc _ ty }.
+
+  Definition constant_doc (ty : CType direct)  : CConstant ty -> Doc :=
+    match ty with
+    | uint8_t | uint16_t | uint32_t | uint64_t
+                                      => fun w => text "0x" <> doc w
+    end.
+
+  Global Instance constant_pretty (ty : CType direct) : PrettyPrint (CConstant ty)
+    := { doc := constant_doc ty }.
+
+  (** The pretty printing of our argument *)
+  Fixpoint argdoc {k} (ty : CType k ) (av : carg cvar ty) :=
+    match av with
+    | cv v         => doc v
+    | cconst c     => doc c
+    | cindex _ v i => doc v <> bracket (decimal i)
+    end.
+
+  Global Instance arg_pretty_print : forall k (ty : CType k), PrettyPrint (carg cvar ty)
+    := { doc := @argdoc _ _ }.
+
+  Definition wordSize (ty : CType direct) := match ty with
+                                             | uint8_t => decimal 8
+                                             | uint16_t => decimal 16
+                                             | uint32_t => decimal 32
+                                             | uint64_t => decimal 64
+                                             end.
+
+  Definition toMemory e ty v :=
+    match e with
+    | littleE => text "verse_to_le" <> wordSize ty <> (paren v)
+    | bigE    => text "verse_to_be" <> wordSize ty <> (paren v)
+    | _       => v
+    end.
+
+  Definition fromMemory e ty v :=
+    match e with
+    | littleE => text "verse_from_le" <> wordSize ty <> (paren v)
+    | bigE    => text "verse_from_be" <> wordSize ty <> (paren v)
+    | _       => v
+    end.
+
+  Definition rval {ty : CType direct} (a : carg cvar ty) :=
+    match a with
+    | cindex e _ _ => fromMemory e ty (doc a)
+    | _            => doc a
+    end.
+
+  Definition CAssign {la ra : arity} (o : op la ra) {ty : CType direct}
+             (x : carg cvar ty) (y z : Doc)  :=
     let lhs := y <_> opDoc o <_> z
     in
     match x with
-    | @Language.Ast.index _ _ _ e ty _ _ => CP.assign (doc x) (toMemory e ty lhs)
-    | _                                => CP.assign (doc x) lhs
+    | cindex e _ _ => CP.assign (doc x) (toMemory e ty lhs)
+    | _                    => CP.assign (doc x) lhs
     end.
 
+  Definition CUpdate {la ra : arity}(o : op la ra) {ty : CType direct}
+             (x : carg cvar ty) (y : Doc) : Doc :=
+    match x with
+    | cindex _ _ _  => CAssign o x (rval x) y
+    | _             => doc x <_> opDoc o <> EQUALS <_> y
+    end.
 
-  Definition CRot (ty : type direct) (o : uniop) (a : larg cvar ty) (y : Doc)  :=
+  Definition CRot (ty : CType direct) (o : uniop) (a : carg cvar ty) (y : Doc)  :=
     let rvl := match o with
                | rotL n => text "verse_rotL" <> wordSize ty <> paren (commaSep [y ; decimal n])
                | rotR n => text "verse_rotR" <> wordSize ty <> paren (commaSep [y ; decimal n])
@@ -134,202 +312,110 @@ Section PrintingInstruction.
                end
     in
     match a with
-    | @Language.Ast.index  _ _ _ e ty _ _  => CP.assign (doc a) (toMemory e ty rvl)
-    | _                                 => CP.assign (doc a) rvl
+    | cindex e _ _  => CP.assign (doc a) (toMemory e ty rvl)
+    | _             => CP.assign (doc a) rvl
     end.
 
-  Definition CUpdate {la ra : arity}(o : op la ra) {aK : argKind}{k} {ty : type k}
-             (x : arg cvar aK ty) (y : Doc) :=
-    match x with
-    | Language.Ast.index _ _  => CAssign o  x (rval x) y
-    | _                   => doc x <_> opDoc o <> EQUALS <_> y
-    end.
-
-  Global Instance assignment_C_print : PrettyPrint (assignment cvar) | 0
+  Global Instance assignment_C_print : PrettyPrint CAssignment | 0
     := { doc := fun assgn =>  match assgn with
-                              | assign3 o x y z => CAssign o x (rval y) (rval z)
-                              | update2 o x y   => CUpdate o x (rval y)
-                              | @assign2 _ ty u x y   =>
+                              | Cassign3 o x y z => CAssign o x (rval y) (rval z)
+                              | Cupdate2 o x y   => CUpdate o x (rval y)
+                              | Cassign2 u x y   =>
                                 match u with
                                 | bitComp  | nop => CAssign u x empty (rval y)
                                 | shiftL n | shiftR n  => CAssign u x (rval y) (decimal n)
                                 | rotL n   | rotR n    => CRot u x (rval y)
                                 end
-                              | @update1 _ ty u x      =>
+                              | Cupdate1 u x     =>
                                 match u with
                                 | bitComp  | nop => CAssign u x empty (rval x)
                                 | shiftL n | shiftR n  => CUpdate u x (decimal n)
                                 | rotL n   | rotR n    => CRot u x (rval x)
                                 end
-                              | _ => text "BadInst"
                               end
        }.
 
-  (*
-
-  Definition moveToCopy {b}{e}{ty}(x : cvar (array b e ty))( i : Indices x ) (y : cvar ty)
-    : assignment cvar
-    := assign2 nop (Language.index x i) (var y).
-*)
-
-
-  Global Instance instruction_C_print : PrettyPrint (instruction cvar) | 0
-    := { doc := fun i => match i with
-                         | assign a => doc a
-                         | moveTo x i y => doc  (assign2 nop (Language.Ast.index x i) (var y))
-                         | CLOBBER a     => CP.comment (text "CLOBBER" <_> doc a)
-                         end
-       }.
+  Let semiEnd i := i <> text ";".
+  Fixpoint show (i : cInstruction) : Doc :=
+    let Cdoc b := vcat (List.map show b) in
+    match i with
+    | Cincr a   => semiEnd (mkDouble plus (doc a))
+    | Cdecr a   => semiEnd (mkDouble minus (doc a))
+    | Cassign a => semiEnd (doc a)
+    | Citerate n body =>
+      let loopCond := paren (doc n <_> text "> 0") in
+      let nextBlock := semiSep [ CP.comment "move to next block" ] in
+      (vcat [ CP.comment "Iterating over the blocks";
+                CP.while loopCond (vcat [Cdoc body; nextBlock])
+      ])
+    | Cnop      => empty
+    end
+  .
+  
+  Global Instance instruction_C_print : PrettyPrint (cInstruction) | 0
+    := { doc := show }.
 
 End PrintingInstruction.
 
-
-Module C <: ARCH.
-
-  (** Name of the architecture family *)
-
-  Definition name : string := "Portable-C".
-
-  Definition machineType := CType.
-
-  Definition machineTypeDenote := CTypeDenote.
-
-  (** The registers for this architecture *)
-
-  Definition register := creg.
-
-  Definition machineVar := cvar.
-
-  Definition HostEndian := hostE.
-
-  Definition Word := Word64.
-
-  Definition embedRegister := inRegister.
-
-  Definition supportedInst := @Language.Ast.supportedInst machineVar hostE.
-
-  Definition instCheck := @Language.Ast.instCheck machineVar hostE.
-
-  Inductive typesSupported : forall k, Ensemble (type k) :=
-  | uint8           : typesSupported Word8
-  | uint16          : typesSupported Word16
-  | uint32          : typesSupported Word32
-  | uint64          : typesSupported Word64
-  | carray {n e ty} : typesSupported ty -> typesSupported (Array n e ty)
-  .
-
-  Fixpoint typeCheck {k}(ty : type k) : {typesSupported ty} + {~ typesSupported ty}.
-    refine (match ty with
-            | word 0 | word 1 | word 2 | word 3  => left _
-            | array n e typ => match @typeCheck direct typ with
-                              | left proof      => left (carray proof)
-                              | right disproof  => right _
-                              end
-            | _ => right _
-            end
-           ); repeat constructor; inversion 1; apply disproof; trivial.
-  Defined.
-  Definition supportedType := typesSupported.
-
-  Definition functionDescription := CFrame.
-
-End C.
-
-Module CFrame <: FRAME C.
-
-  Import C.
-
-  Definition frameState := CFrame.
-
-  Definition emptyFrame (s : string) : frameState :=
-        {| cFunctionName := s; iterateOn := None; params := []; locals := [];  registers := nil |}.
-
-  Definition iterateFrame (s : string) (ty : type memory) :=
-    let state := {| cFunctionName := s; iterateOn := Some ty; params := []; locals := [];  registers := nil |} in
-    _ <- when typeCheck ty; {- (blockPtr ty, counter, state) -}.
-
-  Let newParam state k ty :=
-    ( @functionParam k ty (nParams state),
-      {| cFunctionName := cFunctionName state;
-          iterateOn := iterateOn state;
-          params := existT _ _ ty :: params state;
-          locals := locals state;
-          registers := registers state
-       |}
-    ).
-
-  Let newLocal state ty :=
-    ( @onStack direct ty (nLocals state),
-      {| cFunctionName := cFunctionName state;
-         iterateOn := iterateOn state;
-         params := params state;
-         locals := existT _ _ ty :: locals state;
-         registers := registers state
-      |}
-    ).
-
-
-  Definition addParam state k ty :=
-    _ <- when C.typeCheck ty; {- @newParam state k ty -}.
-
-
-  Definition stackAlloc state ty :=
-    _ <- when C.typeCheck ty; {- @newLocal state ty -}.
-
-
-  Let registerStrings state := List.map fst (registers state).
-
-  Definition useRegister state ty (reg : creg ty ):=
-      match reg with
-      | cr _ nm =>
-           if C.typeCheck ty then
-            if in_dec string_dec nm (registerStrings state)
-            then None
-            else Some
-                   {| cFunctionName := cFunctionName state;
-                      iterateOn := iterateOn state;
-                      params := params state;
-                      locals := locals state;
-                      registers := (nm , existT _ direct ty) :: registers state
-                   |}
-          else
-            None
-      end.
-    Definition description := @id CFrame.
-
-End CFrame.
+Inductive unsupportedInstruction : Prop :=
+| noexmul | noeucl : unsupportedInstruction.
 
 Module CCodeGen <: CODEGEN C.
 
   Import C.
+  
+  Definition mArg := carg.
+  Definition mArgDenote := cargDenote.
 
-  Definition emit (i : instruction machineVar) : Doc + { not (supportedInst i) } :=
-    _ <- when instCheck i; {- doc i <> text ";" -}.
+  Definition mInstruction := cInstruction.
 
-  Definition sequenceInstructions ds := line <> vcat ds.
+  Instance mInstructionDenote : instructionC cvar carg mInstruction :=
+    {| UnsupportedInstruction := unsupportedInstruction;
+       mkIncrement := fun ty a1 => {- Cincr a1 -};
+       mkDecrement := fun ty a1 => {- Cdecr a1 -};
+       mkUpdate1 := fun ty o a1 => {- Cassign (Cupdate1 o a1) -};
+       mkUpdate2 := fun ty o a1 a2 => {- Cassign (Cupdate2 o a1 a2) -};
+       mkAssign2 := fun ty o a1 a2 => {- Cassign (Cassign2 o a1 a2) -};
+       mkAssign3 := fun ty o a1 a2 a3 => {- Cassign (Cassign3 o a1 a2 a3) -};
+       mkExtassign3 := fun _ _ _ _ _ _ => error noexmul;
+       mkExtassign4 := fun _ _ _ _ _ _ _ => error noeucl;
+       mkMoveTo := fun b e ty p arr i v => {- Cassign (Cassign2 nop (cindex e arr i) (cv v)) -};
+       mkNOP := Cnop
+    |}.
 
-  Let type_doc (t : type direct) := text (
+  Definition loopWrapper (blockType : mType memory)
+             (bVar : mVar blockType)
+             (count : mVar Word)
+             (body : list mInstruction) :=
+    [ Citerate count (body ++ [ Cincr (cv bVar); Cdecr (cv count) ]) ]%list.
+
+  Definition emit b := line <> vcat (List.map doc b).
+  
+  Let type_doc (t : CType direct) := text (
                                         match t with
-                                        | word 0 => "uint8_t"%string
-                                        | word 1 => "uint16_t"%string
-                                        | word 2 => "uint32_t"%string
-                                        | word 3 => "uint64_t"%string
-                                        | _      => ""%string
+                                        | uint8_t  => "uint8_t"%string
+                                        | uint16_t => "uint16_t"%string
+                                        | uint32_t => "uint32_t"%string
+                                        | uint64_t => "uint64_t"%string
                                         end).
 
-  Let Fixpoint declareArray (a : Doc)(n : nat)(ty : type direct) :=
+  Let Fixpoint declareArray (a : Doc)(n : nat)(ty : CType direct) :=
     match ty with
-    | @Internal.array  m _ ty => (declareArray a m ty) <> bracket (decimal n)
-    | _                      => type_doc ty <_> a <> bracket (decimal n)
+    | CArray b ty  => (declareArray a b ty) <> bracket (decimal n)
+    | _            => type_doc ty <_> a <> bracket (decimal n)
     end.
 
-  Let declare {k}{varty : type k}(v : @machineVar k varty) : Doc :=
+  Let Fixpoint declare {k}{varty : CType k}(v : cvar varty) : Doc :=
     let vDoc := doc v in
-    match varty in type k0 with
-    | @Internal.array n _ ty => declareArray vDoc n ty
-    | @Internal.word  n      => type_doc (word n) <_> vDoc
-    | _                      => text ""
-    end.
+    let fix decldoc {k} (vty : CType k) v :=
+        match k as k' return CType k' -> _ with
+        | direct => fun ty => type_doc ty <_> v
+        | memory => fun ty => match ty with
+                              | CArray b ty => declareArray v b ty
+                              | CPtr ty     => decldoc ty (paren (text "*" <> vDoc))
+                              end
+        end vty in
+    decldoc varty vDoc. 
 
   Let Fixpoint downTo (n : nat) : Vector.t nat n :=
     match n with
@@ -338,7 +424,7 @@ Module CCodeGen <: CODEGEN C.
     end.
 
 
-  Let declare_vector {n : nat}(vec : Vector.t (some type) n) (mapper : some type -> nat -> Doc) :=
+  Let declare_vector {n} (vec : Vector.t (some CType) n) (mapper : some CType -> nat -> Doc) :=
     Vector.to_list (Vector.map2 mapper vec (downTo n)).
 
   Let declare_params state :=
@@ -348,7 +434,7 @@ Module CCodeGen <: CODEGEN C.
     in
     let iteratorDecls := match iterateOn state with
                          | Some ty => [ declare (blockPtr ty); declare counter ]%list
-                         | None    => nil%list
+                         | None    => []%list
                          end
     in iteratorDecls ++ List.rev (declare_vector (params state) mapper).
 
@@ -368,7 +454,7 @@ Module CCodeGen <: CODEGEN C.
 
   Definition makeFunction state body :=
     let localDecls := vcat [ CP.comment "Local variables";
-                             CP.statements (declare_locals state)
+                               CP.statements (declare_locals state)
                            ] in
     let regDecls := vcat [ CP.comment "Register variables";
                              CP.statements (declare_registers state) ] in
@@ -377,17 +463,6 @@ Module CCodeGen <: CODEGEN C.
                 CP.voidFunction (cFunctionName state) (declare_params state);
                 brace (nest 4 (line <> actualBody) <> line)
             ].
-
-
-  Definition loopWrapper (msgTy : type memory) (v : machineVar msgTy) (n : machineVar Word) (d : Doc) : Doc :=
-    let loopCond := paren (doc n <_> text "> 0") in
-    let nextBlock := semiSep [CP.plusplus (text CP.blockPtrVariableName);
-                                CP.minusminus (doc n);
-                                CP.comment "move to next block"
-                             ] in
-       (vcat [ CP.comment "Iterating over the blocks";
-                 CP.while loopCond (vcat [d; nextBlock])
-             ]).
 
 End CCodeGen.
 
