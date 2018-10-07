@@ -38,7 +38,7 @@ Module Type ARCH.
 
   Parameter mTypeDenote  : typeC (fun k : kind => mType k + {UnsupportedType}).
 
-  Parameter mConstant       : forall {k}, mType k -> Type.
+  Parameter mConstant       : mType direct -> Type.
   Parameter mConstantDenote : forall (ty : type direct) (p : noErr (typeDenote ty)),
                               constant ty -> mConstant (getT p).
 
@@ -117,7 +117,7 @@ Module Type FRAME(A : ARCH).
    *)
 
   Parameter iterateFrame : string -> forall ty : A.mType memory,
-        (A.mVar ty * A.mVar A.Word) * frameState.
+        (some (@A.mVar memory) * A.mVar A.Word) * A.mVar ty * frameState.
 
   (** ** Parameter and local varaible allocation
 
@@ -157,7 +157,7 @@ Module Type CODEGEN (A : ARCH).
 
   (** Machine instructions and an encoding of Verse instructions into them *)
   Parameter mInstruction       : Type.
-  Parameter mInstructionDenote : instructionC A.mTypeDenote A.mVar mArg mInstruction.
+  Parameter mInstructionDenote : instructionC A.mVar mArg mInstruction.
 
   (** Bulk cryptographic primitives like ciphers, hashes, etc, require
       processing a sequence of blocks. This member function loops over
@@ -174,11 +174,8 @@ Module Type CODEGEN (A : ARCH).
       list mInstruction -> (** The body of the block                               *)
       list mInstruction.
 
-  (** Emit the code for a single instruction *)
-  Parameter emit : forall (i : mInstruction), Doc.
-
-  (** Sequence a list of instructions into *)
-  Parameter sequenceInstructions : list Doc -> Doc.
+  (** Emit the code for a code block *)
+  Parameter emit : list mInstruction -> Doc.
 
   (** Instruction(s) to be added to the begining of the code given its
       frameState. These instructions typically allocated space on the
