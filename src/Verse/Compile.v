@@ -404,11 +404,13 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
          pT *<- checkTy ty;
            let S := F.iterateFrame name (getT pT) in
            let (iterVars, state) := S in
-           let (codeV, countV)  := iterVars in
+           let (iterpar, loopvar)  := iterVars in
+           let (codeVT, countV) := iterpar in
+           let 'existT _ _ codeV := codeVT in
            pp *<- checkTypes pts;
              sp *<- checkTypes lts;
              rp *<- checkTypes rts;
-             cc *<- mkIAlloc state pT codeV pp sp rp regs;
+             cc *<- mkIAlloc state pT loopvar pp sp rp regs;
              let (finalState, alloc) := cc in
              let vTrans := makeVTrans alloc in
              mSetup <- compileInstructions vTrans (setup vCode);
