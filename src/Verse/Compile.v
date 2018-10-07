@@ -377,7 +377,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     End IteratorF.
     
-    Arguments scopeLoopVar [nP nS nR] _ [parameterTypes stackTypes registerTypes] _.
+    Arguments scopeLoopVar [nP nS nR] _ [parameterTypes stackTypes registerTypes] _ _ _.
     Arguments mkIAlloc _ [nP nS nR codeT parameterTypes stackTypes registerTypes] _ _ _ _ _ _.
 
     (** Compile generic Verse code into machine instructions *)

@@ -229,8 +229,8 @@ Arguments instructionC [t _] _ _ _.
    declarations
 *)
 Arguments UnsupportedInstruction [t tC vT aT instT instructionC].
-Arguments mkIncrement {t tC vT aT instT instructionC ty}.
-Arguments mkDecrement {t tC vT aT instT instructionC ty}.
+Arguments mkIncrement {t tC vT aT instT instructionC ty} _.
+Arguments mkDecrement {t tC vT aT instT instructionC ty} _.
 Arguments mkNOP [t tC vT aT instT instructionC].
 
 (**
