@@ -3,7 +3,6 @@ Require Import Verse.CryptoLib.sha2.
 Import Nat.
 Require Vector.
 Import VectorNotations.
-Delimit Scope vector_scope with vector.
 Require Import List.
 Import ListNotations.
 
@@ -46,7 +45,7 @@ Module SHA2 (C : CONFIG).
 
     Variable hash : v Hash.
 
-    Definition parameters : Declaration := [ Var hash ].
+    Definition parameters : Declaration := [ Var hash ]%vector.
 
     (** *** Local variables.
 
@@ -61,7 +60,7 @@ Module SHA2 (C : CONFIG).
     Definition message_variables
       := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
 
-    Definition locals : Declaration := List.map Var (Vector.to_list message_variables).
+    Definition locals : Declaration := Vector.map Var message_variables.
 
     Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
@@ -82,7 +81,7 @@ Module SHA2 (C : CONFIG).
     Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
     Definition registers : Declaration :=
-      List.map Var (Vector.to_list state_variables ++ [ t ; tp ; temp]).
+      Vector.map Var (Vector.append state_variables [ t ; tp ; temp]%vector).
 
 
     Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.

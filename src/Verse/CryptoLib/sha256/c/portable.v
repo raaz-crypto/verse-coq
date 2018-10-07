@@ -103,10 +103,11 @@ Import Config.
 
 Module Internal.
 
+  Definition wordTy := recover (typeDenote Word).
   Definition regVars
-    := (- cr Word "a",  cr Word "b",  cr Word "c",  cr Word "d",
-          cr Word "e",  cr Word "f",  cr Word "g",  cr Word "h",
-          cr Word "t",  cr Word "tp",  cr Word "temp"
+    := (- cr wordTy "a",  cr wordTy "b",  cr wordTy "c",  cr wordTy "d",
+          cr wordTy "e",  cr wordTy "f",  cr wordTy "g",  cr wordTy "h",
+          cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp"
                                        -).
 
   Definition sha256 (fname : string) : Doc + {Compile.CompileError}.
