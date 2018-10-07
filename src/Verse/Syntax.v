@@ -166,5 +166,5 @@ Ltac declare ps  := match (type of ps) with
 Notation "(--)"             := (tt).
 Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
 
-Ltac assignRegisters regs  := exact regs.
+Ltac assignRegisters regs  := exact (fun _ => regs).
 Ltac statements       s     := exact s.

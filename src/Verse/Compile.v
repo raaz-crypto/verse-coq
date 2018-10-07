@@ -436,4 +436,14 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
   End Internal.
 
+  Import Internal.
+  Ltac function s p l r := simple refine (show (@compile _ _ _ s _ _ _ _ _));
+                           [> shelve | shelve | shelve
+                            | declare p | declare l | declare r
+                            | ..].
+  Ltac iterator i s p l r := simple refine (show (@compileIterator _ _ _ i s _ _ _ _ _));
+                             [> shelve | shelve | shelve
+                              | declare p | declare l | declare r
+                              | ..].
+
 End Compiler.

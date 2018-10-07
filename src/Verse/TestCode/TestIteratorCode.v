@@ -71,7 +71,7 @@ End TestFunction.
 
 Require Import String.
 
-Definition regVars := (-cr Word16 "temp", cr Word32 "double"-).
+Definition regVars := (-cr uint16_t "temp", cr uint32_t "double"-).
 
 Definition code : Doc + {Compile.CompileError}.
   Compile.iterator iterType "testFunction" parameters locals registers.
@@ -79,4 +79,4 @@ Definition code : Doc + {Compile.CompileError}.
   statements test.
 Defined.
 
-(* Compute (tryLayout code) *)
+Compute (tryLayout code).

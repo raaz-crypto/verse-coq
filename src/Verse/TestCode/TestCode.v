@@ -24,7 +24,7 @@ Section TestFunction.
   Variable tmp       : variable Word16.
 
   Definition registers := [Var tmp].
-  Definition regAssignment := (- cr Word16 "temp" -).
+  Definition regAssignment := (- cr uint16_t "temp" -).
   Definition someInstruction i (_ : i < 5) : code variable.
     Import Nat.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
@@ -67,7 +67,8 @@ Section TestFunction.
 
 End TestFunction.
 
-Require Import Verse.Compile.
+Import Compile.
+
 
 Definition testcode : Doc + {Compile.CompileError}.
   Compile.function "testFunction" parameters locals registers.
@@ -75,7 +76,9 @@ Definition testcode : Doc + {Compile.CompileError}.
   statements testFunction.
 Defined.
 
-(* Compute (tryLayout testcode).
+Compute (tryLayout testcode).
+
+(*
 
 Require Import Verse.Extraction.Ocaml.
 
