@@ -339,22 +339,16 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       Variable registerVariables : forall (p : suppTypes registerTypes),
           Allocation A.register p.
 
-      Local Record iterBlocks v := itB { setupB : code v;
-                                         processB : code v;
-                                         finaliseB : code v
-                                       }.
-
+      Local Definition iterBlocks v := (code v * code v * code v)%type.
+        
       Local Definition mkBlocks v x (i : iterator codeT v) :=
-        {| setupB    := Ast.setup i;
-           processB  := Ast.process i x;
-           finaliseB := Ast.finalise i
-        |}.
+        (Ast.setup i, Ast.process i x, Ast.finalise i).
 
       (** Add the loop variable to the scope *)
       Local Definition scopeLoopVar iterF v
         : BodyType ((existT _ _ codeT) :: parameterTypes)
-                   stackTypes registerTypes
-                   iterBlocks v :=
+                   stackTypes registerTypes iterBlocks
+                    v :=
         fun codeV => appScoped (appScoped (appScoped (mkBlocks codeV))) (iterF v).
 
       (** Generate allocations for an iterator function *)
@@ -400,7 +394,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                (rts : Vector.t (some type) nR) regs iterF
       := let pts' := existT _ _ ty :: pts in
          let iterB := scopeLoopVar ty iterF in
-         let vCode := fillVars pts' lts rts iterBlocks iterB in
+         let '(stp, proc, fnl) := fillVars pts' lts rts iterBlocks iterB in
          pT *<- checkTy ty;
            let S := F.iterateFrame name (getT pT) in
            let (iterVars, state) := S in
@@ -413,9 +407,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
              cc *<- mkIAlloc state pT loopvar pp sp rp regs;
              let (finalState, alloc) := cc in
              let vTrans := makeVTrans alloc in
-             mSetup <- compileInstructions vTrans (setupB vCode);
-               mProcess <- compileInstructions vTrans (processB vCode);
-               mFinalise <- compileInstructions vTrans (finaliseB vCode);
+             mSetup <- compileInstructions vTrans stp;
+               mProcess <- compileInstructions vTrans proc;
+               mFinalise <- compileInstructions vTrans fnl;
                let mLoop := C.loopWrapper codeV countV mProcess in
                let mCode := List.app (List.app mSetup mLoop) mFinalise in
                {- pair (F.description finalState) mCode -}.
