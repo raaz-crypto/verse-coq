@@ -339,15 +339,15 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       Variable registerVariables : forall (p : suppTypes registerTypes),
           Allocation A.register p.
 
-      Local Record iterBlocks v := itB { setup : code v;
-                                         process : code v;
-                                         finalise : code v
+      Local Record iterBlocks v := itB { setupB : code v;
+                                         processB : code v;
+                                         finaliseB : code v
                                        }.
 
       Local Definition mkBlocks v x (i : iterator codeT v) :=
-        {| setup    := Ast.setup i;
-           process  := Ast.process i x;
-           finalise := Ast.finalise i
+        {| setupB    := Ast.setup i;
+           processB  := Ast.process i x;
+           finaliseB := Ast.finalise i
         |}.
 
       (** Add the loop variable to the scope *)
@@ -413,9 +413,9 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
              cc *<- mkIAlloc state pT loopvar pp sp rp regs;
              let (finalState, alloc) := cc in
              let vTrans := makeVTrans alloc in
-             mSetup <- compileInstructions vTrans (setup vCode);
-               mProcess <- compileInstructions vTrans (process vCode);
-               mFinalise <- compileInstructions vTrans (finalise vCode);
+             mSetup <- compileInstructions vTrans (setupB vCode);
+               mProcess <- compileInstructions vTrans (processB vCode);
+               mFinalise <- compileInstructions vTrans (finaliseB vCode);
                let mLoop := C.loopWrapper codeV countV mProcess in
                let mCode := List.app (List.app mSetup mLoop) mFinalise in
                {- pair (F.description finalState) mCode -}.
