@@ -1,6 +1,8 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 
+Require Import Vector.
+Import VectorNotations.
 
 Definition iterType := Array 10 hostE Word16.
 Section TestFunction.
@@ -14,7 +16,7 @@ Section TestFunction.
   
   (* The local variables *)
 
-  Definition locals : list (some type) := [].
+  Definition locals : list (some type) := [ ]%list.
   
   (* The temp register *)
   Variable tmp       : variable Word16.
@@ -60,8 +62,8 @@ Section TestFunction.
                       arr[-1-] ::=>*> (42%nat);
                       double   ::=<*< (42%nat)
                   ]%list;
-        process    := fun msg => [num ::=  tmp [+] msg[-1-] ];
-        finalise := []
+        process    := fun msg => [num ::=  tmp [+] msg[-1-] ]%list;
+        finalise := [ ]%list
       |}.
   Defined.
 
@@ -69,7 +71,7 @@ End TestFunction.
 
 Require Import String.
 
-Definition regVars := (-cr Word16 "temp", cr Word32 "double"-).
+Definition regVars := (-cr uint16_t "temp", cr uint32_t "double"-).
 
 Definition code : Doc + {Compile.CompileError}.
   Compile.iterator iterType "testFunction" parameters locals registers.
@@ -77,4 +79,4 @@ Definition code : Doc + {Compile.CompileError}.
   statements test.
 Defined.
 
-(* Compute (tryLayout code) *)
+Compute (tryLayout code).

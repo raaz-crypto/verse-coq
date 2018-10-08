@@ -2,11 +2,14 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
+Require Import Verse.Error.
 
 Require Import Bool.
 Require Import Omega.
 Require Import List.
 Import ListNotations.
+
+Set Implicit Arguments.
 
 (* end hide *)
 
@@ -45,7 +48,7 @@ Section AST.
 
 
   (** Type that captures a memory variable's indices. *)
-  Definition Indices {b e ty} (_ : v memory (array b e ty)) := { i : nat | i < b }.
+  Definition Indices {b e ty} (_ : v (array b e ty)) := { i : nat | i < b }.
 
 
   (** ** Arguments.
@@ -58,10 +61,10 @@ Section AST.
 
   Inductive argKind := lval | rval.
   Inductive arg : argKind -> VariableT :=
-  | var   : forall aK, forall {k} {ty : type k}, v k ty -> arg aK k ty
-  | const : forall {ty : type direct}, constant ty  -> arg rval direct ty
-  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v memory (array b e ty)),
-        Indices x  -> arg aK direct ty
+  | var   : forall aK, forall {k} {ty : type k}, v ty -> arg aK ty
+  | const : forall {ty : type direct}, constant ty  -> arg rval ty
+  | index : forall aK, forall {b : nat}{e : endian}{ty : type direct} (x : v (array b e ty)),
+        Indices x  -> arg aK ty
   .
 
   Definition larg := arg lval.
@@ -75,18 +78,18 @@ Section AST.
    *)
   Inductive assignment : Type :=
   | extassign4
-    : forall ty, op binary ternary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), op binary ternary -> larg ty -> larg ty -> rarg ty -> rarg ty -> rarg ty -> assignment
   | extassign3
-    : forall ty, op binary binary -> larg direct ty -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), op binary binary -> larg ty -> larg ty -> rarg ty -> rarg ty -> assignment
   | assign3
-    : forall ty, binop -> larg direct ty -> rarg direct ty -> rarg direct ty -> assignment
+    : forall (ty : type direct), binop -> larg ty -> rarg ty -> rarg ty -> assignment
   (** e.g. x = y + z *)
   | assign2
-    : forall ty, uniop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x = ~ y   *)
+    : forall (ty : type direct), uniop -> larg ty -> rarg ty -> assignment (** e.g. x = ~ y   *)
   | update2
-    : forall ty, binop -> larg direct ty -> rarg direct ty -> assignment (** e.g. x += y    *)
+    : forall (ty : type direct), binop -> larg ty -> rarg ty -> assignment (** e.g. x += y    *)
   | update1
-    : forall ty, uniop -> larg direct ty -> assignment                   (** e.g. x ~= x    *)
+    : forall (ty : type direct), uniop -> larg ty -> assignment                   (** e.g. x ~= x    *)
   .
 
 (**
@@ -96,9 +99,11 @@ program block is merely a list of instructions.
 
 *)
   Inductive instruction : Type :=
-  | assign  : assignment -> instruction
-  | moveTo  : forall b e ty, forall (x : v memory (array b e ty)), Indices x -> v direct ty -> instruction
-  | CLOBBER : forall {k ty}, v k ty -> instruction
+  | assign    : assignment -> instruction
+  | increment : forall (ty : type direct), larg ty -> instruction
+  | decrement : forall (ty : type direct), larg ty -> instruction
+  | moveTo    : forall b e ty, forall (x : v (array b e ty)), Indices x -> v ty -> instruction
+  | CLOBBER   : forall k (ty : type k), v ty -> instruction
   .
 
   Global Definition code := list instruction.
@@ -106,7 +111,7 @@ program block is merely a list of instructions.
 
   (* Some instruction error checking code *)
 
-  Definition isEndian {aK} {k} {ty} (nHostE : endian) (a : arg aK k ty) :=
+  Definition isEndian {aK} {k} {ty : type k} (nHostE : endian) (a : arg aK ty) :=
     let eqEndb (e f : endian) : bool :=
         match e, f with
         | littleE, littleE
@@ -125,13 +130,13 @@ program block is merely a list of instructions.
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
     | assign e  => match e with
-                   | assign2 _ nop _ _    => false
-                   | assign3 _ _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
-                   | extassign4 _ _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
-                   | extassign3 _ _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
-                   | assign2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update2 _ _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update1 _ _ a1       => (isEndian nHostE a1)
+                   | assign2 nop _ _    => false
+                   | assign3 _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+                   | extassign4 _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
+                   | extassign3 _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
+                   | assign2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+                   | update1 _ a1       => (isEndian nHostE a1)
                    end
     | _ => false
     end
@@ -149,6 +154,84 @@ End AST.
 
 Arguments Indices [v b e ty] _.
 
+Section ASTFinal.
+
+  Variable t  : kind -> Type.
+  Variable tC : typeC (fun k : kind => t k + {UnsupportedType}).
+
+  Variable constT : t direct -> Type.
+
+  (* We abandon index safety at the machine level *)
+
+  Class argC (a : GenVariableT t -> GenVariableT t) :=
+    { mkVar : forall v k (ty : t k), v k ty -> a v k ty;
+      mkConst : forall v (ty : t direct), constT ty -> a v direct ty;
+      mkIndex : forall v (b : nat) (e : endian) (ty : t direct)
+                (p : noErr (mkArray b e {- ty -})), v memory (getT p)
+                -> nat -> a v direct ty
+    }.
+
+  (** An alternate way would be to write -
+
+        Variable v : GenVariableT t.
+
+        Class argC (a : GenVariableT t) := ...
+
+      This would then allow, for example, an architecture to allow
+      arrays to be pointed to by only some of it's registers.
+  *)
+
+  Variable vT : GenVariableT t.
+  Variable aT  : GenVariableT t -> GenVariableT t.
+
+  (* Since the instruction type for an architecture will be defined
+     specifically for it's machineVar, instT is just a plain type
+  *)
+
+  Class instructionC (instT : Type) :=
+    { UnsupportedInstruction : Prop;
+      mkIncrement : forall ty : t direct, aT vT ty ->
+                                          instT + {UnsupportedInstruction};
+      mkDecrement : forall ty : t direct, aT vT ty ->
+                                          instT + {UnsupportedInstruction};
+      mkUpdate1 : forall ty : t direct, uniop ->
+                                        aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkUpdate2 : forall ty : t direct, binop ->
+                                        aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkAssign2 : forall ty : t direct, uniop ->
+                                        aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkAssign3 : forall ty : t direct, binop ->
+                                        aT vT ty -> aT vT ty -> aT vT ty ->
+                                        instT + {UnsupportedInstruction};
+      mkExtassign3 : forall ty : t direct, exop binary ->
+                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
+                                           instT + {UnsupportedInstruction};
+      mkExtassign4 : forall ty : t direct, exop ternary ->
+                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
+                                           instT + {UnsupportedInstruction};
+      mkMoveTo : forall b e ty (p : noErr (mkArray b e {- ty -})), vT (getT p) -> nat -> vT ty ->
+                                                                   instT + {UnsupportedInstruction};
+      mkNOP : instT (* A NOP instruction for CLOBBER translate.
+                       This could, in a string translate, simply be
+                       the empty string
+                     *)
+    }.
+
+End ASTFinal.
+
+Arguments instructionC [t _] _ _ _.
+(* The following implicit argument declarations seem to be necessary to
+   use the constructs without arguments. This is inspite of all arguments
+   being implicit, albeit not maximally inserted, even prior to these
+   declarations
+*)
+Arguments UnsupportedInstruction [t tC vT aT instT instructionC].
+Arguments mkIncrement {t tC vT aT instT instructionC ty} _.
+Arguments mkDecrement {t tC vT aT instT instructionC ty} _.
+Arguments mkNOP [t tC vT aT instT instructionC].
 
 (**
 
@@ -180,6 +263,8 @@ Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
 Arguments update1 [v ty] _ _ .
 Arguments assign [v] _ .
+Arguments increment [v ty] _.
+Arguments decrement [v ty] _.
 Arguments moveTo [v  b e ty] _ _ _.
 Arguments CLOBBER [v k ty ] _.
 (* end hide *)

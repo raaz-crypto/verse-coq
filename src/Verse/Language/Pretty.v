@@ -30,16 +30,16 @@ over variables that can themselves be pretty printed.
 (* begin hide *)
 
 
-Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval k ty }.
-Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval k ty }.
+Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval ty }.
+Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval ty }.
 
 Section ARGInstances.
   Variable v  : VariableT.
   Variable k  : kind.
   Variable ty : type k .
 
-  Global Instance larg_of_argv : LARG v k ty (arg v lval k ty) := { toLArg := fun t => t} .
-  Global Instance rarg_of_argv : RARG v k ty (arg v rval k ty) := { toRArg := fun t => t}.
+  Global Instance larg_of_argv : LARG v k ty (arg v lval ty) := { toLArg := fun t => t} .
+  Global Instance rarg_of_argv : RARG v k ty (arg v rval ty) := { toRArg := fun t => t}.
   Global Instance larg_of_v    : LARG v k ty (v k ty)    := { toLArg := fun t => var t}.
   Global Instance rarg_of_v    : RARG v k ty (v k ty)    := { toRArg := fun t => var t}.
 
@@ -55,6 +55,8 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v direct ty
 
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (index A 0 _) (at level 70).
+Notation "[++] A"        := (increment (toLArg A)) (at level 70).
+Notation "[--] A"        := (decrement (toLArg A)) (at level 70).
 Notation "A ::= B [+] C" := (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) ))  (at level 70).
 
 Notation "A ::= B [-] C" := (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
@@ -168,14 +170,14 @@ Section PrettyPrintingInstruction.
   Variable vPrint : forall k ty, PrettyPrint (v k ty).
 
   (** The pretty printing of our argument *)
-  Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK k ty) :=
+  Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK ty) :=
     match av with
     | var v       => doc v
     | const c     => doc c
     | index v (exist _ n _) => doc v <> bracket (decimal n)
     end.
 
-  Global Instance arg_pretty_print : forall aK k ty, PrettyPrint (arg v aK k ty)
+  Global Instance arg_pretty_print : forall aK k (ty : type k), PrettyPrint (arg v aK ty)
     := { doc := argdoc ty }.
 
 
@@ -250,9 +252,13 @@ Section PrettyPrintingInstruction.
                               end
        }.
 
+  Definition mkDouble {la ra} (o : op la ra) (x : Doc) := opDoc o <> opDoc o <> x.
+
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
                          | assign a => doc a
+                         | increment a => mkDouble plus (doc a)
+                         | decrement a => mkDouble minus (doc a)
                          | @moveTo  _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          | CLOBBER v => text "CLOBBER" <_> doc v
@@ -323,6 +329,7 @@ operands of the programming fragment.
             X ::= X [+] (A[- 2 -]);
             X ::= X [+] Ox "55";
             Z ::= Z [+] vec_const;
+            [++] Y;
             MULTIPLY X AND X INTO (X : X);
             (QUOT X, REM X) ::= (X : X) [/] X
           ]%list.

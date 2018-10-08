@@ -1,6 +1,8 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 
+Require Import Vector.
+Import VectorNotations.
 
 Section TestFunction.
 
@@ -22,10 +24,10 @@ Section TestFunction.
   Variable tmp       : variable Word16.
 
   Definition registers := [Var tmp].
-  Definition regAssignment := (- cr Word16 "temp" -).
+  Definition regAssignment := (- cr uint16_t "temp" -).
   Definition someInstruction i (_ : i < 5) : code variable.
     Import Nat.
-    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ].
+    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
   Defined.
 
   Definition testFunction : code variable.
@@ -60,10 +62,12 @@ Section TestFunction.
       num      ::=<*< (42%nat);
       arr[-1-] ::=>*> (42%nat);
       CLOBBER arr
-    ].
+    ]%list.
   Defined.
 
 End TestFunction.
+
+Import Compile.
 
 
 Definition testcode : Doc + {Compile.CompileError}.
@@ -72,7 +76,9 @@ Definition testcode : Doc + {Compile.CompileError}.
   statements testFunction.
 Defined.
 
-(* Compute (tryLayout testcode).
+Compute (tryLayout testcode).
+
+(*
 
 Require Import Verse.Extraction.Ocaml.
 

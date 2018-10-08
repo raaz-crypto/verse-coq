@@ -1,7 +1,6 @@
 -R src Verse
 src/Verse/Arch.v
 src/Verse/Arch/C.v
-src/Verse/Arch/X86_64.v
 src/Verse/Error.v
 src/Verse/Compile.v
 src/Verse/Language.v

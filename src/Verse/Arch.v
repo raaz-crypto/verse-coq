@@ -34,25 +34,27 @@ Module Type ARCH.
   Parameter name     : string.
 
   (** The Types of machine variables and a denotation of Verse types into them *)
-  Parameter machineType        : kind -> Type.
+  Parameter mType        : kind -> Type.
 
-  Parameter machineTypeDenote  : typeC (fun k : kind => machineType k + {UnsupportedType}).
+  Parameter mTypeDenote  : typeC (fun k : kind => mType k + {UnsupportedType}).
+
+  Parameter mConstant       : mType direct -> Type.
+  Parameter mConstantDenote : forall (ty : type direct) (p : noErr (typeDenote ty)),
+                              constant ty -> mConstant (getT p).
+
 
   (** The registers for this architecture *)
-  Parameter register : VariableT.
+  Parameter register : GenVariableT mType.
 
-  Parameter machineVar : VariableT.
+  Parameter mVar : GenVariableT mType.
 
   (** A way to embed register into the machine variable *)
-  Parameter embedRegister : forall {k}{ty : type k}, register ty -> machineVar ty.
+  Parameter embedRegister : forall {k}{ty : mType k}, register ty -> mVar ty.
 
   (** Encode the architecture specific restrictions on the instruction set **)
 
   Parameter HostEndian    : endian.
-  Parameter Word          : type direct.
-
-  Parameter supportedInst : Ensemble (instruction machineVar).
-  Parameter supportedType : forall {k}, Ensemble (type k).
+  Parameter Word          : mType direct.
 
   (**
 
@@ -114,8 +116,8 @@ Module Type FRAME(A : ARCH).
       to be iterated over.
    *)
 
-  Parameter iterateFrame : string -> forall ty : type memory,
-        (A.machineVar ty * A.machineVar A.Word) * frameState + { ~ A.supportedType ty }.
+  Parameter iterateFrame : string -> forall ty : A.mType memory,
+        (some (@A.mVar memory) * A.mVar A.Word) * A.mVar ty * frameState.
 
   (** ** Parameter and local varaible allocation
 
@@ -126,15 +128,15 @@ Module Type FRAME(A : ARCH).
   *)
   (** Add parameter to the function frame. *)
   Parameter addParam : frameState ->
-                       forall k (ty : type k), A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                       forall k (ty : A.mType k), A.mVar ty * frameState.
 
   (** Allocate a local varaible on the stack *)
   Parameter stackAlloc : frameState ->
-                      forall (ty : type direct), A.machineVar ty * frameState + { ~ A.supportedType ty }.
+                      forall (ty : A.mType direct), A.mVar ty * frameState.
 
   (** Mark a register for use *)
   Parameter useRegister : frameState ->
-                          forall (ty : type direct)(r : A.register ty), option frameState.
+                          forall (ty : A.mType direct)(r : A.register ty), option frameState.
 
 
 
@@ -149,19 +151,14 @@ End FRAME.
 
 Module Type CODEGEN (A : ARCH).
 
-  (** Emit the code for a single instruction for *)
-  Parameter emit : forall (i : instruction (A.machineVar)), Doc + { not (A.supportedInst i) }.
+  (** How the instruction operands relate to the machine variables *)
+  Parameter mArg               : GenVariableT A.mType -> GenVariableT A.mType.
+  Parameter mArgDenote         : argC A.mTypeDenote A.mConstant mArg.
 
-  (** Sequence a list of instructions into *)
-  Parameter sequenceInstructions : list Doc -> Doc.
+  (** Machine instructions and an encoding of Verse instructions into them *)
+  Parameter mInstruction       : Type.
+  Parameter mInstructionDenote : instructionC A.mVar mArg mInstruction.
 
-  (** Instruction(s) to be added to the begining of the code given its
-      frameState. These instructions typically allocated space on the
-      stack and save caller set of registers (on th stack) *)
-
-  (** Create a function given its description and body *)
-  Parameter makeFunction : A.functionDescription -> Doc -> Doc.
- 
   (** Bulk cryptographic primitives like ciphers, hashes, etc, require
       processing a sequence of blocks. This member function loops over
       a sequence of blocks of message type msgTy and runs the body on
@@ -171,10 +168,21 @@ Module Type CODEGEN (A : ARCH).
       blocks in the sequence.  This higher order function takes care
       of wrapping the body with an appropriate preamble and ensures
       incrementing the blockPtr appropriately.  *)
-  Parameter loopWrapper : forall (blockType : type memory),
-      A.machineVar blockType -> (** The variable that points to the start of sequence   *)
-      A.machineVar A.Word    -> (** The variable that contains number of elements left  *)
-      Doc                    -> (** The body of the block                               *)
-      Doc.
+  Parameter loopWrapper : forall (blockType : A.mType memory),
+      A.mVar blockType  -> (** The variable that points to the start of sequence   *)
+      A.mVar A.Word     -> (** The variable that contains number of elements left  *)
+      list mInstruction -> (** The body of the block                               *)
+      list mInstruction.
+
+  (** Emit the code for a code block *)
+  Parameter emit : list mInstruction -> Doc.
+
+  (** Instruction(s) to be added to the begining of the code given its
+      frameState. These instructions typically allocated space on the
+      stack and save caller set of registers (on th stack) *)
+
+  (** Create a function given its description and body *)
+  Parameter makeFunction : A.functionDescription -> Doc -> Doc.
+ 
 
 End CODEGEN.

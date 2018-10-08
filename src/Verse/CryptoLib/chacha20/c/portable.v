@@ -25,7 +25,7 @@ Module Internal.
     Variable iv       : progvar IV.
     Variable ctrRef   : progvar (Array 1 hostE Counter).
     Definition parameters : Declaration
-      := [Var key; Var iv; Var ctrRef].
+      := [Var key; Var iv; Var ctrRef]%vector.
 
   (* We do not have local stack variables *)
     Definition stack : Declaration    := Empty.
@@ -51,7 +51,7 @@ Module Internal.
                               x12; x13; x14; x15
                             ]%vector.
 
-    Definition registers := List.map Var (Vector.to_list stateVars ++  [ctr; Temp])%list.
+    Definition registers := Vector.map Var (Vector.append stateVars [ctr; Temp])%vector.
 
     (** It is useful to have a uniform way to index the state variables. *)
 
@@ -150,15 +150,16 @@ Module Internal.
 
   (** Let us allocate the registers.  *)
 
+  Definition wordTy    : CType direct := recover (typeDenote Word).
+  Definition counterTy : CType direct := recover (typeDenote Counter).
+
   Definition regVars
-    := (- cr Word "x0",  cr Word "x1",  cr Word "x2",  cr Word "x3",
-          cr Word "x4",  cr Word "x5",  cr Word "x6",  cr Word "x7",
-          cr Word "x8",  cr Word "x9",  cr Word "x10", cr Word "x11",
-          cr Word "x12", cr Word "x13", cr Word "x14", cr Word "x15",
-          cr Counter "ctr", cr Word "Tmp"
+    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
+          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
+          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
+          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15",
+          cr counterTy "ctr", cr wordTy "Tmp"
        -).
-
-
 
   Definition chacha20 (fname : string) : Doc + {Compile.CompileError}.
     Compile.iterator Block fname parameters stack registers.

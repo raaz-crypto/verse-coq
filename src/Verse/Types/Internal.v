@@ -3,6 +3,8 @@ Require Import Verse.Word.
 Require Import Arith.
 Import Nat.
 
+Set Implicit Arguments.
+
 (** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
 (** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)

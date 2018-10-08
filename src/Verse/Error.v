@@ -1,3 +1,5 @@
+Set Implicit Arguments.
+
 (** * Representing Erros.
 
     We use the sumor type to represent constructs in the verse
@@ -44,6 +46,75 @@ Section Error.
 
 End Error.
 
+Section Extract.
+
+  Variable T : Type.
+  Variable E : Prop.
+
+  Definition noErr (x : T + {E}) : Prop := exists t : T, x = inleft t.
+
+  Definition isErr (x : T + {E}) : { noErr x } + { ~ noErr x }.
+    refine (match x as y return x = y -> {noErr x} + {~ noErr x} with
+            | {- t -} => fun p => left (ex_intro _ t p)
+            | error e => fun p => right _
+            end eq_refl).
+    destruct 1 as [y H]. rewrite p in H. discriminate H.
+  Defined.
+
+  Definition getT (x : T + {E}) (p : noErr x) : T.
+    refine (match x as y return noErr y -> T with
+            | {- t -} => fun _ => t
+            | error e => _
+            end p).
+    unfold noErr.
+    intro H; contradict H;
+      destruct 1; discriminate.
+  Defined.
+
+  Lemma getTgetsT (x : T + {E}) (p : noErr x) : x = {- getT p -}.
+    destruct p.
+    rewrite e.
+    trivial.
+  Defined.
+
+  Lemma getTunique (x : T + {E}) (p1 p2 : noErr x) : getT p1 = getT p2.
+    destruct (x).
+    simpl; trivial.
+    contradict p1; destruct 1; discriminate.
+  Defined.
+
+End Extract.
+
+Class Castable (E1 E2 : Prop) := { cast : E1 -> E2 }.
+
+Instance idCast E : Castable E E := { cast := @id _ }.
+
+Section Lifts.
+
+  Variable T    : Type.
+  Variable E E1 E2 : Prop.
+
+  Variable E1toE : Castable E1 E.
+  Variable E2toE : Castable E2 E.
+
+  Definition liftErr (t : T + {E1}) : T + {E} :=
+    match t with
+    | {- t' -} => {- t' -}
+    | error e  => error (cast e)
+    end.
+
+  Definition collectErr (t : T + {E1} + {E2}) : T + {E} :=
+    match t with
+    | error e2       => error (cast e2)
+    | {- error e1 -} => error (cast e1)
+    | {- {- t' -} -} => {- t' -}
+    end.
+
+End Lifts.
+
+Arguments liftErr [T E E1 _] _.
+Arguments collectErr [T E E1 E2 _ _] _.
+
 Section Conditionals.
 
   (** Some type *)
@@ -82,6 +153,7 @@ Arguments bind [A Err B] _ _.
 Global Notation "F <$> A" := (ap  F A) (at level 40, left associativity).
 Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
 Global Notation "X <- A ; B" := (bind A (fun X => B))(at level 81, right associativity, only parsing).
+Global Notation "X *<- A ; B" := (bind (liftErr A) (fun X => B))(at level 81, right associativity, only parsing).
 
 Section Merge.
   Require Import Vector.
@@ -106,6 +178,3 @@ Section Merge.
     | cons {- x -} xs  => cons x <$> merge xs
     end.
 End Merge.
-
-Arguments mergeVector [A Err n] _.
-Arguments merge [A Err] _.
