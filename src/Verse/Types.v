@@ -68,3 +68,7 @@ Defined.
 Global Instance constant_pretty (ty : type direct) : PrettyPrint (constant ty)
   := { doc := constant_doc ty }.
 (* end hide *)
+Require Import String.
+Record Prototype (ty : kind -> Type) := { name : string;
+                                          arguments : list (some ty)
+                                        }.
