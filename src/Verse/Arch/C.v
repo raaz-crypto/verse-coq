@@ -183,11 +183,11 @@ Inductive CAssignment :=
 
 Inductive cInstruction :=
 | Cincr k (ty : CType k) : carg cvar ty -> cInstruction
-| Cdecr (ty : CType direct) : carg cvar ty -> cInstruction   
+| Cdecr (ty : CType direct) : carg cvar ty -> cInstruction
 | Cassign  : CAssignment -> cInstruction
-| Citerate : cvar C.Word -> 
+| Citerate : cvar C.Word ->
              list cInstruction -> cInstruction
-| Cnop     : cInstruction 
+| Cnop     : cInstruction
 .
 
 Module CP.
@@ -351,7 +351,7 @@ Section PrintingInstruction.
     | Cnop      => empty
     end
   .
-  
+
   Global Instance instruction_C_print : PrettyPrint (cInstruction) | 0
     := { doc := show }.
 
@@ -363,7 +363,7 @@ Inductive unsupportedInstruction : Prop :=
 Module CCodeGen <: CODEGEN C.
 
   Import C.
-  
+
   Definition mArg := carg.
   Definition mArgDenote := cargDenote.
 
@@ -390,7 +390,7 @@ Module CCodeGen <: CODEGEN C.
     [ Citerate count (body ++ [ Cincr (cv bVar); Cdecr (cv count) ]) ]%list.
 
   Definition emit b := line <> vcat (List.map doc b).
-  
+
   Let type_doc (t : CType direct) := text (
                                         match t with
                                         | uint8_t  => "uint8_t"%string
@@ -415,7 +415,7 @@ Module CCodeGen <: CODEGEN C.
                               | CPtr ty     => decldoc ty (paren (text "*" <> vDoc))
                               end
         end vty in
-    decldoc varty vDoc. 
+    decldoc varty vDoc.
 
   Let Fixpoint downTo (n : nat) : Vector.t nat n :=
     match n with
