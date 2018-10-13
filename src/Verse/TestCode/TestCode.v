@@ -76,7 +76,8 @@ Definition testcode : Doc + {Compile.CompileError}.
   statements testFunction.
 Defined.
 
-Compute (tryLayout testcode).
+
+Definition pgm : string := tryLayout testcode.
 
 (*
 
