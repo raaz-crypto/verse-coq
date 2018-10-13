@@ -73,6 +73,8 @@ Module Type ARCH.
 
   Parameter functionDescription : Type.
 
+  Parameter prototype : functionDescription -> string * list (some mType).
+
 End ARCH.
 
 
