@@ -93,14 +93,11 @@ Fixpoint fromCType {k}(cty : CType k) : RaazType :=
   | uint32_t      => RaazWord hostE W32
   | uint64_t      => RaazWord hostE W64
   | CArray n caty => match n with
-                    | 1 => Ptr (fromCType caty)
-                    | _ => Ptr (Tuple n (fromCType caty))
-                    end
+                     | 1 => Ptr (fromCType caty)
+                     | _ => Ptr (Tuple n (fromCType caty))
+                     end
   | CPtr cty      => Ptr (fromCType cty)
   end.
-
-About gt.
-Search (nat -> nat -> bool).
 
 Fixpoint fromMachineType {k}(mty : MachineType k) : RaazType :=
   match mty with
@@ -113,3 +110,17 @@ Fixpoint fromMachineType {k}(mty : MachineType k) : RaazType :=
               end
   | Address n => AlignedPtr n (RaazWord hostE W8)
   end.
+
+Require Import Verse.Types.
+
+Definition ccall (proto : Prototype CType) : Doc :=
+  let mapper := fun scty : some CType => match scty with
+                            | existT _ k cty => fromCType cty
+                            end
+  in ffi (name CType proto) (List.map mapper (arguments CType proto)).
+
+Definition asmcall (proto : Prototype MachineType) : Doc :=
+  let mapper := fun scty : some MachineType => match scty with
+                            | existT _ k cty => fromMachineType cty
+                            end
+  in ffi (name MachineType proto) (List.map mapper (arguments MachineType proto)).
