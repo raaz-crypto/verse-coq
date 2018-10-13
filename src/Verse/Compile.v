@@ -2,6 +2,7 @@ Require Import Arch.
 Require Import Error.
 Require Import PrettyPrint.
 Require Import Types.Internal.
+Require Import Types.
 Require Import Syntax.
 Require Import Language.
 Require Import String.
@@ -29,6 +30,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
   (** We begin by defining the errors that can arise when code fragments are
       compiled.
    *)
+
 
   Inductive AllocationError : Prop :=
   | UnavailableRegister    : forall {k}{ty : A.mType k}, A.register ty -> AllocationError
@@ -209,7 +211,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       : forall (p : suppTypes l), FAllocation l p :=
       match l with
       | []           => fun _ => (emptyAllocation A.mVar, s0)
-      | (existT _ _ ty :: rest) => fun p => 
+      | (existT _ _ ty :: rest) => fun p =>
                                      let (v, s1)  := (F.addParam s0 (getT (fst p))) in
                                      let (vs, s2) := params s1 rest (snd p) in
                                      ((v,vs), s2)
@@ -221,7 +223,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       match l with
       | []                        => fun _ => {- (emptyAllocation A.mVar, s0) -}
       | (existT _ memory ty :: _) => fun _ => error (UnsupportedLocalArray ty)
-      | (existT _ direct ty :: rest) => fun p => 
+      | (existT _ direct ty :: rest) => fun p =>
                                           let a1 := F.stackAlloc s0 (getT (fst p)) in
                                           let (v, s1) := a1
                                           in a2 <- stacks s1 rest (snd p);
@@ -318,12 +320,16 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                let (rVars, finalState) := rA in
                {- (finalState, mergeAlloc (mergeAlloc pVars sVars) rVars) -}.
 
+      Definition mkPrototype (pp : suppTypes parameterTypes)
+        : Prototype (A.mType)
+        := A.functionPrototype (F.description (snd  (params startState pp))).
+
     End Function.
 
     Arguments mkAlloc _ [nP nS nR parameterTypes stackTypes registerTypes] _ _ _ _.
 
     Section IteratorF.
-      
+
       Variable startState : F.frameState.
 
       (** Its parameters and stack variables *)
@@ -340,7 +346,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
           Allocation A.register p.
 
       Local Definition iterBlocks v := (code v * code v * code v)%type.
-        
+
       Local Definition mkBlocks v x (i : iterator codeT v) :=
         (Ast.setup i, Ast.process i x, Ast.finalise i).
 
@@ -370,11 +376,16 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                {- (finalState, mergeAlloc (mergeAlloc pVars' sVars) rVars) -}.
 
     End IteratorF.
-    
+
     Arguments scopeLoopVar [nP nS nR] _ [parameterTypes stackTypes registerTypes] _ _ _.
     Arguments mkIAlloc _ [nP nS nR codeT parameterTypes stackTypes registerTypes] _ _ _ _ _ _.
 
     (** Compile generic Verse code into machine instructions *)
+    Definition compilePrototype {nP} name (pts : Vector.t (some type) nP) :=
+      pp *<- checkTypes pts;
+        let state := F.emptyFrame name
+        in  {- mkPrototype state pts pp -}.
+
     Definition compile {nP nL nR} name
                        (pts : Vector.t (some type) nP)
                        (lts : Vector.t (some type) nL)
@@ -387,7 +398,17 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
            cc *<- mkAlloc state pp sp rp regs;
            let (finalState, alloc) := cc in
            let vTrans := makeVTrans alloc in
-           pair (F.description finalState) <$> compileInstructions vTrans vCode. 
+           pair (F.description finalState) <$> compileInstructions vTrans vCode.
+
+
+    About getT.
+
+
+    Definition compileIteratorPrototype {nP} ty name (pts : Vector.t (some type) nP) :=
+      pT *<- checkTy ty;
+        pp *<- checkTypes pts;
+        let state := snd (F.iterateFrame name (getT pT))
+        in {- mkPrototype state pts pp -}.
 
     Definition compileIterator {nP nL nR} ty name (pts : Vector.t (some type) nP)
                (lts : Vector.t (some type) nL)
@@ -420,24 +441,30 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Let wrap descr code := C.makeFunction descr code.
 
-    Definition show mCode : Doc + {CompileError} :=
-      (fun code : A.functionDescription * list C.mInstruction =>
-         let (descr, code) := code in wrap descr (write code))
-        <$> mCode.
+    Definition result mCode : Doc  + {CompileError}
+      := (fun c : A.functionDescription * list C.mInstruction =>
+            let (descr, cd) := c in
+            let prot  := A.functionPrototype descr
+            in wrap descr (write cd)
+         ) <$> mCode.
 
     Arguments compile [nP nL nR] _ _ _ [rts] _ _.
     Arguments compileIterator [nP nL nR] _ _ _ _ [rts] _ _.
 
+    Arguments compileIteratorPrototype [nP] _ _ _.
+    Arguments compilePrototype [nP] _ _.
   End Internal.
 
   Import Internal.
-  Ltac function s p l r := simple refine (show (@compile _ _ _ s _ _ _ _ _));
+  Ltac function s p l r := simple refine (result (@compile _ _ _ s _ _ _ _ _));
                            [> shelve | shelve | shelve
                             | declare p | declare l | declare r
                             | ..].
-  Ltac iterator i s p l r := simple refine (show (@compileIterator _ _ _ i s _ _ _ _ _));
+  Ltac iterator i s p l r := simple refine (result (@compileIterator _ _ _ i s _ _ _ _ _));
                              [> shelve | shelve | shelve
                               | declare p | declare l | declare r
                               | ..].
 
+  Ltac functionPrototype s p := refine (compilePrototype s _); declare p.
+  Ltac iteratorPrototype i s p := refine (compileIteratorPrototype i s _); declare p.
 End Compiler.

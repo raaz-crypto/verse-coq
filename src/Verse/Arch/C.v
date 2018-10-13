@@ -65,7 +65,7 @@ Record CFrame := { cFunctionName     : string;
 
 Module C <: ARCH.
 
-  Definition name : string := "Portable-C".
+  Definition archName : string := "Portable-C".
 
   Definition mType := CType.
   Definition mTypeDenote := CTypeDenote.
@@ -84,12 +84,16 @@ Module C <: ARCH.
 
   Definition functionDescription := CFrame.
 
-  Definition prototype cframe :=
+  Definition functionPrototype cframe : Prototype CType :=
   let iterTypes := match (iterateOn cframe) with
                   | Some ty => [existT _ _ (CPtr ty); existT _ _ uint64_t]
                   | None => []
                   end%list
-  in (cFunctionName cframe, iterTypes ++ Vector.to_list (params cframe)).
+  in
+  {|
+    name := cFunctionName cframe;
+    arguments := iterTypes ++ Vector.to_list (params cframe)
+  |}.
 
 End C.
 
