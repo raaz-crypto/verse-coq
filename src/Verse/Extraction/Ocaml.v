@@ -101,14 +101,13 @@ Inductive ProgFile :=
 
 
 Definition writeProgram {E : Prop}(pf : ProgFile) (prog : Doc + {E})
-  := let prog_str := ap layout prog in
-     let write_it := fun f => ap (writefile f) prog_str in
-     let filename := fun pf =>
-                       match pf with
-                       | C s   => s ++ ".c"
-                       | ASM s => s ++ ".s"
-                       end%string in
-     recover (write_it (filename pf)).
+  := let filename := match pf with
+                     | C s   => s ++ ".c"
+                     | ASM s => s ++ ".s"
+                     end%string in
+     let prog_str := layout <$> prog in
+     let write_it := writefile filename <$> prog_str
+     in recover write_it.
 
 
 (**
