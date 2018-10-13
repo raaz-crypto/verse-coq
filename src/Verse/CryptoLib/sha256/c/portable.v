@@ -107,8 +107,13 @@ Module Internal.
   Definition regVars
     := (- cr wordTy "a",  cr wordTy "b",  cr wordTy "c",  cr wordTy "d",
           cr wordTy "e",  cr wordTy "f",  cr wordTy "g",  cr wordTy "h",
-          cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp"
-                                       -).
+          cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp" -).
+
+
+  Definition sha256_prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype SHA256.Block fname SHA256.parameters.
+  Defined.
+
 
   Definition sha256 (fname : string) : Doc + {Compile.CompileError}.
     Compile.iterator SHA256.Block fname SHA256.parameters SHA256.locals SHA256.registers.
@@ -125,4 +130,11 @@ for the c-code.
 *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.sha256 cfunName).
+
+Definition implementation (fp cfunName : string) : unit
+  := writeProgram (C fp) (Internal.sha256 cfunName).
+
+Definition prototype cfunName := recover (Internal.sha256_prototype cfunName).
+
+Require Import Verse.FFI.Raaz.
+Definition raazFFI cfunName := ccall (prototype cfunName).

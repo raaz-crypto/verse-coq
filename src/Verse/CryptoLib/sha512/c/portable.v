@@ -125,6 +125,11 @@ Module Internal.
           cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp"
                                        -).
 
+
+  Definition sha512_prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype SHA512.Block fname SHA512.parameters.
+  Defined.
+
   Definition sha512 (fname : string) : Doc + {Compile.CompileError}.
     Compile.iterator SHA512.Block fname SHA512.parameters SHA512.locals SHA512.registers.
     assignRegisters regVars.
@@ -141,4 +146,10 @@ for the c-code.
  *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.sha512 cfunName).
+Definition implementation (fp cfunName : string) : unit
+  := writeProgram (C fp) (Internal.sha512 cfunName).
+
+Definition prototype cfunName := recover (Internal.sha512_prototype cfunName).
+
+Require Import Verse.FFI.Raaz.
+Definition raazFFI cfunName := ccall (prototype cfunName).
