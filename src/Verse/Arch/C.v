@@ -83,7 +83,14 @@ Module C <: ARCH.
   Definition embedRegister := inRegister.
 
   Definition functionDescription := CFrame.
-  
+
+  Definition prototype cframe :=
+  let iterTypes := match (iterateOn cframe) with
+                  | Some ty => [existT _ _ (CPtr ty); existT _ _ uint64_t]
+                  | None => []
+                  end%list
+  in (cFunctionName cframe, iterTypes ++ Vector.to_list (params cframe)).
+
 End C.
 
 Module CFrame <: FRAME C.
