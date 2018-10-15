@@ -151,6 +151,10 @@ parameterised by the definition of the word.
 
 *)
 
+Module Type WORD_SEMANTICS.
+  Parameter wordDenote : nat -> Type.
+End WORD_SEMANTICS.
+
 Definition TypeDenote := fun _ : kind => Type.
 
 Definition mkTypeDenote (wordDenote : nat -> Type) : typeC TypeDenote

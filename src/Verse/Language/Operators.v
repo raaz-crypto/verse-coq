@@ -78,8 +78,6 @@ words to all types.
 
 (* Require Import Verse.Types.*)
 
-(*
-
 Module Type OP_SEMANTICS (W : WORD_SEMANTICS).
   Parameter OpError : Prop.
   Parameter wordOpDenote    : forall la ra n, op la ra -> arityDenote OpError la ra (W.wordDenote n).
@@ -88,7 +86,8 @@ End OP_SEMANTICS.
 Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
 
   Import O.
-  Module T := TypeDenote W.
+
+  Instance tyDenote : typeC TypeDenote := mkTypeDenote W.wordDenote.
 
   Section VectorAux.
 
@@ -129,17 +128,18 @@ Module OpDenote (W : WORD_SEMANTICS)(O : OP_SEMANTICS W).
     | ternary, ternary   => fun opD op v1 v2 v3 =>  (opVecSplit2 (Vector.map2 apply (Vector.map2 (opD op) v1 v2) v3))
     end.
 
-  Fixpoint opDenote {la ra : arity}{k : kind}(t : type k) : op la ra -> arityDenote OpError la ra (T.typeDenote t) :=
-    match t as t0 return op la ra -> arityDenote OpError la ra (T.typeDenote t0) with
+  Fixpoint opDenote {la ra : arity}{k : kind}(t : type k)
+    : op la ra -> arityDenote OpError la ra (typeDenote t) :=
+    match t as t0 return op la ra -> arityDenote OpError la ra (@typeDenote _ tyDenote _ t0) with
     | word n            => wordOpDenote n
-    | multiword m n     => liftOpDenote (2 ^ m) (T.typeDenote (word n)) (O.wordOpDenote n)
-    | array n _ tw      => liftOpDenote n (T.typeDenote tw) (opDenote tw)
+    | multiword m n     => liftOpDenote (2 ^ m) (@typeDenote _ tyDenote _ (word n)) (O.wordOpDenote n)
+    | array n _ tw      => liftOpDenote n (typeDenote tw) (opDenote tw)
     end.
 
 End OpDenote.
 
 (** We now define the semantics of the operator in the standard interpretation *)
-Module StandardWordOps : OP_SEMANTICS (StandardWord).
+Module StandardWordOps <: OP_SEMANTICS (StandardWord).
   Import Verse.Word.
 
   Definition OpError := False.
@@ -153,8 +153,8 @@ Module StandardWordOps : OP_SEMANTICS (StandardWord).
     | quot         => fun a b => {- Word.numBinOp N.div a b -}
     | eucl         => fun a b c => Word.mapP inleft (Word.numBigargExop N.div_eucl a b c)
     | rem          => fun a b => {- Word.numBinOp N.modulo a b -}
-    | bitOr        => fun a b => {- AndW (8 * 2^n) a b -}
-    | bitAnd       => fun a b => {- OrW  (8 * 2^n) a b -}
+    | bitOr        => fun a b => {- OrW (8 * 2^n) a b -}
+    | bitAnd       => fun a b => {- AndW  (8 * 2^n) a b -}
     | bitXor       => fun a b => {- XorW (8 * 2^n) a b -}
     | bitComp      => fun a => {- NegW (8 * 2^n) a -}
     | rotL    m    => fun a => {- RotL m (8 * 2^n) a -}
@@ -167,6 +167,6 @@ Module StandardWordOps : OP_SEMANTICS (StandardWord).
 End StandardWordOps.
 
 (** And here is the standard meaning of operations lifted to the type world *)
+(*
 Module StandardOps := OpDenote StandardWord StandardWordOps.
-
 *)
