@@ -6,6 +6,7 @@ An implementation of ChaCha20 stream cipher in verse.
 
 Require Import Verse.
 Require Import Verse.Arch.C.
+Require Import Verse.Semantics.StandardSemantics.
 Require Import Verse.CryptoLib.chacha20.common.
 Require Vector.
 Import VectorNotations.
@@ -65,7 +66,7 @@ Module Internal.
        the matrix or the diagonals.
      *)
 
-    Definition QROUND (a b c d : progvar Word) : code progvar.
+    Definition QROUND (a b c d : progvar Word) : Code progvar.
       verse [ a ::=+ b; d ::=^ a; d ::=<*< 16;
               c ::=+ d; b ::=^ c; b ::=<*< 12;
               a ::=+ b; d ::=^ a; d ::=<*< 8;
@@ -78,7 +79,7 @@ Module Internal.
         Chacha20 state transformation. The state is first initialised as
         follows.
      *)
-    Definition INITSTATE : code progvar.
+    Definition INITSTATE : Code progvar.
       verse [
           x0  ::== C0         ; x1  ::== C1         ; x2  ::== C2         ; x3  ::== C3;
           x4  ::== key[- 0 -] ; x5  ::== key[- 1 -] ; x6  ::== key[- 2 -] ; x7 ::== key[- 3 -];
@@ -110,7 +111,7 @@ Module Internal.
       in List.concat (List.repeat doubleRound 10).
 
 
-    Definition UPDATE : code progvar.
+    Definition UPDATE : Code progvar.
       verse [
           x0  ::=+ C0         ; x1  ::=+ C1         ; x2  ::=+ C2         ; x3  ::=+ C3;
           x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -] ; x7  ::=+ key[- 3 -];
@@ -125,18 +126,18 @@ Module Internal.
     Definition COMPUTE_STREAM := List.concat [ INITSTATE; ROUND20; UPDATE].
 
     Definition XORBLOCK (B : progvar Block)(i : nat) (_ : i < 16)
-      : code progvar.
+      : Code progvar.
       verse [ Temp ::== B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
     Defined.
 
-    Definition LoadCounter : code progvar.
+    Definition LoadCounter : Code progvar.
       verse [ ctr ::== ctrRef[- 0 -] ].
     Defined.
-    Definition StoreCounter : code progvar.
+    Definition StoreCounter : Code progvar.
       verse [ MOVE ctr TO ctrRef[- 0 -] ].
     Defined.
 
-    Definition ChaCha20Iterator : iterator Block progvar :=
+    Definition ChaCha20Iterator : Iterator Block progvar :=
       {| setup := LoadCounter;
          process := fun blk =>
                       COMPUTE_STREAM
