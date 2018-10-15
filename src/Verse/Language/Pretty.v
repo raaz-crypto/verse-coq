@@ -3,11 +3,13 @@ Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
 Require Import Verse.Language.Ast.
 Require Import Verse.Language.Operators.
+Require Import Verse.Error.
+
 Require Import List.
 Require Import Omega.
 Import ListNotations.
 
-
+Set Implicit Arguments.
 (** * Notation and Pretty printing.
 
 
@@ -38,15 +40,15 @@ Section ARGInstances.
   Variable k  : kind.
   Variable ty : type k .
 
-  Global Instance larg_of_argv : LARG v k ty (arg v lval ty) := { toLArg := fun t => t} .
-  Global Instance rarg_of_argv : RARG v k ty (arg v rval ty) := { toRArg := fun t => t}.
-  Global Instance larg_of_v    : LARG v k ty (v k ty)    := { toLArg := fun t => var t}.
-  Global Instance rarg_of_v    : RARG v k ty (v k ty)    := { toRArg := fun t => var t}.
+  Global Instance larg_of_argv : LARG v ty (arg v lval ty) := { toLArg := fun t => t} .
+  Global Instance rarg_of_argv : RARG v ty (arg v rval ty) := { toRArg := fun t => t}.
+  Global Instance larg_of_v    : LARG v ty (v ty)    := { toLArg := fun t => var t}.
+  Global Instance rarg_of_v    : RARG v ty (v ty)    := { toRArg := fun t => var t}.
 
 
 End ARGInstances.
 
-Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v direct ty (Types.constant ty)
+Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types.constant ty)
   := { toRArg := @const v ty }.
 
 (* end hide *)
@@ -54,50 +56,66 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v direct ty
 
 
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
-Notation "! A"           := (index A 0 _) (at level 70).
-Notation "[++] A"        := (increment (toLArg A)) (at level 70).
-Notation "[--] A"        := (decrement (toLArg A)) (at level 70).
-Notation "A ::= B [+] C" := (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) ))  (at level 70).
+Notation "! A"           := (inst (index A 0 _)) (at level 70).
+Notation "[++] A"        := (inst (increment (toLArg A))) (at level 70).
+Notation "[--] A"        := (inst (decrement (toLArg A))) (at level 70).
+Notation "A ::= B [+] C" := (inst (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) )))  (at level 70).
 
-Notation "A ::= B [-] C" := (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [*] C" := (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [/] C" := (assign (assign3 quot  (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [%] C" := (assign (assign3 rem   (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [|] C" := (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [&] C" := (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
-Notation "A ::= B [^] C" := (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C)))  (at level 70).
+Notation "A ::= B [-] C" := (inst (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [*] C" := (inst (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [/] C" := (inst (assign (assign3 quot  (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [%] C" := (inst (assign (assign3 rem   (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [|] C" := (inst (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [&] C" := (inst (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "A ::= B [^] C" := (inst (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
 
-Notation "A ::=+ B " := (assign (update2 plus  (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=- B " := (assign (update2 minus (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=* B " := (assign (update2 mul   (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=/ B " := (assign (update2 quot  (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=% B " := (assign (update2 rem   (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=| B " := (assign (update2 bitOr (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=& B " := (assign (update2 bitAnd (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=^ B " := (assign (update2 bitXor (toLArg A) (toRArg B))) (at level 70).
+Notation "A ::=+ B " := (inst (assign (update2 plus  (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=- B " := (inst (assign (update2 minus (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=* B " := (inst (assign (update2 mul   (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=/ B " := (inst (assign (update2 quot  (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=% B " := (inst (assign (update2 rem   (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=| B " := (inst (assign (update2 bitOr (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=& B " := (inst (assign (update2 bitAnd (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=^ B " := (inst (assign (update2 bitXor (toLArg A) (toRArg B)))) (at level 70).
 
-Notation "A ::=~ B "     := (assign (assign2 bitComp    (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::= B <*< N" := (assign (assign2 (rotL N)   (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::= B >*> N" := (assign (assign2 (rotR N)   (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::= B <<  N"  := (assign (assign2 (shiftL N) (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::= B >>  N" := (assign (assign2 (shiftR N) (toLArg A) (toRArg B))) (at level 70).
-Notation "A ::=<< N "    := (assign (update1 (shiftL N) (toLArg A))) (at level 70).
-Notation "A ::=>> N "    := (assign (update1 (shiftR N) (toLArg A))) (at level 70).
-Notation "A ::=<*< N "    := (assign (update1 (rotL N)  (toLArg A))) (at level 70).
-Notation "A ::=>*> N "    := (assign (update1 (rotR N)  (toLArg A))) (at level 70).
+Notation "A ::=~ B "     := (inst (assign (assign2 bitComp    (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::= B <*< N" := (inst (assign (assign2 (rotL N)   (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::= B >*> N" := (inst (assign (assign2 (rotR N)   (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::= B <<  N"  := (inst (assign (assign2 (shiftL N) (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::= B >>  N" := (inst (assign (assign2 (shiftR N) (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::=<< N "    := (inst (assign (update1 (shiftL N) (toLArg A)))) (at level 70).
+Notation "A ::=>> N "    := (inst (assign (update1 (shiftR N) (toLArg A)))) (at level 70).
+Notation "A ::=<*< N "    := (inst (assign (update1 (rotL N)  (toLArg A)))) (at level 70).
+Notation "A ::=>*> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at level 70).
 
-Notation "A ::== B"      := (assign (assign2 nop (toLArg A) (toRArg B))) (at level 70).
-Notation "'MOVE'  B 'TO'   A [- N -]"       := (moveTo A (exist _ (N%nat) _) B) (at level 200, A ident).
+Notation "A ::== B"      := (inst (assign (assign2 nop (toLArg A) (toRArg B)))) (at level 70).
+Notation "'CLOBBER' A"   := (inst (clobber A)) (at level 70). (* Check level *)
+Notation "'MOVE'  B 'TO'   A [- N -]"       := (inst (moveTo A (exist _ (N%nat) _) B)) (at level 200, A ident).
 
-Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (assign (extassign3 exmul
+Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (inst (assign (extassign3 exmul
                                                         (toLArg A) (toLArg B)
-                                                        (toRArg C) (toRArg D)))
+                                                        (toRArg C) (toRArg D))))
                                        (at level 70, A at level 99).
-Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (assign (extassign4 eucl
+Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (inst (assign (extassign4 eucl
                                                                    (toLArg A) (toLArg B)
-                                                                   (toRArg C) (toRArg D) (toRArg E)))
+                                                                   (toRArg C) (toRArg D) (toRArg E))))
                                               (at level 70, C at level 99).
 
+
+(** Notations for annotations in code *)
+
+Class Context tyD v := val : context tyD v.
+
+Notation "'ASSUME' P" := (annot (assert (fun s : Context _ _ => P))) (at level 100).
+Notation "'CLAIM'  P" := (annot (claim (fun s : Context _ _ => P))) (at level 100). (* Check level *)
+
+Notation "A <== X ; E"
+  := (bind (val _ A) (fun X => E))
+       (at level 81, right associativity, only parsing).
+
+Notation "A <== X 'IN' E"
+  := (ap (fun X => E) (val _ A))
+       (at level 81, right associativity, only parsing).
 
 (**
 
@@ -106,7 +124,6 @@ proof that the bounds are not violated. We use the following tactic to
 dispose off all such obligations.
 
 *)
-
 
 
 Ltac  verse_warn :=
@@ -169,7 +186,7 @@ Section PrettyPrintingInstruction.
 
 
   (** The pretty printing instance for our variable *)
-  Variable vPrint : forall k ty, PrettyPrint (v k ty).
+  Variable vPrint : forall k (ty : type k), PrettyPrint (v ty).
 
   (** The pretty printing of our argument *)
   Fixpoint argdoc {aK}{k}(ty : type k ) (av : arg v aK ty) :=
@@ -180,7 +197,7 @@ Section PrettyPrintingInstruction.
     end.
 
   Global Instance arg_pretty_print : forall aK k (ty : type k), PrettyPrint (arg v aK ty)
-    := { doc := argdoc ty }.
+    := { doc := @argdoc _ _ _ }.
 
 
   Definition opDoc {la ra : arity}(o : op la ra) :=
@@ -263,7 +280,7 @@ Section PrettyPrintingInstruction.
                          | decrement a => mkDouble minus (doc a)
                          | @moveTo  _ _ e _  a (exist _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
-                         | CLOBBER v => text "CLOBBER" <_> doc v
+                         | clobber v => text "CLOBBER" <_> doc v
                          end
        }.
 
@@ -282,10 +299,10 @@ of our program.
 
 Module Demo.
   Inductive MyVar : VariableT :=
-  |  X : MyVar direct Word8
-  |  Y : MyVar direct Word64
-  |  Z : MyVar direct (Vector128 Word32)
-  |  A : MyVar memory (Array 42 bigE Word8)
+  |  X : MyVar Word8
+  |  Y : MyVar Word64
+  |  Z : MyVar (Vector128 Word32)
+  |  A : MyVar (Array 42 bigE Word8)
   .
 
 
@@ -298,7 +315,7 @@ print instance for the variable type [MyVar].
 *)
 
 
-Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
+Instance PrettyPrintMyVar : forall k (ty : type k), PrettyPrint (MyVar ty) :=
   { doc := fun v => text ( match v with
                            | X => "X"
                            | Y => "Y"
@@ -325,7 +342,7 @@ operands of the programming fragment.
 
   Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
 
-  Definition prog : code MyVar.
+  Definition prog : Code MyVar.
     verse [ X ::= X << 5 ;
             X ::=>> 5;
             X ::= X [+] (A[- 2 -]);
@@ -341,6 +358,5 @@ operands of the programming fragment.
   (** The above program fragment is pretty printable because the
       underlying variable type ([MyVar] in this case), is pretty printable
 *)
-
 
 End Demo.
