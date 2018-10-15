@@ -18,6 +18,9 @@ src/Verse.v
 src/Verse/TestCode/TestCode.v
 src/Verse/TestCode/TestIteratorCode.v
 src/Verse/DecFacts.v
+src/Verse/Semantics.v
+src/Verse/Semantics/StandardSemantics.v
+src/Verse/Semantics/NSemantics.v
 src/Verse/Extraction/Ocaml.v
 src/Verse/FFI/Raaz.v
 src/Verse/CryptoLib/Names.v
