@@ -178,7 +178,7 @@ Import Verse.PrettyPrint.
 Global Instance constant_pretty n : PrettyPrint (wordRep n) := Nibble.pretty_print (2 * 2^n).
 
 Require Import Verse.Word.
-Definition stdWordDenote : nat -> Type := fun n => Word.bytes (2^n).
 
-
-Definition StandardSemantics : typeC TypeDenote := mkTypeDenote stdWordDenote.
+Module StandardWord <: WORD_SEMANTICS.
+  Definition wordDenote := fun n => Word.bytes (2^n).
+End StandardWord.

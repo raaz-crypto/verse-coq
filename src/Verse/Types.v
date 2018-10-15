@@ -73,8 +73,6 @@ Definition Vector256 (t : type direct) := recover (vector 4 t).
 
 Definition constant (ty : type direct) := @typeDenote _ ConstRep direct ty.
 
-
-
 Definition constant_doc (ty : type direct)  : constant ty -> Doc.
   refine( match ty with
           | word _         => fun w => text "0x" <> doc w
