@@ -119,13 +119,6 @@ Definition wordToCWord (n : nat) : CType direct + { UnsupportedType } :=
   | _ => error (unsupported (word n))
   end.
 
-
-Instance CTypeDenote : typeC (fun k : kind => (CType k + { UnsupportedType }))
-   := {| mkWord      := wordToCWord;
-         mkMultiword := fun m n  => error (unsupported (multiword m n));
-         mkArray     := fun n _ t => CArray n <$> t
-      |}.
-
 Inductive MachineType : kind -> Type :=
 | Sized    : nat -> MachineType direct
 | Address  : nat -> MachineType memory.
