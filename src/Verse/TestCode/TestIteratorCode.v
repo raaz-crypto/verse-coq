@@ -1,5 +1,6 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
+Require Import Verse.Semantics.StandardSemantics.
 
 Require Import Vector.
 Import VectorNotations.
@@ -24,7 +25,7 @@ Section TestFunction.
 
   Definition registers := [Var tmp; Var double].
 
-  Definition test : iterator iterType variable.
+  Definition test : Iterator iterType variable.
     verse
       {|
         (* Try out all operators *)
