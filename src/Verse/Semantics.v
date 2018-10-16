@@ -281,3 +281,5 @@ Module CodeSemantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMAN
       end.
 
 End CodeSemantics.
+
+Module StandardSemantics := CodeSemantics StandardWord StandardConsts StandardWordOps.
