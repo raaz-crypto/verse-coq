@@ -21,6 +21,7 @@ src/Verse/DecFacts.v
 src/Verse/Semantics.v
 src/Verse/Semantics/StandardSemantics.v
 src/Verse/Semantics/NSemantics.v
+src/Verse/TestCode/TestSemantics.v
 src/Verse/Extraction/Ocaml.v
 src/Verse/FFI/Raaz.v
 src/Verse/CryptoLib/Names.v

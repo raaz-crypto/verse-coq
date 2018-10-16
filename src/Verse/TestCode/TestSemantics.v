@@ -11,78 +11,81 @@ Import VectorNotations.
 
 Set Implicit Arguments.
 
+Section Code.
 
-Section TestFunction.
+  Variable n : N.
 
-  Variable variable : VariableT.
+  Section TestFunction.
 
-  Arguments variable [k] _.
-  (* The parameters of the function *)
-  Variable arr     : variable (Array 5 bigE Word16).
-  Variable A B     : variable Byte.
+    Variable variable : VariableT.
 
-  Definition parameters := [Var arr; Var A; Var B].
+    Arguments variable [k] _.
+    (* The parameters of the function *)
+    Variable arr     : variable (Array 5 bigE Word16).
+    Variable A B     : variable Byte.
 
-  (* The local variables *)
-  Variable num      : variable Word16.
+    Definition parameters := [Var arr; Var A; Var B].
 
-  Definition locals := [Var num].
+    (* The local variables *)
+    Variable num      : variable Word16.
 
-  (* The temp register *)
-  Variable tmp       : variable Word16.
+    Definition locals := [Var num].
 
-  Definition registers := [Var tmp].
-  Definition regAssignment := (- cr uint16_t "temp" -).
-  Definition someInstruction i (_ : i < 5) : Code variable.
-    Import Nat.
-    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
+    (* The temp register *)
+    Variable tmp       : variable Word16.
+
+    Definition registers := [Var tmp].
+    Definition regAssignment := (- cr uint16_t "temp" -).
+    Definition someInstruction i (_ : i < 5) : Code variable.
+      Import Nat.
+      verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
+    Defined.
+
+    Definition testFunction : code variable.
+      verse
+        [ num ::= tmp [+] Ox "abcd";
+
+          ASSUME num IS n ; tmp HAS t IN n = t;
+
+          A   ::= A [+] B;
+          num ::= tmp [-] num ;
+
+          CLAIM num HAS n IN n = 0%N;
+          ASSUME A HAS a IN (a > 0)%N;
+
+          num      ::= tmp      [*] arr[-1-];
+
+          CLAIM num HAS n ; tmp HAS t IN n = t;
+
+          num      ::= arr[-1-] [/] tmp ;
+
+          (* binary update *)
+          num ::=+ tmp;
+          num ::=- arr[-1-];
+          num ::=* Ox "1234";
+          num ::=/ tmp;
+
+          CLOBBER arr
+        ]%list.
+    Defined.
+
+  End TestFunction.
+
+  Definition toProve : Prop.
+
+    extractProp testFunction.
+
   Defined.
 
-  Definition testFunction : code variable.
-    verse
-    [ num ::= tmp [+] Ox "abcd";
+  (* A potential proof template *)
+  Definition proof : toProve.
 
-              ASSUME num <== n ; tmp <== t IN n = t;
+    NSemantics.simplify.
 
-      A   ::= A [+] B;
-      num ::= tmp [-] num ;
+    unfold NWord.wordDenote in *.
+    intuition.
+  Abort.
 
-              CLAIM num <== n IN n = 0%N;
-              ASSUME A <== a IN (a > 0)%N;
-
-      num      ::= tmp      [*] arr[-1-];
-
-              CLAIM num <== n ; tmp <== t IN n = t;
-
-      num      ::= arr[-1-] [/] tmp ;
-
-      (* binary update *)
-      num ::=+ tmp;
-      num ::=- arr[-1-];
-      num ::=* Ox "1234";
-      num ::=/ tmp;
-
-      CLOBBER arr
-    ]%list.
-  Defined.
-
-End TestFunction.
-
-Definition toProve : Prop.
-
-  extractProp testFunction.
-
-Defined.
-
-(* A potential proof template *)
-Definition proof : toProve.
-
-  NSemantics.simplify.
-
-  unfold NWord.wordDenote in *.
-  intuition.
-Abort.  
-  
 Import Compile.
 
 Set Printing Implicit.
@@ -93,6 +96,8 @@ Definition testcode : Doc + {Compile.CompileError}.
 Defined.
 
 Compute (tryLayout testcode).
+
+End Code.
 
 (*
 
