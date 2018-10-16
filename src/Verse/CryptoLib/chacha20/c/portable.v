@@ -6,7 +6,6 @@ An implementation of ChaCha20 stream cipher in verse.
 
 Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Verse.Semantics.StandardSemantics.
 Require Import Verse.CryptoLib.chacha20.common.
 Require Vector.
 Import VectorNotations.

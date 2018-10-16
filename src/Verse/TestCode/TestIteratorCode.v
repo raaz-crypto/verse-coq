@@ -1,6 +1,5 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Verse.Semantics.StandardSemantics.
 
 Require Import Vector.
 Import VectorNotations.

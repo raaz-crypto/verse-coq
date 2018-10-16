@@ -1,6 +1,6 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
-Require Import Verse.Semantics.StandardSemantics.
+
 Import Nat.
 Require Vector.
 Import VectorNotations.
