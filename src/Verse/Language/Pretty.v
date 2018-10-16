@@ -109,11 +109,15 @@ Class Context tyD v := val : context tyD v.
 Notation "'ASSUME' P" := (annot (assert (fun s : Context _ _ => P))) (at level 100).
 Notation "'CLAIM'  P" := (annot (claim (fun s : Context _ _ => P))) (at level 100). (* Check level *)
 
-Notation "A <== X ; E"
+Notation "A 'HAS' X ; E"
   := (bind (val _ A) (fun X => E))
        (at level 81, right associativity, only parsing).
 
-Notation "A <== X 'IN' E"
+Notation "A 'IS' X ; E"
+  := (apA (and <$> (eq X <$> (val _ A))) E)
+       (at level 81, right associativity, only parsing).
+
+Notation "A 'HAS' X 'IN' E"
   := (ap (fun X => E) (val _ A))
        (at level 81, right associativity, only parsing).
 
