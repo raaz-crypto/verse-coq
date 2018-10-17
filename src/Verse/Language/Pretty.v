@@ -104,22 +104,34 @@ Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (inst (assign (extassig
 
 (** Notations for annotations in code *)
 
-Class Context tyD v := val : context tyD v.
+Class Context tyD v := val : context tyD v * context tyD v.
 
 Notation "'ASSUME' P" := (annot (assert (fun s : Context _ _ => P))) (at level 100).
 Notation "'CLAIM'  P" := (annot (claim (fun s : Context _ _ => P))) (at level 100). (* Check level *)
 
 Notation "A 'HAS' X ; E"
-  := (bind (val _ A) (fun X => E))
+  := (bind ((fst val) _ _ A) (fun X => E))
+       (at level 81, right associativity, only parsing).
+
+Notation "A 'HAD' X ; E"
+  := (bind ((snd val) _ _ A) (fun X => E))
        (at level 81, right associativity, only parsing).
 
 Notation "A 'IS' X ; E"
-  := (apA (and <$> (eq X <$> (val _ A))) E)
+  := (apA (and <$> (eq X <$> ((fst val) _ _ A))) E)
+       (at level 81, right associativity, only parsing).
+
+Notation "A 'HAD' X 'IN' E"
+  := (ap (fun X => E) ((snd val) _ _ A))
        (at level 81, right associativity, only parsing).
 
 Notation "A 'HAS' X 'IN' E"
-  := (ap (fun X => E) (val _ A))
+  := (ap (fun X => E) ((fst val) _ _ A))
        (at level 81, right associativity, only parsing).
+
+Notation "'REMEMBER' X" := (annot (remember X)) (at level 100).
+
+Notation "'REMEMBER' ( X , .. , Y )" := (cons (annot (remember X)) .. (cons (annot (remember Y)) nil) ..) (at level 100).
 
 (**
 

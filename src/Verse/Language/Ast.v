@@ -113,10 +113,20 @@ program block is merely a list of instructions.
 
   Inductive contextErr := Invalid.
   Definition context := forall {k} {ty : type k}, v ty -> @typeDenote _ tyD _ ty + {contextErr}.
+  Definition ctxtP   := (context * context)%type.
 
+  (*
+     This particular design choice allows one to define a valid Prop even
+     with a context that has some (unused) Invalid values.
+     The simpler
+                `pure_context -> Prop`
+     would not allow one to extract a Prop with an impure context that has
+     only unused Invalid values.
+  *)
   Inductive annotation : Type :=
-  | assert : (context -> Prop + {contextErr}) -> annotation
-  | claim  : (context -> Prop + {contextErr}) -> annotation
+  | remember : forall k (ty : type k), v ty -> annotation
+  | assert : (ctxtP -> Prop + {contextErr}) -> annotation
+  | claim  : (ctxtP -> Prop + {contextErr}) -> annotation
   .
 
   Inductive codeline : Type :=
@@ -175,6 +185,7 @@ Arguments annotation [tyD] _.
 Arguments codeline [tyD] _.
 Arguments inst [tyD v] _.
 Arguments code [tyD] _.
+Arguments remember [tyD v k ty] _.
 
 (* A macro to define an instruction block while being oblivious to
    semantic relevant details *)

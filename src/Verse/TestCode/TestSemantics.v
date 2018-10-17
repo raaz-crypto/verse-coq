@@ -11,10 +11,6 @@ Import VectorNotations.
 
 Set Implicit Arguments.
 
-Section Code.
-
-  Variable n : N.
-
   Section TestFunction.
 
     Variable variable : VariableT.
@@ -45,17 +41,25 @@ Section Code.
       verse
         [ num ::= tmp [+] Ox "abcd";
 
-          ASSUME num IS n ; tmp HAS t IN n = t;
+          REMEMBER num; REMEMBER tmp;
+          ASSUME num HAS n ; tmp HAS t IN n = t;
 
           A   ::= A [+] B;
           num ::= tmp [-] num ;
 
-          CLAIM num HAS n IN n = 0%N;
+          CLAIM num HAS n ; tmp HAS t IN n = t;
+
+          REMEMBER num;
+
+          CLAIM num HAS n ; num HAD n' IN (n >= n')%N;
+
+          CLAIM num HAS n; num HAD n' IN (n = n' + 1)%N;
+
           ASSUME A HAS a IN (a > 0)%N;
 
           num      ::= tmp      [*] arr[-1-];
 
-          CLAIM num HAS n ; tmp HAS t IN n = t;
+          CLAIM num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n < a))%N;
 
           num      ::= arr[-1-] [/] tmp ;
 
@@ -65,11 +69,19 @@ Section Code.
           num ::=* Ox "1234";
           num ::=/ tmp;
 
+          CLAIM num HAS n'; tmp HAS t'; A HAS a';
+                num HAD n ; tmp HAD t IN
+                (and (n' = n * t) (n' = n))%N;
+
           CLOBBER arr
         ]%list.
     Defined.
 
   End TestFunction.
+
+  Let addErr (Err : Prop) v1 n (vT : Vector.t (some type) n)
+      (a : allocation v1 vT) :=
+    mapAlloc v1 _ (fun _ _ => @inleft _ Err) _ a.
 
   Definition toProve : Prop.
 
@@ -97,7 +109,6 @@ Defined.
 
 Compute (tryLayout testcode).
 
-End Code.
 
 (*
 

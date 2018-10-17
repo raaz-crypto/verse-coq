@@ -194,18 +194,21 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
         at the corresponding program points.
      *)
     
-    Definition spec := (Prop * Prop)%type.
-
     Variable n : nat.
     Variable vT : Vector.t (some type) n.
+
+    Definition spec := (Prop * Prop * store vT)%type.
 
     Variable st : store vT.
 
     Definition annotationDenote (a : annotation (scopeVar vT)) (s : spec) : spec + {contextErr}:=
-      let (ass, cl) := s in
+      let (ann, oldst) := s in
+      let (ass, cl) := ann in
+      let ctxtP := (@eval _ _ st, @eval _ _ oldst) in
       match a with
-      | assert a => (fun na => (ass /\ na, cl)) <$> a (@eval _ _ st)
-      | claim  c => (fun nc : Prop => (ass, cl /\ (ass -> nc))) <$> c (@eval _ _ st)
+      | remember x => {- (ann, storeUpdate x (fun _ => eval st x) oldst) -}
+      | assert a   => (fun na => ((ass /\ na, cl), oldst)) <$> a ctxtP
+      | claim  c   => (fun nc : Prop => ((ass, cl /\ (ass -> nc)), oldst)) <$> c ctxtP
       end.
 
   End Annotate.
@@ -223,7 +226,7 @@ Module CodeSemantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMAN
     Variable vT : Vector.t (some type) n.
 
     (* The Type capturing the program state *)
-    Let state := (store vT * spec)%type.
+    Let state := (store vT * spec vT)%type.
 
     Let clDenote (cl : codeline (scopeVar vT)) (s : state) : state + {contextErr} :=
       let (st, sp) := s in
@@ -233,11 +236,17 @@ Module CodeSemantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMAN
       end.
 
     Definition codeDenote c init : Prop + {contextErr} :=
-      (fun x => snd (snd x)) <$>
-                             List.fold_left
-                             (fun s i => bind s (clDenote i))
-                             (@fillDummy (@code _) _ vT c)
-                             {- (init, (True, True)) -}.
+      let fix mkInvalid {n} (v : Vector.t (some type) n) {struct v} : store v :=
+          match v as v' return store v' with
+          | []      => tt
+          | _ :: vt => (inright Invalid, mkInvalid vt)
+          end in
+      let invst := mkInvalid vT in
+      (fun x => snd (fst (snd x))) <$>
+                                   List.fold_left
+                                   (fun s i => bind s (clDenote i))
+                                   (@fillDummy (@code _) _ vT c)
+                                   {- (init, ((True, True), invst)) -}.
 
   End CodeDenote.
 
