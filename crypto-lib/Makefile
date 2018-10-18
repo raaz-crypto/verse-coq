@@ -32,15 +32,11 @@ libverse: verse extract.v
 	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)
 	echo IMPLS=${IMPLS} > libverse/Implementations.mk
 
-extract.v: extract.m4
-	($(foreach imp,${IMPLS}, echo 'EXTRACT('${imp}')';)) \
-	| m4 -DVERSION="${VERSION}" -DVERSE_DIR=libverse -DML_DIR=${ML_DIR} extract.m4 - \
-	> extract.v
 verse:
 	make -C ..
 
 clean:
-	rm -f $(addprefix extract., v vo glob)
+	rm -f $(addprefix extract., vo glob)
 	rm -rf mlsrc
 
 dist-clean: clean
