@@ -162,11 +162,11 @@ Module Internal.
        -).
 
 
-  Definition chacha20_prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
     Compile.iteratorPrototype Block fname parameters.
   Defined.
 
-  Definition chacha20 (fname : string) : Doc  + {Compile.CompileError}.
+  Definition implementation (fname : string) : Doc  + {Compile.CompileError}.
     Compile.iterator Block fname parameters stack registers.
     assignRegisters regVars.
     statements ChaCha20Iterator.
@@ -182,11 +182,20 @@ for the c-code.
 *)
 
 Require Import Verse.Extraction.Ocaml.
+Require Import Verse.CryptoLib.Names.
 
-Definition implementation (fp cfunName : string) : unit
-  := writeProgram (C fp) (Internal.chacha20 cfunName).
+Definition implementation_name : Name := {| primitive := "chacha20";
+                                            arch      := "c";
+                                            features  := ["portable"]
+                                         |}.
 
-Definition prototype cfunName := recover (Internal.chacha20_prototype cfunName).
+Definition cname     := cFunName implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
+
+Definition implementation : unit
+  := writeProgram (C cfilename) (Internal.implementation cname).
+
+Definition prototype := recover (Internal.prototype cname).
 
 Require Import Verse.FFI.Raaz.
-Definition raazFFI cfunName := ccall (prototype cfunName).
+Definition raazFFI := ccall prototype.

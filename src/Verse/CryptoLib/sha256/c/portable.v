@@ -110,12 +110,12 @@ Module Internal.
           cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp" -).
 
 
-  Definition sha256_prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
     Compile.iteratorPrototype SHA256.Block fname SHA256.parameters.
   Defined.
 
 
-  Definition sha256 (fname : string) : Doc + {Compile.CompileError}.
+  Definition implementation (fname : string) : Doc + {Compile.CompileError}.
     Compile.iterator SHA256.Block fname SHA256.parameters SHA256.locals SHA256.registers.
     assignRegisters regVars.
     statements SHA256.sha2.
@@ -131,10 +131,20 @@ for the c-code.
 
 Require Import Verse.Extraction.Ocaml.
 
-Definition implementation (fp cfunName : string) : unit
-  := writeProgram (C fp) (Internal.sha256 cfunName).
+Require Import Verse.CryptoLib.Names.
 
-Definition prototype cfunName := recover (Internal.sha256_prototype cfunName).
+Definition implementation_name : Name := {| primitive := "sha256";
+                                            arch      := "c";
+                                            features  := ["portable"]
+                                         |}.
+
+Definition cname     := cFunName implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
+
+Definition implementation : unit
+  := writeProgram (C cfilename) (Internal.implementation cname).
+
+Definition prototype := recover (Internal.prototype cname).
 
 Require Import Verse.FFI.Raaz.
-Definition raazFFI cfunName := ccall (prototype cfunName).
+Definition raazFFI := ccall prototype.
