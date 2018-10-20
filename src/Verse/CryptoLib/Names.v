@@ -21,3 +21,40 @@ Definition cFunName (n : Name) : string :=
 
 Definition libVerseFilePath (n : Name) : string :=
   concatSep "/" ["libverse"%string; primitive n; arch n; details n].
+
+Require Import Ascii.
+Definition toUpper (c : ascii) : ascii :=
+  let Acode := nat_of_ascii "A" in
+  let offset := nat_of_ascii c - nat_of_ascii "a" in
+  ascii_of_nat (Acode + offset).
+
+Definition capitalize (s : string) :=
+  match s with
+  | String c xs => String (toUpper c) xs
+  | xs          => xs
+  end.
+
+
+Definition raazModule (n : Name) : list string :=
+  ["Raaz"; "Verse"]%string ++ List.map capitalize [primitive n; arch n; details n].
+
+Require Import Verse.PrettyPrint.
+Require Import Verse.Extraction.Ocaml.
+
+
+Definition write_module (module : list string)(cont : list Doc) :=
+  let mfile := (concatSep "/" ("libverse" :: module) ++ ".hs")%string in
+  let mname := concatSep "." module in
+  let exts   := [ "DataKinds";
+                  "KindSignatures";
+                  "ForeignFunctionInterface"
+                ]%string in
+  let langLine := line <> sepBy (text "," <> line) (List.map text exts) in
+  let pragma := vcat [ text "{-# LANGUAGE" <> nest 16 langLine;
+                         text "#-}"
+                     ] in
+  let imports  :=  [text "import Raaz.Core"] in
+  let fcontent := text "module" <_> text mname <_> text "where" <> line
+                  <> vcat (imports ++ cont)%list in
+  let fullcontent := vcat [ pragma; fcontent] in
+  writefile mfile (layout fullcontent).
