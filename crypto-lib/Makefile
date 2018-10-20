@@ -14,26 +14,49 @@ endif
 ###    what you are doing.                                ###
 #############################################################
 
+.DEFAULT_GOAL = libverse
+
 ML_DIR      = mlsrc/
-ML_SRC      = $(addprefix ${ML_DIR}, $(addsuffix .ml, ${IMPLS}))
-ML_SRC_DIRS = $(addprefix ${ML_DIR}, $(dir ${IMPLS}))
-CODE_DIRS   = $(addprefix libverse/, $(dir ${IMPLS}))
+ML_RAAZ_DIR = ${ML_DIR}raaz/
+
+ML_SRC       = $(addprefix ${ML_DIR}, $(addsuffix .ml, ${IMPLS}))
+ML_RAAZ_SRC  = $(addprefix ${ML_RAAZ_DIR}, $(addsuffix .ml, ${IMPLS}))
+ML_SRC_DIRS  = $(addprefix ${ML_DIR}, $(dir ${IMPLS}))
+ML_RAAZ_DIRS = $(addprefix ${ML_RAAZ_DIR}, $(dir ${IMPLS}))
+CODE_DIRS    = $(addprefix libverse/, $(dir ${IMPLS}))
+RAAZ_IMPLS     = $(shell runhaskell capitalize.hs ${IMPLS})
+RAAZ_CODE_DIRS =  $(addprefix libverse/Raaz/Verse/,$(dir ${RAAZ_IMPLS}))
+
 
 
 .PHONY: extract.v libverse clean verse dist-clean
+.PHONY: mldir codedir extract gen
 
-libverse: verse extract.v
+
+mldir: # The directory where the ocaml source is to be extracted.
+	mkdir -p ${ML_SRC_DIRS}
+	mkdir -p ${ML_RAAZ_DIRS}
+
+codedir: capitalize  # the directory where the ocaml code creates files.
+	mkdir -p ${CODE_DIRS}
+	mkdir -p ${RAAZ_CODE_DIRS}
+
+extract: mldir
+	coqc -R ../src Verse extract.v
+
+libverse: verse codedir extract
 	if [ ! -d libverse ]; then \
 		git clone ${GIT_REPO};\
 	fi
-	mkdir -p ${ML_SRC_DIRS}
-	mkdir -p ${CODE_DIRS}
-	coqc -R ../src Verse extract.v
 	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)
 	echo IMPLS=${IMPLS} > libverse/Implementations.mk
+	$(foreach mlprog, ${ML_RAAZ_SRC}, ocaml ${mlprog};)
 
 verse:
 	make -C ..
+
+capitalize: capitalize.hs
+	ghc --make capitalize.hs
 
 clean:
 	rm -f $(addprefix extract., vo glob)
