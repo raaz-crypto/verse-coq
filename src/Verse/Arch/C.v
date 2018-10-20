@@ -92,7 +92,7 @@ Module C <: ARCH.
   in
   {|
     name := cFunctionName cframe;
-    arguments := iterTypes ++ Vector.to_list (params cframe)
+    arguments := iterTypes ++ List.rev (Vector.to_list (params cframe))
   |}.
 
 End C.
