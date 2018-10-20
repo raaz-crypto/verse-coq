@@ -27,7 +27,7 @@ Definition print_doc (d:Doc) : unit := printstring (layout d).
 Extract Constant writefile   => "fun f s ->
         let listToString cl = String.concat """" (List.map (String.make 1) cl) in
         let out_f = open_out (listToString f) in
-            (output_string out_f (listToString s); close_out out_f)".
+            (output_string out_f ((listToString s) ^""\n""); close_out out_f)".
 
 Extract Constant printstring => "fun x ->
   let listToString cl = String.concat """" (List.map (String.make 1) cl)
