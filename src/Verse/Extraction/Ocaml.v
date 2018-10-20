@@ -16,18 +16,12 @@ Require Import String.
 Extraction Language Ocaml.
 
 
-Module Internal.
+Axiom printstring  : string -> unit.
+Axiom writefile    : string -> string -> unit.
 
 
-  Axiom printstring  : string -> unit.
-  Axiom writefile    : string -> string -> unit.
+Definition print_doc (d:Doc) : unit := printstring (layout d).
 
-
-  Definition print_doc (d:Doc) : unit := printstring (layout d).
-
-End Internal.
-
-Import Internal.
 
 
 Extract Constant writefile   => "fun f s ->
@@ -108,7 +102,6 @@ Definition writeProgram {E : Prop}(pf : ProgFile) (prog : Doc + {E})
      let prog_str := layout <$> prog in
      let write_it := writefile filename <$> prog_str
      in recover write_it.
-
 
 (**
 
