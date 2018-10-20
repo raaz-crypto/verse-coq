@@ -53,7 +53,10 @@ Definition write_module (module : list string)(cont : list Doc) :=
   let pragma := vcat [ text "{-# LANGUAGE" <> nest 16 langLine;
                          text "#-}"
                      ] in
-  let imports  :=  [text "import Raaz.Core"] in
+  let imports  :=  List.map text [ "import Raaz.Core";
+                                     "import Foreign.Ptr";
+                                     "import Data.Word"
+                                 ]%string in
   let fcontent := text "module" <_> text mname <_> text "where" <> line
                   <> vcat (imports ++ cont)%list in
   let fullcontent := vcat [ pragma; fcontent] in
