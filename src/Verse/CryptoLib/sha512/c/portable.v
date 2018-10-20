@@ -164,4 +164,7 @@ Definition implementation : unit
 Definition prototype := recover (Internal.prototype cname).
 
 Require Import Verse.FFI.Raaz.
-Definition raazFFI := ccall prototype.
+
+Definition raazFFI : unit :=
+  let module := raazModule implementation_name in
+  write_module module [ccall prototype].
