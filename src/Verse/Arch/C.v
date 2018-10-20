@@ -471,6 +471,7 @@ Module CCodeGen <: CODEGEN C.
                              CP.statements (declare_registers state) ] in
     let actualBody := vcat [localDecls; regDecls; body]
     in vcat [ text "#include <stdint.h>";
+                text "#include <verse.h>";
                 CP.voidFunction (cFunctionName state) (declare_params state);
                 brace (nest 4 (line <> actualBody) <> line)
             ].
