@@ -5,8 +5,8 @@ Require Import Verse.
 
 Definition Word  := Word32.
 Definition Block   := Array 16 littleE Word.
-Definition Key     := Array 8 littleE Word.
-Definition IV      := Array 3 littleE Word.
+Definition Key     := Array 8 hostE Word.
+Definition IV      := Array 3 hostE Word.
 Definition Counter := Word.
 
 (** Constants used in ChaCha20 *)
