@@ -127,10 +127,10 @@ Module SHA2 (C : CONFIG).
 
       (**
 
-   The message schedule [m₁₆ = m₀ + m₋₇ + Σ₀ (m₋₁₅) + Σ₁ (m₋₂) ],
+   The message schedule [m₁₆ = m₀ + m₋₇ + σ₀ (m₋₁₅) +  σ₁(m₋₂) ],
    requires computing the sigma functions of the form
 
-   [Σ (x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ RotR(x, r2)]
+   [ σ(x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ ShiftR(x, s)]
 
    These functions can be implemented using a single temporary
    variable by updating them using the following telescopic values.
@@ -148,17 +148,16 @@ Module SHA2 (C : CONFIG).
 
        *)
 
-
       Definition SCHEDULE :=
-        let SIGMA (r0 r1 r2 : nat)(x : v Word) :=
-            [ t ::=  x >*> (r2 - r1); t ::=^ x;
-              t ::=>*>     (r1 - r0); t ::=^ x;
-              t ::=>*>     r0       ;
-              M ::=+ t
-            ] in
-        let SIGMA0 := SIGMA R00 R01 R02 (MM 15) in
-        let SIGMA1 := SIGMA R10 R11 R12 (MM 2)  in
-        [ M ::=+ MM 7 ] ++ SIGMA0 ++ SIGMA1.
+        let sigma (r0 r1 s : nat)(x : v Word) :=
+            [ t ::= x >*> (r1 - r0); t    ::=^ x;
+              t ::=>*>    r0       ; tp   ::=  x >> s;
+              t ::=^ tp            ; M    ::=+ t
+            ]%list in
+
+        let sigma0 := sigma r00 r01 s0 (MM 15) in
+        let sigma1 := sigma r10 r11 s1 (MM 2) in
+        [ M ::=+ MM 7 ] ++ sigma0 ++ sigma1.
 
       (** ** Individual rounds.
 
@@ -193,9 +192,9 @@ where
 
 <<
 
-t1 = h + k + m + SIGB1 e + CH e f g
+t1 = h + k + m + σ₁(e) + CH e f g
 
-t2 = SIGB0 a + MAJ a b c
+t2 = σ₀(a) + MAJ a b c
 
 >>
 
@@ -217,8 +216,8 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
 
       Definition ST (i : nat) : v Word.
         verse(
-            let rp  := r mod HASH_SIZE in
-            let idx := i + (16 - rp) in
+            let negr := HASH_SIZE - (r mod HASH_SIZE) in
+            let idx  := i + negr in
             STATE (idx mod HASH_SIZE) _).
       Defined.
 
@@ -233,13 +232,13 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
         let F := ST 5 in
         let G := ST 6 in
         let H := ST 7 in
-        let sigma r0 r1 s x :=
-            [ t ::= x >*> (r1 - r0); t    ::=^ x;
-              t ::=>*>    r0       ; tp   ::=  x >> s;
-              t ::=^ tp            ; temp ::=+ t
+        let Sigma r0 r1 r2 x :=
+            [ t ::= x >*> (r2 - r1); t  ::=^ x;
+              t ::=>*> (r1 - r0);    t ::=^ x;
+              t ::=>*> r0; temp ::=+ t
             ]%list in
-        let sigma0 := sigma r00 r01 s0 A in
-        let sigma1 := sigma r10 r11 s1 E in
+        let Sigma0 := Sigma R00 R01 R02 A in
+        let Sigma1 := Sigma R10 R11 R12 E in
         let CH :=
             [ tp ::=~ E;
               tp ::=& G;
@@ -251,9 +250,9 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
               t  ::=| tp
             ] in
         [ temp ::= H [+] K ; temp ::=+ M ]
-          ++ CH ++  sigma1        (* temp = H + K + M + CH e f g + σ₁(e) *)
+          ++ CH ++  Sigma1        (* temp = H + K + M + CH e f g + σ₁(e) *)
           ++ [ D ::=+ temp ]
-          ++ sigma0               (* temp = H + K + M + CH e f g + σ₁(e) + σ₀(a) *)
+          ++ Sigma0               (* temp = H + K + M + CH e f g + σ₁(e) + σ₀(a) *)
           ++ MAJ
           ++ [ H ::= temp [+] t ]. (* h =  temp + MAJ a b c *)
 
