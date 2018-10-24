@@ -163,7 +163,7 @@ Definition TypeDenote := fun _ : kind => Type.
 Definition mkTypeDenote (wordDenote : nat -> Type) : typeC TypeDenote
     := {| mkWord := fun n => wordDenote n;
           mkMultiword :=  fun m n => Vector.t (wordDenote n)  (2 ^ m);
-          mkArray     :=   fun n _ (t : Type) => Vector.t t n
+          mkArray     :=  fun n _ (t : Type) => Vector.t t n
        |}.
 
 (** *** The standard word semantics.
