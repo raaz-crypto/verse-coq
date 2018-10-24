@@ -53,7 +53,7 @@ Definition vector {k} m (t : type k) : type direct + {BadVectorType} :=
 Definition Vector128 (t : type direct) := recover (vector 4 t).
 Definition Vector256 (t : type direct) := recover (vector 4 t).
 
-Definition constant (ty : type direct) := @typeDenote _ StandardSemantics direct ty.
+Definition constant (ty : type direct) := @typeDenote _ ConstRep direct ty.
 
 
 
