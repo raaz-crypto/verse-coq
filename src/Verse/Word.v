@@ -9,6 +9,7 @@ Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
 Require Import Arith.
+Require Verse.Nibble.
 Import Basics.
 
 Local Open Scope N_scope.
@@ -29,112 +30,14 @@ Inductive t (n : nat) : Type :=
 
 Arguments bits [n] _.
 
-(** Words measured in units of bytes *)
 Definition bytes n := t (8 * n).
 
-(* Errors while encoding *)
-Inductive EncodeError : Prop := BadBase16 | BadBinary | TooFewDigits | TooManyDigits.
-
-(* begin hide *)
-Definition toN {n}(x : t n) :=
-  match x with
-  | bits bv => Bv2N n bv
-  end.
-
-Open Scope string_scope.
-
-Module Base16.
+About N2Bv_gen.
+Require Verse.Nibble.
+Definition fromNibbles {n} (v : Vector.t Verse.Nibble.Nibble n) : t (4 * n) :=
+  bits (N2Bv_gen (4 * n) (Verse.Nibble.toN v)).
 
 
-  Open Scope string_scope.
-  Open Scope char_scope.
-
-
-    Definition hexDigit (c : ascii) : N + {EncodeError}:=
-    (match c with
-     | "0" => inleft 0
-     | "1" => inleft 1
-     | "2" => inleft 2
-     | "3" => inleft 3
-     | "4" => inleft 4
-     | "5" => inleft 5
-     | "6" => inleft 6
-     | "7" => inleft 7
-     | "8" => inleft 8
-     | "9" => inleft 9
-     | "a" | "A" => inleft 10
-     | "b" | "B" => inleft 11
-     | "c" | "C" => inleft 12
-     | "d" | "D" => inleft 13
-     | "e" | "E" => inleft 14
-     | "f" | "F" => inleft 15
-     | _ => inright BadBase16
-     end)%N.
-
-    Fixpoint hexToNP (sofar : N) (s : string) :=
-      let update := (fun x => sofar * 16 + x)%N in
-      match s with
-      | String c sp => x <- update <$> hexDigit c ;  hexToNP x sp
-      | EmptyString => inleft sofar
-      end.
-
-    Fixpoint trim_separators (s : string) : string:=
-      match s with
-      | EmptyString => EmptyString
-      | String c sp => match c with
-                       | " " | "_" | ":" | "-" => trim_separators sp
-                       | _                     => String c (trim_separators sp)
-                       end
-      end.
-
-    Definition hexToN (n : nat)(s : string) : t n + {EncodeError}
-      := match Nat.compare n (4 * String.length s) with
-         | Eq => @bits n <$> (N2Bv_gen n <$> hexToNP (0%N) s)
-         | Lt => inright TooManyDigits
-         | Gt => inright TooFewDigits
-         end.
-
-    Definition lastHexDigit a :=
-      match Bv2N 4 (N2Bv_gen 4 a) with
-       | 0 => "0"
-       | 1 => "1"
-       | 2 => "2"
-       | 3 => "3"
-       | 4 => "4"
-       | 5 => "5"
-       | 6 => "6"
-       | 7 => "7"
-       | 8 => "8"
-       | 9 => "9"
-       | 10 => "a"
-       | 11 => "b"
-       | 12 => "c"
-       | 13 => "d"
-       | 14 => "e"
-       | 15 => "f"
-       | _  => "-"
-      end.
-    Fixpoint NToHex (n : nat)(a : N) : string :=
-      match n with
-      | 0%nat             => EmptyString
-      | (S (S (S (S m)))) => NToHex m (a / 16) ++ String (lastHexDigit a) EmptyString
-      | _                 => String (lastHexDigit a) EmptyString
-      end.
-
-End Base16.
-
-(* end hide *)
-
-(** ** Base16 representation.
-
-We define a convenient function to represent word constants in hex
-notation. A 16-bit word of value AABB (in hex notation) can be
-represented as [Ox "aabb"].
-
-*)
-
-Definition Ox s := let t := Base16.trim_separators s
-                   in recover (Base16.hexToN (4 * String.length t) t).
 
 (**
 
@@ -142,10 +45,6 @@ Conversely we can convert a word constant to its hexadecimal string as
 follows:
 
 *)
-Definition hex {n} (u : t n) : string:=
-  match u with
-  | bits bv => Base16.NToHex n (Bv2N n bv)
-  end.
 
 Definition mapP {T U} (f : T -> U) (p : T * T) :=
   let '(p1, p2) := p in (f p1, f p2).
@@ -222,7 +121,3 @@ Definition ShiftL m := liftBV (BOps.BShiftL m).
 Definition ShiftR m := liftBV (BOps.BShiftR m).
 Definition RotL m := liftBV (BOps.BRotL m).
 Definition RotR m := liftBV (BOps.BRotR m).
-
-
-
-Instance word_pretty (n : nat) : PrettyPrint (t n) := { doc := fun w => doc (@hex n w) }.
