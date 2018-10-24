@@ -9,21 +9,22 @@ Require Import Language.
 Require Import Word.
 Require Import PrettyPrint.
 
-Require Import String.
 Require Import List.
 Import ListNotations.
 Require Import Vector.
 Import VectorNotations.
 Require Import Arith.
-
+Require Import Verse.Nibble.
+Require Import String.
+Open Scope string.
 Set Implicit Arguments.
 
 Definition CConstant {k} (ty : CType k) : Type :=
   match ty with
-  | uint8_t     => Word.bytes 1
-  | uint16_t    => Word.bytes 2
-  | uint32_t    => Word.bytes 4
-  | uint64_t    => Word.bytes 8
+  | uint8_t     => Nibble.bytes 1
+  | uint16_t    => Nibble.bytes 2
+  | uint32_t    => Nibble.bytes 4
+  | uint64_t    => Nibble.bytes 8
   | _           => string
   end.
 
@@ -38,8 +39,7 @@ Definition CConstantDenote (ty : type direct) : forall (p : noErr (typeDenote ty
   refine (match ty with
           | word 0 | word 1 | word 2 | word 3 => _
           | _      => _
-          end);
-  first [ exact (fun _ => id) | notPossible ].
+          end); try exact (fun _ => fromNibbles); try notPossible; compute; intros; assumption.
 Defined.
 
 Inductive creg : GenVariableT CType :=
@@ -215,7 +215,7 @@ Module CP.
   Definition assign x y   := x <_> text "=" <_> y.
   Definition plusplus d   := text "++" <> d.
   Definition minusminus d := text "--" <> d.
-  Definition blockPtrVariableName := "blockPtr".
+  Definition blockPtrVariableName := "blockPtr"%string.
 
   Definition voidFunction nm args
     := void <_> text nm <> paren (commaSep args).
@@ -254,8 +254,9 @@ Section PrintingInstruction.
 
   Definition constant_doc (ty : CType direct)  : CConstant ty -> Doc :=
     match ty with
-    | uint8_t | uint16_t | uint32_t | uint64_t
-                                      => fun w => text "0x" <> doc w
+    | uint8_t  | uint16_t => fun w => text "0x" <> doc w
+    | uint32_t => fun w => text "0x" <> doc w <> text "UL"
+    | uint64_t => fun w => text "0x" <> doc w <> text "ULL"
     end.
 
   Global Instance constant_pretty (ty : CType direct) : PrettyPrint (CConstant ty)
@@ -360,7 +361,7 @@ Section PrintingInstruction.
                 CP.while loopCond (vcat [Cdoc body; nextBlock])
       ])
     | Cnop      => empty
-    end
+    end%string
   .
 
   Global Instance instruction_C_print : PrettyPrint (cInstruction) | 0
@@ -447,7 +448,7 @@ Module CCodeGen <: CODEGEN C.
                          | Some ty => [ declare (blockPtr ty); declare counter ]%list
                          | None    => [ ]%list
                          end
-    in iteratorDecls ++ List.rev (declare_vector (params state) mapper).
+    in (iteratorDecls ++ List.rev (declare_vector (params state) mapper))%list.
 
 
   Let declare_locals state :=

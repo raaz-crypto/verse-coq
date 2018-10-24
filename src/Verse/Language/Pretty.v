@@ -307,7 +307,7 @@ Instance PrettyPrintMyVar : forall k ty, PrettyPrint (MyVar k ty) :=
   }.
   Import Vector.
   Import Vector.VectorNotations.
-  Import Verse.Word.
+  Import Verse.Nibble.
 
 
   (**
@@ -342,5 +342,4 @@ operands of the programming fragment.
 *)
 
 
-  Compute layout (doc prog).
 End Demo.
