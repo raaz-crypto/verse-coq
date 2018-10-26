@@ -122,13 +122,10 @@ function [indices_reversed] instead of [indices].
 *)
 
 
-
   Variable v : VariableT.
   Variable b : nat.
   Variable e : endian.
   Variable ty : type direct.
-
-
 
   (**
      This function returns the list of valid indices of an array
@@ -136,10 +133,10 @@ function [indices_reversed] instead of [indices].
      1]. Mostly used in conjunction with [foreach].
 
    *)
-  
+
   Definition indices (arr : v memory (array b e ty)) :  list (Indices arr)
     := loop b.
-          
+
 
   (** This function is similar to indices but gives the indices in the
       reverse order.  *)
@@ -228,8 +225,41 @@ that load and store arrays into their register cache.
             ).
 
 
+  Require Vector.
+  Import Vector.VectorNotations.
+
+  Fixpoint makeIndices (n : nat)(l : Vector.t nat n)
+    : Vector.t {i : nat | i < b } n + {exists i, Vector.In i l /\ ~ (i < b) }.
+    Hint Constructors Vector.In.
+    refine (match l with
+              | []        => inleft []
+              | (x :: xs) =>
+                match lt_dec x b, makeIndices _ xs with
+                | left pf, inleft ixs  => inleft (exist _ x pf :: ixs)
+                | right pf, _ => inright (ex_intro _ x (conj _ pf))
+                | left pf, inright err => inright _
+                end
+            end); eauto. destruct err. intuition. eauto.
+  Defined.
+
+  Require Import Verse.Error.
+
+  Definition tryMakeIndices {n}(v : Vector.t nat n) := recover (makeIndices n v).
+  Definition shuffleIndices (v : Vector.t nat b) := tryMakeIndices v.
+
+
+  (** Often we want to ensure that a give list of shuffle indices is
+      a permutation. This proposition captures that property.
+   *)
+  Definition Permutation (v : Vector.t {i | i < b} b) :=
+    let forgetproof ix := proj1_sig ix in
+    forall n : nat, n < b -> Vector.In n (Vector.map forgetproof v).
+
+
 
 End ArrayUtils.
+
+
 
 (* begin hide *)
 Arguments varIndex  [v b ty] _ _ _.
@@ -237,4 +267,49 @@ Arguments loadCache [v b e ty] _ _.
 Arguments moveBackCache [v b e ty] _ _.
 Arguments backupCache [v b e ty] _ _.
 Arguments indices [v b e ty] _.
+Arguments makeIndices [b n] _.
+Arguments tryMakeIndices [b n] _.
+
+Arguments shuffleIndices [b] _.
+Arguments Permutation [b] _.
 (* end hide *)
+
+
+Section Selection.
+
+  Variable v : VariableT.
+  Variable b : nat.
+  Variable ty : type direct.
+
+(**
+
+Often only a given set of variable indices is required. This function
+is used for that purpose.
+
+*)
+Definition select {n : nat}
+           (regs : Vector.t (v direct ty) b)
+           (to : Vector.t {i | i < b} n)
+  : VarIndex v n ty
+  := fun _ pfn =>
+       let ibx := Vector.nth_order to pfn in
+       match ibx with
+       | exist _ _ pfb => Vector.nth_order regs pfb
+       end.
+End Selection.
+
+Arguments select [v b ty n] _ _.
+
+
+(** A tactic notation for disposing permutation proofs. This would
+     work only when the vector is just a vector of constants. But that
+     is the kind of vectors that we mostly deal with crypto
+     implementation.  *)
+
+
+
+Global Tactic Notation "crush_permutation_obligation" integer(B) :=
+      intros;
+      do B match goal with
+           | [ n : nat |- _ ] => destruct n; eauto B
+           end; pose False; omega.
