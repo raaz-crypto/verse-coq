@@ -68,7 +68,7 @@ Section Looping.
      variable [v] and a bound [b]. A loop index is a some [i < b].
 
    *)
-  Variable v : VariableT.
+  Variable A : Type.
   Variable b : nat.
 
   (**
@@ -80,13 +80,11 @@ Section Looping.
    *)
 
   Definition foreach (ixs : list {ix | ix < b})
-             (f : forall ix, ix < b -> code v)
+             (f : forall ix, ix < b -> list A)
     := let mapper := fun ix => match ix with
                             | exist _ i pf => f i pf
                             end
        in List.concat (List.map mapper ixs).
-
-
 
 
   (** The code fragment [iterate f] executes the commands [f 0, f 1,
@@ -101,9 +99,9 @@ Section Looping.
 
 End Looping.
 
-Arguments foreach [v b] _ _.
-Arguments iterate   [v b] _.
-Arguments iterate_reverse [v b] _.
+Arguments foreach [A b] _ _.
+Arguments iterate [A b] _.
+Arguments iterate_reverse [A b] _.
 
 
 Section ArrayUtils.
