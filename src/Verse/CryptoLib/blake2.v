@@ -12,7 +12,7 @@ Module Type CONFIG.
   Parameters ROUNDS : nat.
 
   (** The round constants for the hash *)
-  Parameter IV : Vector.t (constant (word WORD_LOG_SIZE)) 8.
+  Parameter IVVec : Vector.t (constant (word WORD_LOG_SIZE)) 8.
 
   (** The rotation constants used by the G function *)
   Parameter R0 R1 R2 R3 : nat.
