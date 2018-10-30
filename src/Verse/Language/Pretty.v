@@ -117,17 +117,19 @@ Ltac  verse_warn :=
 Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
-Hint Resolve NPeano.Nat.mod_upper_bound : verse.
+Global Hint Resolve NPeano.Nat.mod_upper_bound.
 
 (* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
 
 *)
-Ltac verse_unfold :=  match goal with
-                       | [ |- _ <= ?T        ] => try (unfold T)
-                       | [ |- _ < ?T        ] => try (unfold T)
-                      end.
+Ltac verse_simplify := match goal with
+                       | [ H : ?T |- ?T ]     => exact H
+                       | [ |- _ <> _ ]         => unfold not; let H := fresh "H" in intro H; inversion H
+                       | [ |- ?A mod ?B < ?B ] => apply (NPeano.Nat.mod_upper_bound A B)
+                       | [ |- _ <= ?T         ] => compute; omega
+                       | [ |- _ < ?T         ] => compute; omega
+                       end.
 
-Ltac verse_simplify := verse_unfold; eauto with verse; assumption.
 
 Ltac verse_print_mesg :=  match goal with
                           | [ |- _ < _         ]  => verse_bounds_warn
@@ -138,7 +140,7 @@ Ltac verse_print_mesg :=  match goal with
                           | _                    => verse_warn; idtac "please handle these obligations yourself"
                           end.
 
-Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; try omega; verse_print_mesg.
+Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
 
 
 (* Local sample code to test error message
@@ -333,8 +335,7 @@ operands of the programming fragment.
             MULTIPLY X AND X INTO (X : X);
             (QUOT X, REM X) ::= (X : X) [/] X
           ]%list.
-
-  Defined.
+   Defined.
 
 
   (** The above program fragment is pretty printable because the
