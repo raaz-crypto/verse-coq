@@ -277,9 +277,8 @@ Arguments Permutation [b] _.
 
 Section Selection.
 
-  Variable v : VariableT.
+  Variable A : Type.
   Variable b : nat.
-  Variable ty : type direct.
 
 (**
 
@@ -288,17 +287,15 @@ is used for that purpose.
 
 *)
 Definition select {n : nat}
-           (regs : Vector.t (v direct ty) b)
+           (inp : Vector.t A b)
            (to : Vector.t {i | i < b} n)
-  : VarIndex v n ty
-  := fun _ pfn =>
-       let ibx := Vector.nth_order to pfn in
-       match ibx with
-       | exist _ _ pfb => Vector.nth_order regs pfb
-       end.
+  : Vector.t A n
+  := let mapper idx := Vector.nth_order inp (proj2_sig idx) in
+     Vector.map mapper to.
+
 End Selection.
 
-Arguments select [v b ty n] _ _.
+Arguments select [A b n] _ _.
 
 
 (** A tactic notation for disposing permutation proofs. This would
