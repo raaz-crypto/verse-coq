@@ -307,9 +307,10 @@ Arguments select [v b ty n] _ _.
      implementation.  *)
 
 
-
+Global Hint Constructors Vector.In.
 Global Tactic Notation "crush_permutation_obligation" integer(B) :=
       intros;
-      do B match goal with
-           | [ n : nat |- _ ] => destruct n; eauto B
-           end; pose False; omega.
+      repeat match goal with
+             | [ H : _ <= _ |- _ ] => contradict H; omega
+             | [ n : nat    |- _ ] => destruct n; eauto B
+             end.
