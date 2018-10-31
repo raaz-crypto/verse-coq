@@ -54,6 +54,7 @@ Definition logSize (ty : type direct) : nat :=
 
 (* Array constructor sticking with the convention  with no alignment restriction *)
 Definition Array  := array.
+Definition Ref (ty : type direct) : type memory := array 1 hostE ty.
 
 (* begin hide *)
 Inductive BadVectorType : Prop := BadVectorTypeError.
