@@ -35,6 +35,23 @@ Notation Word16 := (word 1).
 Notation Word32 := (word 2).
 Notation Word64 := (word 3).
 
+
+(**
+
+The logSize of a direct type measures the size of the word in
+logarithmic scale.  This is often a convenient way to measure the
+length because of the fact that [word n] type denotes the word of
+[2^n] bytes.
+
+*)
+
+Definition logSize (ty : type direct) : nat :=
+  match ty with
+  | word n => n
+  | multiword m n => m + n
+  end.
+
+
 (* Array constructor sticking with the convention  with no alignment restriction *)
 Definition Array  := array.
 
