@@ -37,7 +37,7 @@ mldir: # The directory where the ocaml source is to be extracted.
 	mkdir -p ${ML_SRC_DIRS}
 	mkdir -p ${ML_RAAZ_DIRS}
 
-codedir: capitalize  # the directory where the ocaml code creates files.
+codedir:  # the directory where the ocaml code creates files.
 	mkdir -p ${CODE_DIRS}
 	mkdir -p ${RAAZ_CODE_DIRS}
 
@@ -54,9 +54,6 @@ libverse: verse codedir extract
 
 verse:
 	make -C ..
-
-capitalize: capitalize.hs
-	ghc --make capitalize.hs
 
 clean:
 	rm -f $(addprefix extract., vo glob)
