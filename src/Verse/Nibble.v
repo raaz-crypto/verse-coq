@@ -86,6 +86,7 @@ Module Internal.
       | (x :: xs) => String (toChar x) (toString xs)
       end.
 
+
     Definition nibbleToN (x : Nibble) :=
       match x with
        | x0 => 0
@@ -104,7 +105,36 @@ Module Internal.
        | xD => 13
        | xE => 14
        | xF => 15
-       end%N.
+      end%N.
+
+    Definition NToNibble (x : N) :=
+      match x with
+       | 0  => x0
+       | 1  => x1
+       | 2  => x2
+       | 3  => x3
+       | 4  => x4
+       | 5  => x5
+       | 6  => x6
+       | 7  => x7
+       | 8  => x8
+       | 9  => x9
+       | 10 => xA
+       | 11 => xB
+       | 12 => xC
+       | 13 => xD
+       | 14 => xE
+       | 15 => xF
+       | _  => x0
+      end%N.
+
+
+    Fixpoint fromNR (l : nat) (n : N) : Vector.t Nibble l :=
+      let (np,r) := N.div_eucl n 16 in
+      match l with
+      | 0%nat    => []
+      | S lp   => NToNibble r :: fromNR lp np
+      end.
 
 End Internal.
 
@@ -128,3 +158,11 @@ Instance pretty_print (n : nat) : PrettyPrint (Vector.t Nibble n) :=
 Definition toN {n} : Vector.t Nibble n -> N :=
   (let fldr := fun m x =>  16 * m + Internal.nibbleToN x in
   Vector.fold_left fldr 0)%N.
+
+
+
+Definition fromN   l n := Vector.rev (Internal.fromNR n l).
+Definition fromNat l n := fromN (N_of_nat n) l.
+
+Arguments fromN [l] _.
+Arguments fromNat [l] _.
