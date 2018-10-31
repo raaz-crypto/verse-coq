@@ -17,19 +17,15 @@ matrix:
   include:
     - os: linux
       env: COQ_VER=8.5.2
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.6
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.7.2
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.8.0
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
 
   allow_failures:
