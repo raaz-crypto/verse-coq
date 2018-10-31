@@ -16,13 +16,13 @@ endif
 
 .DEFAULT_GOAL = libverse
 
-ML_DIR      = mlsrc/
-ML_RAAZ_DIR = ${ML_DIR}raaz/
+ML_DIR      = mlsrc
+ML_RAAZ_DIR = ${ML_DIR}/raaz
 
-ML_SRC       = $(addprefix ${ML_DIR}, $(addsuffix .ml, ${IMPLS}))
-ML_RAAZ_SRC  = $(addprefix ${ML_RAAZ_DIR}, $(addsuffix .ml, ${IMPLS}))
-ML_SRC_DIRS  = $(addprefix ${ML_DIR}, $(dir ${IMPLS}))
-ML_RAAZ_DIRS = $(addprefix ${ML_RAAZ_DIR}, $(dir ${IMPLS}))
+ML_SRC       = $(addprefix ${ML_DIR}/, $(addsuffix .ml, ${IMPLS}))
+ML_RAAZ_SRC  = $(addprefix ${ML_RAAZ_DIR}/, $(addsuffix .ml, ${IMPLS}))
+ML_SRC_DIRS  = $(addprefix ${ML_DIR}/, $(dir ${IMPLS}))
+ML_RAAZ_DIRS = $(addprefix ${ML_RAAZ_DIR}/, $(dir ${IMPLS}))
 CODE_DIRS    = $(addprefix libverse/, $(dir ${IMPLS}))
 RAAZ_IMPLS     = $(shell runhaskell capitalize.hs ${IMPLS})
 RAAZ_CODE_DIRS =  $(addprefix libverse/Raaz/Verse/,$(dir ${RAAZ_IMPLS}))
