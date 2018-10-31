@@ -50,7 +50,7 @@ Definition logSize (ty : type direct) : nat :=
   | word n => n
   | multiword m n => m + n
   end.
-
+Definition size (ty : type direct) : nat := 2 ^ logSize ty.
 
 (* Array constructor sticking with the convention  with no alignment restriction *)
 Definition Array  := array.
