@@ -461,13 +461,13 @@ Module Blake2 (C : CONFIG).
      *)
     Definition UPDATE_HASH : code progvar :=
       [ h0 ::=^ v0 ; h0 ::=^ v8;
-        h1 ::=^ v1 ; h0 ::=^ v9;
-        h2 ::=^ v2 ; h0 ::=^ v10;
-        h3 ::=^ v3 ; h0 ::=^ v11;
-        h4 ::=^ v4 ; h0 ::=^ v12;
-        h5 ::=^ v5 ; h0 ::=^ v13;
-        h6 ::=^ v6 ; h0 ::=^ v14;
-        h7 ::=^ v7 ; h0 ::=^ v15
+        h1 ::=^ v1 ; h1 ::=^ v9;
+        h2 ::=^ v2 ; h2 ::=^ v10;
+        h3 ::=^ v3 ; h3 ::=^ v11;
+        h4 ::=^ v4 ; h4 ::=^ v12;
+        h5 ::=^ v5 ; h5 ::=^ v13;
+        h6 ::=^ v6 ; h6 ::=^ v14;
+        h7 ::=^ v7 ; h7 ::=^ v15
       ]%list.
 
     (** In the iterator one needs to update the hash array as well as
