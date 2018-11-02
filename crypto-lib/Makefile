@@ -1,7 +1,9 @@
 # Currently supported primitives.
 IMPLS = chacha20/c/portable \
-        sha256/c/portable  \
-        sha512/c/portable  \
+        sha256/c/portable   \
+        sha512/c/portable   \
+	blake2b/c/portable  \
+	blake2s/c/portable  \
 
 ifdef CI  # On the continuous integration use the http for getting libverse.
 	GIT_REPO=https://github.com/raaz-crypto/libverse.git # git repo where libverse reside
