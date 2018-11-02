@@ -32,24 +32,23 @@ RAAZ_CODE_DIRS =  $(addprefix libverse/Raaz/Verse/,$(dir ${RAAZ_IMPLS}))
 
 
 .PHONY: extract.v libverse clean verse dist-clean
-.PHONY: mldir codedir extract gen
+.PHONY: dirs extract gen
 
 
-mldir: # The directory where the ocaml source is to be extracted.
+dirs: # All the relevant directors.
+	if [ ! -d libverse/.git ]; then \
+		rm -rf libverse; \
+		git clone ${GIT_REPO}; \
+	fi
 	mkdir -p ${ML_SRC_DIRS}
 	mkdir -p ${ML_RAAZ_DIRS}
-
-codedir:  # the directory where the ocaml code creates files.
 	mkdir -p ${CODE_DIRS}
 	mkdir -p ${RAAZ_CODE_DIRS}
 
-extract: mldir
+extract: verse dirs
 	coqc -R ../src Verse extract.v
 
-libverse: verse codedir extract
-	if [ ! -d libverse ]; then \
-		git clone ${GIT_REPO};\
-	fi
+libverse: extract
 	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)
 	echo IMPLS=${IMPLS} > libverse/Implementations.mk
 	$(foreach mlprog, ${ML_RAAZ_SRC}, ocaml ${mlprog};)
