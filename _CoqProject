@@ -23,6 +23,8 @@ src/Verse/FFI/Raaz.v
 src/Verse/CryptoLib/Names.v
 src/Verse/CryptoLib/blake2.v
 src/Verse/CryptoLib/blake2/c/portable.v
+src/Verse/CryptoLib/blake2b/c/portable.v
+src/Verse/CryptoLib/blake2s/c/portable.v
 src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/portable.v
 src/Verse/CryptoLib/sha2.v
