@@ -87,7 +87,7 @@ Module C <: ARCH.
   Definition functionPrototype cframe : Prototype CType :=
   let iterTypes := match (iterateOn cframe) with
                   | Some ty => [existT _ _ ty; existT _ _ uint64_t]
-                  | None => []
+                  | None => [ ]
                   end%list
   in
   {|
