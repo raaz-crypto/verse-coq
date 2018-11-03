@@ -69,7 +69,7 @@ Module Internal.
       verse [ a ::=+ b; d ::=^ a; d ::=<*< 16;
               c ::=+ d; b ::=^ c; b ::=<*< 12;
               a ::=+ b; d ::=^ a; d ::=<*< 8;
-              c ::=+ d; b ::=^ c; b ::=<*< 12
+              c ::=+ d; b ::=^ c; b ::=<*< 7
           ].
     Defined.
 
@@ -141,7 +141,7 @@ Module Internal.
          process := fun blk =>
                       COMPUTE_STREAM
                         ++ foreach (indices blk) (XORBLOCK blk)
-                        ++ [ ctr ::=+ Ox "00:00:00:01"];
+                        ++ [ [++] ctr ];
          finalise := StoreCounter
       |}.
 
@@ -161,7 +161,12 @@ Module Internal.
           cr counterTy "ctr", cr wordTy "Tmp"
        -).
 
-  Definition chacha20 (fname : string) : Doc + {Compile.CompileError}.
+
+  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype Block fname parameters.
+  Defined.
+
+  Definition implementation (fname : string) : Doc  + {Compile.CompileError}.
     Compile.iterator Block fname parameters stack registers.
     assignRegisters regVars.
     statements ChaCha20Iterator.
@@ -177,4 +182,23 @@ for the c-code.
 *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.chacha20 cfunName).
+Require Import Verse.CryptoLib.Names.
+
+Definition implementation_name : Name := {| primitive := "chacha20";
+                                            arch      := "c";
+                                            features  := ["portable"]
+                                         |}.
+
+Definition cname     := cFunName implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
+
+Definition implementation : unit
+  := writeProgram (C cfilename) (Internal.implementation cname).
+
+Definition prototype := recover (Internal.prototype cname).
+
+Require Import Verse.FFI.Raaz.
+
+Definition raazFFI : unit :=
+  let module := raazModule implementation_name in
+  write_module module [ccall prototype].

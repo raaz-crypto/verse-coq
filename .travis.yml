@@ -5,23 +5,27 @@ cache:
     # Put all the versions of coq that you want here.
     - coq-8.5.2
     - coq-8.6
+addons:
+  apt:
+    packages:
+      - libgmp-dev
+      - opam
+      - ghc
+    sources: [avsm]
+
 matrix:
   include:
     - os: linux
       env: COQ_VER=8.5.2
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.6
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.7.2
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
     - os: linux
       env: COQ_VER=8.8.0
-      addons: {apt: {packages: [opam], sources: [avsm] }}
 
 
   allow_failures:

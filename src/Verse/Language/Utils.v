@@ -68,7 +68,7 @@ Section Looping.
      variable [v] and a bound [b]. A loop index is a some [i < b].
 
    *)
-  Variable v : VariableT.
+  Variable A : Type.
   Variable b : nat.
 
   (**
@@ -80,13 +80,11 @@ Section Looping.
    *)
 
   Definition foreach (ixs : list {ix | ix < b})
-             (f : forall ix, ix < b -> code v)
+             (f : forall ix, ix < b -> list A)
     := let mapper := fun ix => match ix with
                             | exist _ i pf => f i pf
                             end
        in List.concat (List.map mapper ixs).
-
-
 
 
   (** The code fragment [iterate f] executes the commands [f 0, f 1,
@@ -101,9 +99,9 @@ Section Looping.
 
 End Looping.
 
-Arguments foreach [v b] _ _.
-Arguments iterate   [v b] _.
-Arguments iterate_reverse [v b] _.
+Arguments foreach [A b] _ _.
+Arguments iterate [A b] _.
+Arguments iterate_reverse [A b] _.
 
 
 Section ArrayUtils.
@@ -124,13 +122,10 @@ function [indices_reversed] instead of [indices].
 *)
 
 
-
   Variable v : VariableT.
   Variable b : nat.
   Variable e : endian.
   Variable ty : type direct.
-
-
 
   (**
      This function returns the list of valid indices of an array
@@ -138,10 +133,10 @@ function [indices_reversed] instead of [indices].
      1]. Mostly used in conjunction with [foreach].
 
    *)
-  
+
   Definition indices (arr : v memory (array b e ty)) :  list (Indices arr)
     := loop b.
-          
+
 
   (** This function is similar to indices but gives the indices in the
       reverse order.  *)
@@ -230,8 +225,41 @@ that load and store arrays into their register cache.
             ).
 
 
+  Require Vector.
+  Import Vector.VectorNotations.
+
+  Fixpoint makeIndices (n : nat)(l : Vector.t nat n)
+    : Vector.t {i : nat | i < b } n + {exists i, Vector.In i l /\ ~ (i < b) }.
+    Hint Constructors Vector.In.
+    refine (match l with
+              | []        => inleft []
+              | (x :: xs) =>
+                match lt_dec x b, makeIndices _ xs with
+                | left pf, inleft ixs  => inleft (exist _ x pf :: ixs)
+                | right pf, _ => inright (ex_intro _ x (conj _ pf))
+                | left pf, inright err => inright _
+                end
+            end); eauto. destruct err. intuition. eauto.
+  Defined.
+
+  Require Import Verse.Error.
+
+  Definition tryMakeIndices {n}(v : Vector.t nat n) := recover (makeIndices n v).
+  Definition shuffleIndices (v : Vector.t nat b) := tryMakeIndices v.
+
+
+  (** Often we want to ensure that a give list of shuffle indices is
+      a permutation. This proposition captures that property.
+   *)
+  Definition Permutation (v : Vector.t {i | i < b} b) :=
+    let forgetproof ix := proj1_sig ix in
+    forall n : nat, n < b -> Vector.In n (Vector.map forgetproof v).
+
+
 
 End ArrayUtils.
+
+
 
 (* begin hide *)
 Arguments varIndex  [v b ty] _ _ _.
@@ -239,4 +267,47 @@ Arguments loadCache [v b e ty] _ _.
 Arguments moveBackCache [v b e ty] _ _.
 Arguments backupCache [v b e ty] _ _.
 Arguments indices [v b e ty] _.
+Arguments makeIndices [b n] _.
+Arguments tryMakeIndices [b n] _.
+
+Arguments shuffleIndices [b] _.
+Arguments Permutation [b] _.
 (* end hide *)
+
+
+Section Selection.
+
+  Variable A : Type.
+  Variable b : nat.
+
+(**
+
+Often only a given set of variable indices is required. This function
+is used for that purpose.
+
+*)
+Definition select {n : nat}
+           (inp : Vector.t A b)
+           (to : Vector.t {i | i < b} n)
+  : Vector.t A n
+  := let mapper idx := Vector.nth_order inp (proj2_sig idx) in
+     Vector.map mapper to.
+
+End Selection.
+
+Arguments select [A b n] _ _.
+
+
+(** A tactic notation for disposing permutation proofs. This would
+     work only when the vector is just a vector of constants. But that
+     is the kind of vectors that we mostly deal with crypto
+     implementation.  *)
+
+
+Global Hint Constructors Vector.In.
+Global Tactic Notation "crush_permutation_obligation" integer(B) :=
+      intros;
+      repeat match goal with
+             | [ H : _ <= _ |- _ ] => contradict H; omega
+             | [ n : nat    |- _ ] => destruct n; eauto B
+             end.

@@ -4,4 +4,3 @@ main
 *.o
 mlsrc
 libverse
-extract.v

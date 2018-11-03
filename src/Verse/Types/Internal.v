@@ -163,7 +163,7 @@ Definition TypeDenote := fun _ : kind => Type.
 Definition mkTypeDenote (wordDenote : nat -> Type) : typeC TypeDenote
     := {| mkWord := fun n => wordDenote n;
           mkMultiword :=  fun m n => Vector.t (wordDenote n)  (2 ^ m);
-          mkArray     :=   fun n _ (t : Type) => Vector.t t n
+          mkArray     :=  fun n _ (t : Type) => Vector.t t n
        |}.
 
 (** *** The standard word semantics.
@@ -176,10 +176,16 @@ demands.
 
 *)
 
+Require Verse.Nibble.
+
+(** Elements of the word type are represented as nibbles *)
+Definition wordRep : nat -> Type := fun n => Nibble.bytes (2^n).
+Definition ConstRep : typeC TypeDenote := mkTypeDenote wordRep.
+Import Verse.PrettyPrint.
+Global Instance constant_pretty n : PrettyPrint (wordRep n) := Nibble.pretty_print (2 * 2^n).
+
 Require Import Verse.Word.
 Definition stdWordDenote : nat -> Type := fun n => Word.bytes (2^n).
 
-Definition StandardSemantics : typeC TypeDenote := mkTypeDenote stdWordDenote.
 
-Import Verse.PrettyPrint.
-Global Instance word_constant_pretty n : PrettyPrint (stdWordDenote n) := word_pretty (8 * 2^n).
+Definition StandardSemantics : typeC TypeDenote := mkTypeDenote stdWordDenote.

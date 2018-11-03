@@ -9,21 +9,22 @@ Require Import Language.
 Require Import Word.
 Require Import PrettyPrint.
 
-Require Import String.
 Require Import List.
 Import ListNotations.
 Require Import Vector.
 Import VectorNotations.
 Require Import Arith.
-
+Require Import Verse.Nibble.
+Require Import String.
+Open Scope string.
 Set Implicit Arguments.
 
 Definition CConstant {k} (ty : CType k) : Type :=
   match ty with
-  | uint8_t     => Word.bytes 1
-  | uint16_t    => Word.bytes 2
-  | uint32_t    => Word.bytes 4
-  | uint64_t    => Word.bytes 8
+  | uint8_t     => Nibble.bytes 1
+  | uint16_t    => Nibble.bytes 2
+  | uint32_t    => Nibble.bytes 4
+  | uint64_t    => Nibble.bytes 8
   | _           => string
   end.
 
@@ -38,8 +39,7 @@ Definition CConstantDenote (ty : type direct) : forall (p : noErr (typeDenote ty
   refine (match ty with
           | word 0 | word 1 | word 2 | word 3 => _
           | _      => _
-          end);
-  first [ exact (fun _ => id) | notPossible ].
+          end); try exact (fun _ => fromNibbles); try notPossible; compute; intros; assumption.
 Defined.
 
 Inductive creg : GenVariableT CType :=
@@ -65,7 +65,7 @@ Record CFrame := { cFunctionName     : string;
 
 Module C <: ARCH.
 
-  Definition name : string := "Portable-C".
+  Definition archName : string := "Portable-C".
 
   Definition mType := CType.
   Definition mTypeDenote := CTypeDenote.
@@ -83,7 +83,18 @@ Module C <: ARCH.
   Definition embedRegister := inRegister.
 
   Definition functionDescription := CFrame.
-  
+
+  Definition functionPrototype cframe : Prototype CType :=
+  let iterTypes := match (iterateOn cframe) with
+                  | Some ty => [existT _ _ ty; existT _ _ uint64_t]
+                  | None => [ ]
+                  end%list
+  in
+  {|
+    name := cFunctionName cframe;
+    arguments := iterTypes ++ List.rev (Vector.to_list (params cframe))
+  |}.
+
 End C.
 
 Module CFrame <: FRAME C.
@@ -183,11 +194,11 @@ Inductive CAssignment :=
 
 Inductive cInstruction :=
 | Cincr k (ty : CType k) : carg cvar ty -> cInstruction
-| Cdecr (ty : CType direct) : carg cvar ty -> cInstruction   
+| Cdecr (ty : CType direct) : carg cvar ty -> cInstruction
 | Cassign  : CAssignment -> cInstruction
-| Citerate : cvar C.Word -> 
+| Citerate : cvar C.Word ->
              list cInstruction -> cInstruction
-| Cnop     : cInstruction 
+| Cnop     : cInstruction
 .
 
 Module CP.
@@ -204,7 +215,7 @@ Module CP.
   Definition assign x y   := x <_> text "=" <_> y.
   Definition plusplus d   := text "++" <> d.
   Definition minusminus d := text "--" <> d.
-  Definition blockPtrVariableName := "blockPtr".
+  Definition blockPtrVariableName := "blockPtr"%string.
 
   Definition voidFunction nm args
     := void <_> text nm <> paren (commaSep args).
@@ -243,8 +254,9 @@ Section PrintingInstruction.
 
   Definition constant_doc (ty : CType direct)  : CConstant ty -> Doc :=
     match ty with
-    | uint8_t | uint16_t | uint32_t | uint64_t
-                                      => fun w => text "0x" <> doc w
+    | uint8_t  | uint16_t => fun w => text "0x" <> doc w
+    | uint32_t => fun w => text "0x" <> doc w <> text "UL"
+    | uint64_t => fun w => text "0x" <> doc w <> text "ULL"
     end.
 
   Global Instance constant_pretty (ty : CType direct) : PrettyPrint (CConstant ty)
@@ -349,9 +361,9 @@ Section PrintingInstruction.
                 CP.while loopCond (vcat [Cdoc body; nextBlock])
       ])
     | Cnop      => empty
-    end
+    end%string
   .
-  
+
   Global Instance instruction_C_print : PrettyPrint (cInstruction) | 0
     := { doc := show }.
 
@@ -363,7 +375,7 @@ Inductive unsupportedInstruction : Prop :=
 Module CCodeGen <: CODEGEN C.
 
   Import C.
-  
+
   Definition mArg := carg.
   Definition mArgDenote := cargDenote.
 
@@ -390,7 +402,7 @@ Module CCodeGen <: CODEGEN C.
     [ Citerate count (body ++ [ Cincr (cv bVar); Cdecr (cv count) ]) ]%list.
 
   Definition emit b := line <> vcat (List.map doc b).
-  
+
   Let type_doc (t : CType direct) := text (
                                         match t with
                                         | uint8_t  => "uint8_t"%string
@@ -415,7 +427,7 @@ Module CCodeGen <: CODEGEN C.
                               | CPtr ty     => decldoc ty (paren (text "*" <> vDoc))
                               end
         end vty in
-    decldoc varty vDoc. 
+    decldoc varty vDoc.
 
   Let Fixpoint downTo (n : nat) : Vector.t nat n :=
     match n with
@@ -436,7 +448,7 @@ Module CCodeGen <: CODEGEN C.
                          | Some ty => [ declare (blockPtr ty); declare counter ]%list
                          | None    => [ ]%list
                          end
-    in iteratorDecls ++ List.rev (declare_vector (params state) mapper).
+    in (iteratorDecls ++ List.rev (declare_vector (params state) mapper))%list.
 
 
   Let declare_locals state :=
@@ -460,6 +472,7 @@ Module CCodeGen <: CODEGEN C.
                              CP.statements (declare_registers state) ] in
     let actualBody := vcat [localDecls; regDecls; body]
     in vcat [ text "#include <stdint.h>";
+                text "#include <verse.h>";
                 CP.voidFunction (cFunctionName state) (declare_params state);
                 brace (nest 4 (line <> actualBody) <> line)
             ].

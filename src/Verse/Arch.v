@@ -31,7 +31,7 @@ instruction that use machine vars to actual machine code.
 Module Type ARCH.
 
   (** Name of the architecture family *)
-  Parameter name     : string.
+  Parameter archName     : string.
 
   (** The Types of machine variables and a denotation of Verse types into them *)
   Parameter mType        : kind -> Type.
@@ -72,6 +72,8 @@ Module Type ARCH.
    *)
 
   Parameter functionDescription : Type.
+
+  Parameter functionPrototype : functionDescription -> Prototype mType.
 
 End ARCH.
 

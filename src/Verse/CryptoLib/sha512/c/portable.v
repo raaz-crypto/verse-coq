@@ -125,7 +125,12 @@ Module Internal.
           cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp"
                                        -).
 
-  Definition sha512 (fname : string) : Doc + {Compile.CompileError}.
+
+  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype SHA512.Block fname SHA512.parameters.
+  Defined.
+
+  Definition implementation (fname : string) : Doc + {Compile.CompileError}.
     Compile.iterator SHA512.Block fname SHA512.parameters SHA512.locals SHA512.registers.
     assignRegisters regVars.
     statements SHA512.sha2.
@@ -141,4 +146,25 @@ for the c-code.
  *)
 
 Require Import Verse.Extraction.Ocaml.
-Definition implementation (fp cfunName : string) : unit := writeProgram (C fp) (Internal.sha512 cfunName).
+Require Import Verse.CryptoLib.Names.
+
+Require Import Verse.CryptoLib.Names.
+
+Definition implementation_name : Name := {| primitive := "sha512";
+                                            arch      := "c";
+                                            features  := ["portable"]
+                                         |}.
+
+Definition cname     := cFunName implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
+
+Definition implementation : unit
+  := writeProgram (C cfilename) (Internal.implementation cname).
+
+Definition prototype := recover (Internal.prototype cname).
+
+Require Import Verse.FFI.Raaz.
+
+Definition raazFFI : unit :=
+  let module := raazModule implementation_name in
+  write_module module [ccall prototype].

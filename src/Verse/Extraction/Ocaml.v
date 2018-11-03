@@ -16,24 +16,18 @@ Require Import String.
 Extraction Language Ocaml.
 
 
-Module Internal.
+Axiom printstring  : string -> unit.
+Axiom writefile    : string -> string -> unit.
 
 
-  Axiom printstring  : string -> unit.
-  Axiom writefile    : string -> string -> unit.
+Definition print_doc (d:Doc) : unit := printstring (layout d).
 
-
-  Definition print_doc (d:Doc) : unit := printstring (layout d).
-
-End Internal.
-
-Import Internal.
 
 
 Extract Constant writefile   => "fun f s ->
         let listToString cl = String.concat """" (List.map (String.make 1) cl) in
         let out_f = open_out (listToString f) in
-            (output_string out_f (listToString s); close_out out_f)".
+            (output_string out_f ((listToString s) ^""\n""); close_out out_f)".
 
 Extract Constant printstring => "fun x ->
   let listToString cl = String.concat """" (List.map (String.make 1) cl)
@@ -101,15 +95,13 @@ Inductive ProgFile :=
 
 
 Definition writeProgram {E : Prop}(pf : ProgFile) (prog : Doc + {E})
-  := let prog_str := ap layout prog in
-     let write_it := fun f => ap (writefile f) prog_str in
-     let filename := fun pf =>
-                       match pf with
-                       | C s   => s ++ ".c"
-                       | ASM s => s ++ ".s"
-                       end%string in
-     recover (write_it (filename pf)).
-
+  := let filename := match pf with
+                     | C s   => s ++ ".c"
+                     | ASM s => s ++ ".s"
+                     end%string in
+     let prog_str := layout <$> prog in
+     let write_it := writefile filename <$> prog_str
+     in recover write_it.
 
 (**
 

@@ -13,11 +13,11 @@ Section TestFunction.
   Variable num : variable Word16.
   Variable arr      : variable (Array 3 littleE Word16).
   Definition parameters := [Var num; Var arr].
-  
+
   (* The local variables *)
 
   Definition locals : list (some type) := [ ]%list.
-  
+
   (* The temp register *)
   Variable tmp       : variable Word16.
   Variable double    : variable Word32.
@@ -79,4 +79,4 @@ Definition code : Doc + {Compile.CompileError}.
   statements test.
 Defined.
 
-Compute (tryLayout code).
+Definition pgm : string := tryLayout code.
