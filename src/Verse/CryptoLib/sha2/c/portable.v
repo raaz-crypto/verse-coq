@@ -135,6 +135,26 @@ Module SHA2 (C : CONFIG).
                    (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
       .
 
+      (* Alternate definitions:  For some reason these are slower *)
+
+      (*
+      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+        let sr := S idx in
+        exist _
+              (sr mod BLOCK_SIZE)
+              (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize).
+
+      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+        match idx with
+        | 15 => exist _ 0 zltBlockSize
+        | _  => let sr := S idx in
+                exist _
+                      (sr mod BLOCK_SIZE)
+                      (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
+        end.
+
+        *)
+
 
       Definition M  := W idx idxPf.
 
