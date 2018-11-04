@@ -161,23 +161,12 @@ Module SHA2 (C : CONFIG).
       (** This completes the code for message scheduling *)
     End MessageSchedule.
 
-    Hint Resolve EqNat.beq_nat_true.
-    Hint Resolve PeanoNat.Nat.eqb_eq. (*: forall n m : nat, (n =? m) = true <-> n = m *)
-
-    (*
     Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
-      intros.
-      unfold nextIdx.
-      assert (H:bool) by exact (n =? 15).
-      let H := fresh "Hp"
-      in assert (H:{n = 15} + {n <> 15}) by eauto;
-           destruct H.
-      rewrite e0. compute. trivial.
-      unfold nextIdx.
+      intro n.
+      do 16 (destruct n; trivial).
+    Qed.
 
-      ).
 
-     *)
     (** * Sha2 round.
 
       The Sha2 hash function keeps track of a state in the variables
