@@ -29,5 +29,6 @@ src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/portable.v
 src/Verse/CryptoLib/sha2.v
 src/Verse/CryptoLib/sha2/c/portable.v
+src/Verse/CryptoLib/sha2/c/portableAlternate.v
 src/Verse/CryptoLib/sha256/c/portable.v
 src/Verse/CryptoLib/sha512/c/portable.v
