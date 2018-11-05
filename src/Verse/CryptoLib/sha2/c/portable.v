@@ -320,7 +320,7 @@ Module SHA2 (C : CONFIG).
              let cde := genCode s k in
              let (cdeRest, stp) := generateRounds (newState s) ks in
              (cde ++ cdeRest, stp)
-           | [] => ([],s)
+           | [ ] => ([ ],s)
            end.
     End GenerateRounds.
 
@@ -331,7 +331,7 @@ Module SHA2 (C : CONFIG).
                         (ys,zs) => (x :: ys, zs)
                       end
 
-      | _      , _ => ([],l)
+      | _      , _ => ([ ],l)
       end.
 
     Definition ALL_ROUNDS :=
