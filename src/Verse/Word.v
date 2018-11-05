@@ -4,7 +4,7 @@ Require Import Verse.Error.
 Require Import Vector.
 Require Import Coq.NArith.Ndigits.
 Require Import BinNums.
-Require Import BigNumPrelude. (* For versions 8.5 and 8.6 versions *)
+Require Import NArith.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
