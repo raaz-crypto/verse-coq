@@ -8,9 +8,9 @@ Import ListNotations.
 
 (** * SHA2 hashing algorithm.
 
-We can now give a common iterator for both the sha512 and sha256
-algorithm. It is implemented as a module parameterised over the
-configuration module.
+We give a common iterator for both the sha512 and sha256 algorithm. It
+is implemented as a module parameterised over the configuration
+module.
 
 *)
 Module SHA2 (C : CONFIG).
@@ -42,19 +42,19 @@ Module SHA2 (C : CONFIG).
 
     (** ** Program variables.
 
-        We begin by defining the program variables. Recall that, the
-        standard idiom of verse is to declare the parameters, local
-        variables, and register variables in that order.
+        The standard idiom of verse is to declare the parameters,
+        local variables, and register variables in that order.
 
      *)
 
     (** *** Parameters
 
-        SHA2 hashes are Merkel-Damgrad hash. Hence it needs only the
-        hash of the previous blocks to process the current block. Thus
-        there is only one parameter for the hash function namely the
-        hash of the previous block.
-
+        SHA2 hashes are Merkel-Damgrad hash. The block iterator is
+        only expected to compress the blocks and issues like padding
+        is to be handled separately by the calling function.  Hence
+        the iterator only needs the hash of the previous blocks to
+        continue processing blocks. Thus there is only one parameter
+        for the hash function namely the hash of the previous block.
      *)
 
     Variable hash : v Hash.
@@ -63,9 +63,10 @@ Module SHA2 (C : CONFIG).
 
     (** *** Local variables.
 
-        We keep the current block in a set of local variables. The
-        advantage of this is that on a register rich machine all of
-        them could be allocated in registers and thus could be faster.
+        We keep the current block in a set of local variables. When
+        compiling the resulting C code to a register rich machine, all
+        of them could be allocated in registers and thus could be
+        faster.
 
      *)
 
@@ -117,8 +118,8 @@ Module SHA2 (C : CONFIG).
 
       (** We give the message schedule calculation for the ith message
           index. Since the recurrence relation governing m(r) refers
-          only to BLOCK_SIZE many previous values, we compute the
-          sequence m(r) in separate variables we reuse the [w]
+          only to BLOCK_SIZE many previous values, rather than computing
+          the sequence m(r) in separate variables we reuse the [w]
           varaibles by placing m(r) in [w(r mod BLOCK_SIZE)] *)
 
 
@@ -127,30 +128,30 @@ Module SHA2 (C : CONFIG).
 
 
       (** Function to increment message index *)
-      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
         if idx =? 15 then exist _ 0 zltBlockSize
-        else let sr := S idx in
+        else let sIdx := S idx in
              exist _
-                   (sr mod BLOCK_SIZE)
-                   (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
+                   (sIdx mod BLOCK_SIZE)
+                   (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize)
       .
 
       (* Alternate definitions:  For some reason these are slower *)
 
       (*
-      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
-        let sr := S idx in
+      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
+        let sIdx := S idx in
         exist _
-              (sr mod BLOCK_SIZE)
-              (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize).
+              (sIdx mod BLOCK_SIZE)
+              (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
-      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
         match idx with
         | 15 => exist _ 0 zltBlockSize
-        | _  => let sr := S idx in
+        | _  => let sIdx := S idx in
                 exist _
-                      (sr mod BLOCK_SIZE)
-                      (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
+                      (sIdx mod BLOCK_SIZE)
+                      (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize)
         end.
 
         *)
