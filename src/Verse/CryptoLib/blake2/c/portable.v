@@ -238,8 +238,8 @@ Module Blake2 (C : CONFIG).
           computing the carry
        *)
       Definition mask : constant Word.
-        refine (let allones := Vector.const xF (2*2^WORD_LOG_SIZE) in
-                @Vector.replace_order _ _ allones 0 _ x7); simpl.
+        refine (let allones := Vector.const OxF (2*2^WORD_LOG_SIZE) in
+                @Vector.replace_order _ _ allones 0 _ Ox7); simpl.
         eauto.
       Defined.
 

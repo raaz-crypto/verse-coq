@@ -7,8 +7,8 @@ Require Import BinNums.
 Require Import NArith.
 
 Inductive Nibble
-  := x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 |
-     xA | xB | xC | xD | xE | xF.
+  := Ox0 | Ox1 | Ox2 | Ox3 | Ox4 | Ox5 | Ox6 | Ox7 | Ox8 | Ox9 |
+     OxA | OxB | OxC | OxD | OxE | OxF.
 
 Definition bytes n := Vector.t Nibble (2 * n).
 
@@ -20,43 +20,43 @@ Module Internal.
 
   Definition toChar (n : Nibble) : ascii :=
     match n with
-    | x0 => "0"
-    | x1 => "1"
-    | x2 => "2"
-    | x3 => "3"
-    | x4 => "4"
-    | x5 => "5"
-    | x6 => "6"
-    | x7 => "7"
-    | x8 => "8"
-    | x9 => "9"
-    | xA => "a"
-    | xB => "b"
-    | xC => "c"
-    | xD => "d"
-    | xE => "e"
-    | xF => "f"
+    | Ox0 => "0"
+    | Ox1 => "1"
+    | Ox2 => "2"
+    | Ox3 => "3"
+    | Ox4 => "4"
+    | Ox5 => "5"
+    | Ox6 => "6"
+    | Ox7 => "7"
+    | Ox8 => "8"
+    | Ox9 => "9"
+    | OxA => "a"
+    | OxB => "b"
+    | OxC => "c"
+    | OxD => "d"
+    | OxE => "e"
+    | OxF => "f"
     end.
 
   Local Open Scope char_scope.
     Definition fromChar (c : ascii) : Nibble + {EncodeError}:=
       match c with
-       | "0" => inleft x0
-       | "1" => inleft x1
-       | "2" => inleft x2
-       | "3" => inleft x3
-       | "4" => inleft x4
-       | "5" => inleft x5
-       | "6" => inleft x6
-       | "7" => inleft x7
-       | "8" => inleft x8
-       | "9" => inleft x9
-       | "a" | "A" => inleft xA
-       | "b" | "B" => inleft xB
-       | "c" | "C" => inleft xC
-       | "d" | "D" => inleft xD
-       | "e" | "E" => inleft xE
-       | "f" | "F" => inleft xF
+       | "0" => inleft Ox0
+       | "1" => inleft Ox1
+       | "2" => inleft Ox2
+       | "3" => inleft Ox3
+       | "4" => inleft Ox4
+       | "5" => inleft Ox5
+       | "6" => inleft Ox6
+       | "7" => inleft Ox7
+       | "8" => inleft Ox8
+       | "9" => inleft Ox9
+       | "a" | "A" => inleft OxA
+       | "b" | "B" => inleft OxB
+       | "c" | "C" => inleft OxC
+       | "d" | "D" => inleft OxD
+       | "e" | "E" => inleft OxE
+       | "f" | "F" => inleft OxF
        | _ => inright BadBase16
       end.
 
@@ -89,43 +89,43 @@ Module Internal.
 
     Definition nibbleToN (x : Nibble) :=
       match x with
-       | x0 => 0
-       | x1 => 1
-       | x2 => 2
-       | x3 => 3
-       | x4 => 4
-       | x5 => 5
-       | x6 => 6
-       | x7 => 7
-       | x8 => 8
-       | x9 => 9
-       | xA => 10
-       | xB => 11
-       | xC => 12
-       | xD => 13
-       | xE => 14
-       | xF => 15
+       | Ox0 => 0
+       | Ox1 => 1
+       | Ox2 => 2
+       | Ox3 => 3
+       | Ox4 => 4
+       | Ox5 => 5
+       | Ox6 => 6
+       | Ox7 => 7
+       | Ox8 => 8
+       | Ox9 => 9
+       | OxA => 10
+       | OxB => 11
+       | OxC => 12
+       | OxD => 13
+       | OxE => 14
+       | OxF => 15
       end%N.
 
     Definition NToNibble (x : N) :=
       match x with
-       | 0  => x0
-       | 1  => x1
-       | 2  => x2
-       | 3  => x3
-       | 4  => x4
-       | 5  => x5
-       | 6  => x6
-       | 7  => x7
-       | 8  => x8
-       | 9  => x9
-       | 10 => xA
-       | 11 => xB
-       | 12 => xC
-       | 13 => xD
-       | 14 => xE
-       | 15 => xF
-       | _  => x0
+       | 0  => Ox0
+       | 1  => Ox1
+       | 2  => Ox2
+       | 3  => Ox3
+       | 4  => Ox4
+       | 5  => Ox5
+       | 6  => Ox6
+       | 7  => Ox7
+       | 8  => Ox8
+       | 9  => Ox9
+       | 10 => OxA
+       | 11 => OxB
+       | 12 => OxC
+       | 13 => OxD
+       | 14 => OxE
+       | 15 => OxF
+       | _  => Ox0
       end%N.
 
     About N.div_eucl.
