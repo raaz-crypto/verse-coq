@@ -4,7 +4,7 @@ Require Import Ascii.
 Require Import String.
 Require Import Verse.Error.
 Require Import BinNums.
-Require Import BigNumPrelude. (* For versions 8.5 and 8.6 versions *)
+Require Import NArith.
 
 Inductive Nibble
   := x0 | x1 | x2 | x3 | x4 | x5 | x6 | x7 | x8 | x9 |
@@ -128,7 +128,7 @@ Module Internal.
        | _  => x0
       end%N.
 
-
+    About N.div_eucl.
     Fixpoint fromNR (l : nat) (n : N) : Vector.t Nibble l :=
       let (np,r) := N.div_eucl n 16 in
       match l with

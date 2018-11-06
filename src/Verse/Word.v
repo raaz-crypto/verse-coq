@@ -4,7 +4,7 @@ Require Import Verse.Error.
 Require Import Vector.
 Require Import Coq.NArith.Ndigits.
 Require Import BinNums.
-Require Import BigNumPrelude. (* For versions 8.5 and 8.6 versions *)
+Require Import NArith.
 Require Import String.
 Require Import Ascii.
 Require Import Verse.PrettyPrint.
@@ -32,7 +32,6 @@ Arguments bits [n] _.
 
 Definition bytes n := t (8 * n).
 
-About N2Bv_gen.
 Require Verse.Nibble.
 Definition fromNibbles {n} (v : Vector.t Verse.Nibble.Nibble n) : t (4 * n) :=
   bits (N2Bv_gen (4 * n) (Verse.Nibble.toN v)).

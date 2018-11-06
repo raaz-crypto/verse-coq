@@ -19,6 +19,20 @@ Module SHA2 (C : CONFIG).
   Definition Hash  := Array HASH_SIZE  hostE Word.
   Definition Block := Array BLOCK_SIZE bigE Word.
 
+
+  (** Some helper inequalities *)
+  Hint Resolve NPeano.Nat.lt_0_succ.
+  Definition zltBlockSize : 0 < BLOCK_SIZE.
+    unfold BLOCK_SIZE. eauto.
+  Defined.
+
+
+  Definition nonZeroBlockSize : BLOCK_SIZE <> 0.
+    unfold BLOCK_SIZE. eauto.
+  Defined.
+
+
+
   Section Program.
 
     Variable v : VariableT.
@@ -59,13 +73,11 @@ Module SHA2 (C : CONFIG).
 
     Definition message_variables
       := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-
     Definition locals : Declaration := Vector.map Var message_variables.
-
     Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
 
-
+    (** * Message scheduling *)
 
     (** ** The state and temporary variables.
 
@@ -88,188 +100,255 @@ Module SHA2 (C : CONFIG).
     Definition LOAD_STATE : code v := loadCache hash STATE.
 
 
-  (** * The hash transformation.
+    (** * Message scheduling.
 
-      The hashing algorithm transforms a state consisting of
-      [HASH_SIZE] many [Word]s into [ROUNDS] many rounds. Each round
-      uses a message word that is scheduled for that particular
-      round. This section builds code towards implementing these.
+        The block [w0,...,w15] is expanded to a message schedule
+        [m(r)] given by the recurrence equation.
 
-   *)
+        [ m(r) = m(r - 16) + m(r - 7) + σ₀ m(r - 15) + σ₁ m(r - 2) ]
+
+        where the σ₀ and σ₁ functions are of the form.
 
 
-    Section HashTransformation.
+        [ σ(x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ ShiftR(x, s)]
+        *)
 
-      (* The hash transformation is parameterised over the round [r]
-      *)
+    Section MessageSchedule.
 
-      Variable r : nat.
-      Variable rBoundPf : r < ROUNDS.
+      (** We give the message schedule calculation for the ith message
+          index. Since the recurrence relation governing m(r) refers
+          only to BLOCK_SIZE many previous values, we compute the
+          sequence m(r) in separate variables we reuse the [w]
+          varaibles by placing m(r) in [w(r mod BLOCK_SIZE)] *)
 
-      (* ** Message scheduling.
 
-         Although the message scheduling requires [ROUNDS] many
-         values, we only need to keep track of a window of 16 values.
-         This is because each the rth step requires only the rth
-         message word and the subsequent message schedule requries
-         only the previous 16 messages.
+      Variable idx   : nat.
+      Variable idxPf : idx < BLOCK_SIZE.
 
-       *)
 
-      Definition M : v Word.
-        verse (W (r mod BLOCK_SIZE) _).
-      Defined.
+      (** Function to increment message index *)
+      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+        if idx =? 15 then exist _ 0 zltBlockSize
+        else let sr := S idx in
+             exist _
+                   (sr mod BLOCK_SIZE)
+                   (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
+      .
 
-      (** This defines M(r - j) *)
+      (* Alternate definitions:  For some reason these are slower *)
+
+      (*
+      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+        let sr := S idx in
+        exist _
+              (sr mod BLOCK_SIZE)
+              (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize).
+
+      Definition nextIdx : { sr | sr < BLOCK_SIZE } :=
+        match idx with
+        | 15 => exist _ 0 zltBlockSize
+        | _  => let sr := S idx in
+                exist _
+                      (sr mod BLOCK_SIZE)
+                      (NPeano.Nat.mod_upper_bound sr BLOCK_SIZE nonZeroBlockSize)
+        end.
+
+        *)
+
+
+      Definition M  := W idx idxPf.
+
+      (** We capture m(idx - j) using this variable *)
       Definition MM (j : nat) : v Word.
-        verse (W ((r + 16 - j) mod BLOCK_SIZE) _).
+        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _).
       Defined.
 
-      (**
 
-   The message schedule [m₁₆ = m₀ + m₋₇ + σ₀ (m₋₁₅) +  σ₁(m₋₂) ],
-   requires computing the sigma functions of the form
-
-   [ σ(x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ ShiftR(x, s)]
-
-   These functions can be implemented using a single temporary
-   variable by updating them using the following telescopic values.
-
-   [ RotR(x, r2 - r1) ]
-
-   [ RotR(x, r2 - r1) ⊕ x]
-
-   [ RotR(x, r2 - r0) ⊕ RotR(x, r1 - r0) ⊕ x]
-
-   [ RotR(x, r2) ⊕ RotR(x, r1) ⊕ Rot(x, r0)]
-
-   At each step the temporary variables need to be rotated and then
-   xord by x. This message schedule is give by the following code.
-
+      (** We now give the code for updating the message M with the value
+          of the appropriate sigma function.
        *)
+      Definition sigma (r0 r1 s : nat)(x : v Word) :=
+        [ temp ::= x >*> r1; tp ::= x >*> r0;
+          temp ::=^ tp;      tp ::= x >> s;
+          temp ::=^ tp; M ::=+ temp
+        ]%list.
 
       Definition SCHEDULE :=
-        let sigma (r0 r1 s : nat)(x : v Word) :=
-            [ t ::= x >*> (r1 - r0); t    ::=^ x;
-              t ::=>*>    r0       ; tp   ::=  x >> s;
-              t ::=^ tp            ; M    ::=+ t
-            ]%list in
-
         let sigma0 := sigma r00 r01 s0 (MM 15) in
         let sigma1 := sigma r10 r11 s1 (MM 2) in
         [ M ::=+ MM 7 ] ++ sigma0 ++ sigma1.
 
-      (** ** Individual rounds.
+      (** This completes the code for message scheduling *)
+    End MessageSchedule.
 
-      The state of the hash function is kept track of in the set of
-      variables a-h, and in the rth round the update is given by
-
-       *)
-
-
-
-      (**
-
-<< a' = t1 + t2
-
-b' = a
-
-c' = b
-
-d' = c
-
-e' = d + t1
-
-f' = e
-
-g' = f
-
-h' = g
-
->>
-
-where
-
-<<
-
-t1 = h + k + m + σ₁(e) + CH e f g
-
-t2 = σ₀(a) + MAJ a b c
-
->>
+    Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
+      intro n.
+      do 16 (destruct n; trivial).
+    Qed.
 
 
-       *)
+    (** * Sha2 round.
 
-      (** So in each round we compute the following
-
-<<
-
-temp = h + k + m + σ₁(e) + CH(e,f,g)
-
-d += temp;
-
-h = temp + σ₀(a) + MAJ(a,b,c); >>
-
-       *)
+      The Sha2 hash function keeps track of a state in the variables
+      a-h, and updates the state according to the equation.
 
 
-      Definition ST (i : nat) : v Word.
-        verse(
-            let negr := HASH_SIZE - (r mod HASH_SIZE) in
-            let idx  := i + negr in
-            STATE (idx mod HASH_SIZE) _).
-      Defined.
+      <<
+      a' = t1 + t2
+      b' = a
+      c' = b
+      d' = c
+      e' = d + t1
+      f' = e
+      g' = f
+      h' = g
+      >>
+      where
 
-      Definition K : constant Word :=  Vector.nth_order KVec rBoundPf.
+      <<
+      t1 = h + k + m + 𝚺₁(e) + CH e f g
+      t2 = 𝚺₀(a) + MAJ a b c
+      >>
 
-      Definition STEP : code v :=
-        let A := ST 0 in
-        let B := ST 1 in
-        let C := ST 2 in
-        let D := ST 3 in
-        let E := ST 4 in
-        let F := ST 5 in
-        let G := ST 6 in
-        let H := ST 7 in
-        let Sigma r0 r1 r2 x :=
-            [ t ::= x >*> (r2 - r1); t  ::=^ x;
-              t ::=>*> (r1 - r0);    t ::=^ x;
-              t ::=>*> r0; temp ::=+ t
-            ]%list in
-        let Sigma0 := Sigma R00 R01 R02 A in
-        let Sigma1 := Sigma R10 R11 R12 E in
-        let CH :=
-            [ tp ::=~ E;
-              tp ::=& G;
-              t ::= E [&] F; t ::=^ tp; temp ::=+ t] in
-        let MAJ :=
-            [ t  ::=  B [|] C;
-              t  ::=& A;
-              tp ::=  B [&] C;
-              t  ::=| tp
-            ] in
-        [ temp ::= H [+] K ; temp ::=+ M ]
-          ++ CH ++  Sigma1        (* temp = H + K + M + CH e f g + σ₁(e) *)
-          ++ [ D ::=+ temp ]
-          ++ Sigma0               (* temp = H + K + M + CH e f g + σ₁(e) + σ₀(a) *)
-          ++ MAJ
-          ++ [ H ::= temp [+] t ]. (* h =  temp + MAJ a b c *)
+      where the 𝚺 functions are of the form
+      𝚺 (x) = RotR(x , r0) ^ RotR(x,r1) ^ RotR(x,r2)
+      We capture the state as a record of variables.
 
-      Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
-        verse ([STATE i _ ::=+ hash [- i -]]).
-      Defined.
+     *)
 
-      Definition UPDATE : code v
-        := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash STATE.
+    Record State := { A : v Word;
+                      B : v Word;
+                      C : v Word;
+                      D : v Word;
+                      E : v Word;
+                      F : v Word;
+                      G : v Word;
+                      H : v Word;
+                      mIdx      : nat;
+                      mIdxProof : mIdx < BLOCK_SIZE;
+                     }.
+
+    (** The starting state *)
+    Definition state0 : State:=
+      {| A := a;
+         B := b;
+         C := c;
+         D := d;
+         E := e;
+         F := f;
+         G := g;
+         H := h;
+         mIdx := 0;
+         mIdxProof := zltBlockSize;
+       |}.
 
 
-      Definition Round : code v :=
-        if leb r (ROUNDS - BLOCK_SIZE - 1) then STEP ++ SCHEDULE else STEP.
+    (** Instead of using different variables for each round we just
+        update the state by permuting elements
+     *)
 
-    End HashTransformation.
+    Definition newState (s : State):=
+      match nextIdx  (mIdx s) with
+        | exist _ r rpf =>
+          {|
+            A := H s;
+            B := A s;
+            C := B s;
+            D := C s;
+            E := D s;
+            F := E s;
+            G := F s;
+            H := G s;
+            mIdx := r;
+            mIdxProof := rpf
+          |}
+      end.
 
-    Definition ALL_ROUNDS : code v := iterate Round.
+    Definition Sigma r0 r1 r2 (x : v Word) :=
+      [ temp ::= x >*> (r2 - r1); temp ::=^ x;
+        temp ::=>*> (r1 - r0);    temp ::=^ x;
+        temp ::=>*> r0
+      ]%list.
+
+    Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
+    Definition Sigma1 (s : State) := Sigma R10 R11 R12 (E s).
+
+
+    (** The CH and the MAJ functions are also defined computing their result
+        into the temp variable temp
+     *)
+    Definition CH (s : State) : code v:=
+            [ tp ::=~ E s;
+              tp ::=& G s;
+              temp ::= E s [&] F s; temp ::=^ tp
+            ]%list.
+
+    Definition MAJ (s : State) : code v :=
+      [ temp  ::=  B s [|] C s;
+        temp  ::=& A s;
+        tp    ::=  B s [&] C s;
+        temp  ::=| tp
+      ].
+
+    (**
+       We now give the code for computing a single round given the
+       state s and the round constant K
+     *)
+    Definition STEP (s : State) (K : constant Word) : code v :=
+      let M : v Word := W (mIdx s) (mIdxProof s) in
+      [ t ::= H s [+] K  ;  t ::=+ M ]
+        ++ CH s        (* temp = CH e f g *)
+        ++ [ t ::=+ temp ]
+        ++  Sigma1 s   (* temp =  σ₁(e)   *)
+        ++ [ t ::=+ temp ]
+        ++ [ D s ::=+ t ]
+        ++ Sigma0 s    (* temp =  σ₀(a) *)
+        ++ [ t ::=+ temp ]
+        ++ MAJ s       (* temp = MAJ a b c *)
+        ++ [ H s ::= temp [+] t ] (* h =  t + MAJ a b c *)
+    .
+
+    Definition STEP_AND_SCHEDULE s K :=
+      STEP s K ++ SCHEDULE (mIdx s) (mIdxProof s).
+
+    Section GenerateRounds.
+      Variable genCode : State -> constant Word -> code v.
+      Fixpoint generateRounds (s : State) (Ks : list (constant Word))
+               : code v * State
+        := match Ks with
+           | k :: ks =>
+             let cde := genCode s k in
+             let (cdeRest, stp) := generateRounds (newState s) ks in
+             (cde ++ cdeRest, stp)
+           | [ ] => ([ ],s)
+           end.
+    End GenerateRounds.
+
+
+    Fixpoint splitAt {A}(n : nat)(l : list A) : list A * list A :=
+      match l,n with
+      | x::xs, S m => match splitAt m xs with
+                        (ys,zs) => (x :: ys, zs)
+                      end
+
+      | _      , _ => ([ ],l)
+      end.
+
+    Definition ALL_ROUNDS :=
+      let Ks := Vector.to_list KVec in
+      let (KsInit, KsLast) := splitAt (ROUNDS - BLOCK_SIZE)  Ks in
+      let (cd1, state1) := generateRounds STEP_AND_SCHEDULE state0 KsInit in
+      let (cd2,_) := generateRounds STEP state1 KsLast in
+      cd1 ++ cd2.
+
+
+    Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
+      verse ([STATE i _ ::=+ hash [- i -]]).
+    Defined.
+
+    Definition UPDATE : code v
+      := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash STATE.
+
     Definition sha2 : iterator Block v :=
       {|
         setup   := LOAD_STATE;
