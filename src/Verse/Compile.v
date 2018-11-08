@@ -130,7 +130,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
     Definition compileCode (tyD : typeC TypeDenote) (insts : @code tyD v) :=
       let compile := fun cl => match cl with
-                               | annot _ => {- mkNOP -}
+                               | assert _ => {- mkNOP -}
                                | inst i  => instDenote i
                                end in
       merge (List.map compile insts).
