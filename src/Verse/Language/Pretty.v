@@ -54,7 +54,6 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types
 (* end hide *)
 
 
-
 Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
 Notation "! A"           := (inst (index A 0 _)) (at level 70).
 Notation "[++] A"        := (inst (increment (toLArg A))) (at level 70).
@@ -104,34 +103,28 @@ Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (inst (assign (extassig
 
 (** Notations for annotations in code *)
 
-Class Context tyD v := val : context tyD v * context tyD v.
+Class Context tyD v := val : @context tyD v * @context tyD v.
 
-Notation "'ASSUME' P" := (annot (assert (fun s : Context _ _ => P))) (at level 100).
-Notation "'CLAIM'  P" := (annot (claim (fun s : Context _ _ => P))) (at level 100). (* Check level *)
+Notation "A 'HAD' X ; E" := (let X := (snd val) _ _ A in E)
+                              (at level 81, right associativity, only parsing).
+
+
+Notation "A 'HAD' X 'IN' E" := (let X := (snd val) _ _ A in E)
+                             (at level 81, right associativity, only parsing).
+
+
+Notation "'ASSERT' P" := (assert (fun s : Context _ _ => P)) (at level 100).
 
 Notation "A 'HAS' X ; E"
-  := (bind ((fst val) _ _ A) (fun X => E))
-       (at level 81, right associativity, only parsing).
-
-Notation "A 'HAD' X ; E"
-  := (bind ((snd val) _ _ A) (fun X => E))
-       (at level 81, right associativity, only parsing).
-
-Notation "A 'IS' X ; E"
-  := (apA (and <$> (eq X <$> ((fst val) _ _ A))) E)
-       (at level 81, right associativity, only parsing).
-
-Notation "A 'HAD' X 'IN' E"
-  := (ap (fun X => E) ((snd val) _ _ A))
+  := (let X := (fst val) _ _ A in E)
        (at level 81, right associativity, only parsing).
 
 Notation "A 'HAS' X 'IN' E"
-  := (ap (fun X => E) ((fst val) _ _ A))
+  := (let X := (fst val) _ _ A in E)
        (at level 81, right associativity, only parsing).
 
-Notation "'REMEMBER' X" := (annot (remember X)) (at level 100).
-
-Notation "'REMEMBER' ( X , .. , Y )" := (cons (annot (remember X)) .. (cons (annot (remember Y)) nil) ..) (at level 100).
+Notation "'Val' X" := ((fst val) _ _ X) (at level 50).
+Notation "'Old' X" := ((snd val) _ _ X) (at level 50).
 
 (**
 
@@ -191,7 +184,7 @@ Section TypeError.
   Defined.
 
 End TypeError.
- *)
+*)
 
 (* begin hide *)
 Require Import Verse.PrettyPrint.
