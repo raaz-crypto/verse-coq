@@ -251,7 +251,7 @@ Module Blake2 (C : CONFIG).
        *)
 
       Variable A : Type.
-      Variable a_is_rarg : RARG progvar direct Word A.
+      Variable a_is_rarg : RARG progvar Word A.
       Variable byteCount : A.
 
       Definition UPDATE_COUNTER (u l : progvar Word) : code progvar :=
