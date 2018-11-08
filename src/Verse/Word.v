@@ -14,6 +14,8 @@ Import Basics.
 
 Local Open Scope N_scope.
 
+Set Implicit Arguments.
+
 (* end hide *)
 
 (** * Words.
@@ -93,10 +95,10 @@ Definition liftBV2 (f : forall n,  Bvector n  -> Bvector n -> Bvector n) : foral
     | bits xv, bits yv => bits (f n xv yv)
     end.
 
-Definition AndW n := liftBV2 BVand n.
-Definition OrW  n := liftBV2 BVor  n.
-Definition XorW n := liftBV2 BVxor n.
-Definition NegW n := liftBV  Bneg  n.
+Definition AndW n := @liftBV2 BVand n.
+Definition OrW  n := @liftBV2 BVor  n.
+Definition XorW n := @liftBV2 BVxor n.
+Definition NegW n := @liftBV  Bneg  n.
 
 Module BOps.
   Definition BShiftL m (n : nat) :=
@@ -112,10 +114,10 @@ Module BOps.
     end.
 
   Definition BRotL m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftL m n vec) (BShiftR (n - m) n vec).
+    fun vec => BVor n (BShiftL m vec) (BShiftR (n - m) vec).
 
   Definition BRotR m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftR m n vec) (BShiftL (n - m) n vec).
+    fun vec => BVor n (BShiftR m vec) (BShiftL (n - m) vec).
 
 End BOps.
 

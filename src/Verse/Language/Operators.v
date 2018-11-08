@@ -153,14 +153,14 @@ Module StandardWordOps <: OP_SEMANTICS (StandardWord).
     | quot         => fun a b => {- Word.numBinOp N.div a b -}
     | eucl         => fun a b c => Word.mapP inleft (Word.numBigargExop N.div_eucl a b c)
     | rem          => fun a b => {- Word.numBinOp N.modulo a b -}
-    | bitOr        => fun a b => {- OrW (4 * (2 * 2^n)) a b -}
-    | bitAnd       => fun a b => {- AndW  (4 * (2 * 2^n)) a b -}
-    | bitXor       => fun a b => {- XorW (4 * (2 * 2^n)) a b -}
-    | bitComp      => fun a => {- NegW (4 * (2 * 2^n)) a -}
-    | rotL    m    => fun a => {- RotL m (4 * (2 * 2^n)) a -}
-    | rotR    m    => fun a => {- RotR m (4 * (2 * 2^n)) a -}
-    | shiftL  m    => fun a => {- ShiftL m (4 * (2 * 2^n)) a -}
-    | shiftR  m    => fun a => {- ShiftR m (4 * (2 * 2^n)) a -}
+    | bitOr        => fun a b => {- OrW a b -}
+    | bitAnd       => fun a b => {- AndW a b -}
+    | bitXor       => fun a b => {- XorW a b -}
+    | bitComp      => fun a => {- NegW a -}
+    | rotL    m    => fun a => {- RotL m a -}
+    | rotR    m    => fun a => {- RotR m a -}
+    | shiftL  m    => fun a => {- ShiftL m a -}
+    | shiftR  m    => fun a => {- ShiftR m a -}
     | nop          => fun x => {- x -}
     end.
 
