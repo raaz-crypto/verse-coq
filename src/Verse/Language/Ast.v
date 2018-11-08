@@ -9,6 +9,7 @@ Require Import Omega.
 Require Import List.
 Import ListNotations.
 
+Generalizable All Variables.
 Set Implicit Arguments.
 
 (* end hide *)
@@ -111,8 +112,8 @@ program block is merely a list of instructions.
 
   Definition instructions := list instruction.
 
-  Inductive contextErr := Invalid.
-  Definition context := forall {k} {ty : type k}, v ty -> @typeDenote _ tyD _ ty + {contextErr}.
+  Definition context := forall {k} {ty : type k}, v ty -> @typeDenote _ tyD _ ty.
+
   Definition ctxtP   := (context * context)%type.
 
   (*
@@ -181,6 +182,7 @@ program block is merely a list of instructions.
 End AST.
 
 Arguments Indices [v b e ty] _.
+Arguments context [_] _.
 Arguments annotation [tyD] _.
 Arguments codeline [tyD] _.
 Arguments inst [tyD v] _.
