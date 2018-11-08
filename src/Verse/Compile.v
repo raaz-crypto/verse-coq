@@ -270,7 +270,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                   (p' : noErr (typeDenote ty')),
                                                   A.mVar (getT p')
         with
-        | headVar _ => _
+        | headVar => _
         | @restVar m v0 k0 ty0 s => fun pl' a' p' =>
                                       makeVTrans m (tl v0) (snd pl') (snd a')
                                                  k0 ty0 p' s

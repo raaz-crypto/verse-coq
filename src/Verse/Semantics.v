@@ -41,8 +41,8 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     : @typeDenote _ tyDenote _ ty + {contextErr} :=
     match x in scopeVar vT0 ty0 return store vT0
                                        -> @typeDenote _ tyDenote _ ty0 + {contextErr} with
-    | headVar _    => fun s0 => let '(vx, _) := s0 in vx
-    | restVar _ rx => fun s0 => let '(_, st) := s0 in eval st rx
+    | headVar    => fun s0 => let '(vx, _) := s0 in vx
+    | restVar rx => fun s0 => let '(_, st) := s0 in eval st rx
     end s.
 
   Fixpoint storeUpdate `(vT : Vector.t (some type) n)
@@ -55,8 +55,8 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
            -> @typeDenote _ tyDenote _ ty0 + {_})
           -> store vT0 -> store vT0
     with
-    | headVar _    => fun f s => let '(vx, st) := s in (f vx, st)
-    | restVar _ rx => fun f s => let '(vx, st) := s in (vx, storeUpdate rx f st)
+    | headVar    => fun f s => let '(vx, st) := s in (f vx, st)
+    | restVar rx => fun f s => let '(vx, st) := s in (vx, storeUpdate rx f st)
     end.
 
 
