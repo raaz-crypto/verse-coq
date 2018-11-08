@@ -99,8 +99,8 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
     *)
     Let one (ty : type direct) : constant ty :=
       match ty as ty' in type direct return constant ty' with
-      | word n        => bits (Ndigits.N2Bv_gen _ 1)
-      | multiword _ _ => const (bits (Ndigits.N2Bv_gen _ 1)) _
+      | word n        => Nibble.Internal.fromNR _ 1 (*bits (Ndigits.N2Bv_gen _ 1)*)
+      | multiword _ _ => const (Nibble.Internal.fromNR _ 1) _
       end
     .
 

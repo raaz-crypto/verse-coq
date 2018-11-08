@@ -30,7 +30,10 @@ Inductive t (n : nat) : Type :=
 
 Arguments bits [n] _.
 
-Definition bytes n := t (8 * n).
+Definition bytes n := t (4 * (2 * n)).
+(* Written in this form instead of '8 * n' for type unification of
+   translation from Nibbles
+*)
 
 Require Verse.Nibble.
 Definition fromNibbles {n} (v : Vector.t Verse.Nibble.Nibble n) : t (4 * n) :=

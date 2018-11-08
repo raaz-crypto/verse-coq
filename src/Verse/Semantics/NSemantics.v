@@ -19,7 +19,7 @@ Module NConst <: CONST_SEMANTICS NWord.
 
   Definition constWordDenote n (w : StandardWord.wordDenote n) : NWord.wordDenote n :=
     let 'bits wv := w in
-    let len := 8 * 2^n in
+    let len := 4 * (2 * 2^n) in
     Bv2N len wv.
 
 End NConst.

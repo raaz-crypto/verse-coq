@@ -88,8 +88,8 @@ Module ConstDenote (W : WORD_SEMANTICS) (C : CONST_SEMANTICS W).
 
   Fixpoint constDenote {ty : type direct} :=
     match ty in type direct return constant ty -> @typeDenote _ TypeDenote _ ty with
-    | word n        => @C.constWordDenote n
-    | multiword m n => Vector.map (@C.constWordDenote n)
+    | word n        => Basics.compose (@C.constWordDenote n) (@Word.fromNibbles (2 * 2^n))
+    | multiword m n => Vector.map (Basics.compose (@C.constWordDenote n) (@Word.fromNibbles (2 * 2^n)))
     end.
 
 End ConstDenote.
