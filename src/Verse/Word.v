@@ -125,3 +125,12 @@ Definition ShiftL m := liftBV (BOps.BShiftL m).
 Definition ShiftR m := liftBV (BOps.BShiftR m).
 Definition RotL m := liftBV (BOps.BRotL m).
 Definition RotR m := liftBV (BOps.BRotR m).
+
+Notation "V (-) W" := (numBinOp N.sub V W) (at level 65).
+Notation "V (+) W" := (numBinOp N.add V W) (at level 65).
+Notation "V (*) W" := (numBinOp N.mul V W) (at level 65).
+Notation "V (/) W" := (numBinOp N.div V W) (at level 65).
+Notation "V '(AND)' W"  := (AndW V W) (at level 60).
+Notation "V '(OR)' W"  := (OrW V W) (at level 60).
+Notation "'(NOT)' V"     := (NegW V) (at level 50).
+Notation "V '(XOR)' W" := (XorW V W) (at level 55).
