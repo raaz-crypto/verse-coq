@@ -17,6 +17,9 @@ module.
 Module SHA2 (C : CONFIG).
 
   Import C.
+
+  Definition Word  := word WordSize.
+
   Definition Hash  := Array HASH_SIZE  hostE Word.
   Definition Block := Array BLOCK_SIZE bigE Word.
 
