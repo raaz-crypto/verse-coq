@@ -17,6 +17,13 @@ Module Internal.
 
   Section ChaCha20.
 
+    (** We use the same code to generate two variant of chacha20 block
+        encryption, the littleEndian variant which is the official version
+        and the host endian variant which will be used only for csprg (where
+        we do not care about endianness in any case.
+     *)
+
+    Variable variant : endian.
     Variable progvar  : VariableT.
     Arguments progvar [k] _.
 
@@ -51,8 +58,9 @@ Module Internal.
                               x12; x13; x14; x15
                             ]%vector.
 
-    Definition registers := Vector.map Var (Vector.append stateVars [ctr; Temp])%vector.
 
+    Definition registers          := Vector.map Var (Vector.append [ctr; Temp] stateVars )%vector.
+    Definition keyStreamRegisters := Vector.map Var ( ctr :: stateVars )%vector.
     (** It is useful to have a uniform way to index the state variables. *)
 
     Definition X : VarIndex progvar 16 Word := varIndex stateVars.
@@ -124,10 +132,20 @@ Module Internal.
 
     Definition COMPUTE_STREAM := List.concat [ INITSTATE; ROUND20; UPDATE].
 
-    Definition XORBLOCK (B : progvar Block)(i : nat) (_ : i < 16)
+    (**  This xors the key stream to the input and hence is the actual encryption
+     *)
+    Definition XORBLOCK (B : progvar (Block variant))(i : nat) (_ : i < 16)
       : code progvar.
       verse [ Temp ::== B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
     Defined.
+
+    (** Here we only emit the key stream and is useful when using as csprg *)
+
+    Definition EMITSTREAM(B : progvar (Block variant))(i : nat) (_ : i < 16)
+      : code progvar.
+      verse [ MOVE (X i _) TO B[- i -] ].
+    Defined.
+
 
     Definition LoadCounter : code progvar.
       verse [ ctr ::== ctrRef[- 0 -] ].
@@ -136,11 +154,20 @@ Module Internal.
       verse [ MOVE ctr TO ctrRef[- 0 -] ].
     Defined.
 
-    Definition ChaCha20Iterator : iterator Block progvar :=
+    Definition ChaCha20Iterator : iterator (Block variant) progvar :=
       {| setup := LoadCounter;
          process := fun blk =>
                       COMPUTE_STREAM
                         ++ foreach (indices blk) (XORBLOCK blk)
+                        ++ [ [++] ctr ];
+         finalise := StoreCounter
+      |}.
+
+    Definition ChaCha20KeyStream : iterator (Block variant) progvar :=
+      {| setup := LoadCounter;
+         process := fun blk =>
+                      COMPUTE_STREAM
+                        ++ foreach (indices blk) (EMITSTREAM blk)
                         ++ [ [++] ctr ];
          finalise := StoreCounter
       |}.
@@ -161,16 +188,56 @@ Module Internal.
           cr counterTy "ctr", cr wordTy "Tmp"
        -).
 
+  Definition keyStreamVars
+    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
+          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
+          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
+          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15",
+          cr counterTy "ctr"
+       -).
 
-  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype Block fname parameters.
+
+  (** The standard version of the code *)
+  Definition prototype_encrypt (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype (Block littleE) fname parameters.
   Defined.
 
-  Definition implementation (fname : string) : Doc  + {Compile.CompileError}.
-    Compile.iterator Block fname parameters stack registers.
+
+  Definition implementation_encrypt (fname : string) : Doc  + {Compile.CompileError}.
+    Compile.iterator (Block littleE) fname parameters stack registers.
     assignRegisters regVars.
-    statements ChaCha20Iterator.
+    statements (ChaCha20Iterator littleE).
   Defined.
+
+
+  (** The key stream generator for the host endian variant of
+      chacha20. Useful as a csprg.
+   *)
+
+  Definition prototype_csprg (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype (Block hostE) fname parameters.
+  Defined.
+
+  Definition csprg (fname : string) : Doc  + {Compile.CompileError}.
+    Compile.iterator (Block hostE) fname parameters stack keyStreamRegisters.
+    assignRegisters keyStreamVars.
+    statements (ChaCha20KeyStream hostE).
+  Defined.
+
+
+
+  Definition encryptName (fname : string) := fname.
+  Definition csprgName   (fname : string) := (fname ++ "_keystream")%string.
+
+  Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
+    iter <- implementation_encrypt (encryptName fname);
+      lastBlock <- implementation_encrypt (csprgName fname);
+      {- vcat [iter; lastBlock] -}.
+
+  Definition prototypes fname :=
+    iterProto <- prototype_encrypt (encryptName fname);
+      lastProto <- prototype_csprg (csprgName fname);
+      {- [ iterProto ; lastProto ]%list -}.
 
 End Internal.
 
@@ -183,22 +250,22 @@ for the c-code.
 
 Require Import Verse.Extraction.Ocaml.
 Require Import Verse.CryptoLib.Names.
-
 Definition implementation_name : Name := {| primitive := "chacha20";
                                             arch      := "c";
                                             features  := ["portable"]
                                          |}.
 
-Definition cname     := cFunName implementation_name.
-Definition cfilename := libVerseFilePath implementation_name.
+  Definition cname     := cFunName implementation_name.
+  Definition cfilename := libVerseFilePath implementation_name.
+
 
 Definition implementation : unit
   := writeProgram (C cfilename) (Internal.implementation cname).
 
-Definition prototype := recover (Internal.prototype cname).
+Definition prototypes := recover (Internal.prototypes cname).
 
 Require Import Verse.FFI.Raaz.
 
 Definition raazFFI : unit :=
   let module := raazModule implementation_name in
-  write_module module [ccall prototype].
+  write_module module (List.map ccall prototypes).

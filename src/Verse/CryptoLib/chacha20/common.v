@@ -3,8 +3,18 @@ Require Import Verse.
 
 *)
 
-Definition Word  := Word32.
-Definition Block   := Array 16 littleE Word.
+Definition Word    := Word32.
+
+(**
+
+While ChaCha20 is defined on little endian, when using chacha20 as a
+csprg we really do not care about the endianness. It therefore makes
+sense to have a host endian variant which might be marginally faster
+as well.
+
+*)
+
+Definition Block e := Array 16 e Word.
 Definition Key     := Array 8 hostE Word.
 Definition IV      := Array 3 hostE Word.
 Definition Counter := Word.
