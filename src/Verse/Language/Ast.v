@@ -124,15 +124,12 @@ program block is merely a list of instructions.
      would not allow one to extract a Prop with an impure context that has
      only unused Invalid values.
   *)
-  Inductive annotation : Type :=
-  | remember : forall k (ty : type k), v ty -> annotation
-  | assert : (ctxtP -> Prop + {contextErr}) -> annotation
-  | claim  : (ctxtP -> Prop + {contextErr}) -> annotation
-  .
+
+  Definition annotation := (ctxtP -> Prop).
 
   Inductive codeline : Type :=
-  | annot : annotation  -> codeline
-  | inst  : instruction -> codeline
+  | assert : annotation  -> codeline
+  | inst   : instruction -> codeline
   .
 
   Global Definition code := list codeline.
@@ -187,7 +184,6 @@ Arguments annotation [tyD] _.
 Arguments codeline [tyD] _.
 Arguments inst [tyD v] _.
 Arguments code [tyD] _.
-Arguments remember [tyD v k ty] _.
 
 (* A macro to define an instruction block while being oblivious to
    semantic relevant details *)
