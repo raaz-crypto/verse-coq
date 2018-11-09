@@ -4,6 +4,7 @@ Require Import Verse.Types.
 Require Import Verse.Language.
 Require Import Verse.Syntax.
 
+Require Import PeanoNat.
 Require Import Eqdep_dec.
 Require Import Bool.
 Require Import Equality.
@@ -72,7 +73,7 @@ Defined.
 
 Notation eq_dec A := (forall A1 A2 : A, {A1 = A2} + {A1 <> A2}) (only parsing).
 
-Definition nat_eq_dec : eq_dec nat := NPeano.Nat.eq_dec.
+Definition nat_eq_dec : eq_dec nat := Nat.eq_dec.
 Definition bool_eq_dec : eq_dec bool := bool_dec.
 
 Hint Resolve dec_True dec_False dec_or dec_and dec_imp dec_not dec_iff nat_eq_dec bool_eq_dec
@@ -353,35 +354,38 @@ Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec ty_eq_dec bytes_eq_dec op_eq_d
 (* Equality is decidable for scopeVar *)
 
 Fixpoint idxInScope n (vT : Vector.t (some type) n)
-         k (ty : type k) (x : scopeVar vT ty) : { idx | idx < n }  :=
+         k (ty : type k) (x : scopeVar vT ty) : nat  :=
   match x with
-  | headVar    => exist _ 0 (PeanoNat.Nat.lt_0_succ _)
-  | restVar x' => exist _ (S (proj1_sig (idxInScope x'))) (Lt.lt_n_S _ _ (proj2_sig (idxInScope x')))
+  | headVar    => 0
+  | restVar x' => S (idxInScope x')
   end.
 
 Definition scopeVar_eqb n (vT : Vector.t (some type) n)
            k (ty : type k) (x y : scopeVar vT ty) : bool :=
-  Nat.eqb (proj1_sig (idxInScope x)) (proj1_sig (idxInScope y)).
+  if Nat.eq_dec (idxInScope x) (idxInScope y)
+  then true else false.
 
-Definition scopeVar_eqb_correct n (vT : Vector.t (some type) n)
+Definition scopeVar_eqb_eq n (vT : Vector.t (some type) n)
            k (ty : type k) (x y : scopeVar vT ty) : scopeVar_eqb x y = true <-> x = y.
   constructor.
   * intro eqb_x_y.
     unfold scopeVar_eqb in eqb_x_y.
-    assert (proj1_sig (idxInScope x) = proj1_sig (idxInScope y)) by
-        (apply NPeano.Nat.eqb_eq; trivial).
+    simpl in eqb_x_y.
+    destruct (Nat.eq_dec (idxInScope x) (idxInScope y));
+      [idtac | discriminate].
 
     dependent induction x; dependent induction y.
   - trivial.
-  - contradict H; discriminate.
-  - contradict H; discriminate.
+  - contradict e; discriminate.
+  - contradict e; discriminate.
   - f_equal.
-    apply IHx, NPeano.Nat.eqb_eq.
+    apply IHx. apply (eq_add_S _ _ e).
     all: trivial.
   * intro.
     unfold scopeVar_eqb.
-    apply NPeano.Nat.eqb_eq.
-    congruence.
+    rewrite H.
+    destruct (Nat.eq_dec (idxInScope y) (idxInScope y));
+      congruence.
 Qed.
 
 Definition scopeVar_eq_dec n (vT : Vector.t (some type) n)
