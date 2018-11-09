@@ -186,3 +186,5 @@ Require Import Verse.Word.
 Module StandardWord <: WORD_SEMANTICS.
   Definition wordDenote := fun n => Word.bytes (2^n).
 End StandardWord.
+
+Instance StandardTypeDenote : typeC TypeDenote := mkTypeDenote StandardWord.wordDenote.

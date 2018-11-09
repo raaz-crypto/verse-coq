@@ -6,7 +6,6 @@ Require Export Verse.Error.
 Require Export Verse.Syntax.
 Require Export Verse.PrettyPrint.
 Require Export Verse.Nibble.
-Require Export Verse.Semantics.
 Require Export String.
 Require Export List.
 Require Export Vector.
