@@ -185,12 +185,6 @@ Arguments codeline [tyD] _.
 Arguments inst [tyD v] _.
 Arguments code [tyD] _.
 
-(* A macro to define an instruction block while being oblivious to
-   semantic relevant details *)
-
-Definition Code := let _ := mkTypeDenote StandardWord.wordDenote
-  in @code _.
-
 Section ASTFinal.
 
   Variable t  : kind -> Type.
@@ -283,11 +277,6 @@ Record iterator (tyD : typeC TypeDenote) (ty : type memory)(v : VariableT)
        process  : v memory ty -> code v;
        finalise : code v
      }.
-
-(* Semantic oblivious macro for iterators *)
-Definition Iterator :=
-  let _ := mkTypeDenote StandardWord.wordDenote
-  in iterator _.
 
 (* begin hide *)
 Arguments iterator [tyD] _ _.

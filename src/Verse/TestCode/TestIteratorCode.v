@@ -24,7 +24,7 @@ Section TestFunction.
 
   Definition registers := [Var tmp; Var double].
 
-  Definition test : Iterator iterType variable.
+  Definition test : iterator iterType variable.
     verse
       {|
         (* Try out all operators *)

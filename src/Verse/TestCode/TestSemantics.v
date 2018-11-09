@@ -1,6 +1,7 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 Require Import Verse.Types.Internal.
+Require Import Semantics.
 
 Import NArith.
 Require Import Vector.
@@ -29,7 +30,7 @@ Section TestFunction.
 
   Definition registers := [Var tmp].
   Definition regAssignment := (- cr uint16_t "temp" -).
-  Definition someInstruction i (_ : i < 5) : Code variable.
+  Definition someInstruction i (_ : i < 5) : code variable.
     Import Nat.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
   Defined.
@@ -117,7 +118,6 @@ Abort.
 
 Import Compile.
 
-Set Printing Implicit.
 Definition testcode : Doc + {Compile.CompileError}.
   Compile.function "testFunction" parameters locals registers.
   assignRegisters regAssignment.

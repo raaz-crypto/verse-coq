@@ -351,7 +351,7 @@ operands of the programming fragment.
 
   Definition vec_const : constant (Vector128 Word32) := [ Ox "12345678"; Ox "12345678"; Ox "12345678"; Ox "12345678"].
 
-  Definition prog : Code MyVar.
+  Definition prog : code MyVar.
     verse [ X ::= X << 5 ;
             X ::=>> 5;
             X ::= X [+] (A[- 2 -]);
