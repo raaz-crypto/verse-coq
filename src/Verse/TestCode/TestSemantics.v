@@ -55,6 +55,7 @@ Section TestFunction.
 
         ASSERT A HAS a IN (2 = 3)%N;
 
+        arr[-1-] ::== num;
         num      ::= tmp      [*] arr[-1-];
 
         ASSERT num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n = n))%N;
@@ -76,7 +77,7 @@ Section TestFunction.
 
 End TestFunction.
 
-Import StandardSemantics.
+Import StandardTactics.
 (*
 Inductive var : VariableT :=
 | arr : var (Array 5 bigE Word16)
@@ -106,8 +107,9 @@ Defined.
 Definition proof : toProve.
   time (
   unfold toProve;
+  unfold genSAT;
   unfold SAT;
-  intro;
+  breakStore;
   lazy -[RotR RotL ShiftR ShiftL XorW AndW OrW NegW
               fromNibbles
               numBinOp numUnaryOp numBigargExop numOverflowBinop
