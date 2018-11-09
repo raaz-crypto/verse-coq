@@ -1,102 +1,119 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
-Require Import Types.Internal.
+Require Import Verse.Types.Internal.
 
-Require Import NSemantics.
-Import NSemantics.
-
-Require Import NArith.
+Import NArith.
 Require Import Vector.
 Import VectorNotations.
 
 Set Implicit Arguments.
 
-  Section TestFunction.
+Section TestFunction.
 
-    Variable variable : VariableT.
+  Variable variable : VariableT.
 
-    Arguments variable [k] _.
-    (* The parameters of the function *)
-    Variable arr     : variable (Array 5 bigE Word16).
-    Variable A B     : variable Byte.
+  Arguments variable [k] _.
+  (* The parameters of the function *)
+  Variable arr     : variable (Array 5 bigE Word16).
+  Variable A B     : variable Byte.
 
-    Definition parameters := [Var arr; Var A; Var B].
+  Definition parameters := [Var arr; Var A; Var B].
 
-    (* The local variables *)
-    Variable num      : variable Word16.
+  (* The local variables *)
+  Variable num      : variable Word16.
 
-    Definition locals := [Var num].
+  Definition locals := [Var num].
 
-    (* The temp register *)
-    Variable tmp       : variable Word16.
+  (* The temp register *)
+  Variable tmp       : variable Word16.
 
-    Definition registers := [Var tmp].
-    Definition regAssignment := (- cr uint16_t "temp" -).
-    Definition someInstruction i (_ : i < 5) : Code variable.
-      Import Nat.
-      verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
-    Defined.
-
-    Definition testFunction : code variable.
-      verse
-        [ num ::= tmp [+] Ox "abcd";
-
-          REMEMBER num; REMEMBER tmp;
-          ASSUME num HAS n ; tmp HAS t IN n = t;
-
-          A   ::= A [+] B;
-          num ::= tmp [-] num ;
-
-          CLAIM num HAS n ; tmp HAS t IN n = t;
-
-          REMEMBER num;
-
-          CLAIM num HAS n ; num HAD n' IN (n >= n')%N;
-
-          CLAIM num HAS n; num HAD n' IN (n = n' + 1)%N;
-
-          ASSUME A HAS a IN (a > 0)%N;
-
-          num      ::= tmp      [*] arr[-1-];
-
-          CLAIM num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n < a))%N;
-
-          num      ::= arr[-1-] [/] tmp ;
-
-          (* binary update *)
-          num ::=+ tmp;
-          num ::=- arr[-1-];
-          num ::=* Ox "1234";
-          num ::=/ tmp;
-
-          CLAIM num HAS n'; tmp HAS t'; A HAS a';
-                num HAD n ; tmp HAD t IN
-                (and (n' = n * t) (n' = n))%N;
-
-          CLOBBER arr
-        ]%list.
-    Defined.
-
-  End TestFunction.
-
-  Let addErr (Err : Prop) v1 n (vT : Vector.t (some type) n)
-      (a : allocation v1 vT) :=
-    mapAlloc v1 _ (fun _ _ => @inleft _ Err) _ a.
-
-  Definition toProve : Prop.
-
-    extractProp testFunction.
-
+  Definition registers := [Var tmp].
+  Definition regAssignment := (- cr uint16_t "temp" -).
+  Definition someInstruction i (_ : i < 5) : Code variable.
+    Import Nat.
+    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
   Defined.
 
-  (* A potential proof template *)
-  Definition proof : toProve.
+  Definition testFunction : code variable.
+    verse
+      [ num ::= tmp [+] Ox "abcd";
 
-    NSemantics.simplify.
+        ASSERT num HAD n ; tmp HAS t IN n = XorW (RotR 2 t) n;
 
-    unfold NWord.wordDenote in *.
-    intuition.
-  Abort.
+        ASSERT A HAS a; num HAD n ; tmp HAD t IN (n = t) /\ (t = n);
+
+        A   ::= A [+] B;
+        num ::= tmp [-] num ;
+
+        ASSERT num HAD n ; tmp HAS t IN n = t;
+        ASSERT num HAS n IN (n = n);
+
+        ASSERT num HAD n' ; num HAS n IN (n = n')%N;
+
+        ASSERT num HAD n' ; num HAS n IN (n = n')%N;
+
+        ASSERT A HAS a IN (2 = 3)%N;
+
+        num      ::= tmp      [*] arr[-1-];
+
+        ASSERT num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n = n))%N;
+
+        num      ::= arr[-1-] [/] tmp ;
+
+        (* binary update *)
+        num ::=+ tmp;
+        num ::=- arr[-1-];
+        num ::=* Ox "1234";
+        num ::=/ tmp;
+
+        ASSERT num HAD n ; tmp HAD t ; num HAS n' IN
+               (and (n' = t) (n' = n))%N;
+
+        CLOBBER arr
+      ]%list.
+  Defined.
+
+End TestFunction.
+
+Import StandardSemantics.
+(*
+Inductive var : VariableT :=
+| arr : var (Array 5 bigE Word16)
+| A : var Byte
+| B : var Byte
+| num : var Word16
+| tmp : var Word16
+.
+
+Definition var_eqb {k} {ty : type k} (v1 v2 : var ty) : bool :=
+  match v1, v2 with
+  | arr, arr => true
+  | A, A     => true
+  | B, B
+  | num, num
+  | tmp, tmp => true
+  | _, _     => false
+  end.
+ *)
+
+Definition toProve : Prop.
+  extractSAT testFunction.
+Defined.
+
+(* A potential proof template *)
+
+Definition proof : toProve.
+  time (
+  unfold toProve;
+  unfold SAT;
+  intro;
+  lazy -[RotR RotL ShiftR ShiftL XorW AndW OrW NegW
+              fromNibbles
+              numBinOp numUnaryOp numBigargExop numOverflowBinop
+              Nat.add Nat.sub Nat.mul Nat.div
+              N.add N.sub N.mul N.div N.div_eucl N.modulo
+              Ox nth_order]).
+Abort.
 
 Import Compile.
 
@@ -109,7 +126,6 @@ Defined.
 
 Compute (tryLayout testcode).
 
-
 (*
 
 Require Import Verse.Extraction.Ocaml.
@@ -118,4 +134,4 @@ Definition main : unit := print_code testcode.
 
 Recursive Extraction main.
 
-*)
+ *)
