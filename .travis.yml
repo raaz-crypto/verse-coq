@@ -19,7 +19,7 @@ matrix:
       env: COQ_VER=8.5.2
 
     - os: linux
-      env: COQ_VER=8.6
+      env: COQ_VER=8.6.1
 
     - os: linux
       env: COQ_VER=8.7.2
