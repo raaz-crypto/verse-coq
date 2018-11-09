@@ -41,7 +41,7 @@ Require Verse.Nibble.
 Definition fromNibbles {n} (v : Vector.t Verse.Nibble.Nibble n) : t (4 * n) :=
   bits (N2Bv_gen (4 * n) (Verse.Nibble.toN v)).
 
-
+Notation "[[ N ]]" := (fromNibbles N) (at level 100).
 
 (**
 

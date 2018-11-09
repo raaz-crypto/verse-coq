@@ -115,7 +115,7 @@ Definition proof : toProve.
               numBinOp numUnaryOp numBigargExop numOverflowBinop
               Nat.add Nat.sub Nat.mul Nat.div
               N.add N.sub N.mul N.div N.div_eucl N.modulo
-              Ox nth_order]).
+              Ox nth replace]).
 Abort.
 
 Import Compile.
