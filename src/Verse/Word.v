@@ -14,6 +14,8 @@ Import Basics.
 
 Local Open Scope N_scope.
 
+Set Implicit Arguments.
+
 (* end hide *)
 
 (** * Words.
@@ -30,13 +32,16 @@ Inductive t (n : nat) : Type :=
 
 Arguments bits [n] _.
 
-Definition bytes n := t (8 * n).
+Definition bytes n := t (4 * (2 * n)).
+(* Written in this form instead of '8 * n' for type unification of
+   translation from Nibbles
+*)
 
 Require Verse.Nibble.
 Definition fromNibbles {n} (v : Vector.t Verse.Nibble.Nibble n) : t (4 * n) :=
   bits (N2Bv_gen (4 * n) (Verse.Nibble.toN v)).
 
-
+Notation "[[ N ]]" := (fromNibbles N) (at level 100).
 
 (**
 
@@ -90,10 +95,10 @@ Definition liftBV2 (f : forall n,  Bvector n  -> Bvector n -> Bvector n) : foral
     | bits xv, bits yv => bits (f n xv yv)
     end.
 
-Definition AndW n := liftBV2 BVand n.
-Definition OrW  n := liftBV2 BVor  n.
-Definition XorW n := liftBV2 BVxor n.
-Definition NegW n := liftBV  Bneg  n.
+Definition AndW n := @liftBV2 BVand n.
+Definition OrW  n := @liftBV2 BVor  n.
+Definition XorW n := @liftBV2 BVxor n.
+Definition NegW n := @liftBV  Bneg  n.
 
 Module BOps.
   Definition BShiftL m (n : nat) :=
@@ -109,10 +114,10 @@ Module BOps.
     end.
 
   Definition BRotL m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftL m n vec) (BShiftR (n - m) n vec).
+    fun vec => BVor n (BShiftL m vec) (BShiftR (n - m) vec).
 
   Definition BRotR m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftR m n vec) (BShiftL (n - m) n vec).
+    fun vec => BVor n (BShiftR m vec) (BShiftL (n - m) vec).
 
 End BOps.
 
@@ -120,3 +125,12 @@ Definition ShiftL m := liftBV (BOps.BShiftL m).
 Definition ShiftR m := liftBV (BOps.BShiftR m).
 Definition RotL m := liftBV (BOps.BRotL m).
 Definition RotR m := liftBV (BOps.BRotR m).
+
+Notation "V (-) W" := (numBinOp N.sub V W) (at level 65).
+Notation "V (+) W" := (numBinOp N.add V W) (at level 65).
+Notation "V (*) W" := (numBinOp N.mul V W) (at level 65).
+Notation "V (/) W" := (numBinOp N.div V W) (at level 65).
+Notation "V '(AND)' W"  := (AndW V W) (at level 60).
+Notation "V '(OR)' W"  := (OrW V W) (at level 60).
+Notation "'(NOT)' V"     := (NegW V) (at level 50).
+Notation "V '(XOR)' W" := (XorW V W) (at level 55).

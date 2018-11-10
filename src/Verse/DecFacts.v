@@ -1,14 +1,19 @@
 Require Import Verse.Word.
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
-Require Import Verse.Syntax.
 Require Import Verse.Language.
+Require Import Verse.Syntax.
 
+Require Import PeanoNat.
 Require Import Eqdep_dec.
 Require Import Bool.
 Require Import Equality.
-Require Vector.
+Require Import Vector.
+Import VectorNotations.
 Require Import VectorEq.
+
+Set Implicit Arguments.
+Generalizable All Variables.
 
 
 Notation decidable P := ({P} + {~ P}) (only parsing).
@@ -68,7 +73,7 @@ Defined.
 
 Notation eq_dec A := (forall A1 A2 : A, {A1 = A2} + {A1 <> A2}) (only parsing).
 
-Definition nat_eq_dec : eq_dec nat := NPeano.Nat.eq_dec.
+Definition nat_eq_dec : eq_dec nat := Nat.eq_dec.
 Definition bool_eq_dec : eq_dec bool := bool_dec.
 
 Hint Resolve dec_True dec_False dec_or dec_and dec_imp dec_not dec_iff nat_eq_dec bool_eq_dec
@@ -345,3 +350,57 @@ Defined.
 
 Hint Resolve vec_eq_dec kind_eq_dec endian_eq_dec ty_eq_dec bytes_eq_dec op_eq_dec
   : decidable_prop.
+
+(* Equality is decidable for scopeVar *)
+
+Fixpoint idxInScope n (vT : Vector.t (some type) n)
+         k (ty : type k) (x : scopeVar vT ty) : nat  :=
+  match x with
+  | headVar    => 0
+  | restVar x' => S (idxInScope x')
+  end.
+
+Definition scopeVar_eqb n (vT : Vector.t (some type) n)
+           k (ty : type k) (x y : scopeVar vT ty) : bool :=
+  if Nat.eq_dec (idxInScope x) (idxInScope y)
+  then true else false.
+
+Definition scopeVar_eqb_eq n (vT : Vector.t (some type) n)
+           k (ty : type k) (x y : scopeVar vT ty) : scopeVar_eqb x y = true <-> x = y.
+  constructor.
+  * intro eqb_x_y.
+    unfold scopeVar_eqb in eqb_x_y.
+    simpl in eqb_x_y.
+    destruct (Nat.eq_dec (idxInScope x) (idxInScope y));
+      [idtac | discriminate].
+
+    dependent induction x; dependent induction y.
+  - trivial.
+  - contradict e; discriminate.
+  - contradict e; discriminate.
+  - f_equal.
+    apply IHx. apply (eq_add_S _ _ e).
+    all: trivial.
+  * intro.
+    unfold scopeVar_eqb.
+    rewrite H.
+    destruct (Nat.eq_dec (idxInScope y) (idxInScope y));
+      congruence.
+Qed.
+(*
+Definition scopeVar_eq_dec n (vT : Vector.t (some type) n)
+  : forall {k} {ty : type k}, eq_dec (scopeVar vT ty).
+  dependent induction A1; dependent induction A2;
+    [left | right .. | idtac]; try congruence.
+  destruct (IHA1 A2);
+    [left; congruence | right].
+  contradict n;
+  apply (f_equal ((fun (y : scopeVar (tl v) ty) (x : scopeVar v ty) =>
+                    (match x in @scopeVar (S n0) v0 _ ty0
+                          return scopeVar (tl v0) ty0 -> scopeVar (tl v0) ty0 with
+                    | headVar => fun y => y
+                    | restVar x' => fun _ => x'
+                    end y)) A1)
+                 n).
+Defined.
+*)

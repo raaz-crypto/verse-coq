@@ -8,7 +8,7 @@ Require Import Verse.CryptoLib.sha2.
 Require Import Verse.CryptoLib.sha2.c.portable.
 
 Module Config <: CONFIG.
-  Definition Word := Word32.
+  Definition WordSize := 2 (*Word32*).
   Definition ROUNDS := 64.
   Definition KVec := [ Ox "428a2f98";
                        Ox "71374491";
@@ -99,11 +99,13 @@ End Config.
 
 Require Import Verse.Arch.C.
 Module SHA256 := SHA2 Config.
+
 Import Config.
 
 Module Internal.
 
-  Definition wordTy := recover (typeDenote Word).
+  Definition wordTy := recover (typeDenote (word WordSize)).
+
   Definition regVars
     := (- cr wordTy "a",  cr wordTy "b",  cr wordTy "c",  cr wordTy "d",
           cr wordTy "e",  cr wordTy "f",  cr wordTy "g",  cr wordTy "h",

@@ -69,7 +69,6 @@ End TestFunction.
 
 Import Compile.
 
-
 Definition testcode : Doc + {Compile.CompileError}.
   Compile.function "testFunction" parameters locals registers.
   assignRegisters regAssignment.

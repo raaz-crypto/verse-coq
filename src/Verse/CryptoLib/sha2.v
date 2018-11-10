@@ -15,14 +15,14 @@ code is parameterised by the following module type.
 
 Module Type CONFIG.
 
-  (** The word type for the hash *)
-  Parameter Word : type direct.
+  (** The size of the word type for the hash *)
+  Parameter WordSize : nat.
 
   (** The number of rounds that is involved in hashing. *)
   Parameters ROUNDS : nat.
 
   (** The round constants for the hash *)
-  Parameter KVec : Vector.t (constant Word) ROUNDS.
+  Parameter KVec : Vector.t (constant (word WordSize)) ROUNDS.
 
   (** ** The sigma functions.
 

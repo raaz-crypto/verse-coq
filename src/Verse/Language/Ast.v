@@ -9,6 +9,7 @@ Require Import Omega.
 Require Import List.
 Import ListNotations.
 
+Generalizable All Variables.
 Set Implicit Arguments.
 
 (* end hide *)
@@ -44,6 +45,9 @@ through out.
 *)
 
 Section AST.
+
+  Variable tyD : typeC TypeDenote.
+
   Variable v   : VariableT.
 
 
@@ -103,10 +107,32 @@ program block is merely a list of instructions.
   | increment : forall (ty : type direct), larg ty -> instruction
   | decrement : forall (ty : type direct), larg ty -> instruction
   | moveTo    : forall b e ty, forall (x : v (array b e ty)), Indices x -> v ty -> instruction
-  | CLOBBER   : forall k (ty : type k), v ty -> instruction
+  | clobber   : forall k (ty : type k), v ty -> instruction
   .
 
-  Global Definition code := list instruction.
+  Definition instructions := list instruction.
+
+  Definition context := forall {k} {ty : type k}, v ty -> @typeDenote _ tyD _ ty.
+
+  Definition ctxtP   := (context * context)%type.
+
+  (*
+     This particular design choice allows one to define a valid Prop even
+     with a context that has some (unused) Invalid values.
+     The simpler
+                `pure_context -> Prop`
+     would not allow one to extract a Prop with an impure context that has
+     only unused Invalid values.
+  *)
+
+  Definition annotation := (ctxtP -> Prop).
+
+  Inductive codeline : Type :=
+  | assert : annotation  -> codeline
+  | inst   : instruction -> codeline
+  .
+
+  Global Definition code := list codeline.
   (* begin hide *)
 
   (* Some instruction error checking code *)
@@ -153,6 +179,11 @@ program block is merely a list of instructions.
 End AST.
 
 Arguments Indices [v b e ty] _.
+Arguments context [_] _.
+Arguments annotation [tyD] _.
+Arguments codeline [tyD] _.
+Arguments inst [tyD v] _.
+Arguments code [tyD] _.
 
 Section ASTFinal.
 
@@ -241,17 +272,17 @@ body of the an iterator that works with such a stream of blocks of
 type [ty].
 
 *)
-Record iterator (ty : type memory)(v : VariableT)
+Record iterator (tyD : typeC TypeDenote) (ty : type memory)(v : VariableT)
   := { setup    : code v;
        process  : v memory ty -> code v;
        finalise : code v
      }.
 
-
 (* begin hide *)
-Arguments setup [ty v] _.
-Arguments process [ty v] _ _.
-Arguments finalise [ty v] _.
+Arguments iterator [tyD] _ _.
+Arguments setup [tyD ty v] _.
+Arguments process [tyD ty v] _ _.
+Arguments finalise [tyD ty v] _.
 
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
@@ -266,5 +297,5 @@ Arguments assign [v] _ .
 Arguments increment [v ty] _.
 Arguments decrement [v ty] _.
 Arguments moveTo [v  b e ty] _ _ _.
-Arguments CLOBBER [v k ty ] _.
+Arguments clobber [v k ty ] _.
 (* end hide *)

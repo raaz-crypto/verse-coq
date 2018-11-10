@@ -1,5 +1,6 @@
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
+
 Require Import Basics.
 Require Import List.
 Import  ListNotations.
@@ -30,7 +31,7 @@ Definition VariableT := GenVariableT type.
 
 
 (** A declaration is just a sequence of types *)
-Notation Declaration              := (Vector.t (some type) _).
+Notation Declaration              := (Vector.t (some type) _) (only parsing).
 Definition Empty : Declaration    := [].
 
 (** Helper function that recovers the type of the given variable *)
@@ -111,6 +112,8 @@ Section Scoped.
 
 End Scoped.
 
+Arguments headVar [m v].
+Arguments restVar [m v k ty] _.
 Arguments appScoped [t0 v n l T1 T2] _ _.
 Arguments mergeAllocation [t0 v n1 n2 l1 l2] _ _.
 Arguments mergeScope [t0 v T n1 n2 l1 l2] _.
@@ -136,7 +139,7 @@ Fixpoint mapAlloc v1 v2 (f : forall k (ty : type k), v1 _ ty -> v2 _ ty)
 (* The dummy allocation for scoped code *)
 Fixpoint dummyAlloc {n} (l : Vector.t (some type) n) : allocation (scopeVar l) l :=
   match n return forall l0 : Vector.t (some type) n, @allocation _ _ n l0 with
-   | S m => fun l0 => (headVar l0, mapAlloc _ _ (restVar l0) _ (dummyAlloc (tl l0)))
+   | S m => fun l0 => (@headVar _ l0, mapAlloc _ _ (@restVar _ l0) _ (dummyAlloc (tl l0)))
    | 0   => fun _  => tt
   end l.
 
