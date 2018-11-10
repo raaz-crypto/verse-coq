@@ -72,6 +72,13 @@ Proof.
 Defined.
 
 Notation eq_dec A := (forall A1 A2 : A, {A1 = A2} + {A1 <> A2}) (only parsing).
+Notation eq_dec_P A := (forall A1 A2 : A, A1 = A2 \/ A1 <> A2) (only parsing).
+
+Definition eq_dec_eq_dec_P A : eq_dec A -> eq_dec_P A :=
+  fun A_eq_dec a1 a2 => match A_eq_dec a1 a2 with
+                        | left p => or_introl p
+                        | right p => or_intror p
+                        end.
 
 Definition nat_eq_dec : eq_dec nat := Nat.eq_dec.
 Definition bool_eq_dec : eq_dec bool := bool_dec.

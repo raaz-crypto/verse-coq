@@ -4,6 +4,8 @@ Require Import Verse.Syntax.
 Require Import Verse.DecFacts.
 Require Import Verse.Semantics.Store.
 
+Require Import Eqdep_dec.
+
 Set Implicit Arguments.
 
 Generalizable All Variables.
@@ -30,8 +32,6 @@ Section Context.
     all: exact (oldctxt _ _ x).              (* use initial state value at all other points *)
   Defined.
 
-  Axiom eq_eq_refl : forall A (a : A) (p : a = a), p = eq_refl.
-
   Lemma evalSane (tyD : typeC TypeDenote)
     : forall (s : context var) k (ty : type k) (v : var ty) f,
       forall k' (ty' : type k') (v' : var ty'),
@@ -57,12 +57,12 @@ Section Context.
 
     unfold contextUpdate.
     destruct (kind_eq_dec k k).
-    pose (eq_eq_refl e).
+    pose (eq_proofs_unicity (eq_dec_eq_dec_P kind_eq_dec) e eq_refl).
     rewrite e0.
     unfold eq_rect_r.
     simpl.
     destruct (ty_eq_dec ty ty).
-    pose (eq_eq_refl e1).
+    pose (eq_proofs_unicity (eq_dec_eq_dec_P ty_eq_dec) e1 eq_refl).
     subst e1.
     simpl.
     assert (var_eqb v v = true).
