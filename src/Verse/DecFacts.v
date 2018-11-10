@@ -387,7 +387,7 @@ Definition scopeVar_eqb_eq n (vT : Vector.t (some type) n)
     destruct (Nat.eq_dec (idxInScope y) (idxInScope y));
       congruence.
 Qed.
-
+(*
 Definition scopeVar_eq_dec n (vT : Vector.t (some type) n)
   : forall {k} {ty : type k}, eq_dec (scopeVar vT ty).
   dependent induction A1; dependent induction A2;
@@ -403,3 +403,4 @@ Definition scopeVar_eq_dec n (vT : Vector.t (some type) n)
                     end y)) A1)
                  n).
 Defined.
+*)
