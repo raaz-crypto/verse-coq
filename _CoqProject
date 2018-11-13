@@ -14,6 +14,7 @@ src/Verse/Syntax.v
 src/Verse/Types.v
 src/Verse/Types/Internal.v
 src/Verse/Word.v
+src/Verse/BOpsFacts.v
 src/Verse/PrettyPrint.v
 src/Verse.v
 src/Verse/TestCode/TestCode.v
