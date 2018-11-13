@@ -1,7 +1,6 @@
 (* begin hide *)
-Require Import Bvector.
+
 Require Import Verse.Error.
-Require Import Vector.
 Require Import Coq.NArith.Ndigits.
 Require Import BinNums.
 Require Import NArith.
@@ -10,6 +9,9 @@ Require Import Ascii.
 Require Import Verse.PrettyPrint.
 Require Import Arith.
 Require Verse.Nibble.
+
+Require Import CoLoR_VecUtil.
+
 Import Basics.
 
 Local Open Scope N_scope.
@@ -28,7 +30,7 @@ the meanings of
 
 
 Inductive t (n : nat) : Type :=
-| bits : Bvector n -> t n.
+| bits : Bvector.Bvector n -> t n.
 
 Arguments bits [n] _.
 
@@ -83,43 +85,65 @@ Definition numUnaryOp {n : nat} f (x : t n) : t n :=
   | bits xv => bits (N2Bv_gen n (f (Bv2N n xv)))
   end.
 
-Definition liftBV (f : forall n,  Bvector n -> Bvector n) : forall n, t n -> t n :=
+Definition liftBV (f : forall n,  Bvector.Bvector n -> Bvector.Bvector n) : forall n, t n -> t n :=
   fun n x  =>
     match x with
     | bits xv => bits (f n xv)
     end.
 
-Definition liftBV2 (f : forall n,  Bvector n  -> Bvector n -> Bvector n) : forall n , t n -> t n -> t n :=
+Definition liftBV2 (f : forall n,  Bvector.Bvector n  -> Bvector.Bvector n -> Bvector.Bvector n) : forall n , t n -> t n -> t n :=
   fun n x y =>
     match x,y with
     | bits xv, bits yv => bits (f n xv yv)
     end.
 
-Definition AndW n := @liftBV2 BVand n.
-Definition OrW  n := @liftBV2 BVor  n.
-Definition XorW n := @liftBV2 BVxor n.
-Definition NegW n := @liftBV  Bneg  n.
-
 Module BOps.
+
+  Definition BVAnd := Vmap2 andb.
+  Definition BVOr  := Vmap2 orb.
+  Definition BVXor := Vmap2 xorb.
+
   Definition BShiftL m (n : nat) :=
     match n with
     | 0%nat    => fun vec => vec
-    | S np => fun vec => BshiftL_iter np vec m
+    | S np => fun vec => Bvector.BshiftL_iter np vec m
     end.
 
   Definition BShiftR m (n : nat) :=
     match n with
     | 0%nat  => fun vec => vec
-    | S np   => fun vec => BshiftRl_iter np vec m
+    | S np   => fun vec => Bvector.BshiftRl_iter np vec m
     end.
 
-  Definition BRotL m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftL m vec) (BShiftR (n - m) vec).
+  Fixpoint ntimes A (f : A -> A) n (a : A) :=
+    match n with
+    | 0%nat => a
+    | S n   => f (ntimes f n a)
+    end.
 
-  Definition BRotR m n : Bvector n -> Bvector n :=
-    fun vec => BVor n (BShiftR m vec) (BShiftL (n - m) vec).
+  Definition BRotL m n : Bvector.Bvector n -> Bvector.Bvector n :=
+    let BRotL1 v := match v with
+                    | []      => []
+                    | h :: vt => Vadd vt h
+                    end
+    in
+    fun vec => ntimes BRotL1 m vec.
+
+  Definition BRotR m n : Bvector.Bvector n -> Bvector.Bvector n :=
+    let BRotR1 v := match v with
+                    | [] => []
+                    | v  => Vlast (Vhead v) v :: Vremove_last v
+                    end
+    in
+    fun vec => ntimes BRotR1 m vec.
 
 End BOps.
+
+
+Definition AndW n := @liftBV2 BOps.BVAnd n.
+Definition OrW  n := @liftBV2 BOps.BVOr  n.
+Definition XorW n := @liftBV2 BOps.BVXor n.
+Definition NegW n := @liftBV  Bvector.Bneg  n.
 
 Definition ShiftL m := liftBV (BOps.BShiftL m).
 Definition ShiftR m := liftBV (BOps.BShiftR m).
