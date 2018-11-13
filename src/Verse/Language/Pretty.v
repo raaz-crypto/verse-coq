@@ -54,7 +54,7 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types
 (* end hide *)
 
 
-Notation "A [- N -]"     := (index A (exist _ (N%nat) _)) (at level 69).
+Notation "A [- N -]"     := (index A (@exist _ _ (N%nat) _)) (at level 69).
 Notation "! A"           := (inst (index A 0 _)) (at level 70).
 Notation "[++] A"        := (inst (increment (toLArg A))) (at level 70).
 Notation "[--] A"        := (inst (decrement (toLArg A))) (at level 70).
@@ -89,7 +89,7 @@ Notation "A ::=>*> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at 
 
 Notation "A ::== B"      := (inst (assign (assign2 nop (toLArg A) (toRArg B)))) (at level 70).
 Notation "'CLOBBER' A"   := (inst (clobber A)) (at level 70). (* Check level *)
-Notation "'MOVE'  B 'TO'   A [- N -]"       := (inst (moveTo A (exist _ (N%nat) _) B)) (at level 200, A ident).
+Notation "'MOVE'  B 'TO'   A [- N -]"       := (inst (moveTo A (@exist _ _ (N%nat) _) B)) (at level 200, A ident).
 
 Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (inst (assign (extassign3 exmul
                                                         (toLArg A) (toLArg B)
@@ -202,7 +202,7 @@ Section PrettyPrintingInstruction.
     match av with
     | var v       => doc v
     | const c     => doc c
-    | index v (exist _ n _) => doc v <> bracket (decimal n)
+    | index v (@exist _ _ n _) => doc v <> bracket (decimal n)
     end.
 
   Global Instance arg_pretty_print : forall aK k (ty : type k), PrettyPrint (arg v aK ty)
@@ -287,7 +287,7 @@ Section PrettyPrintingInstruction.
                          | assign a => doc a
                          | increment a => mkDouble plus (doc a)
                          | decrement a => mkDouble minus (doc a)
-                         | @moveTo  _ _ e _  a (exist _ i _) b
+                         | @moveTo  _ _ e _  a (@exist _ _ i _) b
                            => doc a <_> bracket (doc i) <_> EQUALS <_> convertEndian e (doc b)
                          | clobber v => text "CLOBBER" <_> doc v
                          end

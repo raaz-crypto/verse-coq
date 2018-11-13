@@ -133,9 +133,9 @@ Module SHA2 (C : CONFIG).
 
       (** Function to increment message index *)
       Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
-        if idx =? 15 then exist _ 0 zltBlockSize
+        if idx =? 15 then @exist _ _ 0 zltBlockSize
         else let sIdx := S idx in
-             exist _
+             @exist _ _
                    (sIdx mod BLOCK_SIZE)
                    (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
@@ -226,16 +226,16 @@ Module SHA2 (C : CONFIG).
      *)
 
     Definition newState (s : State):=
-          {|
-            A := H s;
-            B := A s;
-            C := B s;
-            D := C s;
-            E := D s;
-            F := E s;
-            G := F s;
-            H := G s
-          |}.
+      {|
+        A := H s;
+        B := A s;
+        C := B s;
+        D := C s;
+        E := D s;
+        F := E s;
+        G := F s;
+        H := G s
+      |}.
 
 
     Definition Sigma r0 r1 r2 (x : v Word) :=

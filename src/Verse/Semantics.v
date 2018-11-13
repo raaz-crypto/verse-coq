@@ -204,9 +204,9 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       n (vT : Vector.t (some t) n) typ C {struct vT}
     : (scoped v vT (typ -> C)) -> (typ -> scoped v vT C) :=
     match vT with
-    | []                             => id
-    | ((existT _ _ ty) :: vTt)%vector => fun s x vty => swapScope _ _ _
-                                                                  (s vty) x
+    | []                          => id
+    | ((existT ty) :: vTt)%vector => fun s x vty => swapScope _ _ _
+                                                              (s vty) x
     end.
 
   Let swapGScope (t : kind -> Type) n (vT : Vector.t (some t) n)
@@ -218,7 +218,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
 
   Ltac scopeTys xt :=
     match xt with
-    | _ ?y -> ?z => refine ((fun p => (((existT _ _ y) :: fst p, snd p))) _)%vector; scopeTys z
+    | _ ?y -> ?z => refine ((fun p => (((existT y) :: fst p, snd p))) _)%vector; scopeTys z
     | ?x         => exact ([]%vector, x)
     end.
 
@@ -253,7 +253,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
 
   Ltac mapTyOf xt :=
     match xt with
-    | _ ?y -> ?z => refine ((existT _ _ y) :: _)%vector; mapTyOf z
+    | _ ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
     | ?x         => exact ([]%vector)
     end.
 

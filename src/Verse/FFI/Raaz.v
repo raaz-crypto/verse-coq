@@ -115,12 +115,12 @@ Require Import Verse.Types.
 
 Definition ccall (proto : Prototype CType) : Doc :=
   let mapper := fun scty : some CType => match scty with
-                            | existT _ k cty => fromCType cty
+                            | existT cty => fromCType cty
                             end
   in ffi (name CType proto) (List.map mapper (arguments CType proto)).
 
 Definition asmcall (proto : Prototype MachineType) : Doc :=
   let mapper := fun scty : some MachineType => match scty with
-                            | existT _ k cty => fromMachineType cty
+                            | existT cty => fromMachineType cty
                             end
   in ffi (name MachineType proto) (List.map mapper (arguments MachineType proto)).

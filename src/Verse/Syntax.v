@@ -35,7 +35,7 @@ Notation Declaration              := (Vector.t (some type) _) (only parsing).
 Definition Empty : Declaration    := [].
 
 (** Helper function that recovers the type of the given variable *)
-Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT t.
 
   (** ** Scopes.
 
@@ -61,7 +61,7 @@ Section Scoped.
   Fixpoint scoped n (l : Vector.t (some t) n)(CODE : Type) : Type :=
     match l with
     | []                  => CODE
-    | existT _ _ ty :: lt => v ty -> scoped lt CODE
+    | existT ty :: lt => v ty -> scoped lt CODE
     end.
 
   (** A way to apply functions inside a scope *)
@@ -69,7 +69,7 @@ Section Scoped.
     : scoped l T1 -> scoped l T2 :=
     match l with
     | []                  => fun s1 => f s1
-    | existT _ _ ty :: lt => fun s1 => fun x : v ty => appScoped lt f (s1 x)
+    | existT ty :: lt => fun s1 => fun x : v ty => appScoped lt f (s1 x)
     end.
 
   (** A dummy VariableT that can help instantiate scoped code *)
@@ -98,7 +98,7 @@ Section Scoped.
     : allocation l1 -> allocation l2 -> allocation (append l1 l2) :=
     match l1 with
     | []                  => fun _ a   => a
-    | existT _ _ ty :: lt => fun a1 a2 => (fst a1, mergeAllocation _ _ (snd a1) a2)
+    | existT ty :: lt => fun a1 a2 => (fst a1, mergeAllocation _ _ (snd a1) a2)
     end.
 
 
@@ -107,7 +107,7 @@ Section Scoped.
     match l1 as l1' return scoped l1' (scoped l2 T)
                            -> scoped (append l1' l2) T with
     | []        => id
-    | existT _ _ ty :: lt  => fun x vt => mergeScope _ _ _ (x vt)
+    | existT ty :: lt  => fun x vt => mergeScope _ _ _ (x vt)
     end.
 
 End Scoped.
@@ -124,7 +124,7 @@ Fixpoint fill (CODE : VariableT -> Type) v n {l : Vector.t (some type) n}
   : allocation v l -> scoped v l (CODE v) -> (CODE v) :=
   match l with
   | []                 => fun a x => x
-  | existT _ _ _ :: lt => fun a x => fill CODE v (snd a) (x (fst a))
+  | existT _ :: lt => fun a x => fill CODE v (snd a) (x (fst a))
   end.
 
 Arguments fill [CODE v n l] _ _.

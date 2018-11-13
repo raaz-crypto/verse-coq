@@ -386,7 +386,7 @@ Definition scopeVar_eqb_eq n (vT : Vector.t (some type) n)
   - contradict e; discriminate.
   - contradict e; discriminate.
   - f_equal.
-    apply IHx. apply (eq_add_S _ _ e).
+    apply IHx. apply (eq_add_S e).
     all: trivial.
   * intro.
     unfold scopeVar_eqb.

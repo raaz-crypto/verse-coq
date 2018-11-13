@@ -92,7 +92,7 @@ Module C <: ARCH.
 
   Definition functionPrototype cframe : Prototype CType :=
   let iterTypes := match (iterateOn cframe) with
-                  | Some ty => [existT _ _ ty; existT _ _ uint64_t]
+                  | Some ty => [existT ty; existT uint64_t]
                   | None => [ ]
                   end%list
   in
@@ -114,13 +114,13 @@ Module CFrame <: FRAME C.
 
   Definition iterateFrame (s : string) (ty : mType memory) :=
     let state := {| cFunctionName := s; iterateOn := Some ty; params := []; locals := [];  registers := List.nil |} in
-    ((existT _ _ (blockPtr ty), counter), deref (blockPtr ty), state).
+    ((existT (blockPtr ty), counter), deref (blockPtr ty), state).
 
   Let newParam state k ty :=
     ( @functionParam k ty (nParams state),
       {| cFunctionName := cFunctionName state;
           iterateOn := iterateOn state;
-          params := existT _ _ ty :: params state;
+          params := existT ty :: params state;
           locals := locals state;
           registers := registers state
        |}
@@ -131,7 +131,7 @@ Module CFrame <: FRAME C.
       {| cFunctionName := cFunctionName state;
          iterateOn := iterateOn state;
          params := params state;
-         locals := existT _ _ ty :: locals state;
+         locals := existT ty :: locals state;
          registers := registers state
       |}
     ).
@@ -157,7 +157,7 @@ Module CFrame <: FRAME C.
                   iterateOn := iterateOn state;
                   params := params state;
                   locals := locals state;
-                  registers := (nm , existT _ direct ty) :: registers state
+                  registers := (nm , @existT _ _ direct ty) :: registers state
                |}
       end.
 
@@ -447,7 +447,7 @@ Module CCodeGen <: CODEGEN C.
 
   Let declare_params state :=
     let mapper := fun sty n => match sty with
-                               | existT _ _ ty => declare (functionParam ty n)
+                               | existT ty => declare (functionParam ty n)
                                end
     in
     let iteratorDecls := match iterateOn state with
@@ -459,13 +459,13 @@ Module CCodeGen <: CODEGEN C.
 
   Let declare_locals state :=
     let mapper := fun sty n => match sty with
-                               | existT _ _ ty => declare (onStack  ty n)
+                               | existT ty => declare (onStack  ty n)
                                end
     in declare_vector (locals state) mapper.
 
   Let declare_registers state :=
     let mapper arg := match arg with
-                      | (nm, (existT _ _ typ)) => text "register" <_> (declare (inRegister (cr typ nm)))
+                      | (nm, (existT typ)) => text "register" <_> (declare (inRegister (cr typ nm)))
                       end in
     List.map mapper (registers state).
 
