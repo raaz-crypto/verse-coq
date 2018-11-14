@@ -292,14 +292,14 @@ Module SHA2 (C : CONFIG).
 
     Definition ROUND_WITH_SCHEDULE stAndIdx K :=
       match stAndIdx with
-      | (st, exist _ mIdx mIdxBoundPf) =>
+      | (st, @exist _ _ mIdx mIdxBoundPf) =>
         let Mesg := M mIdx mIdxBoundPf in
         STEP st Mesg K ++ SCHEDULE mIdx mIdxBoundPf
       end.
 
     Definition ROUND_WITHOUT_SCHEDULE stAndIdx K :=
       match stAndIdx with
-      | (st, exist _ mIdx mIdxBoundPf) =>
+      | (st, @exist _ _ mIdx mIdxBoundPf) =>
         let Mesg := M mIdx mIdxBoundPf in
         STEP st Mesg K
       end.
@@ -311,7 +311,7 @@ Module SHA2 (C : CONFIG).
       Definition Accumulator := (State * MessageIndex)%type.
       Definition next (acc : Accumulator) :=
         match acc with
-        | (s,exist _ idx _) => (newState s, nextIdx idx)
+        | (s, @exist _ _ idx _) => (newState s, nextIdx idx)
         end.
 
       Variable genCode : Accumulator -> constant Word -> code v.
@@ -340,7 +340,7 @@ Module SHA2 (C : CONFIG).
     Definition ALL_ROUNDS :=
       let Ks := Vector.to_list KVec in
       let (KsInit, KsLast) := splitAt (ROUNDS - BLOCK_SIZE)  Ks in
-      let acc0 := (state0, exist _ 0 zltBlockSize) in
+      let acc0 := (state0, @exist _ _ 0 zltBlockSize) in
       let (cd1, acc1) := generateRounds ROUND_WITH_SCHEDULE acc0 KsInit in
       let (cd2,_) := generateRounds ROUND_WITHOUT_SCHEDULE acc1 KsLast in
       cd1 ++ cd2.
