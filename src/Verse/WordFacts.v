@@ -16,18 +16,31 @@ Lemma ntimesCompose A (f : A -> A) n1 n2 a
   apply IHn1.
 Qed.
 
-Lemma rotRCompose n r1 r2 (b : Bvector.Bvector n)
-  : BRotR r1 (BRotR r2 b) = BRotR (r1 + r2) b.
+Lemma rotRCompose n r1 r2 (w : Word.t n)
+  : RotR r1 (RotR r2 w) = RotR (r1 + r2) w.
 Proof.
+  destruct w.
+  unfold RotR.
+  simpl liftBV.
+  f_equal.
   unfold BRotR.
   apply ntimesCompose.
 Qed.
 
+Lemma rotRDistrXor n : forall (w1 w2 : Word.t n) r,
+    RotR r (w1 (XOR) w2) = RotR r w1 (XOR) RotR r w2.
+  (*
 Lemma rotRDistrXor n : forall (b1 b2 : Bvector.Bvector (S n)) r,
-    BRotR r (BVXor b1 b2) = BVXor (BRotR r b1) (BRotR r b2).
+    BRotR r (BVXor b1 b2) = BVXor (BRotR r b1) (BRotR r b2).*)
 Proof.
-  intros.
-
+  destruct w1 as [ b1 ].
+  destruct w2 as [ b2 ].
+  intro r.
+  unfold RotR.
+  unfold XorW.
+  cbn [liftBV liftBV2].
+  f_equal.
+  (* Reduced to assertion on BVectors *)
   induction r.
   - unfold BRotR; trivial.
   - unfold BRotR.
@@ -42,6 +55,8 @@ Proof.
     (* Reduced to the single rotation case *)
     clear IHr.
     intros.
+    destruct n.
+    simpl; trivial.
     VSntac (Vmap2 xorb bv1 bv2).
     VSntac bv1. VSntac bv2.
     simpl.
