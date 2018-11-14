@@ -137,29 +137,7 @@ Module SHA2 (C : CONFIG).
         else let sIdx := S idx in
              exist _
                    (sIdx mod BLOCK_SIZE)
-                   (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize)
-      .
-
-      (* Alternate definitions:  For some reason these are slower *)
-
-      (*
-      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
-        let sIdx := S idx in
-        exist _
-              (sIdx mod BLOCK_SIZE)
-              (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
-
-      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
-        match idx with
-        | 15 => exist _ 0 zltBlockSize
-        | _  => let sIdx := S idx in
-                exist _
-                      (sIdx mod BLOCK_SIZE)
-                      (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize)
-        end.
-
-        *)
-
+                   (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
       Definition M  := W idx idxPf.
 
@@ -182,7 +160,6 @@ Module SHA2 (C : CONFIG).
         let sigma0 := sigma r00 r01 s0 (MM 15) in
         let sigma1 := sigma r10 r11 s1 (MM 2) in
         [ M ::=+ MM 7 ] ++ sigma0 ++ sigma1.
-
       (** This completes the code for message scheduling *)
     End MessageSchedule.
 
@@ -229,8 +206,6 @@ Module SHA2 (C : CONFIG).
                       F : v Word;
                       G : v Word;
                       H : v Word;
-                      mIdx      : nat;
-                      mIdxProof : mIdx < BLOCK_SIZE;
                      }.
 
     (** The starting state *)
@@ -243,8 +218,6 @@ Module SHA2 (C : CONFIG).
          F := f;
          G := g;
          H := h;
-         mIdx := 0;
-         mIdxProof := zltBlockSize;
        |}.
 
 
@@ -253,8 +226,6 @@ Module SHA2 (C : CONFIG).
      *)
 
     Definition newState (s : State):=
-      match nextIdx  (mIdx s) with
-        | exist _ r rpf =>
           {|
             A := H s;
             B := A s;
@@ -263,11 +234,9 @@ Module SHA2 (C : CONFIG).
             E := D s;
             F := E s;
             G := F s;
-            H := G s;
-            mIdx := r;
-            mIdxProof := rpf
-          |}
-      end.
+            H := G s
+          |}.
+
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
       [ temp ::= x >*> (r2 - r1); temp ::=^ x;
@@ -295,12 +264,13 @@ Module SHA2 (C : CONFIG).
         temp  ::=| tp
       ].
 
-    (**
-       We now give the code for computing a single round given the
-       state s and the round constant K
+    (** The heart of the hash algorithm a single round where we update
+        the state held in the variables [a b c d e f g h] according to
+        the procedure STEP. This step requires the message word [M]
+        applicable for that round computed the message schedule, and
+        the round constant [K].
      *)
-    Definition STEP (s : State) (K : constant Word) : code v :=
-      let M : v Word := W (mIdx s) (mIdxProof s) in
+    Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
       [ t ::= H s [+] K  ;  t ::=+ M ]
         ++ CH s        (* temp = CH e f g *)
         ++ [ t ::=+ temp ]
@@ -313,19 +283,47 @@ Module SHA2 (C : CONFIG).
         ++ [ H s ::= temp [+] t ] (* h =  t + MAJ a b c *)
     .
 
-    Definition STEP_AND_SCHEDULE s K :=
-      STEP s K ++ SCHEDULE (mIdx s) (mIdxProof s).
+    (** Having defined the [STEP] we look at a single round. A round
+        [r] consists of an application of the [STEP] together with
+        modifying the message for use in round [r +
+        BLOCK_SIZE]. However, the last [BLOCK_SIZE] many rounds need
+        not to update the message word as they are not going to be
+        used. We now describe the two variants.  *)
+
+    Definition ROUND_WITH_SCHEDULE stAndIdx K :=
+      match stAndIdx with
+      | (st, exist _ mIdx mIdxBoundPf) =>
+        let Mesg := M mIdx mIdxBoundPf in
+        STEP st Mesg K ++ SCHEDULE mIdx mIdxBoundPf
+      end.
+
+    Definition ROUND_WITHOUT_SCHEDULE stAndIdx K :=
+      match stAndIdx with
+      | (st, exist _ mIdx mIdxBoundPf) =>
+        let Mesg := M mIdx mIdxBoundPf in
+        STEP st Mesg K
+      end.
+
 
     Section GenerateRounds.
-      Variable genCode : State -> constant Word -> code v.
-      Fixpoint generateRounds (s : State) (Ks : list (constant Word))
-               : code v * State
+
+      Definition MessageIndex  := { r : nat | r < BLOCK_SIZE}.
+      Definition Accumulator := (State * MessageIndex)%type.
+      Definition next (acc : Accumulator) :=
+        match acc with
+        | (s,exist _ idx _) => (newState s, nextIdx idx)
+        end.
+
+      Variable genCode : Accumulator -> constant Word -> code v.
+
+      Fixpoint generateRounds (acc : Accumulator) (Ks : list (constant Word))
+        : code v * Accumulator
         := match Ks with
            | k :: ks =>
-             let cde := genCode s k in
-             let (cdeRest, stp) := generateRounds (newState s) ks in
+             let cde := genCode acc k in
+             let (cdeRest, stp) := generateRounds (next acc) ks in
              (cde ++ cdeRest, stp)
-           | [ ] => ([ ],s)
+           | [ ] => ([ ],acc)
            end.
     End GenerateRounds.
 
@@ -342,8 +340,9 @@ Module SHA2 (C : CONFIG).
     Definition ALL_ROUNDS :=
       let Ks := Vector.to_list KVec in
       let (KsInit, KsLast) := splitAt (ROUNDS - BLOCK_SIZE)  Ks in
-      let (cd1, state1) := generateRounds STEP_AND_SCHEDULE state0 KsInit in
-      let (cd2,_) := generateRounds STEP state1 KsLast in
+      let acc0 := (state0, exist _ 0 zltBlockSize) in
+      let (cd1, acc1) := generateRounds ROUND_WITH_SCHEDULE acc0 KsInit in
+      let (cd2,_) := generateRounds ROUND_WITHOUT_SCHEDULE acc1 KsLast in
       cd1 ++ cd2.
 
 
