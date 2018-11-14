@@ -204,7 +204,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       n (vT : Vector.t (some t) n) typ C {struct vT}
     : (scoped v vT (typ -> C)) -> (typ -> scoped v vT C) :=
     match vT with
-    | []%vector                       => id
+    | []                             => id
     | ((existT _ _ ty) :: vTt)%vector => fun s x vty => swapScope _ _ _
                                                                   (s vty) x
     end.
