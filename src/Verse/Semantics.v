@@ -218,7 +218,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
 
   Ltac scopeTys xt :=
     match xt with
-    | _ ?y -> ?z => refine ((fun p => (((existT y) :: fst p, snd p))) _)%vector; scopeTys z
+    | ProxyVar ?y -> ?z => refine ((fun p => (((existT y) :: fst p, snd p))) _)%vector; scopeTys z
     | ?x         => exact ([]%vector, x)
     end.
 
@@ -253,7 +253,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
 
   Ltac mapTyOf xt :=
     match xt with
-    | _ ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
+    | ProxyVar ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
     | ?x         => exact ([]%vector)
     end.
 
