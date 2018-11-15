@@ -30,14 +30,48 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
   Infix "/" := (O.wordOpDenote _ quot) : word_scope.
   Infix "mod" := (O.wordOpDenote _ rem) (at level 40) : word_scope.
   Infix "AND" := (O.wordOpDenote _ bitAnd) (at level 55) : word_scope.
+  Infix "AND8" := (O.wordOpDenote 0 bitAnd) (at level 55) : word_scope.
+  Infix "AND16" := (O.wordOpDenote 1 bitAnd) (at level 55) : word_scope.
+  Infix "AND32" := (O.wordOpDenote 2 bitAnd) (at level 55) : word_scope.
+  Infix "AND64" := (O.wordOpDenote 3 bitAnd) (at level 55) : word_scope.
   Infix "OR" := (O.wordOpDenote _ bitOr) (at level 60) : word_scope.
+  Infix "OR8" := (O.wordOpDenote 0 bitOr) (at level 55) : word_scope.
+  Infix "OR16" := (O.wordOpDenote 1 bitOr) (at level 55) : word_scope.
+  Infix "OR32" := (O.wordOpDenote 2 bitOr) (at level 55) : word_scope.
+  Infix "OR64" := (O.wordOpDenote 3 bitOr) (at level 55) : word_scope.
   Infix "XOR" := (O.wordOpDenote _ bitXor) (at level 57) : word_scope.
+  Infix "XOR8" := (O.wordOpDenote 0 bitXor) (at level 55) : word_scope.
+  Infix "XOR16" := (O.wordOpDenote 1 bitXor) (at level 55) : word_scope.
+  Infix "XOR32" := (O.wordOpDenote 2 bitXor) (at level 55) : word_scope.
+  Infix "XOR64" := (O.wordOpDenote 3 bitXor) (at level 55) : word_scope.
   Notation "'NOT' X" := (O.wordOpDenote _ bitComp X) (at level 40) : word_scope.
+  Infix "NOT8" := (O.wordOpDenote 0 bitComp) (at level 55) : word_scope.
+  Infix "NOT16" := (O.wordOpDenote 1 bitComp) (at level 55) : word_scope.
+  Infix "NOT32" := (O.wordOpDenote 2 bitComp) (at level 55) : word_scope.
+  Infix "NOT64" := (O.wordOpDenote 3 bitComp) (at level 55) : word_scope.
+
+  Delimit Scope word_scope with word.
 
   Definition ShiftL n X s := O.wordOpDenote n (shiftR s) X.
+  Notation ShiftL8 := (@ShiftL 0).
+  Notation ShiftL16 := (@ShiftL 1).
+  Notation ShiftL32 := (@ShiftL 2).
+  Notation ShiftL64 := (@ShiftL 3).
   Definition ShiftR n X s := O.wordOpDenote n (shiftL s) X.
+  Notation ShiftR8 := (@ShiftR 0).
+  Notation ShiftR16 := (@ShiftR 1).
+  Notation ShiftR32 := (@ShiftR 2).
+  Notation ShiftR64 := (@ShiftR 3).
   Definition RotL n X r   := O.wordOpDenote n (rotL r) X.
+  Notation RotL8 := (@RotL 0).
+  Notation RotL16 := (@RotL 1).
+  Notation RotL32 := (@RotL 2).
+  Notation RotL64 := (@RotL 3).
   Definition RotR n X r   := O.wordOpDenote n (rotR r) X.
+  Notation RotR8 := (@RotR 0).
+  Notation RotR16 := (@RotR 1).
+  Notation RotR32 := (@RotR 2).
+  Notation RotR64 := (@RotR 3).
 
   Section Semantics.
 
