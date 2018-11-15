@@ -1,4 +1,5 @@
 Require Import Verse.Word.
+Require Import Verse.NFacts.
 Require Import Verse.Types.Internal.
 Require Import Verse.Types.
 Require Import Verse.Language.Operators.
@@ -17,10 +18,8 @@ End NWord.
 
 Module NConst <: CONST_SEMANTICS NWord.
 
-  Definition constWordDenote n (w : StandardWord.wordDenote n) : NWord.wordDenote n :=
-    let 'bits wv := w in
-    let len := 4 * (2 * 2^n) in
-    Bv2N len wv.
+  Definition constWordDenote n (w : constant (word n)) : NWord.wordDenote n :=
+    Nibble.toN w.
 
 End NConst.
 
@@ -45,7 +44,7 @@ Module NOps <: OP_SEMANTICS (NWord).
     | bitComp => fun a => Bv2N n (Bvector.Bneg n (N2Bv_gen n a) )
     | rotL m => fun b => Bv2N n (BOps.BRotL m (N2Bv_gen n b))
     | rotR m => fun b => Bv2N n (BOps.BRotR m (N2Bv_gen n b))
-    | shiftL m => fun b => Bv2N n (BOps.BShiftL m (N2Bv_gen n b))
+    | shiftL m => fun b => (N.shiftl_nat b m mod two_power_nat_N n)%N
     | shiftR m => fun b => N.shiftr_nat b m
     | nop => fun b => b
     end.
