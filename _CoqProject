@@ -22,6 +22,7 @@ src/Verse/TestCode/TestIteratorCode.v
 src/Verse/DecFacts.v
 src/Verse/Semantics/Store.v
 src/Verse/Semantics.v
+src/Verse/Semantics/NSemantics.v
 src/Verse/Semantics/ScopeStore.v
 src/Verse/Semantics/FunctionStore.v
 src/Verse/TestCode/TestSemantics.v
