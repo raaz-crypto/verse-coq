@@ -6,7 +6,10 @@ Import VectorNotations.
 prime associated with Poly1305.
 
 
-*)
+ *)
+Require Import Semantics.NSemantics.
+Import NSemanticsTactics.
+Import NArith.
 Module Internal.
 
   Section Poly1305.
@@ -89,6 +92,7 @@ Module Internal.
 
      *)
 
+    Definition NVal (x0 x1 x2 x3 x4 : N) := (x0 + 2^26 * x1 + 2^52 * x2 + 2^78 * x3  + 2^104 * x4)%N.
     Definition LOAD_COEFFICIENT (blk : progvar Block) : code progvar.
       verse [
           c3 ::== blk [- 0 -];
@@ -122,9 +126,17 @@ Module Internal.
 
           (** The remaining 24 bit is what c4 deserves to get *)
           c4 ::=>> 26;
+          ASSERT c3 HAD a0; c4 HAD a1;
+                 c0 HAS x0;
+                 c1 HAS x1;
+                 c2 HAS x2;
+                 c3 HAS x3;
+                 c4 HAS x4
+                    IN
+                 (2^64 * a1 + a0 = NVal x0 x1 x2 x3 x4)%N ;
           c4 ::=| TwoPow25
-      ]%list.
-
+        ]%list.
+      Defined.
       (** Perform A += C *)
       Definition APLUSC : code progvar.
         verse (foreach (indices A) ( fun i ip => [ACC i _ ::=+ C i _]%list)).
@@ -195,5 +207,36 @@ Module Internal.
           temp ::= a1 [*] r3; p4 ::=+ temp;
           temp ::= a2 [*] r2; p4 ::=+ temp;
           temp ::= a3 [*] r1; p4 ::=+ temp;
-          temp ::= a4 [*] r0; p4 ::=+ temp
-        ]%list.
+          temp ::= a4 [*] r0; p4 ::=+ temp;
+          ASSERT NVal (Val p0) (Val p1) (Val p2) (Val p3) (Val p4) =
+                 NVal (Val a0) (Val a1) (Val a2) (Val a3) (Val a4) *
+                 NVal (Val r0) (Val r1) (Val r2) (Val r3) (Val r4)
+        ]%list%N.
+
+  End Poly1305.
+End Internal.
+
+
+Definition loadClaim : Prop.
+  exParamProp Internal.LOAD_COEFFICIENT.
+Defined.
+
+Definition locadCorrectness : loadClaim.
+  unfold loadClaim. unfold genSAT. unfold SAT. breakStore.
+  lazy -[RotR RotL ShiftR ShiftL XorW AndW OrW NegW
+              fromNibbles
+              numBinOp numUnaryOp numBigargExop numOverflowBinop
+              Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+              N.add N.sub N.mul N.div N.div_eucl N.modulo
+              N.pow
+              Ox nth replace].
+Abort.
+
+
+Definition MulClaim : Prop.
+  exParamProp Internal.MULR.
+Defined.
+
+Definition MulCorrectness : MulClaim.
+  unfold MulClaim.
+Abort.
