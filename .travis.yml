@@ -30,9 +30,9 @@ before_install:
   - opam update
   - opam switch install 4.05.0
   - opam switch set 4.05.0
-  - opam install coq."$COQ_VER" -y
+  - opam install coq."$COQ_VER" -y --verbose
   - opam pin add coq "$COQ_VER"
-  - opam install coq-color -y
+  - opam install coq-color -y --verbose
 script:
   - eval $(opam config env)
   - make build
