@@ -3,6 +3,7 @@ Require Import Verse.CryptoLib.sha2.
 Require Import Verse.Semantics.
 Import StandardTactics.
 Require Import Verse.WordFacts.
+Require Import Verse.WordRing.
 Open Scope word_scope.
 
 Import NArith.
@@ -243,7 +244,7 @@ Module SHA2 (C : CONFIG).
       |}.
 
     Definition sig r0 r1 r2 (x : typeDenote Word : Type) :=
-      RotR x r2 XOR RotR x r1 XOR RotR x r0.
+      x RotR r2 XOR x RotR r1 XOR x RotR r0.
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
       [ temp ::= x >*> (r2 - r1); temp ::=^ x;
@@ -276,7 +277,7 @@ Module SHA2 (C : CONFIG).
         temp  ::=| tp;
         ASSERT A s HAS a; B s HAS b; C s HAS c
         IN
-        Val temp = (a AND b) XOR (a AND c) XOR (b AND c)
+        Val temp = (a AND b) OR (a AND c) OR (b AND c)
       ].
 
     (** The heart of the hash algorithm a single round where we update
@@ -304,7 +305,7 @@ Module SHA2 (C : CONFIG).
              let ch := (e AND f) XOR (NOT e AND g) in
              let temp1 := h + S1 + ch + [[K]] + Val M in
              let S0 := sig R00 R01 R02 a in
-             let maj := (a AND b) XOR (a AND c) XOR (b AND c) in
+             let maj := (a AND b) OR (a AND c) OR (b AND c) in
              let temp2 := S0 + maj in
 
              Val (H s') = g
@@ -411,7 +412,7 @@ Module SHA2 (C : CONFIG).
         unfold genSAT;
         unfold SAT;
         breakStore;
-        lazy -[RotR RotL ShiftR ShiftL XorW AndW OrW NegW
+        lazy -[wordOpDenote RotRW RotLW ShiftRW ShiftLW XorW AndW OrW NegW
                 fromNibbles
                 numBinOp numUnaryOp numBigargExop numOverflowBinop
                 Nat.add Nat.sub Nat.mul Nat.div Nat.pow
@@ -421,12 +422,38 @@ Module SHA2 (C : CONFIG).
       (match goal with
        | |- _ /\ _          => constructor
        | |- _ -> _          => intro
+       | H : _ /\ _ |- _    => destruct H
        | H : True |- _      => clear H
        | |- True            => constructor
        | |- ?x = ?x         => trivial
        end)).
-    repeat rewrite rotRDistrXor.
-    repeat rewrite rotRCompose.
-  Abort.
+    (* Sigma *)
+    unfold wordOpDenote;
+      repeat rewrite rotRDistrXor;
+      repeat rewrite rotRCompose;
+      repeat rewrite Minus.le_plus_minus_r;
+      [ trivial | pose increasing_R's; easy ..].
+    (* Sigma *)
+    unfold wordOpDenote;
+      repeat rewrite rotRDistrXor;
+      repeat rewrite rotRCompose;
+      repeat rewrite Minus.le_plus_minus_r;
+      [ trivial | pose increasing_R's; easy ..].
+    (* Maj *)
+    unfold wordOpDenote.
+    rewrite AndComm.
+    now rewrite AndDistrOr.
+    (* Ring *)
+    rewrite H3.
+    unfold wordOpDenote.
+    Add Ring Here : (mod_semi_ring (4 * (2 * (2 ^ WordSize)))).
+    now ring_simplify.
+
+    rewrite H3.
+    rewrite H2.
+    rewrite H1.
+    unfold wordOpDenote.
+    now ring_simplify.
+  Qed.
 
 End SHA2.
