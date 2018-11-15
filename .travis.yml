@@ -2,9 +2,7 @@ language: c
 sudo: false
 cache:
   directories:
-    # Put all the versions of coq that you want here.
-    - coq-8.5.2
-    - coq-8.6
+    - $HOME/.opam
 addons:
   apt:
     packages:
@@ -52,4 +50,4 @@ after_failure:
 branches:
   only:
     - master
-    - syntax
+    - develop
