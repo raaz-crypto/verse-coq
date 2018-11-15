@@ -24,6 +24,21 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
 
   Import OP.
 
+  Infix "+" := (O.wordOpDenote _ plus) : word_scope.
+  Infix "-" := (O.wordOpDenote _ minus) : word_scope.
+  Infix "*" := (O.wordOpDenote _ mul) : word_scope.
+  Infix "/" := (O.wordOpDenote _ quot) : word_scope.
+  Infix "mod" := (O.wordOpDenote _ rem) (at level 40) : word_scope.
+  Infix "AND" := (O.wordOpDenote _ bitAnd) (at level 55) : word_scope.
+  Infix "OR" := (O.wordOpDenote _ bitOr) (at level 60) : word_scope.
+  Infix "XOR" := (O.wordOpDenote _ bitXor) (at level 57) : word_scope.
+  Notation "'NOT' X" := (O.wordOpDenote _ bitComp X) (at level 40) : word_scope.
+
+  Definition ShiftL n X s := O.wordOpDenote n (shiftR s) X.
+  Definition ShiftR n X s := O.wordOpDenote n (shiftL s) X.
+  Definition RotL n X r   := O.wordOpDenote n (rotL r) X.
+  Definition RotR n X r   := O.wordOpDenote n (rotR r) X.
+
   Section Semantics.
 
     Variable s : Store.
