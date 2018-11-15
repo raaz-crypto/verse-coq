@@ -10,19 +10,15 @@ addons:
       - opam
       - ghc
     sources: [avsm]
-env:
-  global:
-    - OCAML_VER=4.05.0
-    - OPAMYES=true
-  matrix:
-    - COQ_VER=8.5.2
-    - COQ_VER=8.6.1
-    - COQ_VER=8.7.2
-    - COQ_VER=8.8.0
-
+matrix:
+  include:
+    env: COQ_VER=8.5.2 OCAML_VER=4.05.0
+    env: COQ_VER=8.6.1 OCAML_VER=4.05.0
+    env: COQ_VER=8.7.2 OCAML_VER=4.05.0
+    env: COQ_VER=8.8.0 OCAML_VER=4.05.0
   allow_failures:
-    - env: COQ_VER=8.8.0
-    - env: COQ_VER=8.7.2
+    - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
+    - env: COQ_VER=8.7.2 OCAML_VER=4.05.0
 
 
 notifications:
