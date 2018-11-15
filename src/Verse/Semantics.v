@@ -19,10 +19,9 @@ Generalizable All Variables.
 
 Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS W).
 
+  Export O.
   Module C  := ConstDenote W CW.
   Module OP := OpDenote W O.
-
-  Import OP.
 
   Infix "+" := (O.wordOpDenote _ plus) : word_scope.
   Infix "-" := (O.wordOpDenote _ minus) : word_scope.
@@ -50,28 +49,28 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
   Infix "NOT32" := (O.wordOpDenote 2 bitComp) (at level 55) : word_scope.
   Infix "NOT64" := (O.wordOpDenote 3 bitComp) (at level 55) : word_scope.
 
-  Delimit Scope word_scope with word.
+  Notation "X 'ShiftL' s" := (O.wordOpDenote _ (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL8' s" := (O.wordOpDenote 0 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL16' s" := (O.wordOpDenote 1 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL32' s" := (O.wordOpDenote 2 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL64' s" := (O.wordOpDenote 3 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR' s" := (O.wordOpDenote _ (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR8' s" := (O.wordOpDenote 0 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR16' s" := (O.wordOpDenote 1 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR32' s" := (O.wordOpDenote 2 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR64' s" := (O.wordOpDenote 3 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'RotL' s" := (O.wordOpDenote _ (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL8' s" := (O.wordOpDenote 0 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL16' s" := (O.wordOpDenote 1 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL32' s" := (O.wordOpDenote 2 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL64' s" := (O.wordOpDenote 3 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotR' s" := (O.wordOpDenote _ (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR8' s" := (O.wordOpDenote 0 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR16' s" := (O.wordOpDenote 1 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR32' s" := (O.wordOpDenote 2 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR64' s" := (O.wordOpDenote 3 (rotR s) X) (at level 50) : word_scope.
 
-  Definition ShiftL n X s := O.wordOpDenote n (shiftR s) X.
-  Notation ShiftL8 := (@ShiftL 0).
-  Notation ShiftL16 := (@ShiftL 1).
-  Notation ShiftL32 := (@ShiftL 2).
-  Notation ShiftL64 := (@ShiftL 3).
-  Definition ShiftR n X s := O.wordOpDenote n (shiftL s) X.
-  Notation ShiftR8 := (@ShiftR 0).
-  Notation ShiftR16 := (@ShiftR 1).
-  Notation ShiftR32 := (@ShiftR 2).
-  Notation ShiftR64 := (@ShiftR 3).
-  Definition RotL n X r   := O.wordOpDenote n (rotL r) X.
-  Notation RotL8 := (@RotL 0).
-  Notation RotL16 := (@RotL 1).
-  Notation RotL32 := (@RotL 2).
-  Notation RotL64 := (@RotL 3).
-  Definition RotR n X r   := O.wordOpDenote n (rotR r) X.
-  Notation RotR8 := (@RotR 0).
-  Notation RotR16 := (@RotR 1).
-  Notation RotR32 := (@RotR 2).
-  Notation RotR64 := (@RotR 3).
+  Delimit Scope word_scope with word.
 
   Section Semantics.
 
