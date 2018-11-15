@@ -7,6 +7,57 @@ Require Import Equality.
 
 Import BOps.
 
+Set Implicit Arguments.
+
+
+Definition Distr T f g := forall a b c : T,
+    g a (f b c) = f (g a b) (g a c).
+
+Definition Comm T (f : T -> T -> T) := forall a b, f a b = f b a.
+
+Arguments Distr [T] f g.
+Arguments Comm [T] _.
+
+Section Basics.
+
+  Variable f g : bool -> bool -> bool.
+  Variable n : nat.
+
+  Lemma liftDistr : Distr f g -> Distr (@liftBV2 (@Vmap2 _ _ _ f) n)
+                                       (@liftBV2 (@Vmap2 _ _ _ g) n).
+    unfold Distr.
+    intros.
+    destruct a, b, c.
+    unfold Bvector.Bvector in *.
+    simpl.
+    f_equal.
+    induction n.
+    now VOtac.
+    VSntac b0. VSntac b1. VSntac b.
+    simpl.
+    f_equal.
+    apply H.
+    apply IHn0.
+  Qed.
+
+  Lemma liftComm : Comm f -> Comm (@liftBV2 (@Vmap2 _ _ _ f) n).
+    unfold Comm.
+    intros.
+    destruct a, b.
+    unfold Bvector.Bvector in *.
+    simpl.
+    f_equal.
+    induction n.
+    now VOtac.
+    VSntac b0. VSntac b.
+    simpl.
+    f_equal.
+    apply H.
+    apply IHn0.
+  Qed.
+
+End Basics.
+
 Lemma ntimesCompose A (f : A -> A) n1 n2 a
   : ntimes f n1 (ntimes f n2 a) = ntimes f (n1 + n2) a.
   induction n1.
@@ -14,6 +65,38 @@ Lemma ntimesCompose A (f : A -> A) n1 n2 a
   simpl.
   f_equal.
   apply IHn1.
+Qed.
+
+Lemma OrComm n (w1 w2 : Word.t n)
+  : OrW w1 w2 = OrW w2 w1.
+  unfold OrW, BVOr.
+  apply liftComm.
+  unfold Comm.
+  apply Bool.orb_comm.
+Qed.
+
+Lemma AndComm n (w1 w2 : Word.t n)
+  : AndW w1 w2 = AndW w2 w1.
+  unfold AndW, BVAnd.
+  apply liftComm.
+  unfold Comm.
+  apply Bool.andb_comm.
+Qed.
+
+Lemma OrDistrAnd n (w1 w2 w3 : Word.t n)
+  : OrW w1 (AndW w2 w3) = AndW (OrW w1 w2) (OrW w1 w3).
+  unfold OrW, BVOr, BVAnd.
+  apply liftDistr.
+  unfold Distr.
+  apply Bool.orb_andb_distrib_r.
+Qed.
+
+Lemma AndDistrOr n (w1 w2 w3 : Word.t n)
+  : AndW w1 (OrW w2 w3) = OrW (AndW w1 w2) (AndW w1 w3).
+  unfold OrW, BVOr, BVAnd.
+  apply liftDistr.
+  unfold Distr.
+  apply Bool.andb_orb_distrib_r.
 Qed.
 
 Lemma rotRCompose n r1 r2 (w : Word.t n)
@@ -29,9 +112,6 @@ Qed.
 
 Lemma rotRDistrXor n : forall (w1 w2 : Word.t n) r,
     RotRW r (XorW w1 w2) = XorW (RotRW r w1) (RotRW r w2).
-  (*
-Lemma rotRDistrXor n : forall (b1 b2 : Bvector.Bvector (S n)) r,
-    BRotR r (BVXor b1 b2) = BVXor (BRotR r b1) (BRotR r b2).*)
 Proof.
   destruct w1 as [ b1 ].
   destruct w2 as [ b2 ].
