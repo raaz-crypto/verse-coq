@@ -151,10 +151,10 @@ Module StandardWordOps <: OP_SEMANTICS (StandardWord).
     | bitAnd       => fun a b => AndW a b
     | bitXor       => fun a b => XorW a b
     | bitComp      => fun a => NegW a
-    | rotL    m    => fun a => RotL m a
-    | rotR    m    => fun a => RotR m a
-    | shiftL  m    => fun a => ShiftL m a
-    | shiftR  m    => fun a => ShiftR m a
+    | rotL    m    => fun a => RotLW m a
+    | rotR    m    => fun a => RotRW m a
+    | shiftL  m    => fun a => ShiftLW m a
+    | shiftR  m    => fun a => ShiftRW m a
     | nop          => fun x => x
     end.
 

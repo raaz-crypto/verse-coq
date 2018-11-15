@@ -3,6 +3,9 @@ Require Import Verse.Arch.C.
 Require Import Verse.Types.Internal.
 Require Import Semantics.
 
+Import StandardSemantics.
+Open Scope word_scope.
+
 Import NArith.
 Require Import Vector.
 Import VectorNotations.
@@ -39,7 +42,7 @@ Section TestFunction.
     verse
       [ num ::= tmp [+] Ox "abcd";
 
-        ASSERT num HAD n ; tmp HAS t IN n = XorW (RotR 2 t) n;
+        ASSERT num HAD n ; tmp HAS t IN n = (RotR t 2) XOR n;
 
         ASSERT A HAS a; num HAD n ; tmp HAD t IN (n = t) /\ (t = n);
 
@@ -110,7 +113,7 @@ Definition proof : toProve.
   unfold genSAT;
   unfold SAT;
   breakStore;
-  lazy -[RotR RotL ShiftR ShiftL XorW AndW OrW NegW
+  lazy -[RotRW RotLW ShiftRW ShiftLW XorW AndW OrW NegW
               fromNibbles
               numBinOp numUnaryOp numBigargExop numOverflowBinop
               Nat.add Nat.sub Nat.mul Nat.div

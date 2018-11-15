@@ -17,10 +17,10 @@ Lemma ntimesCompose A (f : A -> A) n1 n2 a
 Qed.
 
 Lemma rotRCompose n r1 r2 (w : Word.t n)
-  : RotR r1 (RotR r2 w) = RotR (r1 + r2) w.
+  : RotRW r1 (RotRW r2 w) = RotRW (r1 + r2) w.
 Proof.
   destruct w.
-  unfold RotR.
+  unfold RotRW.
   simpl liftBV.
   f_equal.
   unfold BRotR.
@@ -28,7 +28,7 @@ Proof.
 Qed.
 
 Lemma rotRDistrXor n : forall (w1 w2 : Word.t n) r,
-    RotR r (w1 (XOR) w2) = RotR r w1 (XOR) RotR r w2.
+    RotRW r (XorW w1 w2) = XorW (RotRW r w1) (RotRW r w2).
   (*
 Lemma rotRDistrXor n : forall (b1 b2 : Bvector.Bvector (S n)) r,
     BRotR r (BVXor b1 b2) = BVXor (BRotR r b1) (BRotR r b2).*)
@@ -36,7 +36,7 @@ Proof.
   destruct w1 as [ b1 ].
   destruct w2 as [ b2 ].
   intro r.
-  unfold RotR.
+  unfold RotRW.
   unfold XorW.
   cbn [liftBV liftBV2].
   f_equal.
