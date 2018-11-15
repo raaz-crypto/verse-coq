@@ -2,7 +2,8 @@ Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
 Require Import Verse.Semantics.
 Import StandardTactics.
-Require Import Verse.BOpsFacts.
+Require Import Verse.WordFacts.
+Open Scope word_scope.
 
 Import NArith.
 Import Nat.
@@ -140,14 +141,14 @@ Module SHA2 (C : CONFIG).
         if idx =? 15 then @exist _ _ 0 zltBlockSize
         else let sIdx := S idx in
              @exist _ _
-                   (sIdx mod BLOCK_SIZE)
+                   (sIdx mod BLOCK_SIZE)%nat
                    (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
       Definition M  := W idx idxPf.
 
       (** We capture m(idx - j) using this variable *)
       Definition MM (j : nat) : v Word.
-        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _).
+        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _)%nat.
       Defined.
 
 
@@ -167,7 +168,7 @@ Module SHA2 (C : CONFIG).
       (** This completes the code for message scheduling *)
     End MessageSchedule.
 
-    Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
+    Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = (S n mod BLOCK_SIZE)%nat.
       intro n.
       do 16 (destruct n; trivial).
     Qed.
@@ -242,7 +243,7 @@ Module SHA2 (C : CONFIG).
       |}.
 
     Definition sig r0 r1 r2 (x : typeDenote Word : Type) :=
-      RotR r2 x (XOR) RotR r1 x (XOR) RotR r0 x.
+      RotR x r2 XOR RotR x r1 XOR RotR x r0.
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
       [ temp ::= x >*> (r2 - r1); temp ::=^ x;
@@ -265,7 +266,7 @@ Module SHA2 (C : CONFIG).
               temp ::= E s [&] F s; temp ::=^ tp;
               ASSERT E s HAS e; F s HAS f; G s HAS g
               IN
-              Val temp = (e (AND) f) (XOR) ((NOT) e (AND) g)
+              Val temp = (e AND f) XOR (NOT e AND g)
             ]%list.
 
     Definition MAJ (s : State) : code v :=
@@ -275,7 +276,7 @@ Module SHA2 (C : CONFIG).
         temp  ::=| tp;
         ASSERT A s HAS a; B s HAS b; C s HAS c
         IN
-        Val temp = (a (AND) b) (XOR) (a (AND) c) (XOR) (b (AND) c)
+        Val temp = (a AND b) XOR (a AND c) XOR (b AND c)
       ].
 
     (** The heart of the hash algorithm a single round where we update
@@ -300,20 +301,20 @@ Module SHA2 (C : CONFIG).
              IN
              let s' := newState s in
              let S1 := sig R10 R11 R12 e in
-             let ch := (e (AND) f) (XOR) ((NOT) e (AND) g) in
-             let temp1 := h (+) S1 (+) ch (+) [[K]] (+) Val M in
+             let ch := (e AND f) XOR (NOT e AND g) in
+             let temp1 := h + S1 + ch + [[K]] + Val M in
              let S0 := sig R00 R01 R02 a in
-             let maj := (a (AND) b) (XOR) (a (AND) c) (XOR) (b (AND) c) in
-             let temp2 := S0 (+) maj in
+             let maj := (a AND b) XOR (a AND c) XOR (b AND c) in
+             let temp2 := S0 + maj in
 
              Val (H s') = g
              /\ Val (G s') = f
              /\ Val (F s') = e
-             /\ Val (E s') = d (+) temp1
+             /\ Val (E s') = d + temp1
              /\ Val (D s') = c
              /\ Val (C s') = b
              /\ Val (B s') = a
-             /\ Val (A s') = temp1 (+) temp2
+             /\ Val (A s') = temp1 + temp2
            ].
 
 
@@ -415,7 +416,15 @@ Module SHA2 (C : CONFIG).
                 numBinOp numUnaryOp numBigargExop numOverflowBinop
                 Nat.add Nat.sub Nat.mul Nat.div Nat.pow
                 N.add N.sub N.mul N.div N.div_eucl N.modulo
-                Ox nth replace]; intuition).
+                Ox nth replace];
+    repeat
+      (match goal with
+       | |- _ /\ _          => constructor
+       | |- _ -> _          => intro
+       | H : True |- _      => clear H
+       | |- True            => constructor
+       | |- ?x = ?x         => trivial
+       end)).
     repeat rewrite rotRDistrXor.
     repeat rewrite rotRCompose.
   Abort.
