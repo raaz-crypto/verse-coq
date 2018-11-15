@@ -10,20 +10,20 @@ Require Import BinInt.
 
 Require Import NArith.
 
+Notation wO   := (bits (N2Bv_gen _ 0)).
+Notation wI   := (bits (N2Bv_gen _ 1)).
+Notation wadd := (numBinOp N.add).
+Notation wmul := (numBinOp N.mul).
+Local Notation weq  := (@eq (Word.t _)).
+
 Section WordRing.
 
   Variable n : nat.
 
-  Definition wO   := bits (N2Bv_gen n 0).
-  Definition wI   := bits (N2Bv_gen n 1).
-  Definition wadd := @numBinOp n N.add.
-  Definition wmul := @numBinOp n N.mul.
-  Definition weq  := @eq (Word.t n).
-
   Infix "==" := weq (at level 70).
 
   Ltac crush_mod_ring :=
-    repeat (intros []); unfold wadd, wmul, weq, wO, wI, numBinOp, numUnaryOp;
+    repeat (intros []); unfold numBinOp, numUnaryOp;
     apply f_equal;
     apply Bv2N_inj; rewrite ?Bv2N_N2Bv_gen_mod;
     simpl;
@@ -43,42 +43,42 @@ Section WordRing.
     trivial;
     try (discriminate + apply Bv2N_small).
 
-  Lemma wadd_0_l : forall x, wadd wO x == x.
+  Lemma wadd_0_l : forall (x : Word.t n), wadd wO x == x.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wadd_comm : forall x y, wadd x y == wadd y x.
+  Lemma wadd_comm : forall (x y : Word.t n), wadd x y == wadd y x.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wadd_assoc : forall x y z, wadd x (wadd y z) == wadd (wadd x y) z.
+  Lemma wadd_assoc : forall (x y z : Word.t n), wadd x (wadd y z) == wadd (wadd x y) z.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wmul_1_l : forall x, wmul wI x == x.
+  Lemma wmul_1_l : forall x : Word.t n, wmul wI x == x.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wmul_0_l : forall x, wmul wO x == wO.
+  Lemma wmul_0_l : forall x : Word.t n, wmul wO x == wO.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wmul_comm : forall x y, wmul x y == wmul y x.
+  Lemma wmul_comm : forall x y : Word.t n, wmul x y == wmul y x.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wmul_assoc : forall x y z, wmul x (wmul y z) == wmul (wmul x y) z.
+  Lemma wmul_assoc : forall x y z : Word.t n, wmul x (wmul y z) == wmul (wmul x y) z.
   Proof.
     crush_mod_ring.
   Qed.
 
-  Lemma wdistr_l : forall x y z, wmul (wadd x y) z == wadd (wmul x z) (wmul y z).
+  Lemma wdistr_l : forall x y z : Word.t n, wmul (wadd x y) z == wadd (wmul x z) (wmul y z).
   Proof.
     crush_mod_ring.
   Qed.
