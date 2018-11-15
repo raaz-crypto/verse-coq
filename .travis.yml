@@ -10,21 +10,14 @@ addons:
       - opam
       - ghc
     sources: [avsm]
-
-matrix:
-  include:
-    - os: linux
-      env: COQ_VER=8.5.2
-
-    - os: linux
-      env: COQ_VER=8.6.1
-
-    - os: linux
-      env: COQ_VER=8.7.2
-
-    - os: linux
-      env: COQ_VER=8.8.0
-
+env:
+  global:
+    - OCAML_VER=4.05.0
+  matrix:
+    - COQ_VER=8.5.2
+    - COQ_VER=8.6.1
+    - COQ_VER=8.7.2
+    - COQ_VER=8.8.0
 
   allow_failures:
     - env: COQ_VER=8.8.0
@@ -35,12 +28,18 @@ notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
-  - ./scripts/opam-build.sh init
+  - opam init
+  - opam repo add coq-released https://coq.inria.fr/opam/released
+  - opam update
+  - opam switch install 4.05.0
+  - opam switch set 4.05.0
+  - opam install coq."$COQ_VER"
+  - opam pin add coq "$COQ_VER"
+  - opam install coq-color
 script:
-  - ./scripts/opam-build.sh build
-  - ./scripts/opam-build.sh html
-  - ./scripts/opam-build.sh install
-  - eval `opam config env --root=coq-"$COQ_VER"`
+  - eval $(opam config env)
+  - make build
+  - make html
   - make -C crypto-lib libverse
   - make -C crypto-lib/libverse libverse.a
 after_success:
