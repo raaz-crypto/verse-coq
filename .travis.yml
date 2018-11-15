@@ -13,6 +13,7 @@ addons:
 env:
   global:
     - OCAML_VER=4.05.0
+    - OPAMYES=true
   matrix:
     - COQ_VER=8.5.2
     - COQ_VER=8.6.1
@@ -33,9 +34,9 @@ before_install:
   - opam update
   - opam switch install 4.05.0
   - opam switch set 4.05.0
-  - opam install coq."$COQ_VER"
+  - opam install coq."$COQ_VER" -y
   - opam pin add coq "$COQ_VER"
-  - opam install coq-color
+  - opam install coq-color -y
 script:
   - eval $(opam config env)
   - make build
