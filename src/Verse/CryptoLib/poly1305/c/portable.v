@@ -213,8 +213,8 @@ Module Internal.
           temp ::= a3 [*] r1; p4 ::=+ temp;
           temp ::= a4 [*] r0; p4 ::=+ temp;
           ASSERT NVal (Val p0) (Val p1) (Val p2) (Val p3) (Val p4) mod (2 ^ 130 - 5) =
-                 NVal (Val a0) (Val a1) (Val a2) (Val a3) (Val a4) *
-                 NVal (Val r0) (Val r1) (Val r2) (Val r3) (Val r4) mod (2 ^ 130 - 5)
+                 NVal (Old a0) (Old a1) (Old a2) (Old a3) (Old a4) *
+                 NVal (Old r0) (Old r1) (Old r2) (Old r3) (Old r4) mod (2 ^ 130 - 5)
         ]%list%N.
 
   End Poly1305.
