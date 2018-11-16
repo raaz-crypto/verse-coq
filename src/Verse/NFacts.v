@@ -7,7 +7,17 @@ Require Import BinInt.
 Require Import NArith.
 Require Import Verse.CoLoR_VecUtil.
 
-Definition two_power_nat_N n := Npos (shift_nat n 1).
+Definition two_power_nat_N n := N.pos (shift_nat n 1).
+
+Definition two_power_nat_N_equiv n : two_power_nat_N n = (2 ^ (N.of_nat n))%N.
+  unfold two_power_nat_N.
+  rewrite Zpower.shift_nat_equiv.
+  rewrite Pshiftl_nat_N.
+  rewrite <- (Nat2N.id n).
+  rewrite Nshiftl_nat_equiv.
+  rewrite N.shiftl_1_l.
+  now rewrite Nat2N.id.
+Qed.
 
 Definition OneGtZero : (0 < 1)%Z.
   apply Pos2Z.is_pos.
