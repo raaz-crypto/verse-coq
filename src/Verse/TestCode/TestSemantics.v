@@ -42,7 +42,7 @@ Section TestFunction.
     verse
       [ num ::= tmp [+] Ox "abcd";
 
-        ASSERT num HAD n ; tmp HAS t IN n = (RotR t 2) XOR n;
+        ASSERT num HAD n ; tmp HAS t IN n = (t RotR 2) XOR n;
 
         ASSERT A HAS a; num HAD n ; tmp HAD t IN (n = t) /\ (t = n);
 
