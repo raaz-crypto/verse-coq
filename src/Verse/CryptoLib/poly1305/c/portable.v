@@ -91,6 +91,8 @@ Module Internal.
         use the higher words, [c3] and [c4].
 
      *)
+    Notation one := (Fin.F1).
+    Notation two := (Fin.FS Fin.F1).
 
     Definition NVal (x0 x1 x2 x3 x4 : N) := (x0 + 2^26 * x1 + 2^52 * x2 + 2^78 * x3  + 2^104 * x4)%N.
     Definition LOAD_COEFFICIENT (blk : progvar Block) : code progvar.
@@ -126,13 +128,15 @@ Module Internal.
 
           (** The remaining 24 bit is what c4 deserves to get *)
           c4 ::=>> 26;
-          ASSERT c3 HAD a0; c4 HAD a1;
+          ASSERT blk HAD arr;
                  c0 HAS x0;
                  c1 HAS x1;
                  c2 HAS x2;
                  c3 HAS x3;
                  c4 HAS x4
                     IN
+                 let a0 := arr[@one] in
+                 let a1 := arr[@two] in
                  (2^64 * a1 + a0 = NVal x0 x1 x2 x3 x4)%N ;
           c4 ::=| TwoPow25
         ]%list.
@@ -183,7 +187,7 @@ Module Internal.
           temp ::= a4 [*] r1; temp ::=* Five; p0 ::=+ temp;
 
           p1   ::= a0 [*] r1;
-          temp ::= a1 [*] r0;
+          temp ::= a1 [*] r0; p1   ::=+ temp;
           temp ::= a2 [*] r4; temp ::=* Five; p1 ::=+ temp;
           temp ::= a3 [*] r3; temp ::=* Five; p1 ::=+ temp;
           temp ::= a4 [*] r2; temp ::=* Five; p1 ::=+ temp;
@@ -193,14 +197,14 @@ Module Internal.
           temp ::= a1 [*] r1; p2   ::=+ temp;
           temp ::= a2 [*] r0; p2   ::=+ temp;
           temp ::= a3 [*] r4; temp ::=* Five; p2 ::=+ temp;
-          temp ::= a4 [*] r2; temp ::=* Five; p2 ::=+ temp;
+          temp ::= a4 [*] r3; temp ::=* Five; p2 ::=+ temp;
 
 
           p3   ::= a0 [*] r3;
           temp ::= a1 [*] r2; p3   ::=+ temp;
           temp ::= a2 [*] r1; p3   ::=+ temp;
           temp ::= a3 [*] r0; p3   ::=+ temp;
-          temp ::= a4 [*] r2; temp ::=* Five; p3 ::=+ temp;
+          temp ::= a4 [*] r4; temp ::=* Five; p3 ::=+ temp;
 
 
           p4   ::= a0 [*] r4;
@@ -208,9 +212,9 @@ Module Internal.
           temp ::= a2 [*] r2; p4 ::=+ temp;
           temp ::= a3 [*] r1; p4 ::=+ temp;
           temp ::= a4 [*] r0; p4 ::=+ temp;
-          ASSERT NVal (Val p0) (Val p1) (Val p2) (Val p3) (Val p4) =
+          ASSERT NVal (Val p0) (Val p1) (Val p2) (Val p3) (Val p4) mod (2 ^ 130 - 5) =
                  NVal (Val a0) (Val a1) (Val a2) (Val a3) (Val a4) *
-                 NVal (Val r0) (Val r1) (Val r2) (Val r3) (Val r4)
+                 NVal (Val r0) (Val r1) (Val r2) (Val r3) (Val r4) mod (2 ^ 130 - 5)
         ]%list%N.
 
   End Poly1305.
