@@ -44,7 +44,7 @@ Module NOps <: OP_SEMANTICS (NWord).
     | bitComp => fun a => Bv2N n (Bvector.Bneg n (N2Bv_gen n a) )
     | rotL m => fun b => Bv2N n (BOps.BRotL m (N2Bv_gen n b))
     | rotR m => fun b => Bv2N n (BOps.BRotR m (N2Bv_gen n b))
-    | shiftL m => fun b => (N.shiftl_nat b m mod two_power_nat_N n)%N
+    | shiftL m => fun b => (N.shiftl_nat b m mod two_power_nat_N (8 * 2 ^ n))%N
     | shiftR m => fun b => N.shiftr_nat b m
     | nop => fun b => b
     end.
