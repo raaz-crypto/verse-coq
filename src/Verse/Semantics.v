@@ -6,7 +6,9 @@ Require Import Verse.Error.
 Require Import Verse.Word.
 Require Import Verse.DecFacts.
 Require Import Verse.Semantics.Store.
+Require Import Verse.Nibble.
 
+Require Import NArith.
 Require Import Bvector.
 Require Import Vector.
 Require Import List.
@@ -343,6 +345,30 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       | |- forall _ : _, _ => intro; simpl in * |-
       end.
 
+  Ltac simplify := repeat match goal with
+                          | |- forall _ : Store.store _, _ =>
+                            breakStore;
+                            lazy -[RotRW RotLW ShiftRW ShiftLW XorW AndW OrW NegW
+                                   fromNibbles
+                                   numBinOp numUnaryOp numBigargExop numOverflowBinop
+                                   Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+                                   N.add N.sub N.mul N.div N.div_eucl N.modulo
+                                   Ox nth replace];
+                            repeat
+                              (match goal with
+                               | |- _ /\ _          => constructor
+                               | |- _ -> _          => intro
+                               | H : _ /\ _ |- _    => destruct H
+                               | H : True |- _      => clear H
+                               | |- True            => constructor
+                               | |- ?x = ?x         => trivial
+                               | H : True |- _      => clear H
+                               | H : unit |- _      => clear H
+                               end)
+                          | |- forall _, _ => intro
+                          | |- ?I          => unfold I; unfold genSAT; unfold SAT
+                          end.
+(*
   (* A starter to preface a proof attempt on a Prop extracted via
      extractSAT *)
   Ltac simplify :=
@@ -356,7 +382,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
        | |- _ = _           => constructor
        | _                  => simpl in *
        end; repeat autounfold).
-
+*)
 End SemanticTactics.
 
 Module StandardTactics := SemanticTactics StandardWord StandardConsts StandardWordOps.
