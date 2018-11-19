@@ -27,10 +27,10 @@ fast_finish: true
 before_install:
   - opam init -y
   - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released
-  - opam update
-  - opam switch set 4.05.0
+  - opam update -y
+  - opam switch set 4.05.0 -y
   - opam install coq."$COQ_VER" -y --verbose
-  - opam pin add coq "$COQ_VER"
+  - opam pin add coq "$COQ_VER" -y
   - opam install coq-color -y --verbose
 script:
   - eval $(opam config env)
