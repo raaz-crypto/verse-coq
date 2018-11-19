@@ -35,6 +35,7 @@ before_install:
   - opam install coq-color -y --verbose
 script:
   - eval $(opam config env)
+  - ./configure.sh
   - make build
   - make html
   - make -C crypto-lib libverse
