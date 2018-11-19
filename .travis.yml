@@ -36,7 +36,7 @@ before_install:
 script:
   - eval $(opam config env)
   - ./configure.sh
-  - make build
+  - make
   - make html
   - make -C crypto-lib libverse
   - make -C crypto-lib/libverse libverse.a
