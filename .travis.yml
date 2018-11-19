@@ -26,7 +26,7 @@ notifications:
 fast_finish: true
 before_install:
   - opam init -y
-  - opam repo add coq-released https://coq.inria.fr/opam/released
+  - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released
   - opam update
   - opam switch install 4.05.0
   - opam switch set 4.05.0
