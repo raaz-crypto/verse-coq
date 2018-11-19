@@ -3,9 +3,6 @@ Require Import Verse.NFacts.
 
 Require Import Coq.setoid_ring.Ring_theory.
 Require Import BinNums.
-Require Import ZArith.
-Require Import Coq.ZArith.Zdigits.
-Require Import ZArith_base.
 Require Import BinInt.
 
 Require Import NArith.
@@ -41,7 +38,7 @@ Section WordRing.
     rewrite N.mul_comm  +
     rewrite N.mod_small;
     trivial;
-    try (discriminate + apply Bv2N_small).
+    try (discriminate + apply two_power_nonzero + apply Bv2N_small).
 
   Lemma wadd_0_l : forall (x : Word.t n), wadd wO x == x.
   Proof.
