@@ -400,7 +400,7 @@ Module SHA2 (C : CONFIG).
   End Program.
 
   (* Write a scoped version of STEP *)
-  Definition scSTEP v k t tp temp m a b c d e f g h
+  Definition scSTEP v t tp temp a b c d e f g h m k
     := STEP v t tp temp {| A := a; B := b; C := c; D := d; E := e; F := f; G := g; H := h |} m k.
 
   (* Extract the proof obligation from scSTEP *)
