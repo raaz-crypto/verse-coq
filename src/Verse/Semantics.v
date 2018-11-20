@@ -275,16 +275,16 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
     : (forall v, scoped v vT (typ -> C v)) -> typ -> forall v, scoped v vT (C v)
     := fun f => fun t v => (swapScope v vT (C v) (f v) t).
 
-  Arguments swapGScope [_ n] _ [typ] _ _ /.
+  Arguments swapGScope [_ n] _ [typ] _ _.
 
-  Ltac scopeTys xt :=
+  Ltac mapTyOf xt :=
     match xt with
-    | ProxyVar ?y -> ?z => refine ((fun p => (((existT y) :: fst p, snd p))) _)%vector; scopeTys z
-    | ?x         => exact ([]%vector, x)
+    | ProxyVar ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
+    | ?x         => exact ([]%vector)
     end.
 
   (* Extract the scope out of a generic function *)
-  Ltac scopeAndInner x := let xt := type of (x ProxyVar) in scopeTys xt.
+  Ltac getScope x := let xt := type of (x ProxyVar) in mapTyOf xt.
 
   Ltac rearrScope x :=
     let scp := fresh "scp" in
@@ -292,13 +292,13 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
     let typ := fresh "typ" in
     let rx  := fresh "rx"  in
     (* Bring out the leading scope and the scoped Type *)
-    simple refine (let scp : (Vector.t (some type) _ * Type) := _ in _);
-    [shelve | scopeAndInner x | idtac];
-    pose (sc := fst scp); simpl in *;
+    simple refine (let scp : Vector.t (some type) _ := _ in _);
+    [shelve | getScope x | idtac];
+    simpl in *;
     let nx := fresh "nx" in
     tryif
       (* Swap out one inner parameter if possible *)
-      pose (nx := swapGScope sc _ x)
+      pose (nx := swapGScope scp _ x)
     then
       (* Recursively call rearrScope to check for more inner parameters *)
       let t := fresh "t" in
@@ -311,15 +311,6 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       rearrScope nxn
     else
       exact x.
-
-  Ltac mapTyOf xt :=
-    match xt with
-    | ProxyVar ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
-    | ?x         => exact ([]%vector)
-    end.
-
-  (* Extract the scope out of a generic function *)
-  Ltac getScope x := let xt := type of (x ProxyVar) in mapTyOf xt.
 
   (* Recovers the specification corresponding to a code block
      as a Prop *)
