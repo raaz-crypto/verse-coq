@@ -416,7 +416,7 @@ Module SHA2 (C : CONFIG).
     repeat rewrite rotRDistrXor;
       repeat rewrite rotRCompose;
       repeat rewrite Minus.le_plus_minus_r;
-      [ trivial | pose increasing_R's; easy ..].
+      easy.
   Qed.
 
   Definition proof : toProve.
