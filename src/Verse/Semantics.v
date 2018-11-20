@@ -193,28 +193,34 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
         at the corresponding program points.
        *)
 
-      Definition spec := (Prop * Prop)%type.
+      Record state := { start  : store;
+                        curr   : store;
+                        lemmas : Prop;
+                        spec   : Prop
+                      }.
 
-      Variable st : store.
-      Variable ost : store.
-
-      Definition annotationDenote (a : annotation v) (s : spec) : spec :=
-        let (ass, cl) := s in
-        let ctxtP := (eval st, eval ost) in
-        (fun na => ((ass /\ na, cl /\ (ass -> na)))) (a ctxtP).
+      Definition annotationDenote (a : annotation v) (s : state) : state :=
+        let ctxtP := (eval (curr s), eval (start s)) in
+        {| start := start s;
+           curr  := curr  s;
+           lemmas := lemmas s /\ a ctxtP;
+           spec   := spec s /\ (lemmas s -> a ctxtP)
+        |}.
 
     End Annotate.
 
     Section CodeDenote.
 
       (* The Type capturing the program state *)
-      Definition state := (store * store * spec)%type.
 
       Definition clDenote (cl : codeline v) (s : state) : state :=
-        let '(st, ost, sp) := s in
         match cl with
-        | assert a => (fun na => (st, ost, na)) (annotationDenote st ost a sp)
-        | inst  i => (fun ni => (ni, ost, sp)) (instructionDenote i st)
+        | assert a => annotationDenote a s
+        | inst  i => {| start := start s;
+                        curr  := instructionDenote i (curr s);
+                        lemmas := lemmas s;
+                        spec   := spec s
+                     |}
         end.
 
       Definition codeDenote c s : state := List.fold_left
@@ -229,7 +235,12 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
        *)
 
       Definition codeCheck c init : Prop :=
-        (fun x => snd (snd x)) (codeDenote c (init, init, (True, True))).
+        spec (codeDenote c {| start := init;
+                              curr  := init;
+                              lemmas := True;
+                              spec   := True
+                           |}
+             ).
 
       Definition SAT c    := forall init, codeCheck c init.
 
