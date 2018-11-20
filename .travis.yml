@@ -34,6 +34,7 @@ before_install:
   - opam install coq-color -y --verbose
 script:
   - eval $(opam config env)
+  - coqtop --version
   - ./configure.sh
   - make
   - make html
