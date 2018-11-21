@@ -2,9 +2,7 @@ language: c
 sudo: false
 cache:
   directories:
-    # Put all the versions of coq that you want here.
-    - coq-8.5.2
-    - coq-8.6
+    - $HOME/.opam
 addons:
   apt:
     packages:
@@ -12,37 +10,33 @@ addons:
       - opam
       - ghc
     sources: [avsm]
-
 matrix:
   include:
-    - os: linux
-      env: COQ_VER=8.5.2
-
-    - os: linux
-      env: COQ_VER=8.6.1
-
-    - os: linux
-      env: COQ_VER=8.7.2
-
-    - os: linux
-      env: COQ_VER=8.8.0
-
-
+    - env: COQ_VER=8.6   OCAML_VER=4.05.0
+    - env: COQ_VER=8.6.1 OCAML_VER=4.05.0
+    - env: COQ_VER=8.7.2 OCAML_VER=4.05.0
+    - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
   allow_failures:
-    - env: COQ_VER=8.8.0
-    - env: COQ_VER=8.7.2
+    - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
 
 
 notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
-  - ./scripts/opam-build.sh init
+  - opam init -y
+  - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released
+  - opam update -y
+  - opam switch set 4.05.0 -y
+  - opam install coq."$COQ_VER" -y --verbose
+  - opam pin add coq "$COQ_VER" -y
+  - opam install coq-color -y --verbose
 script:
-  - ./scripts/opam-build.sh build
-  - ./scripts/opam-build.sh html
-  - ./scripts/opam-build.sh install
-  - eval `opam config env --root=coq-"$COQ_VER"`
+  - eval $(opam config env)
+  - coqtop --version
+  - ./configure.sh
+  - make
+  - make html
   - make -C crypto-lib libverse
   - make -C crypto-lib/libverse libverse.a
 after_success:
@@ -52,4 +46,4 @@ after_failure:
 branches:
   only:
     - master
-    - syntax
+    - develop
