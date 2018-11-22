@@ -14,10 +14,9 @@ Require Import NFacts.
 Lemma MASK26_two_pow_minus_one : Nibble.toN Internal.MASK26 = (two_power_nat_N 26 - 1)%N.
   now compute.
 Qed.
-
-Lemma MASK_masks m N : N.land N (two_power_nat_N m - 1) = (N mod two_power_nat_N m)%N.
+Check N.ones_equiv.
+Lemma MASK_masks m N : N.land N (2^m - 1) = (N mod 2^m)%N.
   rewrite N.sub_1_r.
-  rewrite two_power_nat_N_equiv.
   rewrite <- N.ones_equiv.
   now rewrite <- N.land_ones.
 Qed.
