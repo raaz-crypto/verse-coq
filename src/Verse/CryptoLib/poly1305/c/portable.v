@@ -248,5 +248,58 @@ Module Internal.
            finalise := []%list
         |}.
 
+
+   Definition regClamp : Declaration := [Var temp]%vector.
+
   End Poly1305.
+
+  Require Import Verse.Arch.C.
+  Definition prototypeClamp (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.iteratorPrototype Block fname Empty.
+  Defined.
+
+  Definition cRegsClamp := (- cr uint64_t "temp" -).
+
+  Definition implementationClamp (fname : string) : Doc + {Compile.CompileError}.
+    Compile.iterator Block fname Empty Empty regClamp.
+    assignRegisters cRegsClamp.
+    statements clampIter.
+  Defined.
+
+Definition clampName (fname : string) := fname ++ "_clamp".
+Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
+  implementationClamp (clampName fname).
+
+Definition prototypes fname :=
+    clampProto <- prototypeClamp (clampName fname);
+      {- [ clampProto ]%list -}.
+
 End Internal.
+
+
+
+
+
+Require Import Verse.Extraction.Ocaml.
+Require Import Verse.CryptoLib.Names.
+Require Import Verse.CryptoLib.Names.
+
+Definition implementation_name : Name := {| primitive := "poly1305";
+                                            arch      := "c";
+                                            features  := ["portable"]
+                                         |}%string.
+
+Definition cname     := cFunName implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
+
+Definition implementation : unit
+  := writeProgram (C cfilename) (Internal.implementation cname).
+
+Definition prototypes
+  := recover (Internal.prototypes cname).
+
+Require Import Verse.FFI.Raaz.
+
+Definition raazFFI : unit :=
+  let module := raazModule implementation_name in
+  write_module module (List.map ccall prototypes).
