@@ -217,6 +217,37 @@ Module Internal.
                  NVal (Old r0) (Old r1) (Old r2) (Old r3) (Old r4) mod (2 ^ 130 - 5)
         ]%list%N.
 
+
+  (** The parameter [r] used in Poly1305 has certain 22-bits set to
+      zero. Converting an arbitrary 128-bit word to such a form is
+      called clamping. The rules of clamping is the following.
+
+     - Among the least 32-bits the top 4 bits is cleared.
+
+     - Among the other 3 32-bits, the top 4 and the bottom 2-bits are
+       cleared.
+
+   *)
+
+
+   Definition clamp (blk : progvar Block) : code progvar.
+     verse [
+         temp ::== blk[- 0 -];
+         temp ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
+         MOVE temp TO blk[- 0 -];
+
+         temp ::== blk[- 1 -];
+         temp ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
+         MOVE temp TO blk[- 1 -]
+       ]%list.
+   Defined.
+
+   Definition clampIter : iterator Block progvar
+     := {| setup    := []%list;
+           process  := clamp;
+           finalise := []%list
+        |}.
+
   End Poly1305.
 End Internal.
 
