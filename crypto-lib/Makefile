@@ -5,11 +5,11 @@ IMPLS = chacha20/c/portable \
 	blake2b/c/portable  \
 	blake2s/c/portable  \
 
-ifdef CI  # On the continuous integration use the http for getting libverse.
-	GIT_REPO=https://github.com/raaz-crypto/libverse.git # git repo where libverse reside
-else
-	GIT_REPO=git@github.com:raaz-crypto/libverse.git # git repo where libverse reside
-endif
+
+# Normally you need http repo but for release you need ssh repo.
+GIT_REPO_HTTP=https://github.com/raaz-crypto/libverse.git
+GIT_REPO_SSH=git@github.com:raaz-crypto/libverse.git
+
 
 #############################################################
 ###    DO NOT change beyond this point unless you known   ###
@@ -31,15 +31,17 @@ RAAZ_CODE_DIRS =  $(addprefix libverse/Raaz/Verse/,$(dir ${RAAZ_IMPLS}))
 
 
 
-.PHONY: extract.v libverse clean verse dist-clean
+.PHONY: extract.v libverse clean verse dist-clean release
 .PHONY: dirs extract gen
 
 
-dirs: # All the relevant directors.
+gitrepos:
 	if [ ! -d libverse/.git ]; then \
 		rm -rf libverse; \
-		git clone ${GIT_REPO}; \
+		git clone ${GIT_REPO_HTTP}; \
 	fi
+
+dirs: gitrepos
 	mkdir -p ${ML_SRC_DIRS}
 	mkdir -p ${ML_RAAZ_DIRS}
 	mkdir -p ${CODE_DIRS}
@@ -62,3 +64,6 @@ clean:
 
 dist-clean: clean
 	make -C .. clean
+
+setup-release:
+	git clone ${GIT_REPO_SSH}
