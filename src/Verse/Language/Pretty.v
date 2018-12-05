@@ -54,19 +54,18 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types
 (* end hide *)
 
 
-Notation "A [- N -]"     := (index A (@exist _ _ (N%nat) _)) (at level 69).
+Notation "A [- N -]"     := (index A (@exist _ _ (N%nat) _)) (at level 29).
 Notation "! A"           := (inst (index A 0 _)) (at level 70).
-Notation "[++] A"        := (inst (increment (toLArg A))) (at level 70).
-Notation "[--] A"        := (inst (decrement (toLArg A))) (at level 70).
-Notation "A ::= B [+] C" := (inst (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) )))  (at level 70).
-
-Notation "A ::= B [-] C" := (inst (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [*] C" := (inst (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [/] C" := (inst (assign (assign3 quot  (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [%] C" := (inst (assign (assign3 rem   (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [|] C" := (inst (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [&] C" := (inst (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
-Notation "A ::= B [^] C" := (inst (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C))))  (at level 70).
+Notation "++ A"        := (inst (increment (toLArg A))) (at level 70).
+Notation "-- A"        := (inst (decrement (toLArg A))) (at level 70).
+Notation "A ::= B + C" := (inst (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) )))  (at level 70, B at level 29).
+Notation "A ::= B - C" := (inst (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B * C" := (inst (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B / C" := (inst (assign (assign3 quot  (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B % C" := (inst (assign (assign3 rem   (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B | C" := (inst (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B & C" := (inst (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B ^ C" := (inst (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
 
 Notation "A ::=+ B " := (inst (assign (update2 plus  (toLArg A) (toRArg B)))) (at level 70).
 Notation "A ::=- B " := (inst (assign (update2 minus (toLArg A) (toRArg B)))) (at level 70).
@@ -78,10 +77,10 @@ Notation "A ::=& B " := (inst (assign (update2 bitAnd (toLArg A) (toRArg B)))) (
 Notation "A ::=^ B " := (inst (assign (update2 bitXor (toLArg A) (toRArg B)))) (at level 70).
 
 Notation "A ::=~ B "     := (inst (assign (assign2 bitComp    (toLArg A) (toRArg B)))) (at level 70).
-Notation "A ::= B <*< N" := (inst (assign (assign2 (rotL N)   (toLArg A) (toRArg B)))) (at level 70).
-Notation "A ::= B >*> N" := (inst (assign (assign2 (rotR N)   (toLArg A) (toRArg B)))) (at level 70).
-Notation "A ::= B <<  N"  := (inst (assign (assign2 (shiftL N) (toLArg A) (toRArg B)))) (at level 70).
-Notation "A ::= B >>  N" := (inst (assign (assign2 (shiftR N) (toLArg A) (toRArg B)))) (at level 70).
+Notation "A ::= B <*< N" := (inst (assign (assign2 (rotL N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+Notation "A ::= B >*> N" := (inst (assign (assign2 (rotR N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+Notation "A ::= B <<  N"  := (inst (assign (assign2 (shiftL N) (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+Notation "A ::= B >>  N" := (inst (assign (assign2 (shiftR N) (toLArg A) (toRArg B)))) (at level 70, B at level 29).
 Notation "A ::=<< N "    := (inst (assign (update1 (shiftL N) (toLArg A)))) (at level 70).
 Notation "A ::=>> N "    := (inst (assign (update1 (shiftR N) (toLArg A)))) (at level 70).
 Notation "A ::=<*< N "    := (inst (assign (update1 (rotL N)  (toLArg A)))) (at level 70).
@@ -95,7 +94,7 @@ Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (inst (assign (extassign3 ex
                                                         (toLArg A) (toLArg B)
                                                         (toRArg C) (toRArg D))))
                                        (at level 70, A at level 99).
-Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) [/] E" := (inst (assign (extassign4 eucl
+Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) / E" := (inst (assign (extassign4 eucl
                                                                    (toLArg A) (toLArg B)
                                                                    (toRArg C) (toRArg D) (toRArg E))))
                                               (at level 70, C at level 99).
@@ -150,7 +149,7 @@ Global Hint Resolve NPeano.Nat.mod_upper_bound.
 *)
 Ltac verse_simplify := match goal with
                        | [ H : ?T |- ?T ]     => exact H
-                       | [ |- _ <> _ ]         => unfold not; let H := fresh "H" in intro H; inversion H
+                       | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
                        | [ |- ?A mod ?B < ?B ] => apply (NPeano.Nat.mod_upper_bound A B)
                        | [ |- _ <= ?T         ] => compute; omega
                        | [ |- _ < ?T         ] => compute; omega
@@ -159,11 +158,11 @@ Ltac verse_simplify := match goal with
 
 Ltac verse_print_mesg :=  match goal with
                           | [ |- _ < _         ]  => verse_bounds_warn
-                          | [ |- _ <= _         ]  => verse_bounds_warn
+                          | [ |- _ <= _         ] => verse_bounds_warn
                           | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
                           | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
                           | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
-                          | _                    => verse_warn; idtac "please handle these obligations yourself"
+                          | _                     => verse_warn; idtac "please handle these obligations yourself"
                           end.
 
 Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
@@ -354,12 +353,12 @@ operands of the programming fragment.
   Definition prog : code MyVar.
     verse [ X ::= X << 5 ;
             X ::=>> 5;
-            X ::= X [+] (A[- 2 -]);
-            X ::= X [+] Ox "55";
-            Z ::= Z [+] vec_const;
-            [++] Y;
+            X ::= X + (A[- 2 -]);
+            X ::= X * Ox "55";
+            Z ::= Z + vec_const;
+            ++ Y;
             MULTIPLY X AND X INTO (X : X);
-            (QUOT X, REM X) ::= (X : X) [/] X
+            (QUOT X, REM X) ::= (X : X) / X
           ]%list.
    Defined.
 
