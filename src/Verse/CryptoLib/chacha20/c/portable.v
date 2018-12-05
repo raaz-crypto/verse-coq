@@ -141,7 +141,7 @@ Module Internal.
          process := fun blk =>
                       COMPUTE_STREAM
                         ++ foreach (indices blk) (XORBLOCK blk)
-                        ++ [ [++] ctr ];
+                        ++ [ ++ ctr ];
          finalise := StoreCounter
       |}.
 

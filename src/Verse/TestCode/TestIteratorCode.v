@@ -30,13 +30,13 @@ Section TestFunction.
         (* Try out all operators *)
         setup   := [
                     MOVE tmp TO arr[- 1 -];
-                    num ::= tmp [+] Ox "abcd";
-                      num ::= tmp [-] num ;
-                      num      ::= tmp      [*] arr[-1-] ;
-                      num      ::= arr[-1-] [/] tmp ;
-                      arr[-1-] ::= tmp      [|] num ;
-                      num      ::= tmp      [&] arr[-1-];
-                      num      ::= tmp      [^] num ;
+                    num ::= tmp + Ox "abcd";
+                      num ::= tmp - num ;
+                      num      ::= tmp      * arr[-1-] ;
+                      num      ::= arr[-1-] / tmp ;
+                      arr[-1-] ::= tmp      | num ;
+                      num      ::= tmp      & arr[-1-];
+                      num      ::= tmp      ^ num ;
 
                       (* binary update *)
                       num ::=+ tmp;
@@ -62,7 +62,7 @@ Section TestFunction.
                       arr[-1-] ::=>*> (42%nat);
                       double   ::=<*< (42%nat)
                   ]%list;
-        process    := fun msg => [num ::=  tmp [+] msg[-1-] ]%list;
+        process    := fun msg => [num ::=  tmp + msg[-1-] ]%list;
         finalise := [ ]%list
       |}.
   Defined.

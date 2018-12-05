@@ -245,19 +245,19 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
         let CH :=
             [ tp ::=~ E;
               tp ::=& G;
-              t ::= E [&] F; t ::=^ tp; temp ::=+ t] in
+              t ::= E & F; t ::=^ tp; temp ::=+ t] in
         let MAJ :=
-            [ t  ::=  B [|] C;
+            [ t  ::=  B | C;
               t  ::=& A;
-              tp ::=  B [&] C;
+              tp ::=  B & C;
               t  ::=| tp
             ] in
-        [ temp ::= H [+] K ; temp ::=+ M ]
+        [ temp ::= H + K ; temp ::=+ M ]
           ++ CH ++  Sigma1        (* temp = H + K + M + CH e f g + σ₁(e) *)
           ++ [ D ::=+ temp ]
           ++ Sigma0               (* temp = H + K + M + CH e f g + σ₁(e) + σ₀(a) *)
           ++ MAJ
-          ++ [ H ::= temp [+] t ]. (* h =  temp + MAJ a b c *)
+          ++ [ H ::= temp + t ]. (* h =  temp + MAJ a b c *)
 
       Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
         verse ([STATE i _ ::=+ hash [- i -]]).

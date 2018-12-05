@@ -32,14 +32,14 @@ Section TestFunction.
 
   Definition testFunction : code variable.
     verse
-    [ num ::= tmp [+] Ox "abcd";
-      A   ::= A [+] B;
-      num ::= tmp [-] num ;
-      num      ::= tmp      [*] arr[-1-];
-      num      ::= arr[-1-] [/] tmp ;
-      arr[-1-] ::= tmp      [|] num ;
-      num      ::= tmp      [&] arr[-1-];
-      num      ::= tmp      [^] num ;
+    [ num ::= tmp + Ox "abcd";
+      A   ::= A + B;
+      num ::= tmp - num ;
+      num      ::= tmp      * arr[-1-];
+      num      ::= arr[-1-] / tmp ;
+      arr[-1-] ::= tmp      | num ;
+      num      ::= tmp      & arr[-1-];
+      num      ::= tmp      ^ num ;
       (* binary update *)
       num ::=+ tmp;
       num ::=- arr[-1-];

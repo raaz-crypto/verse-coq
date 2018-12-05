@@ -40,14 +40,14 @@ Section TestFunction.
 
   Definition testFunction : code variable.
     verse
-      [ num ::= tmp [+] Ox "abcd";
+      [ num ::= tmp + Ox "abcd";
 
         ASSERT num HAD n ; tmp HAS t IN n = (t RotR 2) XOR n;
 
         ASSERT A HAS a; num HAD n ; tmp HAD t IN (n = t) /\ (t = n);
 
-        A   ::= A [+] B;
-        num ::= tmp [-] num ;
+        A   ::= A + B;
+        num ::= tmp - num ;
 
         ASSERT num HAD n ; tmp HAS t IN n = t;
         ASSERT num HAS n IN (n = n);
@@ -59,11 +59,11 @@ Section TestFunction.
         ASSERT A HAS a IN (2 = 3)%N;
 
         arr[-1-] ::== num;
-        num      ::= tmp      [*] arr[-1-];
+        num      ::= tmp      * arr[-1-];
 
         ASSERT num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n = n))%N;
 
-        num      ::= arr[-1-] [/] tmp ;
+        num      ::= arr[-1-] / tmp ;
 
         (* binary update *)
         num ::=+ tmp;

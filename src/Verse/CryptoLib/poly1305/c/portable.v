@@ -104,11 +104,11 @@ Module Internal.
               [c3]:[c4]. Start by transferring the lowest 26 bits to
               c0
            **)
-          c0 ::= c3 [&] MASK26;
+          c0 ::= c3 & MASK26;
 
           (**  Having given out 26 bits, we transfer the next 26 bits to c2 *)
           c3 ::=>> 26;
-          c1 ::= c3 [&] MASK26;
+          c1 ::= c3 & MASK26;
 
          (** Shifting 26-positions once more, we have a total of 12
              bits in c3 that belongs to c2. First transfer this to c2
@@ -124,7 +124,7 @@ Module Internal.
 
           (** Remove the 14-bits transferred to c2 and make it to get the bits of c3 *)
           c4 ::=>>14;
-          c3 ::=  c4 [&] MASK26;
+          c3 ::=  c4 & MASK26;
 
           (** The remaining 24 bit is what c4 deserves to get *)
           c4 ::=>> 26;
@@ -180,38 +180,38 @@ Module Internal.
 
       Definition MULR : code progvar :=
         [
-          p0   ::= a0 [*] r0;
-          temp ::= a1 [*] r4; temp ::=* Five; p0 ::=+ temp;
-          temp ::= a2 [*] r3; temp ::=* Five; p0 ::=+ temp;
-          temp ::= a3 [*] r2; temp ::=* Five; p0 ::=+ temp;
-          temp ::= a4 [*] r1; temp ::=* Five; p0 ::=+ temp;
+          p0   ::= a0 * r0;
+          temp ::= a1 * r4; temp ::=* Five; p0 ::=+ temp;
+          temp ::= a2 * r3; temp ::=* Five; p0 ::=+ temp;
+          temp ::= a3 * r2; temp ::=* Five; p0 ::=+ temp;
+          temp ::= a4 * r1; temp ::=* Five; p0 ::=+ temp;
 
-          p1   ::= a0 [*] r1;
-          temp ::= a1 [*] r0; p1   ::=+ temp;
-          temp ::= a2 [*] r4; temp ::=* Five; p1 ::=+ temp;
-          temp ::= a3 [*] r3; temp ::=* Five; p1 ::=+ temp;
-          temp ::= a4 [*] r2; temp ::=* Five; p1 ::=+ temp;
-
-
-          p2   ::= a0 [*] r2;
-          temp ::= a1 [*] r1; p2   ::=+ temp;
-          temp ::= a2 [*] r0; p2   ::=+ temp;
-          temp ::= a3 [*] r4; temp ::=* Five; p2 ::=+ temp;
-          temp ::= a4 [*] r3; temp ::=* Five; p2 ::=+ temp;
+          p1   ::= a0 * r1;
+          temp ::= a1 * r0; p1   ::=+ temp;
+          temp ::= a2 * r4; temp ::=* Five; p1 ::=+ temp;
+          temp ::= a3 * r3; temp ::=* Five; p1 ::=+ temp;
+          temp ::= a4 * r2; temp ::=* Five; p1 ::=+ temp;
 
 
-          p3   ::= a0 [*] r3;
-          temp ::= a1 [*] r2; p3   ::=+ temp;
-          temp ::= a2 [*] r1; p3   ::=+ temp;
-          temp ::= a3 [*] r0; p3   ::=+ temp;
-          temp ::= a4 [*] r4; temp ::=* Five; p3 ::=+ temp;
+          p2   ::= a0 * r2;
+          temp ::= a1 * r1; p2   ::=+ temp;
+          temp ::= a2 * r0; p2   ::=+ temp;
+          temp ::= a3 * r4; temp ::=* Five; p2 ::=+ temp;
+          temp ::= a4 * r3; temp ::=* Five; p2 ::=+ temp;
 
 
-          p4   ::= a0 [*] r4;
-          temp ::= a1 [*] r3; p4 ::=+ temp;
-          temp ::= a2 [*] r2; p4 ::=+ temp;
-          temp ::= a3 [*] r1; p4 ::=+ temp;
-          temp ::= a4 [*] r0; p4 ::=+ temp;
+          p3   ::= a0 * r3;
+          temp ::= a1 * r2; p3   ::=+ temp;
+          temp ::= a2 * r1; p3   ::=+ temp;
+          temp ::= a3 * r0; p3   ::=+ temp;
+          temp ::= a4 * r4; temp ::=* Five; p3 ::=+ temp;
+
+
+          p4   ::= a0 * r4;
+          temp ::= a1 * r3; p4 ::=+ temp;
+          temp ::= a2 * r2; p4 ::=+ temp;
+          temp ::= a3 * r1; p4 ::=+ temp;
+          temp ::= a4 * r0; p4 ::=+ temp;
           ASSERT NVal (Val p0) (Val p1) (Val p2) (Val p3) (Val p4) mod (2 ^ 130 - 5) =
                  NVal (Old a0) (Old a1) (Old a2) (Old a3) (Old a4) *
                  NVal (Old r0) (Old r1) (Old r2) (Old r3) (Old r4) mod (2 ^ 130 - 5)

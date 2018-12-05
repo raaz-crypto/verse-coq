@@ -264,16 +264,16 @@ Module SHA2 (C : CONFIG).
     Definition CH (s : State) : code v:=
             [ tp ::=~ E s;
               tp ::=& G s;
-              temp ::= E s [&] F s; temp ::=^ tp;
+              temp ::= E s & F s; temp ::=^ tp;
               ASSERT E s HAS e; F s HAS f; G s HAS g
               IN
               Val temp = (e AND f) XOR (NOT e AND g)
             ]%list.
 
     Definition MAJ (s : State) : code v :=
-      [ temp  ::=  B s [|] C s;
+      [ temp  ::=  B s | C s;
         temp  ::=& A s;
-        tp    ::=  B s [&] C s;
+        tp    ::=  B s & C s;
         temp  ::=| tp;
         ASSERT A s HAS a; B s HAS b; C s HAS c
         IN
@@ -287,7 +287,7 @@ Module SHA2 (C : CONFIG).
         the round constant [K].
      *)
     Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
-      [ t ::= H s [+] K  ;  t ::=+ M ]
+      [ t ::= H s + K  ;  t ::=+ M ]
         ++ CH s        (* temp = CH e f g *)
         ++ [ t ::=+ temp ]
         ++  Sigma1 s   (* temp =  σ₁(e)   *)
@@ -296,7 +296,7 @@ Module SHA2 (C : CONFIG).
         ++ Sigma0 s    (* temp =  σ₀(a) *)
         ++ [ t ::=+ temp ]
         ++ MAJ s       (* temp = MAJ a b c *)
-        ++ [ H s ::= temp [+] t ] (* h =  t + MAJ a b c *)
+        ++ [ H s ::= temp + t ] (* h =  t + MAJ a b c *)
         ++ [ ASSERT A s HAD a; B s HAD b; C s HAD c; D s HAD d;
                     E s HAD e; F s HAD f; G s HAD g; H s HAD h
              IN

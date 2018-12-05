@@ -264,7 +264,7 @@ Module Blake2 (C : CONFIG).
           LMSB ::=>> (8 * size(Word) - 1); (* get he msb to the lsb *)
 
           (* Now get the carry that flows into MSB from the previous bits *)
-          C  ::= l [&] mask; (* select every bit except msb *)
+          C  ::= l & mask; (* select every bit except msb *)
           C  ::=+ byteCount; (* carry at the msb position   *)
           C  ::=>> (8 * size(Word) - 1); (* move it to the lsb *)
 
@@ -410,8 +410,8 @@ Module Blake2 (C : CONFIG).
 	  v9  ::== IV 1 _;
 	  v10 ::== IV 2 _;
 	  v11 ::== IV 3 _;
-	  v12 ::= IV 4 _ [^] L;
-	  v13 ::= IV 5 _ [^] U;
+	  v12 ::= IV 4 _ ^ L;
+	  v13 ::= IV 5 _ ^ U;
 	  v14 ::== IV 6 _ ;
 	  v15 ::== IV 7 _
         ]%list.
@@ -431,10 +431,10 @@ Module Blake2 (C : CONFIG).
 	  v9  ::== IV 1 _;
 	  v10 ::== IV 2 _;
 	  v11 ::== IV 3 _;
-	  v12 ::= IV 4 _ [^] Lower;
-	  v13 ::= IV 5 _ [^] Upper;
-	  v14 ::= IV 6 _ [^] f0;
-	  v15 ::= IV 7 _ [^] f1
+	  v12 ::= IV 4 _ ^ Lower;
+	  v13 ::= IV 5 _ ^ Upper;
+	  v14 ::= IV 6 _ ^ f0;
+	  v15 ::= IV 7 _ ^ f1
         ]%list.
       Defined.
 

@@ -254,13 +254,13 @@ Module SHA2 (C : CONFIG).
     Definition CH (s : State) : code v:=
             [ tp ::=~ E s;
               tp ::=& G s;
-              temp ::= E s [&] F s; temp ::=^ tp
+              temp ::= E s & F s; temp ::=^ tp
             ]%list.
 
     Definition MAJ (s : State) : code v :=
-      [ temp  ::=  B s [|] C s;
+      [ temp  ::=  B s | C s;
         temp  ::=& A s;
-        tp    ::=  B s [&] C s;
+        tp    ::=  B s & C s;
         temp  ::=| tp
       ].
 
@@ -271,7 +271,7 @@ Module SHA2 (C : CONFIG).
         the round constant [K].
      *)
     Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
-      [ t ::= H s [+] K  ;  t ::=+ M ]
+      [ t ::= H s + K  ;  t ::=+ M ]
         ++ CH s        (* temp = CH e f g *)
         ++ [ t ::=+ temp ]
         ++  Sigma1 s   (* temp =  σ₁(e)   *)
@@ -280,7 +280,7 @@ Module SHA2 (C : CONFIG).
         ++ Sigma0 s    (* temp =  σ₀(a) *)
         ++ [ t ::=+ temp ]
         ++ MAJ s       (* temp = MAJ a b c *)
-        ++ [ H s ::= temp [+] t ] (* h =  t + MAJ a b c *)
+        ++ [ H s ::= temp + t ] (* h =  t + MAJ a b c *)
     .
 
     (** Having defined the [STEP] we look at a single round. A round
