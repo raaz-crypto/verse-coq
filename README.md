@@ -125,10 +125,6 @@ present in the directory `crypto-lib`.
 
 # Legal
 
-The verse library is distributed under the following terms and
-conditions:
-
-
 Copyright 2018, Piyush P Kurur
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -143,6 +139,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+SPDX-License-Identifier: Apache-2.0
 
 
 [wiki]: <https://github.com/raaz-crypto/verse-coq/wiki> "Verse coq repo"
