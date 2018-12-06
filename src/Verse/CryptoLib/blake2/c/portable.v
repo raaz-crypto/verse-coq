@@ -309,10 +309,10 @@ Module Blake2 (C : CONFIG).
 
     Definition G (a b c d m0 m1 : progvar Word) : code progvar :=
       [
-        a ::=+ b; a ::=+ m0; d ::=^ a; d ::=>*> R0;
-        c ::=+ d;            b ::=^ c; b ::=>*> R1;
-        a ::=+ b; a ::=+ m1; d ::=^ a; d ::=>*> R2;
-        c ::=+ d;            b ::=^ c; b ::=>*> R3
+        a ::=+ b; a ::=+ m0; d ::=^ a; d ::=>>> R0;
+        c ::=+ d;            b ::=^ c; b ::=>>> R1;
+        a ::=+ b; a ::=+ m1; d ::=^ a; d ::=>>> R2;
+        c ::=+ d;            b ::=^ c; b ::=>>> R3
       ]%list.
 
     (** *** Message permutations.

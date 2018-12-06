@@ -51,16 +51,16 @@ Section TestFunction.
                       num      ::=~ tmp;
                       tmp      ::=  arr[-1-] <<  42;
                       tmp      ::=  arr[-1-] >>  42;
-                      num      ::=  tmp     <*< 42;
-                      arr[-1-] ::=  tmp     >*> 42;
+                      num      ::=  tmp     <<< 42;
+                      arr[-1-] ::=  tmp     >>> 42;
 
 
                       (* Unary update operators *)
                       tmp      ::=<<  (42%nat);
                       tmp      ::=>>  (42%nat);
-                      num      ::=<*< (42%nat);
-                      arr[-1-] ::=>*> (42%nat);
-                      double   ::=<*< (42%nat)
+                      num      ::=<<< (42%nat);
+                      arr[-1-] ::=>>> (42%nat);
+                      double   ::=<<< (42%nat)
                   ]%list;
         process    := fun msg => [num ::=  tmp + msg[-1-] ]%list;
         finalise := [ ]%list

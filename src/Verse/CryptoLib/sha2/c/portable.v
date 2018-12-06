@@ -151,7 +151,7 @@ Module SHA2 (C : CONFIG).
           of the appropriate sigma function.
        *)
       Definition sigma (r0 r1 s : nat)(x : v Word) :=
-        [ temp ::= x >*> r1; tp ::= x >*> r0;
+        [ temp ::= x >>> r1; tp ::= x >>> r0;
           temp ::=^ tp;      tp ::= x >> s;
           temp ::=^ tp; M ::=+ temp
         ]%list.
@@ -239,9 +239,9 @@ Module SHA2 (C : CONFIG).
 
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
-      [ temp ::= x >*> (r2 - r1); temp ::=^ x;
-        temp ::=>*> (r1 - r0);    temp ::=^ x;
-        temp ::=>*> r0
+      [ temp ::= x >>> (r2 - r1); temp ::=^ x;
+        temp ::=>>> (r1 - r0);    temp ::=^ x;
+        temp ::=>>> r0
       ]%list.
 
     Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).

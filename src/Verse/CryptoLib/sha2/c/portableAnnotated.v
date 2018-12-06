@@ -157,7 +157,7 @@ Module SHA2 (C : CONFIG).
           of the appropriate sigma function.
        *)
       Definition sigma (r0 r1 s : nat)(x : v Word) :=
-        [ temp ::= x >*> r1; tp ::= x >*> r0;
+        [ temp ::= x >>> r1; tp ::= x >>> r0;
           temp ::=^ tp;      tp ::= x >> s;
           temp ::=^ tp; M ::=+ temp
         ]%list.
@@ -247,9 +247,9 @@ Module SHA2 (C : CONFIG).
       x RotR r2 XOR x RotR r1 XOR x RotR r0.
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
-      [ temp ::= x >*> (r2 - r1); temp ::=^ x;
-        temp ::=>*> (r1 - r0);    temp ::=^ x;
-        temp ::=>*> r0;
+      [ temp ::= x >>> (r2 - r1); temp ::=^ x;
+        temp ::=>>> (r1 - r0);    temp ::=^ x;
+        temp ::=>>> r0;
         ASSERT Val temp = sig r0 r1 r2 (Val x)
       ]%list.
 

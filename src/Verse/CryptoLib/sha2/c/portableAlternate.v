@@ -153,8 +153,8 @@ Module SHA2 (C : CONFIG).
 
       Definition SCHEDULE :=
         let sigma (r0 r1 s : nat)(x : v Word) :=
-            [ t ::= x >*> (r1 - r0); t    ::=^ x;
-              t ::=>*>    r0       ; tp   ::=  x >> s;
+            [ t ::= x >>> (r1 - r0); t    ::=^ x;
+              t ::=>>>    r0       ; tp   ::=  x >> s;
               t ::=^ tp            ; M    ::=+ t
             ]%list in
 
@@ -236,9 +236,9 @@ h = temp + σ₀(a) + MAJ(a,b,c); >>
         let G := ST 6 in
         let H := ST 7 in
         let Sigma r0 r1 r2 x :=
-            [ t ::= x >*> (r2 - r1); t  ::=^ x;
-              t ::=>*> (r1 - r0);    t ::=^ x;
-              t ::=>*> r0; temp ::=+ t
+            [ t ::= x >>> (r2 - r1); t  ::=^ x;
+              t ::=>>> (r1 - r0);    t ::=^ x;
+              t ::=>>> r0; temp ::=+ t
             ]%list in
         let Sigma0 := Sigma R00 R01 R02 A in
         let Sigma1 := Sigma R10 R11 R12 E in
