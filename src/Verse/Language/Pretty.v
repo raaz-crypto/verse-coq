@@ -77,14 +77,14 @@ Notation "A ::=& B " := (inst (assign (update2 bitAnd (toLArg A) (toRArg B)))) (
 Notation "A ::=^ B " := (inst (assign (update2 bitXor (toLArg A) (toRArg B)))) (at level 70).
 
 Notation "A ::=~ B "     := (inst (assign (assign2 bitComp    (toLArg A) (toRArg B)))) (at level 70).
-Notation "A ::= B <*< N" := (inst (assign (assign2 (rotL N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
-Notation "A ::= B >*> N" := (inst (assign (assign2 (rotR N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+Notation "A ::= B <<< N" := (inst (assign (assign2 (rotL N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+Notation "A ::= B >>> N" := (inst (assign (assign2 (rotR N)   (toLArg A) (toRArg B)))) (at level 70, B at level 29).
 Notation "A ::= B <<  N"  := (inst (assign (assign2 (shiftL N) (toLArg A) (toRArg B)))) (at level 70, B at level 29).
 Notation "A ::= B >>  N" := (inst (assign (assign2 (shiftR N) (toLArg A) (toRArg B)))) (at level 70, B at level 29).
 Notation "A ::=<< N "    := (inst (assign (update1 (shiftL N) (toLArg A)))) (at level 70).
 Notation "A ::=>> N "    := (inst (assign (update1 (shiftR N) (toLArg A)))) (at level 70).
-Notation "A ::=<*< N "    := (inst (assign (update1 (rotL N)  (toLArg A)))) (at level 70).
-Notation "A ::=>*> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at level 70).
+Notation "A ::=<<< N "    := (inst (assign (update1 (rotL N)  (toLArg A)))) (at level 70).
+Notation "A ::=>>> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at level 70).
 
 Notation "A ::== B"      := (inst (assign (assign2 nop (toLArg A) (toRArg B)))) (at level 70).
 Notation "'CLOBBER' A"   := (inst (clobber A)) (at level 70). (* Check level *)
