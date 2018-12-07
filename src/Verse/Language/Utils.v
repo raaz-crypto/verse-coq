@@ -34,7 +34,7 @@ Module Internal.
 
     Definition ithIndex i : list { i | i < b} :=
       match lt_dec i b with
-      | left pf => [exist _ i pf]
+      | left pf => [@exist _ _ i pf]
       | right _ => []
       end.
 
@@ -87,7 +87,7 @@ Section Utils.
     Definition foreach (ixs : list {ix | ix < b})
                (f : forall ix, ix < b -> list A)
       := let mapper := fun ix => match ix with
-                                 | exist _ i pf => f i pf
+                                 | @exist _ _ i pf => f i pf
                                  end
          in List.concat (List.map mapper ixs).
 
@@ -189,7 +189,7 @@ that load and store arrays into their register cache.
     (** This macro loads the array to the corresponding chached variables *)
     Definition loadCache (arr : v (array b e ty)) (ch : VarIndex) : code v :=
       foreach (indices arr)
-              (fun i pf => let ix := exist _ i pf in
+              (fun i pf => let ix := @exist _ _ i pf in
                            let arrI := index arr ix in
                            let chI := var (ch i pf) in
                            [ inst (assign (assign2 nop chI arrI)) ]
@@ -213,7 +213,7 @@ n         respective positions in the array. If only few of the cached
 
     Definition moveBackCache (arr : v (array b e ty)) (ch : VarIndex)  : code v :=
       foreach (indices arr)
-              (fun i pf => let ix := exist _ i pf in
+              (fun i pf => let ix := @exist _ _ i pf in
                            [ inst (moveTo arr ix (ch i pf)) ]).
 
     (**
@@ -223,7 +223,7 @@ n         respective positions in the array. If only few of the cached
      *)
     Definition backupCache  (arr : v (array  b e ty)) (ch : VarIndex) : code v :=
       foreach (indices arr)
-              (fun i pf => let ix := exist _ i pf in
+              (fun i pf => let ix := @exist _ _ i pf in
                            let arrI := index arr ix in
                            let chI := var (ch i pf) in
                            [ inst (assign (assign2 nop arrI chI)) ]
@@ -240,7 +240,7 @@ n         respective positions in the array. If only few of the cached
               | []        => inleft []
               | (x :: xs) =>
                 match lt_dec x b, makeIndices _ xs with
-                | left pf, inleft ixs  => inleft (exist _ x pf :: ixs)
+                | left pf, inleft ixs  => inleft (@exist _ _ x pf :: ixs)
                 | right pf, _ => inright (ex_intro _ x (conj _ pf))
                 | left pf, inright err => inright _
                 end

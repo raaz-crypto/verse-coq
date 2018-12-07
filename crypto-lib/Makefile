@@ -4,6 +4,7 @@ IMPLS = chacha20/c/portable \
         sha512/c/portable   \
 	blake2b/c/portable  \
 	blake2s/c/portable  \
+	poly1305/c/portable \
 
 
 # Normally you need http repo but for release you need ssh repo.

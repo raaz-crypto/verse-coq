@@ -74,10 +74,10 @@ Module Internal.
      *)
 
     Definition QROUND (a b c d : progvar Word) : code progvar.
-      verse [ a ::=+ b; d ::=^ a; d ::=<*< 16;
-              c ::=+ d; b ::=^ c; b ::=<*< 12;
-              a ::=+ b; d ::=^ a; d ::=<*< 8;
-              c ::=+ d; b ::=^ c; b ::=<*< 7
+      verse [ a ::=+ b; d ::=^ a; d ::=<<< 16;
+              c ::=+ d; b ::=^ c; b ::=<<< 12;
+              a ::=+ b; d ::=^ a; d ::=<<< 8;
+              c ::=+ d; b ::=^ c; b ::=<<< 7
           ].
     Defined.
 
@@ -159,7 +159,7 @@ Module Internal.
          process := fun blk =>
                       COMPUTE_STREAM
                         ++ foreach (indices blk) (XORBLOCK blk)
-                        ++ [ [++] ctr ];
+                        ++ [ ++ ctr ];
          finalise := StoreCounter
       |}.
 

@@ -162,7 +162,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       : suppTypes l + {UnsupportedType} :=
       match l with
       | []                  => {- tt -}
-      | existT _ _ ty :: lt => match isErr (typeDenote ty) with
+      | existT ty :: lt => match isErr (typeDenote ty) with
                                | left p  => pair p <$> checkTypes lt
                                | right p => error (unsupported ty)
                                end
@@ -173,7 +173,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       : forall (l : Vector.t (some type) n), suppTypes l -> Vector.t (some A.mType) n :=
       match n with
       | 0   => fun _ _    => []
-      | S m => fun l' pl' => existT _ _ (getT (fst pl')) :: typeListDenote (tl l') (snd pl')
+      | S m => fun l' pl' => existT (getT (fst pl')) :: typeListDenote (tl l') (snd pl')
       end.
 
     (** Type list denotes work well with append *)
@@ -214,7 +214,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       : forall (p : suppTypes l), FAllocation l p :=
       match l with
       | []           => fun _ => (emptyAllocation A.mVar, s0)
-      | (existT _ _ ty :: rest) => fun p =>
+      | (existT ty :: rest) => fun p =>
                                      let (v, s1)  := (F.addParam s0 (getT (fst p))) in
                                      let (vs, s2) := params s1 rest (snd p) in
                                      ((v,vs), s2)
@@ -225,8 +225,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       : forall (p : suppTypes l), FAllocation l p + {AllocationError} :=
       match l with
       | []                        => fun _ => {- (emptyAllocation A.mVar, s0) -}
-      | (existT _ memory ty :: _) => fun _ => error (UnsupportedLocalArray ty)
-      | (existT _ direct ty :: rest) => fun p =>
+      | (@existT _ _ memory ty :: _) => fun _ => error (UnsupportedLocalArray ty)
+      | (@existT _ _ direct ty :: rest) => fun p =>
                                           let a1 := F.stackAlloc s0 (getT (fst p)) in
                                           let (v, s1) := a1
                                           in a2 <- stacks s1 rest (snd p);
@@ -241,8 +241,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                 FAllocation l p + {AllocationError}  :=
       match l with
       | []          => fun p s0 _  => {- (emptyAllocation A.mVar, s0) -}
-      | (existT _ memory ty :: _) => fun _ _ _ => error (UnsupportedLocalArray ty)
-      | (existT _ direct ty :: tys)
+      | (@existT _ _ memory ty :: _) => fun _ _ _ => error (UnsupportedLocalArray ty)
+      | (@existT _ _ direct ty :: tys)
         => fun p s0 rs =>
              let (r,rest) := rs in
              match F.useRegister s0 r with
@@ -357,7 +357,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
 
       (** Add the loop variable to the scope *)
       Local Definition scopeLoopVar iterF v
-        : BodyType ((existT _ _ codeT) :: parameterTypes)
+        : BodyType ((existT codeT) :: parameterTypes)
                    stackTypes registerTypes iterBlocks
                     v :=
         fun codeV => appScoped (appScoped (appScoped (mkBlocks codeV))) (iterF v).
@@ -371,7 +371,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
         : _ + {AllocationError}
         := let pA := params startState pp in
            let (pVars, paramState) := pA in
-           let pts' := existT _ _ codeT :: parameterTypes in
+           let pts' := existT codeT :: parameterTypes in
            let pp' : suppTypes pts' := (pT, pp) in
            let pVars' : Allocation A.mVar pp' := (codeV, pVars) in
            lA *<- stacks paramState sp;
@@ -417,7 +417,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Definition compileIterator (tyD : typeC TypeDenote) {nP nL nR} ty name (pts : Vector.t (some type) nP)
                (lts : Vector.t (some type) nL)
                (rts : Vector.t (some type) nR) regs iterF
-      := let pts' := existT _ _ ty :: pts in
+      := let pts' := existT ty :: pts in
          let iterB := scopeLoopVar ty iterF in
          let '(stp, proc, fnl) := fillVars pts' lts rts (@iterBlocks tyD) iterB in
          pT *<- checkTy ty;
@@ -425,7 +425,7 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
            let (iterVars, state) := S in
            let (iterpar, loopvar)  := iterVars in
            let (codeVT, countV) := iterpar in
-           let 'existT _ _ codeV := codeVT in
+           let 'existT codeV := codeVT in
            pp *<- checkTypes pts;
              sp *<- checkTypes lts;
              rp *<- checkTypes rts;

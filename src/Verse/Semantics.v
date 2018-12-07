@@ -6,7 +6,9 @@ Require Import Verse.Error.
 Require Import Verse.Word.
 Require Import Verse.DecFacts.
 Require Import Verse.Semantics.Store.
+Require Import Verse.Nibble.
 
+Require Import NArith.
 Require Import Bvector.
 Require Import Vector.
 Require Import List.
@@ -19,10 +21,58 @@ Generalizable All Variables.
 
 Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS W).
 
+  Export O.
   Module C  := ConstDenote W CW.
   Module OP := OpDenote W O.
 
-  Import OP.
+  Infix "+" := (O.wordOpDenote _ plus) : word_scope.
+  Infix "-" := (O.wordOpDenote _ minus) : word_scope.
+  Infix "*" := (O.wordOpDenote _ mul) : word_scope.
+  Infix "/" := (O.wordOpDenote _ quot) : word_scope.
+  Infix "mod" := (O.wordOpDenote _ rem) (at level 40) : word_scope.
+  Infix "AND" := (O.wordOpDenote _ bitAnd) (at level 55) : word_scope.
+  Infix "AND8" := (O.wordOpDenote 0 bitAnd) (at level 55) : word_scope.
+  Infix "AND16" := (O.wordOpDenote 1 bitAnd) (at level 55) : word_scope.
+  Infix "AND32" := (O.wordOpDenote 2 bitAnd) (at level 55) : word_scope.
+  Infix "AND64" := (O.wordOpDenote 3 bitAnd) (at level 55) : word_scope.
+  Infix "OR" := (O.wordOpDenote _ bitOr) (at level 60) : word_scope.
+  Infix "OR8" := (O.wordOpDenote 0 bitOr) (at level 55) : word_scope.
+  Infix "OR16" := (O.wordOpDenote 1 bitOr) (at level 55) : word_scope.
+  Infix "OR32" := (O.wordOpDenote 2 bitOr) (at level 55) : word_scope.
+  Infix "OR64" := (O.wordOpDenote 3 bitOr) (at level 55) : word_scope.
+  Infix "XOR" := (O.wordOpDenote _ bitXor) (at level 57) : word_scope.
+  Infix "XOR8" := (O.wordOpDenote 0 bitXor) (at level 55) : word_scope.
+  Infix "XOR16" := (O.wordOpDenote 1 bitXor) (at level 55) : word_scope.
+  Infix "XOR32" := (O.wordOpDenote 2 bitXor) (at level 55) : word_scope.
+  Infix "XOR64" := (O.wordOpDenote 3 bitXor) (at level 55) : word_scope.
+  Notation "'NOT' X" := (O.wordOpDenote _ bitComp X) (at level 40) : word_scope.
+  Infix "NOT8" := (O.wordOpDenote 0 bitComp) (at level 55) : word_scope.
+  Infix "NOT16" := (O.wordOpDenote 1 bitComp) (at level 55) : word_scope.
+  Infix "NOT32" := (O.wordOpDenote 2 bitComp) (at level 55) : word_scope.
+  Infix "NOT64" := (O.wordOpDenote 3 bitComp) (at level 55) : word_scope.
+
+  Notation "X 'ShiftL' s" := (O.wordOpDenote _ (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL8' s" := (O.wordOpDenote 0 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL16' s" := (O.wordOpDenote 1 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL32' s" := (O.wordOpDenote 2 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftL64' s" := (O.wordOpDenote 3 (shiftL s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR' s" := (O.wordOpDenote _ (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR8' s" := (O.wordOpDenote 0 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR16' s" := (O.wordOpDenote 1 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR32' s" := (O.wordOpDenote 2 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'ShiftR64' s" := (O.wordOpDenote 3 (shiftR s) X) (at level 50) : word_scope.
+  Notation "X 'RotL' s" := (O.wordOpDenote _ (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL8' s" := (O.wordOpDenote 0 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL16' s" := (O.wordOpDenote 1 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL32' s" := (O.wordOpDenote 2 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotL64' s" := (O.wordOpDenote 3 (rotL s) X) (at level 50) : word_scope.
+  Notation "X 'RotR' s" := (O.wordOpDenote _ (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR8' s" := (O.wordOpDenote 0 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR16' s" := (O.wordOpDenote 1 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR32' s" := (O.wordOpDenote 2 (rotR s) X) (at level 50) : word_scope.
+  Notation "X 'RotR64' s" := (O.wordOpDenote 3 (rotR s) X) (at level 50) : word_scope.
+
+  Delimit Scope word_scope with word.
 
   Section Semantics.
 
@@ -143,28 +193,34 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
         at the corresponding program points.
        *)
 
-      Definition spec := (Prop * Prop)%type.
+      Record state := { start  : store;
+                        curr   : store;
+                        lemmas : Prop;
+                        spec   : Prop
+                      }.
 
-      Variable st : store.
-      Variable ost : store.
-
-      Definition annotationDenote (a : annotation v) (s : spec) : spec :=
-        let (ass, cl) := s in
-        let ctxtP := (eval st, eval ost) in
-        (fun na => ((ass /\ na, cl /\ (ass -> na)))) (a ctxtP).
+      Definition annotationDenote (a : annotation v) (s : state) : state :=
+        let ctxtP := (eval (curr s), eval (start s)) in
+        {| start := start s;
+           curr  := curr  s;
+           lemmas := lemmas s /\ a ctxtP;
+           spec   := spec s /\ (lemmas s -> a ctxtP)
+        |}.
 
     End Annotate.
 
     Section CodeDenote.
 
       (* The Type capturing the program state *)
-      Definition state := (store * store * spec)%type.
 
       Definition clDenote (cl : codeline v) (s : state) : state :=
-        let '(st, ost, sp) := s in
         match cl with
-        | assert a => (fun na => (st, ost, na)) (annotationDenote st ost a sp)
-        | inst  i => (fun ni => (ni, ost, sp)) (instructionDenote i st)
+        | assert a => annotationDenote a s
+        | inst  i => {| start := start s;
+                        curr  := instructionDenote i (curr s);
+                        lemmas := lemmas s;
+                        spec   := spec s
+                     |}
         end.
 
       Definition codeDenote c s : state := List.fold_left
@@ -179,7 +235,12 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
        *)
 
       Definition codeCheck c init : Prop :=
-        (fun x => snd (snd x)) (codeDenote c (init, init, (True, True))).
+        spec (codeDenote c {| start := init;
+                              curr  := init;
+                              lemmas := True;
+                              spec   := True
+                           |}
+             ).
 
       Definition SAT c    := forall init, codeCheck c init.
 
@@ -204,9 +265,9 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       n (vT : Vector.t (some t) n) typ C {struct vT}
     : (scoped v vT (typ -> C)) -> (typ -> scoped v vT C) :=
     match vT with
-    | []                             => id
-    | ((existT _ _ ty) :: vTt)%vector => fun s x vty => swapScope _ _ _
-                                                                  (s vty) x
+    | []                          => id
+    | ((existT ty) :: vTt)%vector => fun s x vty => swapScope _ _ _
+                                                              (s vty) x
     end.
 
   Let swapGScope (t : kind -> Type) n (vT : Vector.t (some t) n)
@@ -214,16 +275,16 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
     : (forall v, scoped v vT (typ -> C v)) -> typ -> forall v, scoped v vT (C v)
     := fun f => fun t v => (swapScope v vT (C v) (f v) t).
 
-  Arguments swapGScope [_ n] _ [typ] _ _ /.
+  Arguments swapGScope [_ n] _ [typ] _ _.
 
-  Ltac scopeTys xt :=
+  Ltac mapTyOf xt :=
     match xt with
-    | _ ?y -> ?z => refine ((fun p => (((existT _ _ y) :: fst p, snd p))) _)%vector; scopeTys z
-    | ?x         => exact ([]%vector, x)
+    | ProxyVar ?y -> ?z => refine ((existT y) :: _)%vector; mapTyOf z
+    | ?x         => exact ([]%vector)
     end.
 
   (* Extract the scope out of a generic function *)
-  Ltac scopeAndInner x := let xt := type of (x ProxyVar) in scopeTys xt.
+  Ltac getScope x := let xt := type of (x ProxyVar) in mapTyOf xt.
 
   Ltac rearrScope x :=
     let scp := fresh "scp" in
@@ -231,13 +292,13 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
     let typ := fresh "typ" in
     let rx  := fresh "rx"  in
     (* Bring out the leading scope and the scoped Type *)
-    simple refine (let scp : (Vector.t (some type) _ * Type) := _ in _);
-    [shelve | scopeAndInner x | idtac];
-    pose (sc := fst scp); simpl in *;
+    simple refine (let scp : Vector.t (some type) _ := _ in _);
+    [shelve | getScope x | idtac];
+    simpl in *;
     let nx := fresh "nx" in
     tryif
       (* Swap out one inner parameter if possible *)
-      pose (nx := swapGScope sc _ x)
+      pose (nx := swapGScope scp _ x)
     then
       (* Recursively call rearrScope to check for more inner parameters *)
       let t := fresh "t" in
@@ -250,15 +311,6 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       rearrScope nxn
     else
       exact x.
-
-  Ltac mapTyOf xt :=
-    match xt with
-    | _ ?y -> ?z => refine ((existT _ _ y) :: _)%vector; mapTyOf z
-    | ?x         => exact ([]%vector)
-    end.
-
-  (* Extract the scope out of a generic function *)
-  Ltac getScope x := let xt := type of (x ProxyVar) in mapTyOf xt.
 
   (* Recovers the specification corresponding to a code block
      as a Prop *)
@@ -295,6 +347,30 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
       | |- forall _ : _, _ => intro; simpl in * |-
       end.
 
+  Ltac simplify := repeat match goal with
+                          | |- forall _ : Store.store _, _ =>
+                            breakStore;
+                            lazy -[RotRW RotLW ShiftRW ShiftLW XorW AndW OrW NegW
+                                   fromNibbles
+                                   numBinOp numUnaryOp numBigargExop numOverflowBinop
+                                   Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+                                   N.add N.sub N.mul N.div N.div_eucl N.modulo
+                                   Ox nth replace];
+                            repeat
+                              (match goal with
+                               | |- _ /\ _          => constructor
+                               | |- _ -> _          => intro
+                               | H : _ /\ _ |- _    => destruct H
+                               | H : True |- _      => clear H
+                               | |- True            => constructor
+                               | |- ?x = ?x         => trivial
+                               | H : True |- _      => clear H
+                               | H : unit |- _      => clear H
+                               end)
+                          | |- forall _, _ => intro
+                          | |- ?I          => unfold I; unfold genSAT; unfold SAT
+                          end.
+(*
   (* A starter to preface a proof attempt on a Prop extracted via
      extractSAT *)
   Ltac simplify :=
@@ -308,7 +384,7 @@ Module SemanticTactics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEM
        | |- _ = _           => constructor
        | _                  => simpl in *
        end; repeat autounfold).
-
+*)
 End SemanticTactics.
 
 Module StandardTactics := SemanticTactics StandardWord StandardConsts StandardWordOps.

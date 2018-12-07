@@ -5,6 +5,7 @@ Require Import Verse.Syntax.
 Require Import Verse.DecFacts.
 Require Import Verse.Semantics.Store.
 
+Require Import Eqdep_dec.
 Require Import Equality.
 
 Require Import Vector.
@@ -39,8 +40,6 @@ Fixpoint wrtStore (tyd : VariableT)
   end.
 
 
-Axiom eq_eq_refl : forall A (a : A) (p : a = a), p = eq_refl.
-
 Fixpoint frmWrt (tyd : VariableT)
          `(vT : Vector.t (some type) n)
          (s : allocation tyd vT) k (ty : type k) (v : scopeVar vT ty) f {struct vT} :
@@ -57,11 +56,11 @@ Fixpoint frmWrt (tyd : VariableT)
   contradict H.
   unfold v_sig_eqb.
   destruct (kind_eq_dec (projT1 (hd v)) (projT1 (hd v))).
-  pose (eq_eq_refl e).
+  pose (eq_proofs_unicity (eq_dec_eq_dec_P kind_eq_dec) e eq_refl).
   subst e.
   simpl.
   destruct (ty_eq_dec (projT2 (hd v)) (projT2 (hd v))).
-  pose (eq_eq_refl e).
+  pose (eq_proofs_unicity (eq_dec_eq_dec_P ty_eq_dec) e eq_refl).
   subst e.
   simpl.
   unfold scopeVar_eqb.

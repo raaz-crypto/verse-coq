@@ -1,6 +1,12 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
+Require Import Verse.Semantics.
+Import StandardTactics.
+Require Import Verse.WordFacts.
+Require Import Verse.WordRing.
+Open Scope word_scope.
 
+Import NArith.
 Import Nat.
 Require Vector.
 Import VectorNotations.
@@ -136,14 +142,14 @@ Module SHA2 (C : CONFIG).
         if idx =? 15 then @exist _ _ 0 zltBlockSize
         else let sIdx := S idx in
              @exist _ _
-                   (sIdx mod BLOCK_SIZE)
+                   (sIdx mod BLOCK_SIZE)%nat
                    (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
       Definition M  := W idx idxPf.
 
       (** We capture m(idx - j) using this variable *)
       Definition MM (j : nat) : v Word.
-        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _).
+        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _)%nat.
       Defined.
 
 
@@ -163,7 +169,7 @@ Module SHA2 (C : CONFIG).
       (** This completes the code for message scheduling *)
     End MessageSchedule.
 
-    Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
+    Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = (S n mod BLOCK_SIZE)%nat.
       intro n.
       do 16 (destruct n; trivial).
     Qed.
@@ -237,11 +243,14 @@ Module SHA2 (C : CONFIG).
         H := G s
       |}.
 
+    Definition sig r0 r1 r2 (x : typeDenote Word : Type) :=
+      x RotR r2 XOR x RotR r1 XOR x RotR r0.
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
       [ temp ::= x >>> (r2 - r1); temp ::=^ x;
         temp ::=>>> (r1 - r0);    temp ::=^ x;
-        temp ::=>>> r0
+        temp ::=>>> r0;
+        ASSERT Val temp = sig r0 r1 r2 (Val x)
       ]%list.
 
     Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
@@ -251,17 +260,24 @@ Module SHA2 (C : CONFIG).
     (** The CH and the MAJ functions are also defined computing their result
         into the temp variable temp
      *)
+
     Definition CH (s : State) : code v:=
             [ tp ::=~ E s;
               tp ::=& G s;
-              temp ::= E s & F s; temp ::=^ tp
+              temp ::= E s & F s; temp ::=^ tp;
+              ASSERT E s HAS e; F s HAS f; G s HAS g
+              IN
+              Val temp = (e AND f) XOR (NOT e AND g)
             ]%list.
 
     Definition MAJ (s : State) : code v :=
       [ temp  ::=  B s | C s;
         temp  ::=& A s;
         tp    ::=  B s & C s;
-        temp  ::=| tp
+        temp  ::=| tp;
+        ASSERT A s HAS a; B s HAS b; C s HAS c
+        IN
+        Val temp = (a AND b) OR (a AND c) OR (b AND c)
       ].
 
     (** The heart of the hash algorithm a single round where we update
@@ -281,7 +297,27 @@ Module SHA2 (C : CONFIG).
         ++ [ t ::=+ temp ]
         ++ MAJ s       (* temp = MAJ a b c *)
         ++ [ H s ::= temp + t ] (* h =  t + MAJ a b c *)
-    .
+        ++ [ ASSERT A s HAD a; B s HAD b; C s HAD c; D s HAD d;
+                    E s HAD e; F s HAD f; G s HAD g; H s HAD h
+             IN
+             let s' := newState s in
+             let S1 := sig R10 R11 R12 e in
+             let ch := (e AND f) XOR (NOT e AND g) in
+             let temp1 := h + S1 + ch + [[K]] + Val M in
+             let S0 := sig R00 R01 R02 a in
+             let maj := (a AND b) OR (a AND c) OR (b AND c) in
+             let temp2 := S0 + maj in
+
+             Val (H s') = g
+             /\ Val (G s') = f
+             /\ Val (F s') = e
+             /\ Val (E s') = d + temp1
+             /\ Val (D s') = c
+             /\ Val (C s') = b
+             /\ Val (B s') = a
+             /\ Val (A s') = temp1 + temp2
+           ].
+
 
     (** Having defined the [STEP] we look at a single round. A round
         [r] consists of an application of the [STEP] together with
@@ -311,7 +347,7 @@ Module SHA2 (C : CONFIG).
       Definition Accumulator := (State * MessageIndex)%type.
       Definition next (acc : Accumulator) :=
         match acc with
-        | (s, @exist _ _ idx _) => (newState s, nextIdx idx)
+        | (s,@exist _ _ idx _) => (newState s, nextIdx idx)
         end.
 
       Variable genCode : Accumulator -> constant Word -> code v.
@@ -362,4 +398,45 @@ Module SHA2 (C : CONFIG).
         finalise := [ ]
       |}.
   End Program.
+
+  (* Write a scoped version of STEP *)
+  Definition scSTEP v t tp temp a b c d e f g h m k
+    := STEP v t tp temp {| A := a; B := b; C := c; D := d; E := e; F := f; G := g; H := h |} m k.
+
+  (* Extract the proof obligation from scSTEP *)
+  Definition toProve : Prop.
+    exParamProp scSTEP.
+  Defined.
+
+  (* A lemma for correctness of the Sigma optimization *)
+  Lemma SigmaCorrect r0 r1 r2 (incr : r0 <= r1 <= r2) (w : typeDenote Word : Type)
+    : RotRW r0 (XorW (RotRW (r1 - r0) (XorW (RotRW (r2 - r1) w) w)) w) =
+      XorW (XorW (RotRW r2 w) (RotRW r1 w)) (RotRW r0 w).
+  Proof.
+    repeat rewrite rotRDistrXor;
+      repeat rewrite rotRCompose;
+      repeat rewrite Minus.le_plus_minus_r;
+      easy.
+  Qed.
+
+  Definition proof : toProve.
+    simplify.
+    (* Sigma *)
+    apply SigmaCorrect. apply increasing_R's.
+    (* Sigma *)
+    apply SigmaCorrect. apply increasing_R's.
+    (* Maj *)
+    rewrite AndComm.
+    now rewrite AndDistrOr.
+    (* Ring *)
+    rewrite H3.
+    Add Ring Here : (mod_semi_ring (4 * (2 * (2 ^ WordSize)))).
+    now ring_simplify.
+
+    rewrite H3.
+    rewrite H2.
+    rewrite H1.
+    now ring_simplify.
+  Qed.
+
 End SHA2.

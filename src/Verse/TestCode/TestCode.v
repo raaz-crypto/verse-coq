@@ -32,14 +32,14 @@ Section TestFunction.
 
   Definition testFunction : code variable.
     verse
-    [ num ::= tmp [+] Ox "abcd";
-      A   ::= A [+] B;
-      num ::= tmp [-] num ;
-      num      ::= tmp      [*] arr[-1-];
-      num      ::= arr[-1-] [/] tmp ;
-      arr[-1-] ::= tmp      [|] num ;
-      num      ::= tmp      [&] arr[-1-];
-      num      ::= tmp      [^] num ;
+    [ num ::= tmp + Ox "abcd";
+      A   ::= A + B;
+      num ::= tmp - num ;
+      num      ::= tmp      * arr[-1-];
+      num      ::= arr[-1-] / tmp ;
+      arr[-1-] ::= tmp      | num ;
+      num      ::= tmp      & arr[-1-];
+      num      ::= tmp      ^ num ;
       (* binary update *)
       num ::=+ tmp;
       num ::=- arr[-1-];
@@ -53,14 +53,14 @@ Section TestFunction.
       num      ::=~ tmp;
       tmp      ::=  arr[-1-] <<  42;
       tmp      ::=  arr[-1-] >>  42;
-      num      ::=  tmp     <*< 42;
-      arr[-1-] ::=  tmp     >*> 42;
+      num      ::=  tmp     <<< 42;
+      arr[-1-] ::=  tmp     >>> 42;
 
       (* Unary update operators *)
       tmp      ::=<<  (42%nat);
       tmp      ::=>>  (42%nat);
-      num      ::=<*< (42%nat);
-      arr[-1-] ::=>*> (42%nat);
+      num      ::=<<< (42%nat);
+      arr[-1-] ::=>>> (42%nat);
       CLOBBER arr
     ]%list.
   Defined.
