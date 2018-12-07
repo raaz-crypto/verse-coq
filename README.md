@@ -6,26 +6,19 @@ Verse
 A domain specific language in coq used to write low-level
 cryptographic primitives.
 
-
 Configuring and installing
 --------------------------
 
+Verse has been tested with coq versions 8.6 and 8.7. It also required
+the coq-color library. We recommend using opam but please avoid using
+avoid opam-2 for time being as the coq-color library does not build
+with it.
+
+
 ```bash
+eval $(opam config env) # set up opam environment if needed.
 ./configure.sh
 make
-
-```
-
-Building with multiple coq-versions
------------------------------------
-
-You need `opam` for building and testing the source code for multiple
-versions of coq. You need to set the the environment variable $COQ_VER
-and run the script `./scripts/opam-build.sh`. Here is an example.
-
-```bash
-COQ_VER=8.6 ./scripts/opam-build.sh build  # compile all the coq files
-COQ_VER=8.6 ./scripts/opam-build.sh html   # build html documentation
 
 ```
 
