@@ -168,7 +168,7 @@ Module Internal.
          process := fun blk =>
                       COMPUTE_STREAM
                         ++ foreach (indices blk) (EMITSTREAM blk)
-                        ++ [ [++] ctr ];
+                        ++ [ ++ ctr ];
          finalise := StoreCounter
       |}.
 
