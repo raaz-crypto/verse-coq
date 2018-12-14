@@ -161,8 +161,8 @@ Definition toN {n} : Vector.t Nibble n -> N :=
 
 
 
-Definition fromN   l n := Vector.rev (Internal.fromNR n l).
-Definition fromNat l n := fromN (N_of_nat n) l.
+Definition fromN   l n := Vector.rev (Internal.fromNR l n).
+Definition fromNat l n := fromN l (N_of_nat n).
 
 Arguments fromN [l] _.
 Arguments fromNat [l] _.
