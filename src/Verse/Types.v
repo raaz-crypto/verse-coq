@@ -76,12 +76,11 @@ Definition constant (ty : type direct) := @typeDenote _ ConstRep direct ty.
 Require Verse.Nibble.
 Check Vector.const.
 
-Definition nToConstant (ty : type direct) (n : nat) : constant ty
+Definition nToConstant (ty : type direct) (num : nat) : constant ty
   := match ty in type direct return constant ty with
-         | word n => Nibble.fromNat n
-         | multiword m n => Vector.const (Nibble.fromNat n) (2^m)
-         end.
-
+         | word n => Nibble.fromNat num
+         | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
+     end.
 
 Module Type CONST_SEMANTICS (W : WORD_SEMANTICS).
   Parameter constWordDenote : forall n, constant (word n) -> W.wordDenote n.
