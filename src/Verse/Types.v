@@ -74,7 +74,6 @@ Definition Vector256 (t : type direct) := recover (vector 4 t).
 Definition constant (ty : type direct) := @typeDenote _ ConstRep direct ty.
 
 Require Verse.Nibble.
-Check Vector.const.
 
 Definition nToConstant (ty : type direct) (num : nat) : constant ty
   := match ty in type direct return constant ty with
