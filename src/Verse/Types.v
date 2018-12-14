@@ -1,5 +1,5 @@
 Require Vector.
-Require Import Arith.
+Require Import NArith.
 Import Nat.
 Require Import Verse.Error.
 Require Import Verse.Types.Internal.
@@ -75,7 +75,13 @@ Definition constant (ty : type direct) := @typeDenote _ ConstRep direct ty.
 
 Require Verse.Nibble.
 
-Definition nToConstant (ty : type direct) (num : nat) : constant ty
+Definition NToConstant (ty : type direct) (num : N) : constant ty
+  := match ty in type direct return constant ty with
+         | word n => Nibble.fromN num
+         | multiword m n => Vector.const (Nibble.fromN num) (2^m)
+     end.
+
+Definition natToConstant (ty : type direct) (num : nat) : constant ty
   := match ty in type direct return constant ty with
          | word n => Nibble.fromNat num
          | multiword m n => Vector.const (Nibble.fromNat num) (2^m)

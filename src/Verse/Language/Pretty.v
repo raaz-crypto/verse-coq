@@ -52,7 +52,10 @@ Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types
   := { toRArg := @const v ty }.
 
 Global Instance nat_arg_v (v : VariableT)(ty : type direct) : RARG v ty nat
-  := { toRArg := fun n => @const v ty (nToConstant ty n)}.
+  := { toRArg := fun n => @const v ty (natToConstant ty n)}.
+
+Global Instance N_arg_v (v : VariableT)(ty : type direct) : RARG v ty N
+  := { toRArg := fun n => @const v ty (NToConstant ty n)}.
 (* end hide *)
 
 
