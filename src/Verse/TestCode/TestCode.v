@@ -32,7 +32,7 @@ Section TestFunction.
 
   Definition testFunction : code variable.
     verse
-    [ num ::= tmp + Ox "abcd";
+    [ num ::= tmp + 25;
       A   ::= A + B;
       num ::= tmp - num ;
       num      ::= tmp      * arr[-1-];
