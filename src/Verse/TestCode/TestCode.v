@@ -1,6 +1,7 @@
 Require Import Verse.
 Require Import Verse.Arch.C.
 
+Require Import NArith.
 Require Import Vector.
 Import VectorNotations.
 
@@ -32,7 +33,7 @@ Section TestFunction.
 
   Definition testFunction : code variable.
     verse
-    [ num ::= tmp + Ox "abcd";
+    [ num ::= tmp + 43981%N;
       A   ::= A + B;
       num ::= tmp - num ;
       num      ::= tmp      * arr[-1-];
@@ -43,9 +44,9 @@ Section TestFunction.
       (* binary update *)
       num ::=+ tmp;
       num ::=- arr[-1-];
-      num ::=* Ox "1234";
+      num ::=* Ox"1234";
       num ::=/ tmp;
-      num ::=| tmp;
+      num ::=| 5;
       num ::=& tmp;
       num ::=^ tmp;
 
