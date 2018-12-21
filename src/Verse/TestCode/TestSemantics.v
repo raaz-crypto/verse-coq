@@ -4,7 +4,7 @@ Require Import Verse.Types.Internal.
 Require Import Semantics.
 
 Import StandardSemantics.
-Open Scope word_scope.
+Open Scope semantic_scope.
 
 Import NArith.
 Require Import Vector.

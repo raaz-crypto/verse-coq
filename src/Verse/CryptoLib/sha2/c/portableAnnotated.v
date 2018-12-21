@@ -4,6 +4,8 @@ Require Import Verse.Semantics.
 Import StandardTactics.
 Require Import Verse.WordFacts.
 Require Import Verse.WordRing.
+
+Open Scope semantic_scope.
 Open Scope word_scope.
 
 Import NArith.
