@@ -149,3 +149,17 @@ Definition ShiftLW m := liftBV (BOps.BShiftL m).
 Definition ShiftRW m := liftBV (BOps.BShiftR m).
 Definition RotLW m := liftBV (BOps.BRotL m).
 Definition RotRW m := liftBV (BOps.BRotR m).
+
+Notation "A ∧ B" := (AndW A B) (at level 100) : word_scope.
+Notation "A ∨ B" := (OrW A B)  (at level 100) : word_scope.
+Notation "A ⊕ B" := (XorW A B) (at level 100) : word_scope.
+Notation "¬ A"   := (NegW A)   (at level 100) : word_scope.
+Notation "A ≫ m" := (ShiftRW m A) (at level 100) : word_scope.
+Notation "A ≪ m" := (ShiftLW m A) (at level 100) : word_scope.
+Notation "A ⋘ m" := (RotLW m A) (at level 100) : word_scope.
+Notation "A ⋙ m" := (RotRW m A) (at level 100) : word_scope.
+
+Infix "+" := (numBinOp N.add) : word_scope.
+Infix "*" := (numBinOp N.mul) : word_scope.
+Infix "-" := (numBinOp N.sub) : word_scope.
+Infix "/" := (numBinOp N.div) : word_scope.
