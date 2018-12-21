@@ -7,10 +7,10 @@ Require Import BinInt.
 
 Require Import NArith.
 
-Notation wO   := (bits (N2Bv_gen _ 0)).
-Notation wI   := (bits (N2Bv_gen _ 1)).
-Notation wadd := (numBinOp N.add).
-Notation wmul := (numBinOp N.mul).
+Local Notation wO   := (bits (N2Bv_gen _ 0)).
+Local Notation wI   := (bits (N2Bv_gen _ 1)).
+Local Notation wadd := (numBinOp N.add).
+Local Notation wmul := (numBinOp N.mul).
 Local Notation weq  := (@eq (Word.t _)).
 
 Section WordRing.
