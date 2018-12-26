@@ -139,11 +139,13 @@ Module SHA2 (C : CONFIG).
                    (sIdx mod BLOCK_SIZE)
                    (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
-      Definition M  := W idx idxPf.
+      Definition M  : v Word.
+        verse (W[- idx -]).
+      Defined.
 
       (** We capture m(idx - j) using this variable *)
       Definition MM (j : nat) : v Word.
-        verse (W ((idx + 16 - j) mod BLOCK_SIZE) _).
+        verse (W [- (idx + 16 - j) mod BLOCK_SIZE -]).
       Defined.
 
 
@@ -347,7 +349,7 @@ Module SHA2 (C : CONFIG).
 
 
     Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
-      verse ([STATE i _ ::=+ hash [- i -]]).
+      verse ([ STATE[- i -] ::=+ hash [- i -]]).
     Defined.
 
     Definition UPDATE : code v
