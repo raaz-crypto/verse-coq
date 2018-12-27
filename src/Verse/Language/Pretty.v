@@ -63,6 +63,9 @@ Notation "A [- N -]"     := (index A (@exist _ _ (N%nat) _)) (at level 29).
 Notation "! A"           := (inst (index A 0 _)) (at level 70).
 Notation "++ A"        := (inst (increment (toLArg A))) (at level 70).
 Notation "-- A"        := (inst (decrement (toLArg A))) (at level 70).
+
+Notation "A ::= B"      := (inst (assign (assign2 nop (toLArg A) (toRArg B)))) (at level 70, B at level 29).
+
 Notation "A ::= B + C" := (inst (assign (assign3 plus  (toLArg A) (toRArg B) (toRArg C) )))  (at level 70, B at level 29).
 Notation "A ::= B - C" := (inst (assign (assign3 minus (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
 Notation "A ::= B * C" := (inst (assign (assign3 mul   (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
@@ -91,7 +94,6 @@ Notation "A ::=>> N "    := (inst (assign (update1 (shiftR N) (toLArg A)))) (at 
 Notation "A ::=<<< N "    := (inst (assign (update1 (rotL N)  (toLArg A)))) (at level 70).
 Notation "A ::=>>> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at level 70).
 
-Notation "A ::== B"      := (inst (assign (assign2 nop (toLArg A) (toRArg B)))) (at level 70).
 Notation "'CLOBBER' A"   := (inst (clobber A)) (at level 70). (* Check level *)
 Notation "'MOVE'  B 'TO'   A [- N -]"       := (inst (moveTo A (@exist _ _ (N%nat) _) B)) (at level 200, A ident).
 
