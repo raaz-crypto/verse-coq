@@ -35,6 +35,9 @@ over variables that can themselves be pretty printed.
 Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval ty }.
 Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval ty }.
 
+Class IndexArg (Ix : Set)(result : Type) t
+  := { deref : t -> Ix  -> result }.
+
 Section ARGInstances.
   Variable v  : VariableT.
   Variable k  : kind.
@@ -48,6 +51,25 @@ Section ARGInstances.
 
 End ARGInstances.
 
+Section Indexing.
+  Variable v  : VariableT.
+  Variable ty : type direct.
+  Variable aK : argKind.
+  Variable bound  : nat.
+  Variable e  : endian.
+
+  Global Instance index_array_var :
+    IndexArg {i | i < bound} (arg v aK ty)(v (array bound e ty)) :=
+    { deref := @index v aK bound e ty }.
+
+  Check exist.
+  Global Instance index_var_cache :
+    IndexArg {i | i < bound} (v ty) (forall i,  i < bound -> v ty):=
+    { deref := fun A ix =>  match ix with
+                            | @exist _ _ i pf => A i pf
+                            end}.
+End Indexing.
+
 Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types.constant ty)
   := { toRArg := @const v ty }.
 
@@ -58,8 +80,8 @@ Global Instance N_arg_v (v : VariableT)(ty : type direct) : RARG v ty N
   := { toRArg := fun n => @const v ty (NToConstant ty n)}.
 (* end hide *)
 
+Notation "A [- N -]"     := (deref A (@exist _ _ N%nat _)) (at level 29).
 
-Notation "A [- N -]"     := (index A (@exist _ _ (N%nat) _)) (at level 29).
 Notation "! A"           := (inst (index A 0 _)) (at level 70).
 Notation "++ A"        := (inst (increment (toLArg A))) (at level 70).
 Notation "-- A"        := (inst (decrement (toLArg A))) (at level 70).

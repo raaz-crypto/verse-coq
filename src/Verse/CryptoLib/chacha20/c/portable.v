@@ -136,7 +136,8 @@ Module Internal.
      *)
     Definition XORBLOCK (B : progvar (Block variant))(i : nat) (_ : i < 16)
       : code progvar.
-      verse [ Temp ::= B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
+      verse [ Temp ::= B[- i -]; Temp ::=^ X [- i -]; MOVE Temp TO B[- i -] ].
+
     Defined.
 
     (** Here we only emit the key stream and is useful when using as csprg *)
