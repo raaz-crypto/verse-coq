@@ -88,10 +88,10 @@ Module Internal.
      *)
     Definition INITSTATE : code progvar.
       verse [
-          x0  ::== C0         ; x1  ::== C1         ; x2  ::== C2         ; x3  ::== C3;
-          x4  ::== key[- 0 -] ; x5  ::== key[- 1 -] ; x6  ::== key[- 2 -] ; x7 ::== key[- 3 -];
-          x8  ::== key[- 4 -] ; x9  ::== key[- 5 -] ; x10 ::== key[- 6 -] ; x11 ::== key[- 7 -];
-          x12 ::== ctr        ; x13 ::== iv[- 0 -]  ; x14 ::== iv[- 1 -]  ; x15 ::== iv[- 2 -]
+          x0  ::= C0         ; x1  ::= C1         ; x2  ::= C2         ; x3  ::= C3;
+          x4  ::= key[- 0 -] ; x5  ::= key[- 1 -] ; x6  ::= key[- 2 -] ; x7 ::= key[- 3 -];
+          x8  ::= key[- 4 -] ; x9  ::= key[- 5 -] ; x10 ::= key[- 6 -] ; x11 ::= key[- 7 -];
+          x12 ::= ctr        ; x13 ::= iv[- 0 -]  ; x14 ::= iv[- 1 -]  ; x15 ::= iv[- 2 -]
         ].
     Defined.
 
@@ -136,7 +136,7 @@ Module Internal.
      *)
     Definition XORBLOCK (B : progvar (Block variant))(i : nat) (_ : i < 16)
       : code progvar.
-      verse [ Temp ::== B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
+      verse [ Temp ::= B[- i -]; Temp ::=^ X i _; MOVE Temp TO B[- i -] ].
     Defined.
 
     (** Here we only emit the key stream and is useful when using as csprg *)
@@ -148,7 +148,7 @@ Module Internal.
 
 
     Definition LoadCounter : code progvar.
-      verse [ ctr ::== ctrRef[- 0 -] ].
+      verse [ ctr ::= ctrRef[- 0 -] ].
     Defined.
     Definition StoreCounter : code progvar.
       verse [ MOVE ctr TO ctrRef[- 0 -] ].

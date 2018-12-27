@@ -71,7 +71,7 @@ Module Internal.
     Variable temp           : progvar Word.
 
     Definition CLEAR_ACC : code progvar.
-      verse (foreach (indices A) (fun i iproff => [ ACC i _ ::==  Ox "00:00:00:00 00:00:00:00"]%list)).
+      verse (foreach (indices A) (fun i iproff => [ ACC i _ ::=  Ox "00:00:00:00 00:00:00:00"]%list)).
     Defined.
 
     (** The variables to keep track of the coefficient of the
@@ -97,8 +97,8 @@ Module Internal.
     Definition NVal (x0 x1 x2 x3 x4 : N) := (x0 + 2^26 * x1 + 2^52 * x2 + 2^78 * x3  + 2^104 * x4)%N.
     Definition LOAD_COEFFICIENT (blk : progvar Block) : code progvar.
       verse [
-          c3 ::== blk [- 0 -];
-          c4 ::== blk [- 1 -];
+          c3 ::= blk [- 0 -];
+          c4 ::= blk [- 1 -];
           (**
               All the 128 bits are now in the register combination
               [c3]:[c4]. Start by transferring the lowest 26 bits to
@@ -232,11 +232,11 @@ Module Internal.
 
    Definition clamp (blk : progvar Block) : code progvar.
      verse [
-         temp ::== blk[- 0 -];
+         temp ::= blk[- 0 -];
          temp ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
          MOVE temp TO blk[- 0 -];
 
-         temp ::== blk[- 1 -];
+         temp ::= blk[- 1 -];
          temp ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
          MOVE temp TO blk[- 1 -]
        ]%list.

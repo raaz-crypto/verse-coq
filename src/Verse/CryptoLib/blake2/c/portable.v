@@ -260,7 +260,7 @@ Module Blake2 (C : CONFIG).
              into the lsb position
            *)
 
-          LMSB ::== l;
+          LMSB ::= l;
           LMSB ::=>> (8 * size(Word) - 1); (* get he msb to the lsb *)
 
           (* Now get the carry that flows into MSB from the previous bits *)
@@ -385,7 +385,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [ U ::== UpperRef[- 0 -]; L ::== LowerRef[- 0 -] ] ++ loadCache hash H ).
+      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H ).
     Defined.
 
     (** ** The initialisation of state.
@@ -398,39 +398,39 @@ Module Blake2 (C : CONFIG).
      *)
     Definition INIT_STATE : code progvar.
       verse
-        [ v0 ::== h0;
-	  v1 ::== h1;
-	  v2 ::== h2;
-	  v3 ::== h3;
-	  v4 ::== h4;
-	  v5 ::== h5;
-	  v6 ::== h6;
-	  v7 ::== h7;
-	  v8  ::== IV 0 _;
-	  v9  ::== IV 1 _;
-	  v10 ::== IV 2 _;
-	  v11 ::== IV 3 _;
+        [ v0 ::= h0;
+	  v1 ::= h1;
+	  v2 ::= h2;
+	  v3 ::= h3;
+	  v4 ::= h4;
+	  v5 ::= h5;
+	  v6 ::= h6;
+	  v7 ::= h7;
+	  v8  ::= IV 0 _;
+	  v9  ::= IV 1 _;
+	  v10 ::= IV 2 _;
+	  v11 ::= IV 3 _;
 	  v12 ::= IV 4 _ ^ L;
 	  v13 ::= IV 5 _ ^ U;
-	  v14 ::== IV 6 _ ;
-	  v15 ::== IV 7 _
+	  v14 ::= IV 6 _ ;
+	  v15 ::= IV 7 _
         ]%list.
     Defined.
 
     Definition INIT_STATE_LAST : code progvar.
       verse
-        [ v0 ::== h0;
-	  v1 ::== h1;
-	  v2 ::== h2;
-	  v3 ::== h3;
-	  v4 ::== h4;
-	  v5 ::== h5;
-	  v6 ::== h6;
-	  v7 ::== h7;
-	  v8  ::== IV 0 _;
-	  v9  ::== IV 1 _;
-	  v10 ::== IV 2 _;
-	  v11 ::== IV 3 _;
+        [ v0 ::= h0;
+	  v1 ::= h1;
+	  v2 ::= h2;
+	  v3 ::= h3;
+	  v4 ::= h4;
+	  v5 ::= h5;
+	  v6 ::= h6;
+	  v7 ::= h7;
+	  v8  ::= IV 0 _;
+	  v9  ::= IV 1 _;
+	  v10 ::= IV 2 _;
+	  v11 ::= IV 3 _;
 	  v12 ::= IV 4 _ ^ Lower;
 	  v13 ::= IV 5 _ ^ Upper;
 	  v14 ::= IV 6 _ ^ f0;
@@ -448,7 +448,7 @@ Module Blake2 (C : CONFIG).
     Definition W : VarIndex progvar BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_MESSAGE_I (blk : progvar Block) (i : nat) (pf : i < BLOCK_SIZE)
       : code progvar.
-      verse [ W i _ ::== blk [- i -] ]%list.
+      verse [ W i _ ::= blk [- i -] ]%list.
     Defined.
     Definition LOAD_MESSAGE (blk : progvar Block)
       := foreach (indices blk) (LOAD_MESSAGE_I blk).

@@ -58,7 +58,7 @@ Section TestFunction.
 
         ASSERT A HAS a IN (2 = 3)%N;
 
-        arr[-1-] ::== num;
+        arr[-1-] ::= num;
         num      ::= tmp      * arr[-1-];
 
         ASSERT num HAD n ; tmp HAS t ; A HAS a IN (and (n = t) (n = n))%N;
