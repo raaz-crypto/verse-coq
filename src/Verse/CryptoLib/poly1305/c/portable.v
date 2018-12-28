@@ -181,16 +181,17 @@ Module Internal.
 
     (** We define type aliases for some of the types that are relevant
         for poly1305. See the arithmetic section on the rationale for
-        these choices.
+        these choices. The arrays are packed representations where as
+        their indices are split up into 32-bit chunks.
      *)
 
 
+    Definition ElemArray := Array 3 hostE Limb.
+    Definition Array128  := Array 2 hostE Limb.
 
-
-    Definition ElemArray := Array 5 hostE Limb.
     Definition ElemIndex := VarIndex progvar 5 Limb.
-    Definition Array128  := Array 4 hostE Limb.
     Definition RIndex    := VarIndex progvar 4 Limb.
+
 
     (** ** Parameters.
 
@@ -261,8 +262,6 @@ Module Internal.
 
     Variables a0 a1 a2 a3 a4 : progvar Limb.
     Variables r0 r1 r2 r3    : progvar Limb.
-
-
     (** The limbs that capture the result of product *)
     Variable p1 p2 p3 p4 : progvar Limb.
 
@@ -280,6 +279,40 @@ Module Internal.
     Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
     Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
 
+    Definition LoadA : code progvar.
+      verse [ a1 ::=  AArray [- 0 -];
+              a0 ::=  a0 & Select32;
+              a1 ::=>> 32;
+
+              a3 ::= AArray[- 1 -];
+              a2 ::= a3 & 32;
+              a3 ::=>> 32;
+
+              a4 ::= AArray[- 2 -]
+            ]%list.
+    Defined.
+
+    Definition StoreA  : code progvar.
+      verse [ T0 ::= a1 << 32;
+              T0 ::=| a0;
+              MOVE T0 TO AArray[- 0 -];
+              T0 ::= a3 << 32;
+              T0 ::=| a2;
+              MOVE T0 TO AArray[- 1 -];
+              MOVE a4 TO AArray[- 2 -]
+            ]%list.
+      Defined.
+      Definition LoadR : code progvar.
+        verse [ r0 ::=  RArray [- 0 -];
+                r1 ::=  a0 >> 32;
+                r0 ::=& Select32;
+                r2 ::= RArray[- 1 -];
+                r3 ::= a2 >> 32;
+                r2 ::=& Select32
+              ]%list.
+      Defined.
+
+
     (** * The Horner's step as subroutines.
 
         The main step in the poly1305 computation is the update of the
@@ -295,17 +328,19 @@ Module Internal.
 
      *)
 
-    (** ** Adding the coefficient.
+    (** ** Adding 128-bit to accumulator.
 
        There are two variants of this function. The first variant just
        adds the block as 128-bit element of the field [GF]. The next
        also increments the 129th bit. The former can be used when
        handling the last partial block (padded appropriately) where as
-       the latter is used for complete blocks.
+       the latter is used for complete blocks. No carry propagation is
+       done by these code.
 
      *)
 
-    Definition Add128 (blk : progvar Block) : code progvar.
+
+    Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
       verse [ (* The first two limbs *)
 
           T1 ::=  blk[- 0 -];
@@ -323,7 +358,8 @@ Module Internal.
           a3 ::=+ T1
         ]%list.
     Defined.
-    Definition AddFullBlock (blk : progvar  Block) : code progvar
+
+    Definition AddFullBlock (blk : progvar Block) : code progvar
       := Add128 blk ++ [ ++ a4 ]%list.
 
     (** ** Computing [A := A * R]
@@ -570,15 +606,11 @@ Module Internal.
      (** ** Computing the hash.
 
          The final message has is computed using the algorithm [A + S
-         mod Two128].
+         mod Two128]. The elem
 
       *)
 
-     Definition AddSI i (pf : i < 4) : code progvar.
-       verse [ A i _ ::=+ SArray [- i -] ]%list.
-     Defined.
-
-     Definition ComputeMAC := FullReduction ++ iterate AddSI ++ Propagate ++ moveBackCache AArray A.
+     Definition ComputeMAC := FullReduction ++ Add128 SArray ++ Propagate ++ StoreA.
 
 
      (** * Handling input.
@@ -594,8 +626,8 @@ Module Internal.
       : code progvar
       := AddC blk ++ MulR ++ AdjustBits.
 
-    Definition ProcessFullBlock  := ProcessBlock AddFullBlock.
-    Definition ProcessLastBlock := ProcessBlock Add128.
+    Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
+    Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
 
     (** * The exported functions and iterators.
 
@@ -617,9 +649,9 @@ Module Internal.
      *)
 
     Definition poly1305Iter : iterator Block progvar.
-      verse {| setup    := loadCache AArray A ++ loadCache RArray R;
+      verse {| setup    := LoadA  ++ LoadR;
                process  := ProcessFullBlock;
-               finalise := moveBackCache AArray A
+               finalise := StoreA
             |}.
     Defined.
 
@@ -650,10 +682,9 @@ Module Internal.
      *)
 
     Definition poly1305PartialMAC : code progvar
-      := loadCache AArray A
-                   ++ loadCache RArray R
-                   ++ ProcessLastBlock LastBlock
-                   ++ ComputeMAC.
+      := setup poly1305IterMAC
+               ++ ProcessLastBlock LastBlock
+               ++ finalise poly1305IterMAC.
 
 
     (** ** Clamping [r].
