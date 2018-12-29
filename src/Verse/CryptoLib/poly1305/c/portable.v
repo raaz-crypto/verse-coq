@@ -281,11 +281,11 @@ Module Internal.
 
     Definition LoadA : code progvar.
       verse [ a1 ::=  AArray [- 0 -];
-              a0 ::=  a0 & Select32;
+              a0 ::=  a1 & Select32;
               a1 ::=>> 32;
 
               a3 ::= AArray[- 1 -];
-              a2 ::= a3 & 32;
+              a2 ::= a3 & Select32;
               a3 ::=>> 32;
 
               a4 ::= AArray[- 2 -]
@@ -303,12 +303,12 @@ Module Internal.
             ]%list.
       Defined.
       Definition LoadR : code progvar.
-        verse [ r0 ::=  RArray [- 0 -];
-                r1 ::=  a0 >> 32;
-                r0 ::=& Select32;
-                r2 ::= RArray[- 1 -];
-                r3 ::= a2 >> 32;
-                r2 ::=& Select32
+        verse [ r1 ::=  RArray [- 0 -];
+                r0 ::=  r1 & Select32
+                r1 ::=>>  32;
+                r3 ::= RArray[- 1 -];
+                r2 ::= r3 & Select32
+                r3 ::=>> 32
               ]%list.
       Defined.
 
