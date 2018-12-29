@@ -281,7 +281,8 @@ Module Internal.
 
     Section LoadStore64.
       Variable bound : nat.
-      Variable Arr   : progvar (Array bound hostE Limb).
+      Variable e     : endian.
+      Variable Arr   : progvar (Array bound e Limb).
       Variable i     : nat.
       Variable x0 x1 : progvar Limb.
       Variable bpf   : i < bound.
@@ -298,8 +299,8 @@ Module Internal.
               ]%list.
       Defined.
     End LoadStore64.
-    Arguments Load64 [bound].
-    Arguments Mov64 [bound].
+    Arguments Load64 [bound e].
+    Arguments Mov64 [bound e].
 
     Definition LoadA : code progvar.
       verse (
@@ -354,23 +355,17 @@ Module Internal.
 
 
     Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
-      verse [ (* The first two limbs *)
-
-          T1 ::=  blk[- 0 -];
-          T0 ::=  T1 & Select32;
-          T1 ::=>> 32;
-          a0 ::=+  T0;
-          a1 ::=+  T1;
-
-          (** The next two limbs *)
-
-          T1 ::=  blk[- 1 -];
-          T0 ::=  T1 & Select32;
-          T1 ::=>> 32;
-          a2 ::=+ T0;
-          a3 ::=+ T1
-        ]%list.
-    Defined.
+      verse (
+          Load64 blk 0 T0 T1 _
+                 ++ [ a0 ::=+  T0;
+                      a1 ::=+  T1
+                    ]
+                 ++ Load64 blk 1 T0 T1 _
+                 ++ [ a2 ::=+ T0;
+                      a3 ::=+ T1
+                    ]
+        )%list.
+     Defined.
 
     Definition AddFullBlock (blk : progvar Block) : code progvar
       := Add128 blk ++ [ ++ a4 ]%list.
