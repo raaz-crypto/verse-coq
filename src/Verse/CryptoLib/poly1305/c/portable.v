@@ -279,38 +279,51 @@ Module Internal.
     Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
     Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
 
-    Definition LoadA : code progvar.
-      verse [ a1 ::=  AArray [- 0 -];
-              a0 ::=  a1 & Select32;
-              a1 ::=>> 32;
-
-              a3 ::= AArray[- 1 -];
-              a2 ::= a3 & Select32;
-              a3 ::=>> 32;
-
-              a4 ::= AArray[- 2 -]
-            ]%list.
-    Defined.
-
-    Definition StoreA  : code progvar.
-      verse [ T0 ::= a1 << 32;
-              T0 ::=| a0;
-              MOVE T0 TO AArray[- 0 -];
-              T0 ::= a3 << 32;
-              T0 ::=| a2;
-              MOVE T0 TO AArray[- 1 -];
-              MOVE a4 TO AArray[- 2 -]
-            ]%list.
-      Defined.
-      Definition LoadR : code progvar.
-        verse [ r1 ::=  RArray [- 0 -];
-                r0 ::=  r1 & Select32
-                r1 ::=>>  32;
-                r3 ::= RArray[- 1 -];
-                r2 ::= r3 & Select32
-                r3 ::=>> 32
+    Section LoadStore64.
+      Variable bound : nat.
+      Variable Arr   : progvar (Array bound hostE Limb).
+      Variable i     : nat.
+      Variable x0 x1 : progvar Limb.
+      Variable bpf   : i < bound.
+      Definition Load64 : code progvar.
+        verse [ x1 ::=  Arr [- i -];
+                x0 ::=  x1 & Select32;
+                x1 ::=>> 32
               ]%list.
       Defined.
+      Definition Mov64 : code progvar.
+        verse [ x1 ::=<< 32;
+                x1 ::=| x0;
+                MOVE x1 TO Arr[- i -]
+              ]%list.
+      Defined.
+    End LoadStore64.
+    Arguments Load64 [bound].
+    Arguments Mov64 [bound].
+
+    Definition LoadA : code progvar.
+      verse (
+          Load64 AArray 0 a0 a1 _
+                 ++ Load64 AArray 1 a2 a3 _
+                 ++ [ a4 ::= AArray[- 2 -] ]
+        )%list.
+    Defined.
+
+    Definition LoadR : code progvar.
+      verse (
+          Load64 RArray 0 r0 r1 _
+                 ++ Load64 RArray 1 r2 r3 _
+        )%list.
+    Defined.
+
+    Definition MovA  : code progvar.
+      verse (
+          Mov64 AArray 0 a0 a1 _
+                ++ Mov64 AArray 1 a2 a3 _
+                ++ [ MOVE a4 TO AArray[- 2 -] ]
+        )%list.
+    Defined.
+
 
 
     (** * The Horner's step as subroutines.
@@ -610,7 +623,7 @@ Module Internal.
 
       *)
 
-     Definition ComputeMAC := FullReduction ++ Add128 SArray ++ Propagate ++ StoreA.
+     Definition ComputeMAC := FullReduction ++ Add128 SArray ++ Propagate ++ MovA.
 
 
      (** * Handling input.
@@ -651,7 +664,7 @@ Module Internal.
     Definition poly1305Iter : iterator Block progvar.
       verse {| setup    := LoadA  ++ LoadR;
                process  := ProcessFullBlock;
-               finalise := StoreA
+               finalise := MovA
             |}.
     Defined.
 
