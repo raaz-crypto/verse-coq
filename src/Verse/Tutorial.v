@@ -1,12 +1,12 @@
-(* * The Verse EDSL.
+(** * The Verse EDSL.
 
 Implementing cryptographic primitives in a High level language is
 problematic for two reasons.
 
-1. The resulting code is not fast (enough), but more importantly
+- The resulting code is not fast (enough), but more importantly
 
-2. The safety of the resulting program can be compromised due to side
-   channel leaks.
+- The safety of the resulting program can be compromised due to side
+  channel leaks.
 
 Due to this unfortunate situation, cryptographic libraries, even for a
 high level language like Haskell, has in it a lots of hand written C
@@ -14,27 +14,27 @@ and assembly code fragment. This is not a nice situation to be in.
 
 As a solution to this problem, we propose Verse, an embedded domain
 specific language specifically designed for writing cryptographic
-primitives. This module serves as a short tutorial for using Verse.
+primitives. This module serves as a short tutorial for Verse.
 
 *)
 
-(* ** Getting started.
+(** ** Getting started.
 
 Our aim is to make Verse's surface syntax clean enough so that
 
-1. Cryptographic implementations written in Verse should be readable
-   even to a user who does not know Coq. Cryptographic libraries
-   require a great deal of expert review. It should be possible for a
-   cryptographic experts who might not know much of Coq to follow the
-   intricacies of the code. To this end, we have made the surface
-   syntax of Verse mimic the syntax of a typical imperative language
-   with symbolic variables, assignment statements and array indexing.
+- Cryptographic implementations written in Verse should be readable
+  even to a user who does not know Coq. Cryptographic libraries
+  require a great deal of expert review. It should be possible for a
+  cryptographic experts who might not know much of Coq to follow the
+  intricacies of the code. To this end, we have made the surface
+  syntax of Verse mimic the syntax of a typical imperative language
+  with symbolic variables, assignment statements and array indexing.
 
-2. Cryptographic implementations should be writable by a programmer
-   with a working knowledge of Coq, without worrying about the
-   internals of Coq. The verse language is designed to be correct by
-   construction which throws up a lot of proof obligations. We have
-   automatic tactics to dispose these of.
+- Cryptographic implementations should be writable by a programmer
+  with a working knowledge of Coq, without worrying about the
+  internals of Coq. The verse language is designed to be correct by
+  construction which throws up a lot of proof obligations. We have
+  automatic tactics to dispose these of.
 
 
 Therefore, we believe that you can get started with verse with almost
@@ -47,7 +47,7 @@ proof general mode for editing.
 
 *)
 
-(* ** A quick tour.
+(** ** A quick tour.
 
 Verse is really a low level language with an instruction set that can
 be directly translated (almost 1:1) to the instruction set of a
@@ -59,23 +59,23 @@ side channel leakages. However, verse exploits the fact that it is
 embedded in Coq to give the programmer a markedly high level
 experience.
 
-* Verse is equipped with a type system that is rich enough to even
+- Verse is equipped with a type system that is rich enough to even
   prevent errors in array indexing and endian conversion.
 
-* One can generate Verse code using functions written in Gallina which
+- One can generate Verse code using functions written in Gallina which
   behave like macros for code generation
 
-* Many of the type safety property in verse is achieved by making the
+- Many of the type safety property in verse is achieved by making the
   verse language correct by construction. However, this does not
   become proof burden to the user thanks to Ltac.
 
-* Finally, the interactive mode like proof general, gives an IDE like
+- Finally, the interactive mode like proof general, gives an IDE like
   experience when building complicated programs.
 
  *)
 
 
-(* ** Legal
+(** ** Legal
 
 Copyright 2018, Piyush P Kurur
 
