@@ -1,5 +1,6 @@
 -R src Verse
 src/Verse/CoLoR_VecUtil.v
+src/Verse/Tutorial.v
 src/Verse/Arch.v
 src/Verse/Arch/C.v
 src/Verse/Error.v
