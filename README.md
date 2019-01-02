@@ -112,8 +112,8 @@ low-level cryptographic library primarily meant for being embedded in
 other high level libraries. All the primitives in [libverse] are
 implemented in [verse][repo], the coq source for which resides in the
 sub-directory `src/Verse/CryptoLib`. A snapshot of [libverse] is built
-for this coq source using the using the helper scripts, and makefile
-present in the directory `crypto-lib`.
+for this coq source using the helper scripts, and makefile present in
+the directory `crypto-lib`.
 
 
 # Legal
