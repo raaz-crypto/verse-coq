@@ -1,4 +1,4 @@
--R src Verse
+-R src ''
 src/Verse/CoLoR_VecUtil.v
 src/Verse/Tutorial.v
 src/Verse/Arch.v
