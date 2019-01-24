@@ -25,11 +25,10 @@ notifications:
 fast_finish: true
 before_install:
   - opam --version
-  - opam init -y
-  - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released
+  - opam init -y --disable-sandboxing --compiler "$OCAML_VER"
+  - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released -y
   - opam update -y
-  - opam switch set 4.05.0 -y
-  - opam install coq."$COQ_VER" -y --verbose
+  - opam install coq."$COQ_VER" -y
   - opam pin add coq "$COQ_VER" -y
   - opam install coq-color -y --verbose
 script:
