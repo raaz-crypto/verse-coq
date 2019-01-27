@@ -24,6 +24,7 @@ notifications:
   irc: "irc.freenode.net#haskell-raaz"
 fast_finish: true
 before_install:
+  - opam --version
   - opam init -y
   - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released
   - opam update -y
