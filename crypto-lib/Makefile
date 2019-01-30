@@ -49,7 +49,7 @@ dirs: gitrepos
 	mkdir -p ${RAAZ_CODE_DIRS}
 
 extract: verse dirs
-	coqc -R ../src '' extract.v
+	coqc -R ../src Verse extract.v
 
 libverse: extract
 	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)

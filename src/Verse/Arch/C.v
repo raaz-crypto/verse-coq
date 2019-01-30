@@ -209,22 +209,20 @@ Inductive cInstruction :=
 
 Module CP.
 
-  Definition void       := text "void".
-  Definition uint_t n   := text "uint" <> decimal n <> text "_t".
-  Definition statements := sepEndBy (text ";" <> line).
+  Definition statements := sepEndBy (";" <> line).
   Definition body b     := brace (nest 4 (line <> b) <> line).
-  Definition while c b  := text "while" <> c <> line <> body b.
+  Definition while c b  := "while" <> c <> line <> body b.
 
-  Definition register d := text "register" <_> d.
-  Definition deref    v := paren (text "*" <> v).
+  Definition register d := "register" <_> d.
+  Definition deref    v := paren ("*" <> v).
 
-  Definition assign x y   := x <_> text "=" <_> y.
-  Definition plusplus d   := text "++" <> d.
-  Definition minusminus d := text "--" <> d.
+  Definition assign x y   := x <_> "=" <_> y.
+  (* Definition plusplus d   := "++" <> d. *)
+  Definition minusminus d := "--" <> d.
   Definition blockPtrVariableName := "blockPtr"%string.
 
   Definition voidFunction nm args
-    := void <_> text nm <> paren (commaSep args).
+    := "void" <_> nm <> paren (commaSep args).
 
 
   Section CComment.
@@ -260,9 +258,9 @@ Section PrintingInstruction.
 
   Definition constant_doc (ty : CType direct)  : CConstant ty -> Doc :=
     match ty with
-    | uint8_t  | uint16_t => fun w => text "0x" <> doc w
-    | uint32_t => fun w => text "0x" <> doc w <> text "UL"
-    | uint64_t => fun w => text "0x" <> doc w <> text "ULL"
+    | uint8_t  | uint16_t => fun w => "0x" <> doc w
+    | uint32_t => fun w => "0x" <> doc w <> "UL"
+    | uint64_t => fun w => "0x" <> doc w <> "ULL"
     end.
 
   Global Instance constant_pretty (ty : CType direct) : PrettyPrint (CConstant ty)
@@ -273,7 +271,7 @@ Section PrintingInstruction.
     match av with
     | cv v         => doc v
     | cconst c     => doc c
-    | cindex _ v i => doc v <> bracket (decimal i)
+    | cindex _ v i => doc v <> bracket i
     end.
 
   Global Instance arg_pretty_print : forall k (ty : CType k), PrettyPrint (carg cvar ty)
@@ -409,13 +407,13 @@ Module CCodeGen <: CODEGEN C.
 
   Definition emit b := line <> vcat (List.map doc b).
 
-  Let type_doc (t : CType direct) := text (
-                                        match t with
-                                        | uint8_t  => "uint8_t"%string
-                                        | uint16_t => "uint16_t"%string
-                                        | uint32_t => "uint32_t"%string
-                                        | uint64_t => "uint64_t"%string
-                                        end).
+  Let type_doc (t : CType direct) : Doc :=
+    match t with
+    | uint8_t  => "uint8_t"%string
+    | uint16_t => "uint16_t"%string
+    | uint32_t => "uint32_t"%string
+    | uint64_t => "uint64_t"%string
+    end.
 
   Let Fixpoint declareArray (a : Doc)(n : nat)(ty : CType direct) :=
     match ty with
@@ -477,10 +475,10 @@ Module CCodeGen <: CODEGEN C.
     let regDecls := vcat [ CP.comment "Register variables";
                              CP.statements (declare_registers state) ] in
     let actualBody := vcat [localDecls; regDecls; body]
-    in vcat [ text "#include <stdint.h>";
-                text "#include <verse.h>";
-                CP.voidFunction (cFunctionName state) (declare_params state);
-                brace (nest 4 (line <> actualBody) <> line)
+    in vcat [text "#include <stdint.h>";
+             text "#include <verse.h>";
+             CP.voidFunction (cFunctionName state) (declare_params state);
+             brace (nest 4 (line <> actualBody) <> line)
             ].
 
 End CCodeGen.

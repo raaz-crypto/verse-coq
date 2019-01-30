@@ -65,9 +65,9 @@ Notation  "A <>  B" := (append A B).
 Notation  "A <_> B" :=  (appendSpace A B) (at level 70).
 
 
-Notation "A <>* B" := (ap (PrettyPrint.append A) B) (at level 70).
-Notation "A *<> B" := (ap (fun x => PrettyPrint.append x B) A) (at level 70).
-Notation "A *<>* B":= (apA (ap PrettyPrint.append A) B) (at level 70).
+Notation "A <>* B" := (ap (append A) B) (at level 70).
+Notation "A *<> B" := (ap (fun x => append x B) A) (at level 70).
+Notation "A *<>* B":= (apA (ap append A) B) (at level 70).
 
 
 Definition combine (docs : list Doc) : Doc := List.fold_left append docs empty.
@@ -148,3 +148,6 @@ Section PrettyPrintSeq.
     := { doc := fun v => doc (Vector.to_list v) }.
 
 End PrettyPrintSeq.
+
+Coercion text : string >-> Doc.
+Coercion decimal : nat >-> Doc.
