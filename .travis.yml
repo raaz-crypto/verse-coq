@@ -28,7 +28,7 @@ before_install:
   - opam init -y --disable-sandboxing --compiler "$OCAML_VER"
   - (opam repo list | grep coq-released) || opam repo add coq-released https://coq.inria.fr/opam/released -y
   - opam update -y
-  - opam install coq."$COQ_VER" -y
+  - opam install coq."$COQ_VER" -y --verbose
   - opam pin add coq "$COQ_VER" -y
   - opam install coq-color -y --verbose
 script:
