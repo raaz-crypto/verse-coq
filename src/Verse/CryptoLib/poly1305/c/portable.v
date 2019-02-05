@@ -708,7 +708,7 @@ Module Internal.
 
    *)
 
-    Definition clamp (blk : progvar Block) : code progvar.
+    Definition clamp (blk : progvar Array128) : code progvar.
       verse [
           T0 ::= blk[- 0 -];
           T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
@@ -720,7 +720,7 @@ Module Internal.
         ]%list.
     Defined.
     Definition regClamp : Declaration := [Var T0]%vector.
-    Definition clampIter : iterator Block progvar
+    Definition clampIter : iterator Array128 progvar
       := {| setup    := []%list;
             process  := clamp;
             finalise := []%list
@@ -776,7 +776,7 @@ Module Internal.
   Defined.
 
   Definition implementationClamp (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator Block fname Empty Empty regClamp.
+    Compile.iterator Array128 fname Empty Empty regClamp.
     assignRegisters clampReg.
     statements clampIter.
   Defined.
