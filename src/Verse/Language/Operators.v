@@ -15,16 +15,14 @@ either [unary] or [binary].
 
 *)
 
-Inductive arity  := binary | unary | ternary.
+Inductive arity  := binary | unary
 
 Inductive op    : arity -> arity -> Type :=
 | plus    : op unary binary
 | minus   : op unary binary
 | mul     : op unary binary
-| exmul   : op binary binary
 | quot    : op unary binary
 | rem     : op unary binary
-| eucl    : op binary ternary
 | bitOr   : op unary binary
 | bitAnd  : op unary binary
 | bitXor  : op unary binary
