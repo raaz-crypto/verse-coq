@@ -10,12 +10,33 @@ Configuring and installing
 --------------------------
 
 Verse has been tested with coq versions 8.6 and 8.7. It also required
-the coq-color library. We recommend using opam but please avoid using
-avoid opam-2 for time being as the coq-color library does not build
-with it.
+the coq-color library. It is best to use opam to build the project.
+
+## Setting up the coq environment.
+
+We assume that you are using opam-2 in which case you need to
+initialise it with the `--disable-sandboxing` option. Otherwise the
+package coq-color used by verse will not compile.
 
 
 ```bash
+opam init  --disable-sandboxing  --compiler "$OCAML_VER"
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam update
+```
+
+You will now need to get a version of coq. Select one of the coq
+versions for which verse is tested (8.6 or 8.7).
+
+```
+opam install coq."$COQ_VER"
+opam pin add coq "$COQ_VER"
+opam install coq-color
+```
+
+Finally prepare the opam environment, configure, and then make.
+
+```
 eval $(opam config env) # set up opam environment if needed.
 ./configure.sh
 make
