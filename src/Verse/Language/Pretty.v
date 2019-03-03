@@ -119,15 +119,6 @@ Notation "A ::=>>> N "    := (inst (assign (update1 (rotR N)  (toLArg A)))) (at 
 Notation "'CLOBBER' A"   := (inst (clobber A)) (at level 70). (* Check level *)
 Notation "'MOVE'  B 'TO'   A [- N -]"       := (inst (moveTo A (@exist _ _ (N%nat) _) B)) (at level 200, A ident).
 
-Notation "'MULTIPLY' C 'AND' D 'INTO' ( A : B )" := (inst (assign (extassign3 exmul
-                                                        (toLArg A) (toLArg B)
-                                                        (toRArg C) (toRArg D))))
-                                       (at level 70, A at level 99).
-Notation "( 'QUOT' A , 'REM' B ) ::= ( C : D ) / E" := (inst (assign (extassign4 eucl
-                                                                   (toLArg A) (toLArg B)
-                                                                   (toRArg C) (toRArg D) (toRArg E))))
-                                              (at level 70, C at level 99).
-
 
 (** Notations for annotations in code *)
 
@@ -237,14 +228,12 @@ Section PrettyPrintingInstruction.
     := { doc := @argdoc _ _ _ }.
 
 
-  Definition opDoc {la ra : arity}(o : op la ra) :=
+  Definition opDoc {ar : arity}(o : op ar) :=
     match o with
     | plus     => text "+"
     | minus    => text "-"
     | mul      => text "*"
-    | exmul    => text "**"
     | quot     => text "/"
-    | eucl     => text "//"
     | rem      => text "%"
     | bitOr    => text "|"
     | bitAnd   => text "&"
@@ -258,7 +247,7 @@ Section PrettyPrintingInstruction.
     end.
 
   Definition EQUALS := text "=".
-  Definition mkAssign {la ra : arity}(o : op la ra)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
+  Definition mkAssign {ar : arity}(o : op ar)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.
   Definition mkRot    {k}(ty : type k)(o : uniop) (x y : Doc)  :=
     let rotSuffix := match ty with
                      | word w     => decimal (2 ^ (w + 3))%nat
@@ -271,7 +260,7 @@ Section PrettyPrintingInstruction.
     | _      => text "BadOp"
     end.
 
-  Definition mkUpdate {a : arity}(o : simop a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
+  Definition mkUpdate {a : arity}(o : op a) (x y   : Doc) := x <_> opDoc o <> EQUALS <_> y.
   Local Definition convertEndian e d :=
     match e with
     | bigE => text "bigEndian" <> paren d
@@ -283,32 +272,27 @@ Section PrettyPrintingInstruction.
 
   (** The pretty printing of assignment statements **)
   Global Instance assignment_pretty_print : PrettyPrint (assignment v)
-    := { doc := fun assgn =>  match assgn with
-                              | extassign4 o lx ly rx ry rz => mkAssign o (mkPair (doc lx) (doc ly))
-                                                                        (mkPair (doc rx) (doc ry))
-                                                                        (doc rz)
-                              | extassign3 o lx ly rx ry    => mkAssign o (mkPair (doc lx) (doc ly))
-                                                                        (doc rx)
-                                                                        (doc ry)
-                              | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
-                              | update2 o x y   => mkUpdate o (doc x) (doc y)
-                              | @assign2 _ ty u x y   =>
-                                match u with
-                                | bitComp  | nop  => mkAssign u (doc x) empty (doc y)
-                                | shiftL n | shiftR n  => mkAssign u (doc x) (doc y) (decimal n)
-                                | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
-                                end
-                              | @update1 _ ty u x      =>
-                                let xdoc := doc x in
-                                match u with
-                                | bitComp  | nop       => mkAssign u xdoc empty xdoc
-                                | shiftL n | shiftR n  => mkUpdate u xdoc (decimal n)
-                                | rotL n   | rotR n    => mkRot ty u xdoc xdoc
-                                end
-                              end
+    := { doc := fun assgn =>
+                  match assgn with
+                  | assign3 o x y z => mkAssign o (doc x) (doc y) (doc z)
+                  | update2 o x y   => mkUpdate o (doc x) (doc y)
+                  | @assign2 _ ty u x y   =>
+                    match u with
+                    | bitComp  | nop  => mkAssign u (doc x) empty (doc y)
+                    | shiftL n | shiftR n  => mkAssign u (doc x) (doc y) (decimal n)
+                    | rotL n   | rotR n    => mkRot ty u (doc x)(doc y)
+                    end
+                  | @update1 _ ty u x      =>
+                    let xdoc := doc x in
+                    match u with
+                    | bitComp  | nop       => mkAssign u xdoc empty xdoc
+                    | shiftL n | shiftR n  => mkUpdate u xdoc (decimal n)
+                    | rotL n   | rotR n    => mkRot ty u xdoc xdoc
+                    end
+                  end
        }.
 
-  Definition mkDouble {la ra} (o : op la ra) (x : Doc) := opDoc o <> opDoc o <> x.
+  Definition mkDouble {ar} (o : op ar) (x : Doc) := opDoc o <> opDoc o <> x.
 
   Global Instance instruction_pretty_print : PrettyPrint (instruction v)
     := { doc := fun i => match i with
@@ -385,9 +369,7 @@ operands of the programming fragment.
             X ::= X + (A[- 2 -]);
             X ::= X * Ox "55";
             Z ::= Z + vec_const;
-            ++ Y;
-            MULTIPLY X AND X INTO (X : X);
-            (QUOT X, REM X) ::= (X : X) / X
+            ++ Y
           ]%list.
    Defined.
 

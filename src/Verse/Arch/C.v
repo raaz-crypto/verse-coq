@@ -304,7 +304,7 @@ Section PrintingInstruction.
     | _            => doc a
     end.
 
-  Definition CAssign {la ra : arity} (o : op la ra) {ty : CType direct}
+  Definition CAssign {ar : arity} (o : op ar) {ty : CType direct}
              (x : carg cvar ty) (y z : Doc)  :=
     let lhs := y <_> opDoc o <_> z
     in
@@ -313,7 +313,7 @@ Section PrintingInstruction.
     | _                    => CP.assign (doc x) lhs
     end.
 
-  Definition CUpdate {la ra : arity}(o : op la ra) {ty : CType direct}
+  Definition CUpdate {ar : arity}(o : op ar) {ty : CType direct}
              (x : carg cvar ty) (y : Doc) : Doc :=
     match x with
     | cindex _ _ _  => CAssign o x (rval x) y
@@ -393,8 +393,6 @@ Module CCodeGen <: CODEGEN C.
        mkUpdate2 := fun ty o a1 a2 => {- Cassign (Cupdate2 o a1 a2) -};
        mkAssign2 := fun ty o a1 a2 => {- Cassign (Cassign2 o a1 a2) -};
        mkAssign3 := fun ty o a1 a2 a3 => {- Cassign (Cassign3 o a1 a2 a3) -};
-       mkExtassign3 := fun _ _ _ _ _ _ => error noexmul;
-       mkExtassign4 := fun _ _ _ _ _ _ _ => error noeucl;
        mkMoveTo := fun b e ty p arr i v => {- Cassign (Cassign2 nop (cindex e arr i) (cv v)) -};
        mkNOP := Cnop
     |}.

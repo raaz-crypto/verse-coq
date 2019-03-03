@@ -27,16 +27,14 @@ Module NOps <: OP_SEMANTICS (NWord).
 
   Definition OpError := True.
 
-  Definition wordOpDenote la ra n (o : op la ra) : arityDenote la ra (NWord.wordDenote n) :=
+  Definition wordOpDenote ar n (o : op ar) : arityDenote ar (NWord.wordDenote n) :=
     let split2 n0 := (n0 / 2 ^ N.of_nat n, n0 mod (2 ^ N.of_nat n))%N in
     let merge2 n0 n1 := (2 ^ N.of_nat n * n0 + n1)%N in
-    match o in op la0 ra0 return arityDenote la0 ra0 (NWord.wordDenote n) with
+    match o in op ar0 return arityDenote ar0 (NWord.wordDenote n) with
     | plus => fun a b => N.add a b
     | minus => fun a b => N.sub a b
     | mul => fun a b => N.mul a b
-    | exmul => fun a b => split2 (a * b)%N
     | quot => fun a b => N.div a b
-    | eucl => fun a b c => N.div_eucl (merge2 a b) c
     | rem => fun a b => N.modulo a b
     | bitOr => fun a b => N.lor a b
     | bitAnd => fun a b => N.land a b

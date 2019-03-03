@@ -134,31 +134,23 @@ Module Semantics (W : WORD_SEMANTICS) (CW : CONST_SEMANTICS W) (O : OP_SEMANTICS
                                                      (argDenote S la)
                                                      (argDenote S (Ast.const (one _))))
                                      S
-        | assign ass => match ass with
-                        | extassign4 op la1 la2 ra1 ra2 ra3 =>
-                          updatePair la1 la2 (OP.opDenote _ op
-                                                          (argDenote S ra1)
-                                                          (argDenote S ra2)
-                                                          (argDenote S ra3))
-                        | extassign3 op la1 la2 ra1 ra2     =>
-                          updatePair la1 la2 (OP.opDenote _ op
-                                                          (argDenote S ra1)
-                                                          (argDenote S ra2))
-                        | assign3 op la ra1 ra2 => largUpdate la (OP.opDenote _ op
-                                                                              (argDenote S ra1)
-                                                                              (argDenote S ra2))
-                                                              S
-                        | assign2 op la ra1     => largUpdate la (OP.opDenote _ op
+        | assign ass
+          => match ass with
+             | assign3 op la ra1 ra2 => largUpdate la (OP.opDenote _ op
+                                                                   (argDenote S ra1)
+                                                                   (argDenote S ra2))
+                                                   S
+             | assign2 op la ra1     => largUpdate la (OP.opDenote _ op
                                                                               (argDenote S ra1))
                                                               S
-                        | update2 op la ra1     => largUpdate la (OP.opDenote _ op
-                                                                              (argDenote S la)
-                                                                              (argDenote S ra1))
-                                                              S
-                        | update1 op la         => largUpdate la (OP.opDenote _ op
-                                                                              (argDenote S la))
-                                                              S
-                        end
+             | update2 op la ra1     => largUpdate la (OP.opDenote _ op
+                                                                   (argDenote S la)
+                                                                   (argDenote S ra1))
+                                                   S
+             | update1 op la         => largUpdate la (OP.opDenote _ op
+                                                                   (argDenote S la))
+                                                   S
+             end
         | moveTo x ix ra => largUpdate (index x ix) (@argDenote S _ _ rval (var ra))
                                        S
         | clobber ra     => S

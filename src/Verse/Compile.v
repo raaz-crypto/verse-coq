@@ -96,30 +96,29 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
              match i with
              | increment la => checkApp _ (fun p => collectErr (mkIncrement <$> (argDenote p la)))
              | decrement la => checkApp _ (fun p => collectErr (mkIncrement <$> (argDenote p la)))
-             | assign a => match a with
-                           | update1 o la           => checkApp _ (fun p => collectErr (mkUpdate1 o <$> argDenote p la))
-                           | update2 o la ra        => checkApp _ (fun p => collectErr (mkUpdate2 o <$> argDenote p la
-                                                                                                  <*> argDenote p ra))
-                           | assign2 o la ra        => checkApp _ (fun p => collectErr (mkAssign2 o <$> argDenote p la
-                                                                                                  <*> argDenote p ra))
-                           | assign3 o la1 la2
-                                     ra             => checkApp _ (fun p => collectErr (mkAssign3 o <$> argDenote p la1
-                                                                                                  <*> argDenote p la2
-                                                                                                  <*> argDenote p ra))
-                           | extassign3 o la1 la2
-                                        ra1 ra2     => checkApp _ (fun p => collectErr (mkExtassign3 o <$> argDenote p la1
-                                                                                                     <*> argDenote p la2
-                                                                                                     <*> argDenote p ra1
-                                                                                                     <*> argDenote p ra2))
-                           | extassign4 o la1 la2
-                                        ra1 ra2 ra3 => checkApp _ (fun p => collectErr (mkExtassign4 o <$> argDenote p la1
-                                                                                                     <*> argDenote p la2
-                                                                                                     <*> argDenote p ra1
-                                                                                                     <*> argDenote p ra2
-                                                                                                     <*> argDenote p ra3))
-                           end
-             | @moveTo _ b e ty x i lv => collectErr (checkApp ty (fun p => checkApp (array b e ty)
-                                                                                     (fun p' => {- mkMoveTo b e _ _ (proj1_sig i) (vTrans p lv) -})))
+             | assign a
+               => match a with
+                  | update1 o la
+                    => checkApp _ (fun p => collectErr (mkUpdate1 o <$> argDenote p la))
+                  | update2 o la ra
+                    => checkApp _ (fun p => collectErr (mkUpdate2 o <$> argDenote p la
+                                                                  <*> argDenote p ra))
+                  | assign2 o la ra
+                    => checkApp _ (fun p => collectErr (mkAssign2 o <$> argDenote p la
+                                                                  <*> argDenote p ra))
+                  | assign3 o la1 la2
+                            ra
+                    => checkApp _ (fun p => collectErr (mkAssign3 o <$> argDenote p la1
+                                                                  <*> argDenote p la2
+                                                                  <*> argDenote p ra))
+
+
+                  end
+             | @moveTo _ b e ty x i lv
+               => collectErr
+                    (checkApp ty
+                              (fun p => checkApp (array b e ty)
+                                 (fun p' => {- mkMoveTo b e _ _ (proj1_sig i) (vTrans p lv) -})))
              | clobber _  => {- mkNOP -}
              end
       ;
