@@ -81,10 +81,6 @@ Section AST.
 
    *)
   Inductive assignment : Type :=
-  | extassign4
-    : forall (ty : type direct), op binary ternary -> larg ty -> larg ty -> rarg ty -> rarg ty -> rarg ty -> assignment
-  | extassign3
-    : forall (ty : type direct), op binary binary -> larg ty -> larg ty -> rarg ty -> rarg ty -> assignment
   | assign3
     : forall (ty : type direct), binop -> larg ty -> rarg ty -> rarg ty -> assignment
   (** e.g. x = y + z *)
@@ -155,15 +151,14 @@ program block is merely a list of instructions.
 
   Definition endianError (nHostE : endian) (i : instruction) :=
     match i with
-    | assign e  => match e with
-                   | assign2 nop _ _    => false
-                   | assign3 _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
-                   | extassign4 _ a1 a2 a3 a4 a5 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4) || (isEndian nHostE a5)
-                   | extassign3 _ a1 a2 a3 a4 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3) || (isEndian nHostE a4)
-                   | assign2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
-                   | update1 _ a1       => (isEndian nHostE a1)
-                   end
+    | assign e  =>
+      match e with
+      | assign2 nop _ _    => false
+      | assign3 _ a1 a2 a3 => (isEndian nHostE a1) || (isEndian nHostE a2) || (isEndian nHostE a3)
+      | assign2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+      | update2 _ a1 a2    => (isEndian nHostE a1) || (isEndian nHostE a2)
+      | update1 _ a1       => (isEndian nHostE a1)
+      end
     | _ => false
     end
   .
@@ -237,12 +232,6 @@ Section ASTFinal.
       mkAssign3 : forall ty : t direct, binop ->
                                         aT vT ty -> aT vT ty -> aT vT ty ->
                                         instT + {UnsupportedInstruction};
-      mkExtassign3 : forall ty : t direct, exop binary ->
-                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
-                                           instT + {UnsupportedInstruction};
-      mkExtassign4 : forall ty : t direct, exop ternary ->
-                                           aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty -> aT vT ty ->
-                                           instT + {UnsupportedInstruction};
       mkMoveTo : forall b e ty (p : noErr (mkArray b e {- ty -})), vT (getT p) -> nat -> vT ty ->
                                                                    instT + {UnsupportedInstruction};
       mkNOP : instT (* A NOP instruction for CLOBBER translate.
@@ -287,8 +276,6 @@ Arguments finalise [tyD ty v] _.
 Arguments var [v aK k ty] _ .
 Arguments const [v ty] _ .
 Arguments index [v aK  b e ty]  _ _.
-Arguments extassign3 [v ty] _ _ _ _ _.
-Arguments extassign4 [v ty] _ _ _ _ _ _.
 Arguments assign3 [v ty] _ _ _ _ .
 Arguments assign2 [v ty] _ _ _ .
 Arguments update2 [v ty] _ _ _ .
