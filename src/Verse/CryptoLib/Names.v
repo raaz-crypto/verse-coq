@@ -54,8 +54,7 @@ Definition write_module (module : list string)(cont : list Doc) :=
                          text "#-}"
                      ] in
   let imports  :=  List.map text [ "import Raaz.Core";
-                                     "import Foreign.Ptr";
-                                     "import Data.Word"
+                                   "import Foreign.Ptr"
                                  ]%string in
   let fcontent := text "module" <_> text mname <_> text "where" <> line
                   <> vcat (imports ++ cont)%list in
