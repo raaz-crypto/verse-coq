@@ -46,7 +46,6 @@ Definition write_module (module : list string)(cont : list Doc) :=
   let mfile := (concatSep "/" ("libverse" :: module) ++ ".hs")%string in
   let mname := concatSep "." module in
   let exts   := [ "DataKinds";
-                  "KindSignatures";
                   "ForeignFunctionInterface"
                 ]%string in
   let langLine := line <> sepBy (text "," <> line) (List.map text exts) in
