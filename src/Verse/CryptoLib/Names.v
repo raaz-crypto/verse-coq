@@ -49,9 +49,7 @@ Definition write_module (module : list string)(cont : list Doc) :=
                   "ForeignFunctionInterface"
                 ]%string in
   let langLine := line <> sepBy (text "," <> line) (List.map text exts) in
-  let pragma := vcat [ text "{-# LANGUAGE" <> nest 16 langLine;
-                         text "#-}"
-                     ] in
+  let pragma := text "{-# LANGUAGE" <_> nest 16 langLine <_>  text "#-}" in
   let imports  :=  List.map text [ "import Raaz.Core";
                                    "import Foreign.Ptr"
                                  ]%string in
