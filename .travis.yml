@@ -9,6 +9,7 @@ addons:
       - libgmp-dev
       - opam
       - ghc
+      - texlive-full
     sources: [avsm]
 matrix:
   include:
