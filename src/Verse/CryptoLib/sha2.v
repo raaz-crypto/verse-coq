@@ -1,3 +1,12 @@
+(** printing sigma  %$\sigma$%   #σ#  *)
+(** printing sigma0 %$\sigma_0$% #σ<sub>0</sub># *)
+(** printing sigma1 %$\sigma_1$% #σ<sub>1</sub># *)
+
+(** printing Sigma  %$\Sigma$%   #Σ#  *)
+(** printing Sigma0 %$\Sigma_0$% #Σ<sub>0</sub># *)
+(** printing Sigma1 %$\Sigma_1$% #Σ<sub>1</sub># *)
+(** printing oplus  %$\oplus$%   #⊕#  *)
+
 Require Import Verse.
 Require Vector.
 Import VectorNotations.
@@ -26,24 +35,25 @@ Module Type CONFIG.
 
   (** ** The sigma functions.
 
-   Both sha512 and sha256 uses the functions Σ₀, Σ₁, σ₀, and σ₁
-   defined as follows
+   Both sha512 and sha256 uses the functions [Sigma0], [Sigma1],
+   [sigma0], and [sigma_1] defined as follows
 
-   [ Σ₀(x) = RotR(x,R00) ⊕ RotR (x,R01) ⊕ RotR(x,R02) ]
+   [ Sigma0(x) = RotR(x,R00) oplus RotR (x,R01) oplus RotR(x,R02) ]
 
-   [ Σ₁(x) = RotR(x,R10) ⊕ RotR (x,R11) ⊕ RotR(x,R12) ]
+   [ Sigma1(x) = RotR(x,R10) oplus RotR (x,R11) oplus RotR(x,R12) ]
 
-   [ σ₀(x) = RotR(x,r10) ⊕ RotR (x,r11) ⊕ ShiftR(x,S12) ]
+   [ sigma0(x) = RotR(x,r10) oplus RotR (x,r11) oplus ShiftR(x,S12) ]
 
-   [ σ₁(x) = RotR(x,r10) ⊕ RotR (x,r11) ⊕ ShiftR(x,S12) ]
+   [ sigma1(x) = RotR(x,r10) oplus RotR (x,r11) oplus ShiftR(x,S12) ]
 
    *)
 
   (**
 
-   While the Σ₀ and Σ₁ are used in the message schedule, the functions
-   σ₀ and σ₁ are used in the transformation of the hash state.  We
-   parametrise these functions via the rotation and shift offsets.
+   While the [Sigma0] and [Sigma1] are used in the message schedule,
+   the functions [sigma0] and [sigma1] are used in the transformation
+   of the hash state.  We parametrise these functions via the rotation
+   and shift offsets.
 
    *)
 

@@ -1,8 +1,8 @@
-(** printing wi %w_i% #w<sub>i</sub>#  *)
-(** printing wi16 %w_{i+16}% #w<sub>i+16</sub>#  *)
-(** printing wi14 %w_{i+14}% #w<sub>i+14</sub>#  *)
-(** printing wi9 %w_{i+9}% #w<sub>i+9</sub>#  *)
-(** printing wi1 %w_{i+1}% #w<sub>i+1</sub>#  *)
+(** printing wi $w_i$ #w<sub>i</sub>#  *)
+(** printing wi16 $w_{i+16}$ #w<sub>i+16</sub>#  *)
+(** printing wi14 $w_{i+14}$ #w<sub>i+14</sub>#  *)
+(** printing wi9 $w_{i+9}$ #w<sub>i+9</sub>#  *)
+(** printing wi1 $w_{i+1}$ #w<sub>i+1</sub>#  *)
 
 (** * The Verse EDSL.
 

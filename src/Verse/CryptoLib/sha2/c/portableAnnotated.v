@@ -1,3 +1,19 @@
+(** printing sigma  %$\sigma$%   #σ#  *)
+(** printing sigma0 %$\sigma_0$% #σ<sub>0</sub># *)
+(** printing sigma1 %$\sigma_1$% #σ<sub>1</sub># *)
+
+(** printing Sigma  %$\Sigma$%   #Σ#  *)
+(** printing Sigma0 %$\Sigma_0$% #Σ<sub>0</sub># *)
+(** printing Sigma1 %$\Sigma_1$% #Σ<sub>1</sub># *)
+
+(** printing mm7  %$m_{-7}$%     #m<sub>-7</sub>#  *)
+(** printing mm15 %$m_{-15}$%    #m<sub>-15</sub># *)
+(** printing mm2  %$m_{-2}$%     #m<sub>-2</sub>#  *)
+(** printing m16  %$m_{16}$%     #m<sub>16</sub># *)
+
+(** printing oplus %$\oplus$%    #⊕#  *)
+
+
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
 Require Import Verse.Semantics.
@@ -118,13 +134,14 @@ Module SHA2 (C : CONFIG).
         The block [w0,...,w15] is expanded to a message schedule
         [m(r)] given by the recurrence equation.
 
-        [ m(r) = m(r - 16) + m(r - 7) + σ₀ m(r - 15) + σ₁ m(r - 2) ]
+        [ m(r) = m(r - 16) + m(r - 7) + sigma0 m(r - 15) + sigma1 m(r - 2) ]
 
-        where the σ₀ and σ₁ functions are of the form.
+        where the [sigma0] and [sigma1] functions are of the form.
 
 
-        [ σ(x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ ShiftR(x, s)]
-        *)
+        [ sigma(x) = RotR(x, r0) oplus RotR(x, r1) oplus ShiftR(x, s)]
+
+     *)
 
     Section MessageSchedule.
 
@@ -195,13 +212,13 @@ Module SHA2 (C : CONFIG).
       >>
       where
 
-      <<
-      t1 = h + k + m + 𝚺₁(e) + CH e f g
-      t2 = 𝚺₀(a) + MAJ a b c
-      >>
+      [t1 = h + k + m + Sigma1(e) + CH e f g ]
 
-      where the 𝚺 functions are of the form
-      𝚺 (x) = RotR(x , r0) ^ RotR(x,r1) ^ RotR(x,r2)
+      [t2 = Sigma0(a) + MAJ a b c]
+
+
+      where the [Sigma] functions are of the form
+      [Sigma(x) = RotR(x , r0) ^ RotR(x,r1) ^ RotR(x,r2)]
       We capture the state as a record of variables.
 
      *)

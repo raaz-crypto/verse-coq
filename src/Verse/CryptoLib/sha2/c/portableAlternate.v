@@ -1,3 +1,19 @@
+(** printing sigma  %$\sigma$%   #σ#  *)
+(** printing sigma0 %$\sigma_0$% #σ<sub>0</sub># *)
+(** printing sigma1 %$\sigma_1$% #σ<sub>1</sub># *)
+
+(** printing Sigma  %$\Sigma$%   #Σ#  *)
+(** printing Sigma0 %$\Sigma_0$% #Σ<sub>0</sub># *)
+(** printing Sigma1 %$\Sigma_1$% #Σ<sub>1</sub># *)
+
+(** printing mm7  %$m_{-7}$%     #m<sub>-7</sub>#  *)
+(** printing mm15 %$m_{-15}$%    #m<sub>-15</sub># *)
+(** printing mm2  %$m_{-2}$%     #m<sub>-2</sub>#  *)
+(** printing m16  %$m_{16}$%     #m<sub>16</sub># *)
+
+(** printing oplus %$\oplus$%    #⊕#  *)
+
+
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
 Import Nat.
@@ -130,21 +146,21 @@ Module SHA2 (C : CONFIG).
 
       (**
 
-   The message schedule [m₁₆ = m₀ + m₋₇ + σ₀ (m₋₁₅) +  σ₁(m₋₂) ],
+   The message schedule [m16 = m0 + mm7 + sigma0 (mm15) +  sigma1(mm2) ],
    requires computing the sigma functions of the form
 
-   [ σ(x) = RotR(x, r0) ⊕ RotR(x, r1) ⊕ ShiftR(x, s)]
+   [ sigma(x) = RotR(x, r0) oplus RotR(x, r1) oplus ShiftR(x, s)]
 
    These functions can be implemented using a single temporary
    variable by updating them using the following telescopic values.
 
    [ RotR(x, r2 - r1) ]
 
-   [ RotR(x, r2 - r1) ⊕ x]
+   [ RotR(x, r2 - r1) oplus x]
 
-   [ RotR(x, r2 - r0) ⊕ RotR(x, r1 - r0) ⊕ x]
+   [ RotR(x, r2 - r0) oplus RotR(x, r1 - r0) oplus x]
 
-   [ RotR(x, r2) ⊕ RotR(x, r1) ⊕ Rot(x, r0)]
+   [ RotR(x, r2) oplus RotR(x, r1) oplus Rot(x, r0)]
 
    At each step the temporary variables need to be rotated and then
    xord by x. This message schedule is give by the following code.
@@ -193,26 +209,21 @@ h' = g
 
 where
 
-<<
+[t1 = h + k + m + Sigma1(e) + CH e f g]
 
-t1 = h + k + m + σ₁(e) + CH e f g
+[t2 = Sigma0(a) + MAJ a b c]
 
-t2 = σ₀(a) + MAJ a b c
-
->>
 
 
        *)
 
       (** So in each round we compute the following
 
-<<
+[ temp = h + k + m + Sigma1(e) + CH(e,f,g)]
 
-temp = h + k + m + σ₁(e) + CH(e,f,g)
+[d += temp;]
 
-d += temp;
-
-h = temp + σ₀(a) + MAJ(a,b,c); >>
+[ h = temp + Sigma0(a) + MAJ(a,b,c);]
 
        *)
 
