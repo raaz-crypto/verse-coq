@@ -37,6 +37,7 @@ script:
   - ./configure.sh
   - make
   - make html
+  - make all.pdf
   - make -C crypto-lib libverse
   - make -C crypto-lib/libverse libverse.a
 after_success:
