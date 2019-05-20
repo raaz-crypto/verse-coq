@@ -1,7 +1,4 @@
 Require Import Verse.
-Require Vector.
-Import VectorNotations.
-Delimit Scope vector_scope with vector.
 
 Module Type CONFIG.
 

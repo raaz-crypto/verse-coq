@@ -7,11 +7,6 @@ An implementation of ChaCha20 stream cipher in verse.
 Require Import Verse.
 Require Import Verse.Arch.C.
 Require Import Verse.CryptoLib.chacha20.common.
-Require Vector.
-Import VectorNotations.
-Delimit Scope vector_scope with vector.
-Require Import List.
-Import ListNotations.
 
 Module Internal.
 
@@ -114,7 +109,7 @@ Module Internal.
                                      QROUND x2 x7 x8  x13;
                                      QROUND x3 x4 x9  x14
                                    ] in
-      let doubleRound := colRound ++ diagRound
+      let doubleRound := (colRound ++ diagRound)%list
       in List.concat (List.repeat doubleRound 10).
 
 
@@ -162,7 +157,7 @@ Module Internal.
                         ++ foreach (indices blk) (XORBLOCK blk)
                         ++ [ ++ ctr ];
          finalise := StoreCounter
-      |}.
+      |}%list.
 
     Definition ChaCha20KeyStream : iterator (Block variant) progvar :=
       {| setup := LoadCounter;
@@ -171,7 +166,7 @@ Module Internal.
                         ++ foreach (indices blk) (EMITSTREAM blk)
                         ++ [ ++ ctr ];
          finalise := StoreCounter
-      |}.
+      |}%list.
 
 
   End ChaCha20.

@@ -1,8 +1,6 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
 Import Nat.
-Require Vector.
-Import VectorNotations.
 Require Import List.
 Import ListNotations.
 

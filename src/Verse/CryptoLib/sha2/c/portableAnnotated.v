@@ -10,8 +10,6 @@ Open Scope word_scope.
 
 Import NArith.
 Import Nat.
-Require Vector.
-Import VectorNotations.
 Require Import List.
 Import ListNotations.
 

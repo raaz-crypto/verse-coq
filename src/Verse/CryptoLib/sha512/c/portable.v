@@ -1,9 +1,4 @@
 Require Import Verse.
-Require Vector.
-Import VectorNotations.
-Delimit Scope vector_scope with vector.
-Require Import List.
-Import ListNotations.
 Require Import Verse.CryptoLib.sha2.
 Require Import Verse.CryptoLib.sha2.c.portable.
 

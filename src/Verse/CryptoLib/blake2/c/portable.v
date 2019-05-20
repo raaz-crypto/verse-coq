@@ -1,11 +1,7 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.blake2.
-Require Import List.
-Import ListNotations.
-
-Require Vector.
 Require Import Nat.
-Import VectorNotations.
+
 
 (** * Blake2 implementation in C
 
