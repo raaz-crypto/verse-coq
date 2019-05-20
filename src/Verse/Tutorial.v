@@ -214,9 +214,9 @@ Module SHA2.
        the time of code generation.  *)
 
 
-    Definition parameters : Declaration := [Var W]%vector.
-    Definition stack      : Declaration := []%vector.
-    Definition registers  : Declaration := [Var S ; Var T]%vector.
+    Definition parameters : Declaration := [Var W].
+    Definition stack      : Declaration := [].
+    Definition registers  : Declaration := [Var S ; Var T].
 
 
     (** There is indeed some adhocness here arising out of the use of
