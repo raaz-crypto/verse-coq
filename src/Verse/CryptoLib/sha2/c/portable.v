@@ -15,12 +15,11 @@
 
 Require Import Verse.
 Require Import Verse.CryptoLib.sha2.
-
-Import Nat.
-Require Vector.
-Import VectorNotations.
 Require Import List.
 Import ListNotations.
+
+Import Nat.
+
 
 (** * SHA2 hashing algorithm.
 
@@ -341,7 +340,7 @@ Module SHA2 (C : CONFIG).
              let cde := genCode acc k in
              let (cdeRest, stp) := generateRounds (next acc) ks in
              (cde ++ cdeRest, stp)
-           | [ ] => ([ ],acc)
+           | [] => ([],acc)
            end.
     End GenerateRounds.
 

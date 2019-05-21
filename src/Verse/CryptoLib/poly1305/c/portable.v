@@ -62,8 +62,6 @@
 
 
 Require Import Verse.
-Require Vector.
-Import VectorNotations.
 Require Verse.Arch.C.
 
 (** * The poly1305 message hash.

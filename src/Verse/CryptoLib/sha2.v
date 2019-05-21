@@ -8,9 +8,6 @@
 (** printing oplus  %$\oplus$%   #⊕#  *)
 
 Require Import Verse.
-Require Vector.
-Import VectorNotations.
-Delimit Scope vector_scope with vector.
 
 (** * SHA-2 hashes
 

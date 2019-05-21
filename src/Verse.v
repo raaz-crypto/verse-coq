@@ -7,6 +7,9 @@ Require Export Verse.Syntax.
 Require Export Verse.PrettyPrint.
 Require Export Verse.Nibble.
 Require Export String.
+Require Export Nat.
+Require Vector.
+Export Vector.VectorNotations.
+Delimit Scope vector_scope with vector.
 Require Export List.
-Require Export Vector.
-Export ListNotations.
+Coercion Vector.to_list : Vector.t >-> list.
