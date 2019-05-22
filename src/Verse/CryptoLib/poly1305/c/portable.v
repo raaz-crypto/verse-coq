@@ -3,18 +3,19 @@
 (** printing Xti %$X^{t-i+1}$%  #X<sup>t-i+1</sup># *)
 (** printing GF %\ensuremath{\mathbb{F}}%  #𝔽#                 *)
 
-(** printing alpha %$\alpha$% #α#  *)
-(** printing beta  %$\beta$%  #β#  *)
-(** printing Two32  %$2^{32}$%  #2<sup>32</sup>#  *)
-(** printing Two64  %$2^{64}$%  #2<sup>64</sup>#  *)
-(** printing Two96  %$2^{96}$%  #2<sup>96</sup>#  *)
-(** printing Two128 %$2^{128}$% #2<sup>128</sup># *)
-(** printing Two130 %$2^{130}$% #2<sup>130</sup># *)
-(** printing Two131 %$2^{131}$% #2<sup>131</sup># *)
+(** printing α %$\alpha$% #α#  *)
+(** printing β %$\beta$%  #β#  *)
+
+(** printing 2³²  %$2^{32}$%  #2<sup>32</sup>#  *)
+(** printing 2⁶⁴  %$2^{64}$%  #2<sup>64</sup>#  *)
+
+(** printing 2⁹⁶  %$2^{96}$%  #2<sup>96</sup>#  *)
+(** printing 2¹²⁸ %$2^{128}$% #2<sup>128</sup># *)
+(** printing 2¹³⁰ %$2^{130}$% #2<sup>130</sup># *)
+(** printing 2¹³¹ %$2^{131}$% #2<sup>131</sup># *)
 (** printing Two32ij %$2^{32 (i + j)}$% #2<sup>32(i+j)</sup># *)
 (** printing Two32ij4 %$2^{32 (i + j - 4)}$% #2<sup>32(i+j - 4)</sup># *)
-(** printing Two2 %$2^{2}$% #2<sup>2</sup># *)
-(** printing Twon %$2^{n}$% #2<sup>n</sup># *)
+(** printing 2² %$2^{2}$% #2<sup>2</sup># *)
 
 (** printing C0 %$C_0$% #C<sub>0</sub>#   *)
 (** printing C1 %$C_1$% #C<sub>1</sub># *)
@@ -66,7 +67,7 @@ Require Verse.Arch.C.
 
 (** * The poly1305 message hash.
 
-Let [GF] denote the finite field [GF(Two130 - 5). The poly1305 MAC in
+Let [GF] denote the finite field [GF(2¹³⁰ - 5)]. The poly1305 MAC in
 essence is just the evaluation of the message thought of as a
 polynomial over the finite field [GF]. Elements of this field can be
 represented using 130 bit word. To get the polynomial corresponding to
@@ -109,7 +110,7 @@ The poly1305 standard enforces that the parameter [R] in [GF] is of
 enforced that certain bits of [R] are zeros. If [R] in base 2³² is
 expressed as
 
-[R = r0 + r1 * Two32 + r2 * Two64 + r3 * Two96.]
+[R = r0 + r1 * 2³² + r2 * 2⁶⁴ + r3 * 2⁹⁶.]
 
 Then the restrictions on [ri] are
 
@@ -336,7 +337,7 @@ Module Internal.
 
         - Multiplying by R
 
-        - Propagating carry and reduction mod [Two130 - 5].
+        - Propagating carry and reduction mod [2¹³⁰ - 5].
 
      *)
 
@@ -372,21 +373,21 @@ Module Internal.
 
         We need to multiply the quantities
 
-        [A = a0 + a1 * Two32 + a2 * Two64 + a3 * Two96 + a4 Two128]
+        [A = a0 + a1 * 2³² + a2 * 2⁶⁴ + a3 * 2⁹⁶ + a4 2¹²⁸]
         with
 
-        [R = r0 + r1 * Two32 + r2 * Two64 + r3 * Two96 ]
+        [R = r0 + r1 * 2³² + r2 * 2⁶⁴ + r3 * 2⁹⁶ ]
 
         There is a total of 20-terms of the form [ai * rj * Two32ij
-        ]. When (i + j >= 4), [Two32ij = Two128 * Two32ij4] together
-        with an additional [Two2] from [rj = rj/4 * 4] gives a term of
-        the kind [Two130]. However in the field [GF], [Two130 = 5] and
+        ]. When (i + j >= 4), [Two32ij = 2¹²⁸ * Two32ij4] together
+        with an additional [2²] from [rj = rj/4 * 4] gives a term of
+        the kind [2¹³⁰]. However in the field [GF], [2¹³⁰ = 5] and
         hence the ij-th term in the product gives [5 * ai * (rj/4)
         Two32ij4]. Since the two lower order bits of [rj] are zeros
         (except when j = 0), we can shift them without really worrying
         about loosing bits. The product is given by
 
-        [p = p0 + p1 Two32 + p2 Two64 + p3 Two96 + p4 * Two128]
+        [p = p0 + p1 2³² + p2 2⁶⁴ + p3 2⁹⁶ + p4 * 2¹²⁸]
 
         where
 
@@ -500,7 +501,7 @@ Module Internal.
     described in above, we can successfully compute the next step if
     and only if maintain the invariant that the registers [a0..a3]
     have 32-bits each and [a4] has 3 bits. This we maintain by
-    performing carry propagation and reduction modulo [Two130 - 5].
+    performing carry propagation and reduction modulo [2¹³⁰ - 5].
 
      *)
 
@@ -511,7 +512,7 @@ Module Internal.
         registers [a0..a3] and the remaining 2 bits in [a4]. After
         arithmetic, we often need to propagate carries. Also the bits
         beyond the least two bits in [a4] contribute a factor of
-        [Two130]. In the field [GF], [Two130 = 5] and hence bits
+        [2¹³⁰]. In the field [GF], [2¹³⁰ = 5] and hence bits
         beyond the least two bits in [a4] can be seen as a wrapped
         "carry" to [a0] with a multiplicative factor of 5. We first
         give helper functions to perform these propagation.
@@ -540,7 +541,7 @@ Module Internal.
         Propagating carries from [ai] to [ai1] makes [ai] 32-bits.
         However, as described above, the bits beyond the least two
         bits of [a4] wrap back to [a0] and results in a reduction
-        modulo [Two130 - 5]. To get the bit pattern as described
+        modulo [2¹³⁰ - 5]. To get the bit pattern as described
         above, we should start from [a3] so that when we terminate,
         all the [a0..a3] will have 32-bits each and [a4] 3-bits (one
         more than the ideal 2-bits).
@@ -557,25 +558,25 @@ Module Internal.
 
     (** ** Final modular reduction.
 
-        Let [p] be the prime [Two130 - 5], and let [alpha] be such
-        that [0 <= alpha < 2p].  We would need to subtract at most a
-        [p]. Let [u] denote 131-st bit of [alpha + 5] then [u = 1] if
-        and only if [alpha > p]. Furthermore, if we consider [beta =
-        alpha + 5u mod Two130], i.e. [beta] is [alpha + 5] with 131-st
-        bit and higher bits dropped. Then we have [beta = alpha mod p]
-        and that [0 <= beta < p]. This is the representation we are
+        Let [p] be the prime [2¹³⁰ - 5], and let [α] be such
+        that [0 <= α < 2p].  We would need to subtract at most a
+        [p]. Let [u] denote 131-st bit of [α + 5] then [u = 1] if
+        and only if [α > p]. Furthermore, if we consider [β =
+        α + 5u mod 2¹³⁰], i.e. [β] is [α + 5] with 131-st
+        bit and higher bits dropped. Then we have [β = α mod p]
+        and that [0 <= β < p]. This is the representation we are
         looking for.
 
         The proof is as follows.
 
-        1. Note that if [alpha < p] then [alpha + 5 < Two130] and
-           hence the 131-st bit is zero. Hence [alpha + 5 u = alpha]
+        1. Note that if [α < p] then [α + 5 < 2¹³⁰] and
+           hence the 131-st bit is zero. Hence [α + 5 u = α]
            which is indeed the desired one.
 
-        2. If [p <= alpha < 2p] then [Two130 <= alpha + 5 < Two131 -
+        2. If [p <= α < 2p] then [2¹³⁰ <= α + 5 < 2¹³¹ -
            5]. Hence the bits starting from 131 is exactly 1. In this
-           case [alpha + 5 = beta + Two130] and hence [alpha - Two130
-           + 5 = beta], which is what we want.
+           case [α + 5 = β + 2¹³⁰] and hence [α - 2¹³⁰
+           + 5 = β], which is what we want.
 
      The function below computes the desired reduction amount [u].
 
@@ -596,8 +597,8 @@ Module Internal.
      (** Consider the number stored in the accumulator registers
          [a0..a4]. We assume that the value that we have is the value
          available at the end of an update. As a result the value
-         [alpha] inside the accumulator can at best be upper bounded
-         as [alpha < Two131 - 1]. The upper bound here is slightly
+         [α] inside the accumulator can at best be upper bounded
+         as [α < 2¹³¹ - 1]. The upper bound here is slightly
          more than [2p] however a single [Wrap] step should take care.
          We can then do the full reduction as described above. We can
          optimise out the carry propagation after the [Wrap] step and
@@ -612,7 +613,7 @@ Module Internal.
      (** ** Computing the hash.
 
          The final message has is computed using the algorithm [A + S
-         mod Two128]. The elem
+         mod 2¹²⁸]. The elem
 
       *)
 
