@@ -289,13 +289,13 @@ Module Internal.
         verse [ x1 ::=  Arr [- i -];
                 x0 ::=  x1 & Select32;
                 x1 ::=>> 32
-              ]%list.
+              ].
       Defined.
       Definition Mov64 : code progvar.
         verse [ x1 ::=<< 32;
                 x1 ::=| x0;
                 MOVE x1 TO Arr[- i -]
-              ]%list.
+              ].
       Defined.
     End LoadStore64.
     Arguments Load64 [bound e].
@@ -490,7 +490,7 @@ Module Internal.
 
           a3 ::= p3;
           p4 ::= r0 & Select2; a4 ::=* p4
-        ]%list.
+        ].
 
 
 
@@ -523,12 +523,12 @@ Module Internal.
       verse [ T0 ::= A i _ >> 32;
               A i        _ ::=& Select32;
               A (1 + i)  _ ::=+ T0
-            ]%list.
+            ].
     Defined.
 
     Definition Propagate : code progvar := iterate PropagateIth.
     Definition Wrap : code progvar :=
-      [ T0 ::= a4 >> 2; a4 ::=& Select2; T0 ::=* 5 ; a0 ::=+ T0]%list.
+      [ T0 ::= a4 >> 2; a4 ::=& Select2; T0 ::=* 5 ; a0 ::=+ T0].
 
     (** ** Adjusting [a0,..,a4] to maintain the invariant.
 
@@ -592,7 +592,7 @@ Module Internal.
          T0 ::=>> 32;
          T0 ::=+ a4;
          T0 ::=>> 2
-       ]%list.
+       ].
 
      (** Consider the number stored in the accumulator registers
          [a0..a4]. We assume that the value that we have is the value
@@ -716,13 +716,13 @@ Module Internal.
           T0 ::= blk[- 1 -];
           T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
           MOVE T0 TO blk[- 1 -]
-        ]%list.
+        ].
     Defined.
     Definition regClamp : Declaration := [Var T0]%vector.
     Definition clampIter : iterator Array128 progvar
-      := {| setup    := []%list;
+      := {| setup    := [];
             process  := clamp;
-            finalise := []%list
+            finalise := []
          |}.
 
 
@@ -791,7 +791,7 @@ Module Internal.
       blockmac <- implementationBlockMac (blockMacName fname) ;
       partialmac <- implementationPartialMac (partialMacName fname);
       clamp <- implementationClamp (clampName fname);
-      {- vcat [ incr; blockmac; partialmac; clamp ]%list -}.
+      {- vcat [ incr; blockmac; partialmac; clamp ] -}.
 
 
   Definition prototypes fname :=
@@ -799,7 +799,7 @@ Module Internal.
       blockmacP <- prototypeBlockMac (blockMacName fname);
       partialmacP <- prototypePartialMac (partialMacName fname);
       clampP <- prototypeClamp (clampName fname);
-      {- [ incrP; blockmacP; partialmacP; clampP]%list -}.
+      {- [ incrP; blockmacP; partialmacP; clampP] -}.
 
 End Internal.
 
