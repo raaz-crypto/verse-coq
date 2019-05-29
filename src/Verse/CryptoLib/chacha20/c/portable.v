@@ -1,6 +1,11 @@
 (**
 
-An implementation of ChaCha20 stream cipher in verse.
+This module implements the following
+
+- The encryption iterator for ChaCha20 and XChaCha20.
+
+- A host-endian variant of the chacha20 keystream meant for use in
+  csprg.
 
 *)
 
@@ -12,32 +17,47 @@ Module Internal.
 
   Section ChaCha20.
 
-    (** We use the same code to generate two variant of chacha20 block
-        encryption, the littleEndian variant which is the official version
-        and the host endian variant which will be used only for csprg (where
-        we do not care about endianness in any case.
+    (** ** Program variables.
+
+    Following the standard idiom, we start by abstracting over the
+    program variables
+
      *)
 
-    Variable variant : endian.
     Variable progvar  : VariableT.
     Arguments progvar [k] _.
 
-    (* The chacha20 round function takes the key, iv, and the counter *)
+    (**
+
+       The chacha20 round function takes the key, iv, and the
+       counter. The xchacha20 variant uses an extended iv which is
+       captured by the [xiv] variable.
+
+     *)
+
     Variable key      : progvar Key.
     Variable iv       : progvar IV.
+    Variable xiv      : progvar XIV.
     Variable ctrRef   : progvar (Array 1 hostE Counter).
-    Definition parameters : Declaration
-      := [Var key; Var iv; Var ctrRef]%vector.
 
-  (* We do not have local stack variables *)
+    Definition parameters : Declaration
+      := [Var key; Var iv; Var ctrRef].
+
+    Definition xparameters : Declaration
+      := [Var key; Var xiv; Var ctrRef].
+
+    (* We do not have local stack variables *)
     Definition stack : Declaration    := Empty.
 
     (**
        Besides we have the following in registers
 
-       1. The 4x4 state matrix in x0,...,x16
-       2. A register copy of the counter
-       3. A temporary register
+       - The 4x4 state matrix in x0,...,x16
+
+       - A register copy of the counter
+
+       - A temporary register
+
    *)
 
     Variable x0  x1  x2  x3
@@ -47,41 +67,51 @@ Module Internal.
     Variable ctr             : progvar Counter.
     Variable Temp            : progvar Word.
 
+    (**
+        Let us make some auxiliary definitions that simplify some of
+        the variable manipulations.
+
+     *)
     Definition stateVars := [ x0; x1; x2; x3;
                               x4; x5; x6; x7;
                               x8; x9; x10; x11;
                               x12; x13; x14; x15
-                            ]%vector.
+                            ].
 
+    (** The register variables required by the cipher *)
+    Definition registers  := Vector.map Var (Vector.append [ctr; Temp] stateVars).
 
-    Definition registers          := Vector.map Var (Vector.append [ctr; Temp] stateVars )%vector.
-    Definition keyStreamRegisters := Vector.map Var ( ctr :: stateVars )%vector.
+    (** The registers required by the key stream generator *)
+
+    Definition csprgRegisters := Vector.map Var ( ctr :: stateVars ).
     (** It is useful to have a uniform way to index the state variables. *)
 
     Definition X : VarIndex progvar 16 Word := varIndex stateVars.
 
 
+    (** ** The chacha20 keystream.
 
+        The chacha20 cipher consists of computing a key stream which
+        is then xor-ed to the input stream to get the encrypted
+        stream. Computation of the key stream is done by transforming
+        the state matrix as follows (the bits in the state matrix
+        becomes the key stream)
 
-    (**
-       The chach20 quarter round. It is either used on the columns of
-       the matrix or the diagonals.
+        - Initialisation of the state.
+
+        - Apply 20 rounds of the chacha20 round function.
+
+        - Update the state by adding the initial value of the state.
+
      *)
 
-    Definition QROUND (a b c d : progvar Word) : code progvar.
-      verse [ a ::=+ b; d ::=^ a; d ::=<<< 16;
-              c ::=+ d; b ::=^ c; b ::=<<< 12;
-              a ::=+ b; d ::=^ a; d ::=<<< 8;
-              c ::=+ d; b ::=^ c; b ::=<<< 7
-          ].
-    Defined.
+    (** *** The initialisation.
 
-    (** Chacha20 is a stream cipher where each block is processed by
-        xoring the block with the state matrix obtained after the
-        Chacha20 state transformation. The state is first initialised as
-        follows.
-     *)
-    Definition INITSTATE : code progvar.
+       The initial state is computed as follows.
+
+    *)
+
+    Definition Init : code progvar.
       verse [
           x0  ::= C0         ; x1  ::= C1         ; x2  ::= C2         ; x3  ::= C3;
           x4  ::= key[- 0 -] ; x5  ::= key[- 1 -] ; x6  ::= key[- 2 -] ; x7 ::= key[- 3 -];
@@ -90,30 +120,52 @@ Module Internal.
         ].
     Defined.
 
-    (** A double round consists of 4-Quarter round on the columns of the
-        matrix followed by 4-Quarter rounds on the diagonals
+
+    (** *** The chacha20 round.
+
+     The rounds are defined in terms of the chacha20 quarter round
 
      *)
 
-    (** Finally we do 20 rounds i.e. 10 double rounds to get the chacha20
-        state transformation
+    Definition QRound (a b c d : progvar Word) : code progvar
+      := [ a ::=+ b; d ::=^ a; d ::=<<< 16;
+           c ::=+ d; b ::=^ c; b ::=<<< 12;
+           a ::=+ b; d ::=^ a; d ::=<<< 8;
+           c ::=+ d; b ::=^ c; b ::=<<< 7
+         ].
+
+    (**
+
+       The 20 rounds that the algorithm performs, alternate between
+       the _column round_ where we apply the quarter round on all the
+       four columns and the _diagonal round_ where the quarter round
+       is applied on each of the four diagonals. We code this up as 10
+       double round where a double round consists of a column round
+       and a diagonal round.
+
      *)
-    Definition ROUND20 : code progvar :=
-      let colRound := List.concat [ QROUND x0 x4 x8   x12;
-                                    QROUND x1 x5 x9   x13;
-                                    QROUND x2 x6 x10  x14;
-                                    QROUND x3 x7 x11  x15
+
+    Definition Rounds : code progvar :=
+      let colRound := List.concat [ QRound x0 x4 x8   x12;
+                                    QRound x1 x5 x9   x13;
+                                    QRound x2 x6 x10  x14;
+                                    QRound x3 x7 x11  x15
                                   ] in
-      let diagRound := List.concat [ QROUND x0 x5 x10 x15;
-                                     QROUND x1 x6 x11 x12;
-                                     QROUND x2 x7 x8  x13;
-                                     QROUND x3 x4 x9  x14
+      let diagRound := List.concat [ QRound x0 x5 x10 x15;
+                                     QRound x1 x6 x11 x12;
+                                     QRound x2 x7 x8  x13;
+                                     QRound x3 x4 x9  x14
                                    ] in
       let doubleRound := (colRound ++ diagRound)%list
       in List.concat (List.repeat doubleRound 10).
 
+    (** ** The state update.
 
-    Definition UPDATE : code progvar.
+        In the final step, we updated the transformed state by adding
+        it to the initial state.
+
+     *)
+    Definition Update : code progvar.
       verse [
           x0  ::=+ C0         ; x1  ::=+ C1         ; x2  ::=+ C2         ; x3  ::=+ C3;
           x4  ::=+ key[- 0 -] ; x5  ::=+ key[- 1 -] ; x6  ::=+ key[- 2 -] ; x7  ::=+ key[- 3 -];
@@ -123,26 +175,48 @@ Module Internal.
 
     Defined.
 
-    (** The code that computes the chacha20 key stream into the state matrix *)
+    (** ** The chacha20 stream
 
-    Definition COMPUTE_STREAM := List.concat [ INITSTATE; ROUND20; UPDATE].
+        Putting all the code fragments together, we have the algorithm
+        that compute the chacha20 stream inside the state matrix.
 
-    (**  This xors the key stream to the input and hence is the actual encryption
      *)
-    Definition XORBLOCK (B : progvar (Block variant))(i : nat) (_ : i < 16)
+
+    Definition ComputeStream := List.concat [ Init; Rounds; Update].
+
+    (** ** The Encryption and the keystream.
+
+        Recall that this module serves as the base for two different
+        implementations, the first being the chacha20 encryption and
+        the other being the keystream for csprg. We define the block
+        transformation for each of the case above.
+
+     *)
+
+    Definition XorBlock (B : progvar (Block littleE))(i : nat) (_ : i < 16)
       : code progvar.
       verse [ Temp ::= B[- i -]; Temp ::=^ X [- i -]; MOVE Temp TO B[- i -] ].
-
     Defined.
 
-    (** Here we only emit the key stream and is useful when using as csprg *)
-
-    Definition EMITSTREAM(B : progvar (Block variant))(i : nat) (_ : i < 16)
+    Definition EmitStream (B : progvar (Block hostE))(i : nat) (_ : i < 16)
       : code progvar.
       verse [ MOVE (X i _) TO B[- i -] ].
     Defined.
 
+    Definition Encrypt blk
+      := (ComputeStream ++ foreach (indices blk) (XorBlock blk)
+                        ++ [ ++ ctr ])%list.
 
+    Definition CSPRGStream blk
+      := (ComputeStream ++ foreach (indices blk) (EmitStream blk)
+                        ++ [ ++ ctr ])%list.
+
+    (** ** The iterators.
+
+        Finally we define the iterator code for both the chacha20
+        encryption and the chacha20 host-endian key stream.
+
+     *)
     Definition LoadCounter : code progvar.
       verse [ ctr ::= ctrRef[- 0 -] ].
     Defined.
@@ -150,28 +224,25 @@ Module Internal.
       verse [ MOVE ctr TO ctrRef[- 0 -] ].
     Defined.
 
-    Definition ChaCha20Iterator : iterator (Block variant) progvar :=
-      {| setup := LoadCounter;
-         process := fun blk =>
-                      COMPUTE_STREAM
-                        ++ foreach (indices blk) (XORBLOCK blk)
-                        ++ [ ++ ctr ];
+    Definition EncryptIterator : iterator (Block littleE) progvar :=
+      {| setup    := LoadCounter;
+         process  := Encrypt;
          finalise := StoreCounter
-      |}%list.
+      |}.
 
-    Definition ChaCha20KeyStream : iterator (Block variant) progvar :=
-      {| setup := LoadCounter;
-         process := fun blk =>
-                      COMPUTE_STREAM
-                        ++ foreach (indices blk) (EMITSTREAM blk)
-                        ++ [ ++ ctr ];
+    Definition CSPRGIterator : iterator (Block hostE) progvar :=
+      {| setup    := LoadCounter;
+         process  := CSPRGStream;
          finalise := StoreCounter
-      |}%list.
-
+      |}.
 
   End ChaCha20.
 
-  (** Let us allocate the registers.  *)
+  (* ** Generating the C code.
+
+    We start by defining the variables to use for the C code.
+
+   *)
 
   Definition wordTy    : CType direct := recover (typeDenote Word).
   Definition counterTy : CType direct := recover (typeDenote Counter).
@@ -184,7 +255,7 @@ Module Internal.
           cr counterTy "ctr", cr wordTy "Tmp"
        -).
 
-  Definition keyStreamVars
+  Definition csprgVars
     := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
           cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
           cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
@@ -192,8 +263,7 @@ Module Internal.
           cr counterTy "ctr"
        -).
 
-
-  (** The standard version of the code *)
+  (** The prototype and the code for the chacha20 encryption routine *)
   Definition prototype_encrypt (fname : string) : Prototype CType + {Compile.CompileError}.
     Compile.iteratorPrototype (Block littleE) fname parameters.
   Defined.
@@ -202,45 +272,40 @@ Module Internal.
   Definition implementation_encrypt (fname : string) : Doc  + {Compile.CompileError}.
     Compile.iterator (Block littleE) fname parameters stack registers.
     assignRegisters regVars.
-    statements (ChaCha20Iterator littleE).
+    statements EncryptIterator.
   Defined.
 
 
-  (** The key stream generator for the host endian variant of
-      chacha20. Useful as a csprg.
-   *)
+  (** The prototype and the code for chacha20 csprg routine *)
 
   Definition prototype_csprg (fname : string) : Prototype CType + {Compile.CompileError}.
     Compile.iteratorPrototype (Block hostE) fname parameters.
   Defined.
 
-  Definition csprg (fname : string) : Doc  + {Compile.CompileError}.
-    Compile.iterator (Block hostE) fname parameters stack keyStreamRegisters.
-    assignRegisters keyStreamVars.
-    statements (ChaCha20KeyStream hostE).
+  Definition inplementation_csprg (fname : string) : Doc  + {Compile.CompileError}.
+    Compile.iterator (Block hostE) fname parameters stack csprgRegisters.
+    assignRegisters csprgVars.
+    statements CSPRGIterator.
   Defined.
 
 
-
+  (** The combined source code and prototypes. *)
   Definition encryptName (fname : string) := fname.
   Definition csprgName   (fname : string) := (fname ++ "_keystream")%string.
 
   Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
-    iter <- implementation_encrypt (encryptName fname);
-      lastBlock <- implementation_encrypt (csprgName fname);
-      {- vcat [iter; lastBlock] -}.
+    encrypt <- implementation_encrypt (encryptName fname);
+      csprg  <- implementation_encrypt (csprgName fname);
+      {- vcat [encrypt; csprg] -}.
 
   Definition prototypes fname :=
-    iterProto <- prototype_encrypt (encryptName fname);
-      lastProto <- prototype_csprg (csprgName fname);
-      {- [ iterProto ; lastProto ]%list -}.
+    encryptProto <- prototype_encrypt (encryptName fname);
+     csprgProto <- prototype_csprg (csprgName fname);
+      {- [ encryptProto ; csprgProto ]%list -}.
 
 End Internal.
 
-(*
-
-This is the function that prints the code on the standard output given a function name
-for the c-code.
+(** Stuff to generate the C file and the raaz FFI call stubs
 
 *)
 
