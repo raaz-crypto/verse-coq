@@ -12,6 +12,8 @@ This module implements the following
 Require Import Verse.
 Require Import Verse.Arch.C.
 Require Import Verse.CryptoLib.chacha20.common.
+Require Import Verse.Extraction.Ocaml.
+Require Import Verse.CryptoLib.Names.
 
 Module Internal.
 
@@ -37,14 +39,16 @@ Module Internal.
 
     Variable key      : progvar Key.
     Variable iv       : progvar IV.
-    Variable xiv      : progvar XIV.
     Variable ctrRef   : progvar (Array 1 hostE Counter).
+
+    (** IV for hchacha20 *)
+    Variable hiv0 hiv1 hiv2 hiv3 : progvar Word.
 
     Definition parameters : Declaration
       := [Var key; Var iv; Var ctrRef].
 
-    Definition xparameters : Declaration
-      := [Var key; Var xiv; Var ctrRef].
+    Definition hparameters : Declaration
+      := [Var key; Var hiv0; Var hiv1; Var hiv2; Var hiv3].
 
     (* We do not have local stack variables *)
     Definition stack : Declaration    := Empty.
@@ -81,8 +85,8 @@ Module Internal.
     (** The register variables required by the cipher *)
     Definition registers  := Vector.map Var (Vector.append [ctr; Temp] stateVars).
 
+    Definition hregisters := Vector.map Var stateVars.
     (** The registers required by the key stream generator *)
-
     Definition csprgRegisters := Vector.map Var ( ctr :: stateVars ).
     (** It is useful to have a uniform way to index the state variables. *)
 
@@ -182,7 +186,27 @@ Module Internal.
 
      *)
 
-    Definition ComputeStream := List.concat [ Init; Rounds; Update].
+    Definition TransformState := List.concat [ Init; Rounds; Update].
+
+    (** ** The XChaCha20 variant.
+
+    The XChaCha20 cipher is a variant of the standard chacha20 cipher
+    but supports a 192-bit (6x32-bit). With the iv being large, one
+    can safely choose them at random and be confident of not repeating
+    them ever --- the 96-bit iv that the standard supports is too
+    small for such random choice and would often need to keep track of
+    additional information to ensure that ivs are not repeated.
+
+    This variant uses the following steps
+
+    - It uses the HChaCha20 hashing to first initialise a key (which
+      makes use of the first four words of the iv.
+
+    - It then uses certain portion of the state and the rest of the
+      two words as the key and iv for a chacha20 state.
+
+     *)
+
 
     (** ** The Encryption and the keystream.
 
@@ -204,12 +228,49 @@ Module Internal.
     Defined.
 
     Definition Encrypt blk
-      := (ComputeStream ++ foreach (indices blk) (XorBlock blk)
+      := (TransformState ++ foreach (indices blk) (XorBlock blk)
                         ++ [ ++ ctr ])%list.
 
+
     Definition CSPRGStream blk
-      := (ComputeStream ++ foreach (indices blk) (EmitStream blk)
-                        ++ [ ++ ctr ])%list.
+      := (TransformState ++ foreach (indices blk) (EmitStream blk)
+                         ++ [ ++ ctr ])%list.
+
+    (* ** The HChacha20 hash and XChacha20.
+
+       The XChacha20 is a variant of chacha20 that uses a larger iv
+       which allows us to use random ivs with out fear of
+       collision. Remember that if key,iv pairs are repeated, it would
+       compromise the encryption of chacha20. The XChacha20 uses the
+       key and part of the iv to first set up a subkey using the
+       HChacha20 hash. It then proceeds to compute the encryption
+       using this subkey and the rest of the iv. This module also
+       exposes the hchacha20 function that updates the key array with
+       the subkey.
+
+     *)
+    Definition HInit : code progvar.
+      verse [
+          x0  ::= C0         ; x1  ::= C1         ; x2  ::= C2         ; x3  ::= C3;
+          x4  ::= key[- 0 -] ; x5  ::= key[- 1 -] ; x6  ::= key[- 2 -] ; x7 ::= key[- 3 -];
+          x8  ::= key[- 4 -] ; x9  ::= key[- 5 -] ; x10 ::= key[- 6 -] ; x11 ::= key[- 7 -];
+          x12 ::= hiv0       ; x13 ::= hiv1       ; x14 ::= hiv2       ; x15 ::= hiv3
+        ].
+    Defined.
+
+    Definition HUpdateKey : code progvar.
+      verse [ MOVE x0  TO key [- 0 -];
+              MOVE x1  TO key [- 1 -];
+              MOVE x2  TO key [- 2 -];
+              MOVE x3  TO key [- 3 -];
+              MOVE x12 TO key [- 4 -];
+              MOVE x13 TO key [- 5 -];
+              MOVE x14 TO key [- 6 -];
+              MOVE x15 TO key [- 7 -]
+            ].
+    Defined.
+
+    Definition HChaCha20 : code progvar :=  List.concat [ HInit; Rounds; HUpdateKey ].
 
     (** ** The iterators.
 
@@ -236,6 +297,7 @@ Module Internal.
          finalise := StoreCounter
       |}.
 
+
   End ChaCha20.
 
   (* ** Generating the C code.
@@ -255,7 +317,14 @@ Module Internal.
           cr counterTy "ctr", cr wordTy "Tmp"
        -).
 
-  Definition csprgVars
+  Definition hchacha20Vars
+    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
+          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
+          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
+          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15"
+       -).
+
+    Definition csprgVars
     := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
           cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
           cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
@@ -268,6 +337,15 @@ Module Internal.
     Compile.iteratorPrototype (Block littleE) fname parameters.
   Defined.
 
+  Definition prototype_hchacha20 (fname : string) : Prototype CType + {Compile.CompileError}.
+    Compile.functionPrototype fname hparameters.
+  Defined.
+
+  Definition implementation_hchacha20 (fname : string) : Doc + {Compile.CompileError}.
+    Compile.function fname hparameters stack hregisters.
+    assignRegisters hchacha20Vars.
+    statements HChaCha20.
+  Defined.
 
   Definition implementation_encrypt (fname : string) : Doc  + {Compile.CompileError}.
     Compile.iterator (Block littleE) fname parameters stack registers.
@@ -275,14 +353,13 @@ Module Internal.
     statements EncryptIterator.
   Defined.
 
-
   (** The prototype and the code for chacha20 csprg routine *)
 
   Definition prototype_csprg (fname : string) : Prototype CType + {Compile.CompileError}.
     Compile.iteratorPrototype (Block hostE) fname parameters.
   Defined.
 
-  Definition inplementation_csprg (fname : string) : Doc  + {Compile.CompileError}.
+  Definition implementation_csprg (fname : string) : Doc  + {Compile.CompileError}.
     Compile.iterator (Block hostE) fname parameters stack csprgRegisters.
     assignRegisters csprgVars.
     statements CSPRGIterator.
@@ -290,18 +367,23 @@ Module Internal.
 
 
   (** The combined source code and prototypes. *)
-  Definition encryptName (fname : string) := fname.
-  Definition csprgName   (fname : string) := (fname ++ "_keystream")%string.
+  Definition encryptName   iname := cFunName iname.
+  Definition csprgName     iname :=
+    let newName := set_primitive (iname) (primitive iname ++ "csprg")
+    in cFunName newName.
+  Definition hchacha20Name iname := cFunName (set_primitive iname "hchacha20").
 
-  Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
-    encrypt <- implementation_encrypt (encryptName fname);
-      csprg  <- implementation_encrypt (csprgName fname);
-      {- vcat [encrypt; csprg] -}.
+  Definition implementation iname : Doc + {Compile.CompileError} :=
+    encrypt <- implementation_encrypt (encryptName iname);
+      csprg  <- implementation_encrypt (csprgName iname);
+      hchacha20 <- implementation_hchacha20 (hchacha20Name iname);
+      {- vcat [encrypt; csprg; hchacha20 ] -}.
 
-  Definition prototypes fname :=
-    encryptProto <- prototype_encrypt (encryptName fname);
-     csprgProto <- prototype_csprg (csprgName fname);
-      {- [ encryptProto ; csprgProto ]%list -}.
+  Definition prototypes iname :=
+    encrypt <- prototype_encrypt (encryptName iname);
+      csprg <- prototype_csprg (csprgName iname);
+      hchacha20 <- prototype_hchacha20 (hchacha20Name iname);
+      {- [ encrypt ; csprg; hchacha20 ]%list -}.
 
 End Internal.
 
@@ -309,21 +391,18 @@ End Internal.
 
 *)
 
-Require Import Verse.Extraction.Ocaml.
-Require Import Verse.CryptoLib.Names.
 Definition implementation_name : Name := {| primitive := "chacha20";
                                             arch      := "c";
                                             features  := ["portable"]
                                          |}.
 
-  Definition cname     := cFunName implementation_name.
-  Definition cfilename := libVerseFilePath implementation_name.
+Definition cfilename := libVerseFilePath implementation_name.
 
 
 Definition implementation : unit
-  := writeProgram (C cfilename) (Internal.implementation cname).
+  := writeProgram (C cfilename) (Internal.implementation implementation_name).
 
-Definition prototypes := recover (Internal.prototypes cname).
+Definition prototypes := recover (Internal.prototypes implementation_name).
 
 Require Import Verse.FFI.Raaz.
 

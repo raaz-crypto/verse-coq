@@ -33,17 +33,7 @@ variant for use in the csprg.
 Definition Block e := Array 16 e Word.
 Definition Key     := Array 8 hostE Word.
 Definition Counter := Word.
-
-(** ** The initialisation vector
-
-We have two variants of the initialisation vector, the first for the
-standard variant as standardised in RFC7539. The other is meant for
-use in the xchacha20 variant.
-
-*)
-
 Definition IV   := Array 3 hostE Word.
-Definition XIV  := Array 6 hostE Word.
 
 (** ** Constants
 
