@@ -6,6 +6,7 @@ Record Name := { primitive : string;
                  arch : string;
                  features : list string
               }.
+Definition set_primitive (n : Name) s : Name := {| primitive := s; arch := arch n ; features := features n |}.
 
 Fixpoint concatSep (sep : string)(l : list string) : string :=
   match l with
