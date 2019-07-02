@@ -367,7 +367,7 @@ Module Internal.
      Defined.
 
     Definition AddFullBlock (blk : progvar Block) : code progvar
-      := Add128 blk ++ [ ++ a4 ]%list.
+      := (Add128 blk ++ [ ++ a4 ])%list.
 
     (** ** Computing [A := A * R]
 
@@ -552,7 +552,7 @@ Module Internal.
       verse  (PropagateIth 3 _
                            ++ Wrap
                            ++ Propagate
-             ).
+             )%list.
     Defined.
 
 
@@ -606,9 +606,9 @@ Module Internal.
       *)
 
      Definition FullReduction : code progvar :=
-       Wrap ++ ReductionAmount
+       (Wrap ++ ReductionAmount
             ++ [ T0 ::= T0 * 5; a0 ::=+ T0]
-            ++ Propagate.
+            ++ Propagate)%list.
 
      (** ** Computing the hash.
 
@@ -617,7 +617,7 @@ Module Internal.
 
       *)
 
-     Definition ComputeMAC := FullReduction ++ Add128 SArray ++ Propagate ++ MovA.
+     Definition ComputeMAC := (FullReduction ++ Add128 SArray ++ Propagate ++ MovA)%list.
 
 
      (** * Handling input.
@@ -631,7 +631,7 @@ Module Internal.
 
     Definition ProcessBlock (AddC : progvar Block -> code progvar)(blk : progvar Block)
       : code progvar
-      := AddC blk ++ MulR ++ AdjustBits.
+      := (AddC blk ++ MulR ++ AdjustBits)%list.
 
     Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
     Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
@@ -659,7 +659,7 @@ Module Internal.
       verse {| setup    := LoadA  ++ LoadR;
                process  := ProcessFullBlock;
                finalise := MovA
-            |}.
+            |}%list.
     Defined.
 
 
@@ -689,9 +689,9 @@ Module Internal.
      *)
 
     Definition poly1305PartialMAC : code progvar
-      := setup poly1305IterMAC
-               ++ ProcessLastBlock LastBlock
-               ++ finalise poly1305IterMAC.
+      := (setup poly1305IterMAC
+                ++ ProcessLastBlock LastBlock
+                ++ finalise poly1305IterMAC)%list.
 
 
     (** ** Clamping [r].

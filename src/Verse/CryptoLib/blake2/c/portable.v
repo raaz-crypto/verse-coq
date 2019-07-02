@@ -372,7 +372,7 @@ Module Blake2 (C : CONFIG).
                G v0 v5 v10 v15 (M 8 _)  (M 9  _) ++
                G v1 v6 v11 v12 (M 10 _) (M 11 _) ++
                G v2 v7 v8  v13 (M 12 _) (M 13 _) ++
-               G v3 v4 v9  v14 (M 14 _) (M 15 _)).
+               G v3 v4 v9  v14 (M 14 _) (M 15 _))%list.
       Defined.
     End Round.
 
@@ -381,7 +381,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H ).
+      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H )%list.
     Defined.
 
     (** ** The initialisation of state.
@@ -469,28 +469,28 @@ Module Blake2 (C : CONFIG).
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
     Definition FINALISE : code progvar.
-      verse ([ MOVE U TO UpperRef[- 0 -]; MOVE L TO LowerRef[- 0 -] ] ++ moveBackCache hash H ).
+      verse ([ MOVE U TO UpperRef[- 0 -]; MOVE L TO LowerRef[- 0 -] ] ++ moveBackCache hash H )%list.
     Defined.
 
 
     Definition PROCESS_BLOCK blk :=
-      LOAD_MESSAGE blk
-      ++ ALL_ROUNDS
-      ++ UPDATE_HASH.
+      (LOAD_MESSAGE blk
+                    ++ ALL_ROUNDS
+                    ++ UPDATE_HASH)%list.
 
     (** ** The BLAKE2 iterator and the last block compressor.  *)
     Definition Iterator : iterator Block progvar :=
       {| setup   := SETUP;
          process := fun blk => UPDATE_COUNTER_ITER ++ INIT_STATE ++ PROCESS_BLOCK blk;
          finalise := FINALISE
-      |}.
+      |}%list.
 
     Definition LastBlockCompress :=
-      loadCache hash H
+      (loadCache hash H
                 ++ UPDATE_COUNTER_LAST
                 ++ INIT_STATE_LAST
                 ++ PROCESS_BLOCK  LastBlock
-                ++ moveBackCache hash H.
+                ++ moveBackCache hash H)%list.
     End Program.
 
 End Blake2.
