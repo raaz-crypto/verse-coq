@@ -17,8 +17,10 @@ matrix:
     - env: COQ_VER=8.6.1 OCAML_VER=4.05.0
     - env: COQ_VER=8.7.2 OCAML_VER=4.05.0
     - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
+    - env: COQ_VER=8.9.1 OCAML_VER=4.05.0
   allow_failures:
     - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
+    - env: COQ_VER=8.9.1 OCAML_VER=4.05.0
 
 
 notifications:
