@@ -36,9 +36,11 @@ Module Type ARCH.
   (** The Types of machine variables and a denotation of Verse types into them *)
   Parameter mType        : kind -> Type.
 
-  Parameter mTypeDenote  : typeC (fun k : kind => mType k + {UnsupportedType}).
+  Parameter mConstant    : mType direct -> Type.
 
-  Parameter mConstant       : mType direct -> Type.
+  Parameter mTypeDenote    : typeC (fun k : kind => mType k + {UnsupportedType}).
+  Instance  mTD    : typeC (fun k : kind => mType k + {UnsupportedType}) := mTypeDenote.
+
   Parameter mConstantDenote : forall (ty : type direct) (p : noErr (typeDenote ty)),
                               constant ty -> mConstant (getT p).
 

@@ -31,11 +31,15 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
       compiled.
    *)
 
+  Instance mTC      : typeC (fun k => A.mType k + {UnsupportedType}) :=  A.mTypeDenote.
+  Instance mIDenote : instructionC A.mVar C.mArg C.mInstruction := C.mInstructionDenote.
+  Instance mADenote : argC A.mTypeDenote A.mConstant C.mArg := C.mArgDenote.
 
   Inductive AllocationError : Prop :=
   | UnavailableRegister    : forall {k}{ty : A.mType k}, A.register ty -> AllocationError
   | UnsupportedLocalArray  : type memory -> AllocationError.
 
+  About UnsupportedInstruction.
   Inductive CompileError : Prop :=
   | instructionError       : UnsupportedInstruction -> CompileError
   | typeError              : UnsupportedType -> CompileError
@@ -68,7 +72,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
     Variable v : VariableT.
     Variable vTrans : forall k (ty : type k) (p : noErr (typeDenote ty)),
                              v ty -> A.mVar (getT p).
-
+    Hint Resolve mTC.
+    Hint Resolve mADenote.
     Definition argDenote aK k (ty : type k) (p : noErr (typeDenote ty)) (a : (arg v aK ty))
       : C.mArg A.mVar (getT p) + {CompileError}.
       simple refine
@@ -82,8 +87,8 @@ Module Compiler (A : ARCH) (F : FRAME A) (C : CODEGEN A).
                                                         (fun p'' => {- mkIndex A.mVar b e
                                                                                (getT p') _ _
                                                                                (proj1_sig i) -})
-              end p);
-        rewrite <- (getTgetsT p').
+              end p); eauto;
+             rewrite <- (getTgetsT p').
       exact p''.
       exact (@vTrans _ (array b e ty) p'' x).
     Defined.

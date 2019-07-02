@@ -75,7 +75,7 @@ Module C <: ARCH.
 
   Definition mType := CType.
   Definition mTypeDenote := CTypeDenote.
-
+  Definition mTD := mTypeDenote.
   Definition mConstant := @CConstant direct.
   Definition mConstantDenote := CConstantDenote.
 
