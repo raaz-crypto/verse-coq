@@ -1,3 +1,4 @@
+Require Import String.
 Require Import Verse.Types.
 Require Import Verse.Types.Internal.
 Require Import Verse.Syntax.
@@ -244,7 +245,7 @@ Section PrettyPrintingInstruction.
     | shiftL _ => text "<<"
     | shiftR _ => text ">>"
     | nop      => text ""
-    end.
+    end%string.
 
   Definition EQUALS := text "=".
   Definition mkAssign {ar : arity}(o : op ar)   (x y z : Doc)  := x <_> EQUALS <_> y <_> opDoc o <_> z.

@@ -4,6 +4,7 @@ Import Nat.
 Require Import Verse.Error.
 Require Import Verse.Types.Internal.
 Require Import Verse.PrettyPrint.
+Require Import String.
 
 (** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
@@ -112,9 +113,9 @@ End ConstDenote.
 
 Definition constant_doc (ty : type direct)  : constant ty -> Doc.
   refine( match ty with
-          | word _         => fun w => text "0x" <> doc w
+          | word _         => fun w => "0x" <> doc w
           | multiword _ _  => fun w => doc w
-          end
+          end%string
         ); repeat simpl;  try apply vector_pretty_print.
 Defined.
 
