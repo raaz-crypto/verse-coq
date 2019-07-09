@@ -128,7 +128,6 @@ Module Internal.
        | _  => Ox0
       end%N.
 
-    About N.div_eucl.
     Fixpoint fromNR (l : nat) (n : N) : Vector.t Nibble l :=
       let (np,r) := N.div_eucl n 16 in
       match l with
