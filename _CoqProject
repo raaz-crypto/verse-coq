@@ -1,47 +1,49 @@
 -R src Verse
-src/Verse/CoLoR_VecUtil.v
-src/Verse/Tutorial.v
-src/Verse/Arch.v
-src/Verse/Arch/C.v
-src/Verse/Error.v
-src/Verse/Compile.v
-src/Verse/Language.v
 src/Verse/Language/Ast.v
-src/Verse/Language/Operators.v
-src/Verse/Language/Utils.v
-src/Verse/Language/Pretty.v
-src/Verse/Nibble.v
-src/Verse/Syntax.v
-src/Verse/Types.v
-src/Verse/Types/Internal.v
-src/Verse/Word.v
-src/Verse/WordFacts.v
-src/Verse/NFacts.v
-src/Verse/WordRing.v
-src/Verse/PrettyPrint.v
-src/Verse.v
-src/Verse/TestCode/TestCode.v
-src/Verse/TestCode/TestIteratorCode.v
-src/Verse/DecFacts.v
-src/Verse/Semantics/Store.v
-src/Verse/Semantics.v
-src/Verse/Semantics/NSemantics.v
-src/Verse/Semantics/ScopeStore.v
-src/Verse/Semantics/FunctionStore.v
-src/Verse/TestCode/TestSemantics.v
-src/Verse/Extraction/Ocaml.v
-src/Verse/FFI/Raaz.v
-src/Verse/CryptoLib/Names.v
-src/Verse/CryptoLib/blake2.v
-src/Verse/CryptoLib/blake2/c/portable.v
-src/Verse/CryptoLib/blake2b/c/portable.v
-src/Verse/CryptoLib/blake2s/c/portable.v
-src/Verse/CryptoLib/chacha20/common.v
-src/Verse/CryptoLib/chacha20/c/portable.v
-src/Verse/CryptoLib/poly1305/c/portable.v
-src/Verse/CryptoLib/sha2.v
-src/Verse/CryptoLib/sha2/c/portable.v
-src/Verse/CryptoLib/sha2/c/portableAlternate.v
-src/Verse/CryptoLib/sha2/c/portableAnnotated.v
-src/Verse/CryptoLib/sha256/c/portable.v
-src/Verse/CryptoLib/sha512/c/portable.v
+
+# src/Verse/CoLoR_VecUtil.v
+# src/Verse/Tutorial.v
+# src/Verse/Arch.v
+# src/Verse/Arch/C.v
+# src/Verse/Error.v
+# src/Verse/Compile.v
+# src/Verse/Language.v
+# src/Verse/Language/Ast.v
+# src/Verse/Language/Operators.v
+# src/Verse/Language/Utils.v
+# src/Verse/Language/Pretty.v
+# src/Verse/Nibble.v
+# src/Verse/Syntax.v
+# src/Verse/Types.v
+# src/Verse/Types/Internal.v
+# src/Verse/Word.v
+# src/Verse/WordFacts.v
+# src/Verse/NFacts.v
+# src/Verse/WordRing.v
+# src/Verse/PrettyPrint.v
+# src/Verse.v
+# src/Verse/TestCode/TestCode.v
+# src/Verse/TestCode/TestIteratorCode.v
+# src/Verse/DecFacts.v
+# src/Verse/Semantics/Store.v
+# src/Verse/Semantics.v
+# src/Verse/Semantics/NSemantics.v
+# src/Verse/Semantics/ScopeStore.v
+# src/Verse/Semantics/FunctionStore.v
+# src/Verse/TestCode/TestSemantics.v
+# src/Verse/Extraction/Ocaml.v
+# src/Verse/FFI/Raaz.v
+# src/Verse/CryptoLib/Names.v
+# src/Verse/CryptoLib/blake2.v
+# src/Verse/CryptoLib/blake2/c/portable.v
+# src/Verse/CryptoLib/blake2b/c/portable.v
+# src/Verse/CryptoLib/blake2s/c/portable.v
+# src/Verse/CryptoLib/chacha20/common.v
+# src/Verse/CryptoLib/chacha20/c/portable.v
+# src/Verse/CryptoLib/poly1305/c/portable.v
+# src/Verse/CryptoLib/sha2.v
+# src/Verse/CryptoLib/sha2/c/portable.v
+# src/Verse/CryptoLib/sha2/c/portableAlternate.v
+# src/Verse/CryptoLib/sha2/c/portableAnnotated.v
+# src/Verse/CryptoLib/sha256/c/portable.v
+# src/Verse/CryptoLib/sha512/c/portable.v
