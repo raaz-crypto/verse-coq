@@ -1,5 +1,5 @@
 Require Verse.TypeSystem.
-Require Verse.Word.
+Require Verse.Nibble.
 Require Import Arith.
 Import Nat.
 Set Implicit Arguments.
