@@ -1,8 +1,11 @@
 -R src Verse
+src/Verse/Language/Ast.v
+src/Verse/Nibble.v
 src/Verse/TypeSystem.v
 src/Verse/Word.v
-src/Verse/Language/Types.v
-src/Verse/Nibble.v
+
+
+
 
 # src/Verse/CoLoR_VecUtil.v
 # src/Verse/Tutorial.v
