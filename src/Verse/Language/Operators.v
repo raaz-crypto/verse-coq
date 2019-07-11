@@ -7,37 +7,7 @@ Require Import NArith.
 
 Set Implicit Arguments.
 
-(** * Arithmetic and bitwise operators.
-
-Most architectures allow various basic arithmetic and bitwise
-operations on values stored in the registers. These operations can be
-either [unary] or [binary].
-
-*)
-
-Inductive arity  := binary | unary.
-
-Inductive op : arity -> Type :=
-| plus    : op binary
-| minus   : op binary
-| mul     : op binary
-| quot    : op binary
-| rem     : op binary
-| bitOr   : op binary
-| bitAnd  : op binary
-| bitXor  : op binary
-| bitComp : op unary
-| rotL    : nat -> op unary
-| rotR    : nat -> op unary
-| shiftL  : nat -> op unary
-| shiftR  : nat -> op unary
-| nop     : op unary
-.
-
-Definition binop := op binary.
-Definition uniop := op unary.
-
-
+(*
 (** *** Semantics of operators.
 
 We need ways to define what an operator means. As in the case of the
@@ -141,4 +111,6 @@ End StandardWordOps.
 (** And here is the standard meaning of operations lifted to the type world *)
 (*
 Module StandardOps := OpDenote StandardWord StandardWordOps.
+*)
+
 *)

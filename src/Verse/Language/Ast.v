@@ -69,6 +69,38 @@ Definition const (t : type TypeSystem.direct) :=
 Canonical Structure verse_type_system : TypeSystem.typeSystem := TypeSystem.TypeSystem type const.
 
 
+(** ** Expressions.
+
+We begin defining expressions by defining operators for the expression
+language.  Most architectures allow various basic arithmetic and
+bitwise operations on values stored in the registers. These operations
+can be either [unary] or [binary] and are captured by the type [op]
+given below.
+
+*)
+
+Inductive arity  := binary | unary.
+
+Inductive op : arity -> Type :=
+| plus    : op binary
+| minus   : op binary
+| mul     : op binary
+| quot    : op binary
+| rem     : op binary
+| bitOr   : op binary
+| bitAnd  : op binary
+| bitXor  : op binary
+| bitComp : op unary
+| rotL    : nat -> op unary
+| rotR    : nat -> op unary
+| shiftL  : nat -> op unary
+| shiftR  : nat -> op unary
+| nop     : op unary
+.
+
+Definition binop := op binary.
+Definition uniop := op unary.
+
 (** Compute the size of a type in bytes. *)
 Fixpoint sizeOf {k} (ty : type k) :=
   match ty with
