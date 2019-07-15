@@ -129,6 +129,21 @@ Print instruction.
 Definition statement v := sigT (instruction v).
 Definition code v := list (statement v).
 
+
+(**
+
+Many cryptographic primitives work on streams of data that are divided
+into chunks of fixed size. The record [iterator] is essentially the
+body of the an iterator that works with such a stream of blocks of
+type [ty].
+
+*)
+Record iterator (ty : type TypeSystem.memory) v
+  := { setup    : code v;
+       process  : v TypeSystem.memory ty -> code v;
+       finalise : code v
+     }.
+
 (*
 
 (** Compute the size of a type in bytes. *)
@@ -388,20 +403,6 @@ Arguments UnsupportedInstruction [t tC vT aT instT instructionC].
 Arguments mkIncrement {t tC vT aT instT instructionC ty} _.
 Arguments mkDecrement {t tC vT aT instT instructionC ty} _.
 Arguments mkNOP [t tC vT aT instT instructionC].
-
-(**
-
-Many cryptographic primitives work on streams of data that are divided
-into chunks of fixed size. The record [iterator] is essentially the
-body of the an iterator that works with such a stream of blocks of
-type [ty].
-
-*)
-Record iterator (tyD : typeC TypeDenote) (ty : type memory)(v : VariableT)
-  := { setup    : code v;
-       process  : v memory ty -> code v;
-       finalise : code v
-     }.
 
 (* begin hide *)
 Arguments iterator [tyD] _ _.
