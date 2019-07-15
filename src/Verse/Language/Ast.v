@@ -96,6 +96,40 @@ Inductive op : nat -> Type :=
 | shiftR  : nat -> op 1
 .
 
+Require Vector.
+
+Section Instruction.
+  Variable v  : forall k, type k -> Type.
+  Variable ty : type TypeSystem.direct.
+
+  Inductive expr : Type :=
+  | cval     : const ty -> expr
+  | varValue : v ty -> expr
+  | Index    : forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> expr
+  | App      : forall {arity : nat}, op arity -> Vector.t expr arity -> expr.
+
+  (* Expressions that can occur on the left of an assignment. *)
+  Inductive lexpr : Type :=
+  | varLoc   :  v ty -> lexpr   (* Location associated with a variable *)
+  | arrayLoc :  forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> lexpr.
+
+
+  Inductive instruction : Type :=
+  | assign    : lexpr -> expr  -> instruction
+  | update    : forall n, op (S n) -> lexpr -> Vector.t expr n -> instruction
+  | increment : lexpr -> instruction
+  | decrement : lexpr -> instruction
+  | moveTo    : forall {b} {e}, v (array b e ty) ->  { i | i < b} -> v ty -> instruction
+  | clobber   : v ty -> instruction.
+
+End Instruction.
+
+Print instruction.
+
+Definition statement v := sigT (instruction v).
+Definition code v := list (statement v).
+
+(*
 
 (** Compute the size of a type in bytes. *)
 Fixpoint sizeOf {k} (ty : type k) :=
@@ -112,6 +146,7 @@ Fixpoint sizeOf {k} (ty : type k) :=
 
 Definition some {P: Type} (A : P -> Type) := sigT A.
 
+*)
 
 (*
 Require Import Verse.Types.
