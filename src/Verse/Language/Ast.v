@@ -114,6 +114,18 @@ Section Instruction.
   | arrayLoc :  forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> lexpr.
 
 
+  (** L-expressions have an associated value (R-expression form). We
+      give a uniform way to convert from L-expression to
+      R-expressions.
+
+   *)
+  Definition lexprToExpr (le : lexpr) :=
+    match le with
+    | varLoc v => varValue v
+    | arrayLoc v i => Index v i
+    end.
+  Coercion lexprToExpr  : lexpr >-> expr.
+
   Inductive instruction : Type :=
   | assign    : lexpr -> expr  -> instruction
   | update    : forall n, op (S n) -> lexpr -> Vector.t expr n -> instruction
