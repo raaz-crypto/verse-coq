@@ -105,8 +105,8 @@ Section Instruction.
   Inductive expr : Type :=
   | cval     : const ty -> expr
   | varValue : v ty -> expr
-  | Index    : forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> expr
-  | App      : forall {arity : nat}, op arity -> Vector.t expr arity -> expr.
+  | index    : forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> expr
+  | app      : forall {arity : nat}, op arity -> Vector.t expr arity -> expr.
 
   (* Expressions that can occur on the left of an assignment. *)
   Inductive lexpr : Type :=
@@ -122,7 +122,7 @@ Section Instruction.
   Definition lexprToExpr (le : lexpr) :=
     match le with
     | varLoc v => varValue v
-    | arrayLoc v i => Index v i
+    | arrayLoc v i => index v i
     end.
   Coercion lexprToExpr  : lexpr >-> expr.
 
@@ -135,8 +135,6 @@ Section Instruction.
   | clobber   : v ty -> instruction.
 
 End Instruction.
-
-Print instruction.
 
 Definition statement v := sigT (instruction v).
 Definition code v := list (statement v).

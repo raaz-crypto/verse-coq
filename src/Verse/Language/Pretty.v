@@ -10,15 +10,17 @@ Require Import Omega.
 Import ListNotations.
 
 Set Implicit Arguments.
+
 (** * Notation and Pretty printing.
 
 
 A user is expected to define a program by giving a list of
-[instruction]s. Expressing instructions directly using the
-constructors of the [arg] and [instruction] types can be painful. We
-expose some convenient notations for simplifying this task. Note that
-in the notations below, the operands of the instruction can either be
-variables or constants or indexed arrays.
+[instruction]s. Expressing instructions/expressions directly using the
+constructors can be painful particularly when many of the elements
+expect proof of correctness due to the correct by construction
+situation. We expose some convenient notations for simplifying this
+task. Note that in the notations below, the operands of the
+instruction can either be variables or constants or indexed arrays.
 
 It is convenient to have a pretty printed syntax for instructions in
 verse. We give a C-like pretty printing for verse instructions defined
@@ -26,8 +28,31 @@ over variables that can themselves be pretty printed.
 
 *)
 
+(* ** Expression syntax.
 
 
+ *)
+Require Verse.Language.Ast.
+Print Ast.app.
+Infix "+" := (Ast.app Ast.plus)  (at level 50, left associativity).
+Infix "-" := (Ast.app Ast.minus) (at level 50, left associativity).
+Infix "*" := (Ast.app Ast.mul)   (at level 40, left associativity).
+Infix "/" := (Ast.app Ast.quot)  (at level 40, left associativity).
+Infix "%" := (Ast.app Ast.rem)   (at level 40, left associativity).
+
+
+Notation "A ::= B | C" := (inst (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B & C" := (inst (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+Notation "A ::= B ^ C" := (inst (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+
+
+(* ** Array like indexing.
+
+One of the obvious things that
+
+*)
+
+(*
 
 (* begin hide *)
 
@@ -379,3 +404,5 @@ operands of the programming fragment.
 *)
 
 End Demo.
+
+*)
