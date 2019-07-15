@@ -74,32 +74,28 @@ Canonical Structure verse_type_system : TypeSystem.typeSystem := TypeSystem.Type
 We begin defining expressions by defining operators for the expression
 language.  Most architectures allow various basic arithmetic and
 bitwise operations on values stored in the registers. These operations
-can be either [unary] or [binary] and are captured by the type [op]
-given below.
+are captured by the type [op] which is parameterised by the arity of
+the operation.
 
 *)
 
-Inductive arity  := binary | unary.
 
-Inductive op : arity -> Type :=
-| plus    : op binary
-| minus   : op binary
-| mul     : op binary
-| quot    : op binary
-| rem     : op binary
-| bitOr   : op binary
-| bitAnd  : op binary
-| bitXor  : op binary
-| bitComp : op unary
-| rotL    : nat -> op unary
-| rotR    : nat -> op unary
-| shiftL  : nat -> op unary
-| shiftR  : nat -> op unary
-| nop     : op unary
+Inductive op : nat -> Type :=
+| plus    : op 2
+| minus   : op 2
+| mul     : op 2
+| quot    : op 2
+| rem     : op 2
+| bitOr   : op 2
+| bitAnd  : op 2
+| bitXor  : op 2
+| bitComp : op 1
+| rotL    : nat -> op 1
+| rotR    : nat -> op 1
+| shiftL  : nat -> op 1
+| shiftR  : nat -> op 1
 .
 
-Definition binop := op binary.
-Definition uniop := op unary.
 
 (** Compute the size of a type in bytes. *)
 Fixpoint sizeOf {k} (ty : type k) :=
