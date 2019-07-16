@@ -37,6 +37,7 @@ We begin by defining the types for the language.
 Require Verse.TypeSystem.
 Require Verse.Nibble.
 Require Import Arith.
+Require Import NArith.
 Import Nat.
 Set Implicit Arguments.
 
@@ -65,6 +66,19 @@ Definition const (t : type TypeSystem.direct) :=
   | word n => Nibble.bytes (2^n)
   | multiword m n => Vector.t (Nibble.bytes (2^n))  (2 ^ m)
   end.
+
+
+Definition NToConst (ty : type TypeSystem.direct) (num : N) : const ty
+  := match ty in type TypeSystem.direct return const ty with
+     | word n => Nibble.fromN num
+     | multiword m n => Vector.const (Nibble.fromN num) (2^m)
+     end.
+
+Definition natToConst (ty : type TypeSystem.direct) (num : nat) : const ty
+  := match ty in type TypeSystem.direct return const ty with
+         | word n => Nibble.fromNat num
+         | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
+     end.
 
 Canonical Structure verse_type_system : TypeSystem.typeSystem := TypeSystem.TypeSystem type const.
 
