@@ -98,8 +98,9 @@ Inductive op : nat -> Type :=
 
 Require Vector.
 
+Definition VariableT := forall k, forall ty : type k, Type.
 Section Instruction.
-  Variable v  : forall k, type k -> Type.
+  Variable v  : VariableT.
   Variable ty : type TypeSystem.direct.
 
   Inductive expr : Type :=
@@ -119,12 +120,12 @@ Section Instruction.
       R-expressions.
 
    *)
-  Definition lexprToExpr (le : lexpr) :=
+
+  Coercion lexprToExpr (le : lexpr) :=
     match le with
     | varLoc v => varValue v
     | arrayLoc v i => index v i
     end.
-  Coercion lexprToExpr  : lexpr >-> expr.
 
   Inductive instruction : Type :=
   | assign    : lexpr -> expr  -> instruction
