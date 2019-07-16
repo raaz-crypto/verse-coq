@@ -1,30 +1,11 @@
-Require Import Verse.Types.
-Require Import Verse.Types.Internal.
-Require Import Verse.Syntax.
-Require Import Verse.Language.Ast.
-Require Import Verse.Language.Operators.
-Require Import Verse.Error.
-
-Require Import List.
-Require Import Omega.
-Import ListNotations.
-
-Set Implicit Arguments.
-
 (** * Notation and Pretty printing.
 
-
-A user is expected to define a program by giving a list of
-[instruction]s. Expressing instructions/expressions directly using the
-constructors can be painful particularly when many of the elements
-expect proof of correctness due to the correct by construction
-situation. We expose some convenient notations for simplifying this
-task. Note that in the notations below, the operands of the
-instruction can either be variables or constants or indexed arrays.
-
-It is convenient to have a pretty printed syntax for instructions in
-verse. We give a C-like pretty printing for verse instructions defined
-over variables that can themselves be pretty printed.
+Programs are essentially just objects of type [code] and one can
+construct these objects by applying the appropriate
+constructors. Often these constructors are designed to be correct by
+construction which is achieved by there being additional parameters
+which are proofs of safety. This module gives a set of Notations that
+makes the surface syntax of these objects palatable to the user.
 
 *)
 
@@ -32,18 +13,136 @@ over variables that can themselves be pretty printed.
 
 
  *)
-Require Verse.Language.Ast.
-Print Ast.app.
-Infix "+" := (Ast.app Ast.plus)  (at level 50, left associativity).
-Infix "-" := (Ast.app Ast.minus) (at level 50, left associativity).
-Infix "*" := (Ast.app Ast.mul)   (at level 40, left associativity).
-Infix "/" := (Ast.app Ast.quot)  (at level 40, left associativity).
-Infix "%" := (Ast.app Ast.rem)   (at level 40, left associativity).
+Require Import NArith.
+Require        Verse.TypeSystem.
+Require Import Verse.Language.Ast.
+Require        Vector.
+Import         Vector.VectorNotations.
+Require Import Verse.Nibble.
+
+Set Implicit Arguments.
 
 
-Notation "A ::= B | C" := (inst (assign (assign3 bitOr (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
-Notation "A ::= B & C" := (inst (assign (assign3 bitAnd (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
-Notation "A ::= B ^ C" := (inst (assign (assign3 bitXor (toLArg A) (toRArg B) (toRArg C))))  (at level 70, B at level 29).
+(* DEVELOPER notes.
+
+We can avoid all type classes and move over to canonical structures if
+that is what we are going to use in the rest of the code
+
+*)
+
+
+Section Embedding.
+  Variable v : VariableT.
+  Variable ty : type TypeSystem.direct.
+  Global Class EXPR  t := { toExpr  : t -> expr v ty }.
+
+
+  Global Instance expr_to_expr   : EXPR (expr v ty)   := { toExpr := fun t => t}.
+  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := varValue v ty }.
+  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := cval v ty }.
+
+  Global Instance nat_to_exp     : EXPR nat
+  := { toExpr := fun n => cval v ty (Ast.natToConst ty n)}.
+
+  Global Instance N_to_exp       : EXPR N
+  := { toExpr := fun n => cval v ty (Ast.NToConst ty n)}.
+
+
+  Global Class LEXPR t := { toLexpr : t -> lexpr v ty }.
+
+  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := varLoc v ty }.
+  Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := { toLexpr := fun t => t}.
+
+
+  Section Operators.
+    Variable t1 t2 : Type.
+    Variable t     : Type.
+    Variable class1 : EXPR t1.
+    Variable class2 : EXPR t2.
+    Variable class  : LEXPR t.
+
+    Definition binOpApp (o : Ast.op 2) (e1 : t1) (e2 : t2)
+      :=  Ast.app o [toExpr e1 ; toExpr e2].
+
+    Definition binOpUpdate (o : Ast.op 2) (x : t)(e : t1)
+      := Ast.update o (toLexpr x) [toExpr e].
+
+    Definition uniOpUpdate (o : Ast.op 1) (x : t)
+      := Ast.update o (toLexpr x) [].
+
+    Definition uniOpApp (o : Ast.op 1) (e : t1)
+    :=  Ast.app o [toExpr e].
+
+    End Operators.
+End Embedding.
+
+Arguments binOpApp [v ty t1 t2 class1 class2].
+Arguments binOpUpdate [v ty t1 t class1 class].
+Arguments uniOpApp [v ty t1 class1].
+Arguments uniOpUpdate [v ty t class].
+
+
+Class INDEXING (Ix : Set)(result : Type) t
+  := { idx : t -> Ix  -> result }.
+
+Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < b -> t) :=
+  { idx := fun f ix => match ix with
+                   | @exist _ _ i pf => f i pf
+                   end
+  }.
+
+Instance array_indexing v ty b e : INDEXING {i | i < b}
+                                            (expr v ty)
+                                            (v TypeSystem.memory (array b e ty))
+  := { idx := fun a =>  @index v ty b e a }.
+
+
+
+
+
+
+Notation "A [- N -] " := (arrayLoc A (@exist _ _ N%nat _)) (at level 29).
+
+
+Notation "'neg' E"  := (uniOpApp Ast.bitComp E)      (at level 30, right associativity).
+Infix "*"           := (binOpApp Ast.mul)            (at level 40, left associativity).
+Infix "/"           := (binOpApp Ast.quot)           (at level 40, left associativity).
+Infix "%"           := (binOpApp Ast.rem)            (at level 40, left associativity).
+Infix "+"           := (binOpApp Ast.plus)           (at level 50, left associativity).
+Infix "-"           := (binOpApp Ast.minus)          (at level 50, left associativity).
+Notation "E  <<  N" := (uniOpApp (Ast.shiftL N) E)   (at level 55, left associativity).
+Notation "E  >>  N" := (uniOpApp (Ast.shiftR N) E)   (at level 55, left associativity).
+Notation "E <<<  N" := (uniOpApp (Ast.rotL N)   E)   (at level 55, left associativity).
+Notation "E >>>  N" := (uniOpApp (Ast.rotR N)   E)   (at level 55, left associativity).
+Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associativity).
+
+(*
+
+The precedence of this operator does not match that of the C because ^
+has a definition already in Coq
+
+ *)
+Infix "^"           := (binOpApp Ast.bitXor)         (at level 30, right associativity).
+
+
+Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
+
+Notation "V ::= E"   := (assign V E)                 (at level 70).
+
+Notation "A ::=+ B " := (binOpUpdate (Ast.plus)   A B) (at level 70).
+Notation "A ::=- B"  := (binOpUpdate (Ast.minus)  A B) (at level 70).
+Notation "A ::=* B"  := (binOpUpdate (Ast.mul)    A B) (at level 70).
+Notation "A ::=/ B"  := (binOpUpdate (Ast.quot)   A B) (at level 70).
+Notation "A ::=% B"  := (binOpUpdate (Ast.rem)    A B) (at level 70).
+Notation "A ::=| B"  := (binOpUpdate (Ast.bitOr)  A B) (at level 70).
+Notation "A ::=& B"  := (binOpUpdate (Ast.bitAnd) A B) (at level 70).
+Notation "A ::=^ B"  := (binOpUpdate (Ast.bitXor) A B) (at level 70).
+
+Notation "A ::=<< N"  := (uniOpUpdate (Ast.shiftL N) A)   (at level 70).
+Notation "A ::=>> N"  := (uniOpUpdate (Ast.shiftR N) A)   (at level 70).
+Notation "A ::=<<< N" := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
+Notation "A ::=>>> N" := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
+
 
 
 (* ** Array like indexing.
@@ -60,18 +159,12 @@ One of the obvious things that
 Class LARG (v : VariableT)(k : kind)(ty : type k) t  := { toLArg : t -> arg v lval ty }.
 Class RARG (v : VariableT)(k : kind)(ty : type k) t  := { toRArg : t -> arg v rval ty }.
 
-Class IndexArg (Ix : Set)(result : Type) t
-  := { deref : t -> Ix  -> result }.
 
 Section ARGInstances.
   Variable v  : VariableT.
   Variable k  : kind.
   Variable ty : type k .
 
-  Global Instance larg_of_argv : LARG v ty (arg v lval ty) := { toLArg := fun t => t} .
-  Global Instance rarg_of_argv : RARG v ty (arg v rval ty) := { toRArg := fun t => t}.
-  Global Instance larg_of_v    : LARG v ty (v ty)    := { toLArg := fun t => var t}.
-  Global Instance rarg_of_v    : RARG v ty (v ty)    := { toRArg := fun t => var t}.
 
 
 End ARGInstances.
@@ -95,14 +188,7 @@ Section Indexing.
                             end}.
 End Indexing.
 
-Global Instance const_arg_v (v : VariableT)(ty : type direct) : RARG v ty (Types.constant ty)
-  := { toRArg := @const v ty }.
 
-Global Instance nat_arg_v (v : VariableT)(ty : type direct) : RARG v ty nat
-  := { toRArg := fun n => @const v ty (natToConstant ty n)}.
-
-Global Instance N_arg_v (v : VariableT)(ty : type direct) : RARG v ty N
-  := { toRArg := fun n => @const v ty (NToConstant ty n)}.
 (* end hide *)
 
 Notation "A [- N -]"     := (deref A (@exist _ _ N%nat _)) (at level 29).

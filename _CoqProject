@@ -1,5 +1,6 @@
 -R src Verse
 src/Verse/Language/Ast.v
+src/Verse/Language/Pretty.v
 src/Verse/Nibble.v
 src/Verse/TypeSystem.v
 src/Verse/Word.v
@@ -17,7 +18,6 @@ src/Verse/Word.v
 # src/Verse/Language/Ast.v
 # src/Verse/Language/Operators.v
 # src/Verse/Language/Utils.v
-# src/Verse/Language/Pretty.v
 # src/Verse/Syntax.v
 # src/Verse/Types.v
 # src/Verse/Types/Internal.v
