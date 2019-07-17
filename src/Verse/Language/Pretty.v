@@ -89,6 +89,12 @@ Section Embedding.
     Variable class2 : EXPR t2.
     Variable class  : LEXPR t.
 
+    Definition assignStmt (x : t) (e1 : t1) : statement v
+      := existT _ ty (Ast.assign (toLexpr x)  (toExpr e1)).
+
+     Definition moveStmt (lhs : t) (x : v ty) : statement v
+      := existT _ ty (Ast.moveTo (toLexpr lhs) x).
+
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
     Definition binOpApp (o : Ast.op 2) (e1 : t1) (e2 : t2)
@@ -108,12 +114,15 @@ Section Embedding.
 
     (** Update a given lexpression using the given unary operator
         [o]. *)
-    Definition uniOpUpdate (o : Ast.op 1) (x : t)
+    Definition uniOpUpdate (o : Ast.op 1) (x : t) : statement v
       := existT _ ty (Ast.update o (toLexpr x) []).
 
     End Operators.
 End Embedding.
 
+
+Arguments assignStmt [v ty t1 t class1 class].
+Arguments moveStmt [v ty t class].
 Arguments binOpApp [v ty t1 t2 class1 class2].
 Arguments binOpUpdate [v ty t1 t class1 class].
 Arguments uniOpApp [v ty t1 class1].
@@ -140,7 +149,7 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
 Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
-  := { idx := fun a =>  @index v ty b e a }.
+  := { idx := fun a ix =>  @index v ty b e a ix }.
 
 
 
@@ -158,7 +167,7 @@ precedence in Coq.
 *)
 
 
-Infix "^"           := (binOpApp Ast.bitXor)         (at level 30, right associativity).
+Infix  "^"          := (binOpApp Ast.bitXor)         (at level 30, right associativity).
 Notation "'neg' E"  := (uniOpApp Ast.bitComp E)      (at level 30, right associativity).
 Infix "*"           := (binOpApp Ast.mul)            (at level 40, left associativity).
 Infix "/"           := (binOpApp Ast.quot)           (at level 40, left associativity).
@@ -173,8 +182,8 @@ Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associat
 Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
 
 
-Notation "V ::= E"   := (existT _ (assign (toLexpr V) E))       (at level 70).
-Notation "V <- A"     := (existT _ (moveTo   (toLexpr V) A))     (at level 70).
+Notation "V ::= E"   := (assignStmt V E)               (at level 70).
+Notation "V <- A"     := (moveStmt V A)                 (at level 70).
 Notation "A ::=+ B " := (binOpUpdate (Ast.plus)   A B) (at level 70).
 Notation "A ::=- B"  := (binOpUpdate (Ast.minus)  A B) (at level 70).
 Notation "A ::=* B"  := (binOpUpdate (Ast.mul)    A B) (at level 70).
@@ -184,11 +193,11 @@ Notation "A ::=| B"  := (binOpUpdate (Ast.bitOr)  A B) (at level 70).
 Notation "A ::=& B"  := (binOpUpdate (Ast.bitAnd) A B) (at level 70).
 Notation "A ::=^ B"  := (binOpUpdate (Ast.bitXor) A B) (at level 70).
 
-Notation "A ::=<< N"  := (uniOpUpdate (Ast.shiftL N) A)   (at level 70).
-Notation "A ::=>> N"  := (uniOpUpdate (Ast.shiftR N) A)   (at level 70).
-Notation "A ::=<<< N" := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
-Notation "A ::=>>> N" := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
-
+Notation "A ::=<< N"   := (uniOpUpdate (Ast.shiftL N) A)   (at level 70).
+Notation "A ::=>> N"   := (uniOpUpdate (Ast.shiftR N) A)   (at level 70).
+Notation "A ::=<<< N"  := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
+Notation "A ::=>>> N"  := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
+Notation "'CLOBBER' A" := (existT _ _ (clobber A))        (at level 70).
 
 (** * The verse tactic.
 
@@ -231,7 +240,7 @@ Ltac verse_print_mesg :=  match goal with
                           | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
                           | [ |- LEXPR _ _ _   ]  => idtac "verse: possible ill-typed operands in instructions"
                           | [ |- EXPR _ _ _    ]  => idtac "verse: possible ill-typed operands in instructions"
-                          | _                     => verse_warn; idtac "please handle these obligations yourself"
+                          | _                    => verse_warn; idtac "please handle these obligations yourself"
                           end.
 
 Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
