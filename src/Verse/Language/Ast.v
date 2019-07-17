@@ -196,6 +196,7 @@ Section Instruction.
 
 End Instruction.
 
+Arguments clobber [v ty].
 Definition statement v := sigT (instruction v).
 Definition code v := list (statement v).
 
