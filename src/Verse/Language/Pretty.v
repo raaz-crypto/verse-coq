@@ -95,8 +95,8 @@ Section Embedding.
     (** Update instruction which uses an input binary operator to
         update the l-expression [x].  *)
 
-    Definition binOpUpdate (o : Ast.op 2) (x : t)(e : t1)
-      := Ast.update o (toLexpr x) [toExpr e].
+    Definition binOpUpdate (o : Ast.op 2) (x : t)(e : t1) : statement v
+      := existT _ ty (Ast.update o (toLexpr x) [toExpr e]).
 
 
     (** Applies the unary operator [o] to the value [e] that is
@@ -107,7 +107,7 @@ Section Embedding.
     (** Update a given lexpression using the given unary operator
         [o]. *)
     Definition uniOpUpdate (o : Ast.op 1) (x : t)
-      := Ast.update o (toLexpr x) [].
+      := existT _ ty (Ast.update o (toLexpr x) []).
 
     End Operators.
 End Embedding.
@@ -170,8 +170,9 @@ Notation "E >>>  N" := (uniOpApp (Ast.rotR N)   E)   (at level 55, left associat
 Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associativity).
 Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
 
-Notation "V ::= E"   := (assign (toLexpr V) E)       (at level 70).
-Notation "V <- A"     := (moveTo   (toLexpr V) A)       (at level 70).
+
+Notation "V ::= E"   := (existT _ (assign (toLexpr V) E))       (at level 70).
+Notation "V <- A"     := (existT _ (moveTo   (toLexpr V) A))     (at level 70).
 Notation "A ::=+ B " := (binOpUpdate (Ast.plus)   A B) (at level 70).
 Notation "A ::=- B"  := (binOpUpdate (Ast.minus)  A B) (at level 70).
 Notation "A ::=* B"  := (binOpUpdate (Ast.mul)    A B) (at level 70).
