@@ -1,34 +1,33 @@
-Require Import Verse.
-Require Import Verse.Arch.C.
-
-Require Import NArith.
-Require Import Vector.
-Import VectorNotations.
-
+Require Import Verse.Language.
+Require Import String.
+Import List.ListNotations.
 Section TestFunction.
 
   Variable variable : VariableT.
 
   Arguments variable [k] _.
   (* The parameters of the function *)
-  Variable arr     : variable (Array 5 bigE Word16).
+  Variable arr     : variable (array 5 bigE Word16).
   Variable A B     : variable Byte.
 
-  Definition parameters := [Var arr; Var A; Var B].
+
+  (* Definition parameters := [Var arr; Var A; Var B]. *)
 
   (* The local variables *)
   Variable num      : variable Word16.
 
-  Definition locals := [Var num].
+  (*
+  Definition locals := [Var num]. *)
 
   (* The temp register *)
   Variable tmp       : variable Word16.
 
-  Definition registers := [Var tmp].
-  Definition regAssignment := (- cr uint16_t "temp" -).
+  (* Definition registers := [Var tmp]. *)
+
+  Require Import Omega.
+  (* Definition regAssignment := (- cr uint16_t "temp" -). *)
   Definition someInstruction i (_ : i < 5) : code variable.
-    Import Nat.
-    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] ]%list.
+    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] + tmp + 1]%list.
   Defined.
 
   Definition testFunction : code variable.
@@ -44,7 +43,7 @@ Section TestFunction.
       (* binary update *)
       num ::=+ tmp;
       num ::=- arr[-1-];
-      num ::=* Ox"1234";
+      num ::=* Ox "1234";
       num ::=/ tmp;
       num ::=| 5;
       num ::=& tmp;
