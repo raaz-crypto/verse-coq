@@ -15,6 +15,7 @@ syntax of these code values palatable to the user.
 *)
 
 Require Import NArith.
+Require Import Nat.
 Require        Verse.TypeSystem.
 Require Import Verse.Language.Ast.
 Require        Vector.
@@ -189,6 +190,52 @@ Notation "A ::=<<< N" := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
 Notation "A ::=>>> N" := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
 
 
+(** * The verse tactic.
+
+The notations clean up the surface syntax but it still leaves routine
+but tedious proof burden on to the shoulders of the programmer. We
+dispose this of using the tactic called verse. Usually this is the
+proof obligations that come out of array indexing. The verse tatic
+disposes it of and raises a warning when it cannot (usually these are
+out of bound array access).
+
+*)
+
+Ltac  verse_warn :=
+  match goal with
+  | [ |- ?T ] => idtac "verse: unable to dispose of" T
+  end.
+
+Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
+Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
+
+Global Hint Resolve NPeano.Nat.mod_upper_bound.
+
+(* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
+
+ *)
+Require Import Omega.
+
+Ltac verse_simplify := match goal with
+                       | [ H : ?T |- ?T ]     => exact H
+                       | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
+                       | [ |- ?A mod ?B < ?B ] => apply (NPeano.Nat.mod_upper_bound A B)
+                       | [ |- _ <= ?T         ] => compute; omega
+                       | [ |- _ < ?T         ] => compute; omega
+                       end.
+
+
+Ltac verse_print_mesg :=  match goal with
+                          | [ |- _ < _         ]  => verse_bounds_warn
+                          | [ |- _ <= _         ] => verse_bounds_warn
+                          | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
+                          | [ |- LEXPR _ _ _   ]  => idtac "verse: possible ill-typed operands in instructions"
+                          | [ |- EXPR _ _ _    ]  => idtac "verse: possible ill-typed operands in instructions"
+                          | _                     => verse_warn; idtac "please handle these obligations yourself"
+                          end.
+
+Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
+
 
 (* ** Array like indexing.
 
@@ -308,40 +355,6 @@ proof that the bounds are not violated. We use the following tactic to
 dispose off all such obligations.
 
 *)
-
-
-Ltac  verse_warn :=
-  match goal with
-  | [ |- ?T ] => idtac "verse: unable to dispose of" T
-  end.
-
-Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
-Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
-
-Global Hint Resolve NPeano.Nat.mod_upper_bound.
-
-(* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
-
-*)
-Ltac verse_simplify := match goal with
-                       | [ H : ?T |- ?T ]     => exact H
-                       | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
-                       | [ |- ?A mod ?B < ?B ] => apply (NPeano.Nat.mod_upper_bound A B)
-                       | [ |- _ <= ?T         ] => compute; omega
-                       | [ |- _ < ?T         ] => compute; omega
-                       end.
-
-
-Ltac verse_print_mesg :=  match goal with
-                          | [ |- _ < _         ]  => verse_bounds_warn
-                          | [ |- _ <= _         ] => verse_bounds_warn
-                          | [ |- _ < _         ]  => verse_warn; idtac "possible array index out of bound"
-                          | [ |- LARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
-                          | [ |- RARG _ _ _ _  ]  => idtac "verse: possible ill-typed operands in instructions"
-                          | _                     => verse_warn; idtac "please handle these obligations yourself"
-                          end.
-
-Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
 
 
 (* Local sample code to test error message
