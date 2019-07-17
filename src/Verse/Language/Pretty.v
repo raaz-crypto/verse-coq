@@ -1,18 +1,19 @@
 (** * Notation and Pretty printing.
 
-Programs are essentially just objects of type [code] and one can
+Programs are essentially just values of type [code] and one can
 construct these objects by applying the appropriate
-constructors. Often these constructors are designed to be correct by
-construction which is achieved by there being additional parameters
-which are proofs of safety. This module gives a set of Notations that
-makes the surface syntax of these objects palatable to the user.
+constructors. Often these constructors are designed so that the
+underlying program construct is _correct by construction_ --- for
+example array indexing requires a proof that the index is smaller than
+the array bound. This is achieved by there being additional parameters
+to the constructor which are proofs of safety.
+
+Creating such objects explicitly by applying constructors can be
+painful. This module gives a set of Notations that makes the surface
+syntax of these code values palatable to the user.
 
 *)
 
-(* ** Expression syntax.
-
-
- *)
 Require Import NArith.
 Require        Verse.TypeSystem.
 Require Import Verse.Language.Ast.
@@ -31,29 +32,54 @@ that is what we are going to use in the rest of the code
 *)
 
 
+(** * Types embeddable as expressions
+
+For program variables [v : VariableT] and a verse type [ty] recall
+that [expr v ty] type captures expressions in verse. We would like to
+consider other types like, [nat] constants, program variables [x : v ty]
+etc, to be considered as verse expressions. We do this in two stages.
+
+* We have the class [EXPR] that declares instances which can be
+  converted to [expr]. Some of the instances of this class are [v ty],
+  [nat]'s and [expr]'s themselves.
+
+* We use infix operators like [+] etc to combine instances of [EXPR]
+  to get new expressions. Thus we can embed many of the common types
+  as expressions.
+
+
+*)
+
 Section Embedding.
   Variable v : VariableT.
   Variable ty : type TypeSystem.direct.
+
+  (** Class of all types [t] that can be converted into expressions *)
   Global Class EXPR  t := { toExpr  : t -> expr v ty }.
 
 
-  Global Instance expr_to_expr   : EXPR (expr v ty)   := { toExpr := fun t => t}.
-  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := varValue v ty }.
-  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := cval v ty }.
+  (** *** Instances of [EXPR]
+   *)
 
+  Global Instance expr_to_expr   : EXPR (expr  v ty)  := { toExpr := fun t => t}.
+  Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := { toExpr := fun x => valueOf x}.
+  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := cval v ty }.
   Global Instance nat_to_exp     : EXPR nat
   := { toExpr := fun n => cval v ty (Ast.natToConst ty n)}.
 
   Global Instance N_to_exp       : EXPR N
   := { toExpr := fun n => cval v ty (Ast.NToConst ty n)}.
 
-
+  (** Class similar to [EXPR] but creates l-expressions *)
   Global Class LEXPR t := { toLexpr : t -> lexpr v ty }.
 
-  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := varLoc v ty }.
   Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := { toLexpr := fun t => t}.
+  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := var v ty }.
 
 
+
+  (** We now define helper functions that "lift" verse operators to
+      work with instances of [EXPR].  *)
   Section Operators.
     Variable t1 t2 : Type.
     Variable t     : Type.
@@ -61,17 +87,27 @@ Section Embedding.
     Variable class2 : EXPR t2.
     Variable class  : LEXPR t.
 
+    (** Applies the binary operator [o] to two values [e1] and [e2]
+        both of which are convertable to expressions.  *)
     Definition binOpApp (o : Ast.op 2) (e1 : t1) (e2 : t2)
       :=  Ast.app o [toExpr e1 ; toExpr e2].
+
+    (** Update instruction which uses an input binary operator to
+        update the l-expression [x].  *)
 
     Definition binOpUpdate (o : Ast.op 2) (x : t)(e : t1)
       := Ast.update o (toLexpr x) [toExpr e].
 
-    Definition uniOpUpdate (o : Ast.op 1) (x : t)
-      := Ast.update o (toLexpr x) [].
 
+    (** Applies the unary operator [o] to the value [e] that is
+        convertible to expression. *)
     Definition uniOpApp (o : Ast.op 1) (e : t1)
     :=  Ast.app o [toExpr e].
+
+    (** Update a given lexpression using the given unary operator
+        [o]. *)
+    Definition uniOpUpdate (o : Ast.op 1) (x : t)
+      := Ast.update o (toLexpr x) [].
 
     End Operators.
 End Embedding.
@@ -81,6 +117,14 @@ Arguments binOpUpdate [v ty t1 t class1 class].
 Arguments uniOpApp [v ty t1 class1].
 Arguments uniOpUpdate [v ty t class].
 
+(** * Indexing types.
+
+Often we want to index elements withing a bound. The class [INDEXING]
+captures such types. Array variables are usual objects but we have an
+instance for generic indexing functions. The indexing functions
+give
+
+*)
 
 Class INDEXING (Ix : Set)(result : Type) t
   := { idx : t -> Ix  -> result }.
@@ -92,7 +136,7 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
   }.
 
 Instance array_indexing v ty b e : INDEXING {i | i < b}
-                                            (expr v ty)
+                                            (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
   := { idx := fun a =>  @index v ty b e a }.
 
@@ -101,9 +145,18 @@ Instance array_indexing v ty b e : INDEXING {i | i < b}
 
 
 
-Notation "A [- N -] " := (arrayLoc A (@exist _ _ N%nat _)) (at level 29).
+Notation "A [- N -] " := (idx A (@exist _ _ N%nat _)) (at level 29).
+
+(** Notation for operators.
+
+We more or less follow the C convention for operator and their
+precedence except for the operator [^] which has a predefined
+precedence in Coq.
+
+*)
 
 
+Infix "^"           := (binOpApp Ast.bitXor)         (at level 30, right associativity).
 Notation "'neg' E"  := (uniOpApp Ast.bitComp E)      (at level 30, right associativity).
 Infix "*"           := (binOpApp Ast.mul)            (at level 40, left associativity).
 Infix "/"           := (binOpApp Ast.quot)           (at level 40, left associativity).
@@ -115,20 +168,10 @@ Notation "E  >>  N" := (uniOpApp (Ast.shiftR N) E)   (at level 55, left associat
 Notation "E <<<  N" := (uniOpApp (Ast.rotL N)   E)   (at level 55, left associativity).
 Notation "E >>>  N" := (uniOpApp (Ast.rotR N)   E)   (at level 55, left associativity).
 Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associativity).
-
-(*
-
-The precedence of this operator does not match that of the C because ^
-has a definition already in Coq
-
- *)
-Infix "^"           := (binOpApp Ast.bitXor)         (at level 30, right associativity).
-
-
 Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
 
-Notation "V ::= E"   := (assign V E)                 (at level 70).
-
+Notation "V ::= E"   := (assign (toLexpr V) E)       (at level 70).
+Notation "V <- A"     := (moveTo   (toLexpr V) A)       (at level 70).
 Notation "A ::=+ B " := (binOpUpdate (Ast.plus)   A B) (at level 70).
 Notation "A ::=- B"  := (binOpUpdate (Ast.minus)  A B) (at level 70).
 Notation "A ::=* B"  := (binOpUpdate (Ast.mul)    A B) (at level 70).
