@@ -83,6 +83,32 @@ Definition natToConst (ty : type TypeSystem.direct) (num : nat) : const ty
 Canonical Structure verse_type_system : TypeSystem.typeSystem := TypeSystem.TypeSystem type const.
 
 
+(** Standard word types/scalars *)
+Notation Byte   := (word 0).
+Notation Word8  := (word 0).
+Notation Word16 := (word 1).
+Notation Word32 := (word 2).
+Notation Word64 := (word 3).
+
+(**
+The logSize of a direct type measures the size of the word in
+logarithmic scale.  This is often a convenient way to measure the
+length because of the fact that [word n] type denotes the word of
+[2^n] bytes.
+*)
+
+Definition logSize (ty : type TypeSystem.direct) : nat :=
+  match ty with
+  | word n => n
+  | multiword m n => m + n
+  end.
+Definition size (ty : type TypeSystem.direct) : nat := 2 ^ logSize ty.
+
+(* Array constructor *)
+Definition Array  := array.
+Definition Ref (ty : type TypeSystem.direct) : type TypeSystem.memory := array 1 hostE ty.
+
+
 (** ** Expressions.
 
 We begin defining expressions by defining operators for the expression
