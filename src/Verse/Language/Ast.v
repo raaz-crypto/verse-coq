@@ -117,36 +117,55 @@ Section Instruction.
   Variable v  : VariableT.
   Variable ty : type TypeSystem.direct.
 
+
+  (** Expressions that can occur on the left of an assignment. *)
+  Inductive lexpr : Type :=
+  | var   :  v ty -> lexpr   (* Location associated with a variable *)
+  | index :  forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> lexpr.
+
+
+  (** The expression type *)
   Inductive expr : Type :=
   | cval     : const ty -> expr
-  | varValue : v ty -> expr
-  | index    : forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> expr
+  | valueOf  : lexpr -> expr
   | app      : forall {arity : nat}, op arity -> Vector.t expr arity -> expr.
 
-  (* Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : Type :=
-  | varLoc   :  v ty -> lexpr   (* Location associated with a variable *)
-  | arrayLoc :  forall {b : nat}{e : endian}, v (array b e ty) -> {i | i < b} -> lexpr.
+  Coercion valueOf : lexpr >-> expr.
 
+  (** Verse supports assignments which stores into its lhs the value
+      of the expression on its rhs. Furthermore, like C, it also
+      supports special forms of assignments namely updates, increments
+      and decrements. There are two instructions that are unique to
+      verse which deserve some mention.
 
-  (** L-expressions have an associated value (R-expression form). We
-      give a uniform way to convert from L-expression to
-      R-expressions.
+      Firstly there is the [move] instruction that moves the value
+      located in an variable into the lhs. While move ensures that the
+      value that is currently in the variable on its rhs gets copied
+      into the lhs, it gives no guarantee on the value currently in
+      its rhs. Assignments on the other hand preserve the value of the
+      rhs. This semantics of move enable it to sometimes compile down
+      to more efficient instructions. For example, when moving a value
+      from a variable [x] to an array index [a[- i -]], which is of an
+      endian different from that of the machine, the move instruction
+      needs to just endian switch [x], and copy where as an assignment
+      has to endian switch [x], copy and then switch back.
+
+      The [clobber] instruction is like a no-op but it invalidates the
+      contents of a given variable. A move has the semantics of the
+      corresponding assignment followed by a clobber on the rhs.  Note
+      that the [clobber] and [move] need not erase the value in the
+      rhs. So using clobber to erase a secret value is not safe.
+      Typically clobber instructions will be ignored when generating
+      instructions.
 
    *)
-
-  Coercion lexprToExpr (le : lexpr) :=
-    match le with
-    | varLoc v => varValue v
-    | arrayLoc v i => index v i
-    end.
 
   Inductive instruction : Type :=
   | assign    : lexpr -> expr  -> instruction
   | update    : forall n, op (S n) -> lexpr -> Vector.t expr n -> instruction
   | increment : lexpr -> instruction
   | decrement : lexpr -> instruction
-  | moveTo    : forall {b} {e}, v (array b e ty) ->  { i | i < b} -> v ty -> instruction
+  | moveTo    : lexpr -> v ty  -> instruction
   | clobber   : v ty -> instruction.
 
 End Instruction.
