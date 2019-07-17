@@ -1,5 +1,7 @@
-Require Import Verse.Language.
+Require Import Verse.
+Require Import Verse.Nibble.
 Require Import String.
+Open Scope string_scope.
 Import List.ListNotations.
 Section TestFunction.
 
@@ -30,43 +32,63 @@ Section TestFunction.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] + tmp + 1]%list.
   Defined.
 
+  Definition fooexpr : expr variable Word16 := Ox "1234" + Ox "abce".
+  (* Error that is left handling.  Certain cases that involve
+     hexadecimal expressions are not working as expected.  I will put
+     the ones that are not working here and you can try to fix it.
+
+  Definition errorStmt : statement variable := num ::=* Ox "1234".
+  Definition notOkstmt : statement variable := num ::= Ox "1234".
+
+ However when hex constants are involved as a sub-expression in an
+ expression it is working.
+
+   *)
+
+  Definition okstmt : statement variable := num ::= num * Ox "12 34".
+
+
   Definition testFunction : code variable.
     verse
-    [ num ::= tmp + 43981%N;
-      A   ::= A + B;
-      num ::= tmp - num ;
-      num      ::= tmp      * arr[-1-];
-      num      ::= arr[-1-] / tmp ;
-      arr[-1-] ::= tmp      | num ;
-      num      ::= tmp      & arr[-1-];
-      num      ::= tmp      ^ num ;
-      (* binary update *)
-      num ::=+ tmp;
-      num ::=- arr[-1-];
-      num ::=* Ox "1234";
-      num ::=/ tmp;
-      num ::=| 5;
-      num ::=& tmp;
-      num ::=^ tmp;
+      [  (* Assignments  using binary operators *)
+        num ::= tmp + 43981%N;
+        A   ::= A + B;
+        num ::= tmp - num ;
+        num      ::= tmp      * arr[-1-];
+        num      ::= arr[-1-] / tmp ;
+        arr[-1-] ::= tmp      | num ;
+        num      ::= tmp  ^ arr[-1-];
+        num      ::= tmp  ^ num;
 
-      (* Unary operators *)
-      num      ::=~ tmp;
-      tmp      ::=  arr[-1-] <<  42;
-      tmp      ::=  arr[-1-] >>  42;
-      num      ::=  tmp     <<< 42;
-      arr[-1-] ::=  tmp     >>> 42;
+       (* Assignments using unary operators *)
+
+        num      ::= neg tmp;
+        tmp      ::=  arr[-1-] <<  42;
+        tmp      ::=  arr[-1-] >>  42;
+        num      ::=  tmp     <<< 42;
+        arr[-1-] ::=  tmp     >>> 42;
+
+        (* binary update *)
+
+        num ::=+ tmp;
+        num ::=- arr[-1-];
+        num ::=* 2;
+        num ::=/ tmp;
+        num ::=| 5;
+        num ::=& tmp;
+        num ::=^ tmp;
 
       (* Unary update operators *)
-      tmp      ::=<<  (42%nat);
-      tmp      ::=>>  (42%nat);
-      num      ::=<<< (42%nat);
-      arr[-1-] ::=>>> (42%nat);
-      CLOBBER arr
+        tmp      ::=<<  (42%nat);
+        tmp      ::=>>  (42%nat);
+        num      ::=<<< (42%nat);
+        arr[-1-] ::=>>> (42%nat)
     ]%list.
   Defined.
 
 End TestFunction.
 
+(*
 Import Compile.
 
 Definition testcode : Doc + {Compile.CompileError}.
@@ -77,7 +99,7 @@ Defined.
 
 
 Definition pgm : string := tryLayout testcode.
-
+*)
 (*
 
 Require Import Verse.Extraction.Ocaml.

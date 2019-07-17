@@ -7,6 +7,7 @@ src/Verse/Language/Pretty.v
 src/Verse/Nibble.v
 src/Verse/PrettyPrint.v
 src/Verse/TypeSystem.v
+src/Verse/TestCode/TestCode.v
 
 # src/Verse/Word.v
 # src/Verse/CoLoR_VecUtil.v
