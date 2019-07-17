@@ -62,6 +62,7 @@ Section Embedding.
    *)
 
   Global Instance expr_to_expr   : EXPR (expr  v ty)  := { toExpr := fun t => t}.
+  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := fun x => valueOf (var v ty x)}.
   Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := { toExpr := fun x => valueOf x}.
   Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := cval v ty }.
   Global Instance nat_to_exp     : EXPR nat
