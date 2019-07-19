@@ -32,20 +32,10 @@ Section TestFunction.
     verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] + tmp + 1]%list.
   Defined.
 
-  Definition fooexpr : expr variable Word16 := Ox "1234" + Ox "abce".
-  (* Error that is left handling.  Certain cases that involve
-     hexadecimal expressions are not working as expected.  I will put
-     the ones that are not working here and you can try to fix it.
 
-  Definition errorStmt : statement variable := num ::=* Ox "1234".
-  Definition notOkstmt : statement variable := num ::= Ox "1234".
-
- However when hex constants are involved as a sub-expression in an
- expression it is working.
-
-   *)
-
-  Definition okstmt : statement variable := num ::= num * Ox "12 34".
+  Definition stmt1 : statement variable := num ::= Ox "1234".
+  Definition stmt2 : statement variable := num ::=* Ox "abcd".
+  Definition stmt3 : statement variable := num ::= num * Ox "12 34".
 
 
   Definition testFunction : code variable.
