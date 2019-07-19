@@ -83,50 +83,62 @@ Section Embedding.
   (** We now define helper functions that "lift" verse operators to
       work with instances of [EXPR].  *)
   Section Operators.
-    Variable t1 t2 : Type.
-    Variable t     : Type.
-    Variable class1 : EXPR t1.
-    Variable class2 : EXPR t2.
+
+    Variable bop    : op 2.
+    Variable uop    : op 1.
+
+    Variable t      : Type.
+    Variable lhs    : t.
     Variable class  : LEXPR t.
 
-    Definition assignStmt (x : t) (e1 : t1) : statement v
-      := existT _ ty (Ast.assign (toLexpr x)  (toExpr e1)).
 
-     Definition moveStmt (lhs : t) (x : v ty) : statement v
+    Variable t1 t2 : Type.
+    Variable e1 : t1.
+    Variable e2 : t2.
+    Variable class1 : EXPR t1.
+    Variable class2 : EXPR t2.
+
+
+    Definition assignStmt : statement v
+      := existT _ ty (Ast.assign (toLexpr lhs)  (toExpr e1)).
+
+     Definition moveStmt (x : v ty) : statement v
       := existT _ ty (Ast.moveTo (toLexpr lhs) x).
 
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
-    Definition binOpApp (o : Ast.op 2) (e1 : t1) (e2 : t2)
-      :=  Ast.app o [toExpr e1 ; toExpr e2].
+    Definition binOpApp
+      :=  Ast.app bop [toExpr e1 ; toExpr e2].
 
     (** Update instruction which uses an input binary operator to
         update the l-expression [x].  *)
 
-    Definition binOpUpdate (o : Ast.op 2) (x : t)(e : t1) : statement v
-      := existT _ ty (Ast.update o (toLexpr x) [toExpr e]).
+    Definition binOpUpdate : statement v
+      := existT _ ty (Ast.update bop (toLexpr lhs) [toExpr e1]).
 
 
     (** Applies the unary operator [o] to the value [e] that is
         convertible to expression. *)
-    Definition uniOpApp (o : Ast.op 1) (e : t1)
-    :=  Ast.app o [toExpr e].
+    Definition uniOpApp
+    :=  Ast.app uop [toExpr e1].
 
     (** Update a given lexpression using the given unary operator
         [o]. *)
-    Definition uniOpUpdate (o : Ast.op 1) (x : t) : statement v
-      := existT _ ty (Ast.update o (toLexpr x) []).
+    Definition uniOpUpdate : statement v
+      := existT _ ty (Ast.update uop (toLexpr lhs) []).
 
     End Operators.
 End Embedding.
 
 
-Arguments assignStmt [v ty t1 t class1 class].
-Arguments moveStmt [v ty t class].
-Arguments binOpApp [v ty t1 t2 class1 class2].
-Arguments binOpUpdate [v ty t1 t class1 class].
-Arguments uniOpApp [v ty t1 class1].
-Arguments uniOpUpdate [v ty t class].
+
+Arguments assignStmt [v ty t] lhs [class t1] e1 [class1].
+Arguments moveStmt [v ty t] lhs [class] x.
+Arguments binOpApp [v ty] bop  [t1 t2] e1 e2  [class1 class2].
+Arguments binOpUpdate [v ty] bop [t] lhs [class] [t1] e1 [class1] .
+Arguments uniOpApp [v ty] uop  [t1] e1 [class1].
+Arguments uniOpUpdate [v ty] uop [t] lhs [class].
+
 
 (** * Indexing types.
 
@@ -182,22 +194,22 @@ Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associat
 Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
 
 
-Notation "V ::= E"   := (assignStmt V E)               (at level 70).
-Notation "V <- A"     := (moveStmt V A)                 (at level 70).
-Notation "A ::=+ B " := (binOpUpdate (Ast.plus)   A B) (at level 70).
-Notation "A ::=- B"  := (binOpUpdate (Ast.minus)  A B) (at level 70).
-Notation "A ::=* B"  := (binOpUpdate (Ast.mul)    A B) (at level 70).
-Notation "A ::=/ B"  := (binOpUpdate (Ast.quot)   A B) (at level 70).
-Notation "A ::=% B"  := (binOpUpdate (Ast.rem)    A B) (at level 70).
-Notation "A ::=| B"  := (binOpUpdate (Ast.bitOr)  A B) (at level 70).
-Notation "A ::=& B"  := (binOpUpdate (Ast.bitAnd) A B) (at level 70).
-Notation "A ::=^ B"  := (binOpUpdate (Ast.bitXor) A B) (at level 70).
+Infix "::="   := assignStmt               (at level 70).
+Infix "<-"     := moveStmt                 (at level 70).
+Infix "::=+"  := (binOpUpdate Ast.plus)   (at level 70).
+Infix "::=-"  := (binOpUpdate Ast.minus ) (at level 70).
+Infix "::=*"  := (binOpUpdate Ast.mul   ) (at level 70).
+Infix "::=/"  := (binOpUpdate Ast.quot  ) (at level 70).
+Infix "::=%"  := (binOpUpdate Ast.rem   ) (at level 70).
+Infix "::=|"  := (binOpUpdate Ast.bitOr ) (at level 70).
+Infix "::=&"  := (binOpUpdate Ast.bitAnd) (at level 70).
+Infix "::=^"  := (binOpUpdate Ast.bitXor) (at level 70).
 
 Notation "A ::=<< N"   := (uniOpUpdate (Ast.shiftL N) A)   (at level 70).
 Notation "A ::=>> N"   := (uniOpUpdate (Ast.shiftR N) A)   (at level 70).
 Notation "A ::=<<< N"  := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
 Notation "A ::=>>> N"  := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
-Notation "'CLOBBER' A" := (existT _ _ (clobber A))        (at level 70).
+Notation "'CLOBBER' A" := (existT _ _ (clobber A))         (at level 70).
 
 (** * The verse tactic.
 
