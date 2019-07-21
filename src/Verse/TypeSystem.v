@@ -8,7 +8,8 @@ are accessed through indirect referencing.
 
 
  *)
-Inductive kind : Type := direct | memory.
+
+Inductive kind := direct | memory.
 
 Structure typeSystem :=
   TypeSystem { type   : kind -> Type;
