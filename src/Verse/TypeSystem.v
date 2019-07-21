@@ -12,6 +12,8 @@ are accessed through indirect referencing.
 Inductive kind := direct | memory.
 
 Structure typeSystem :=
-  TypeSystem { type   : kind -> Type;
-               const  : type direct -> Type;
+  TypeSystem { type         : kind -> Type;
+               const        : type direct -> Type;
+               index        : type memory -> Type;
+               contentType  : type memory -> type direct
              }.
