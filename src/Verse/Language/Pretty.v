@@ -51,8 +51,9 @@ etc, to be considered as verse expressions. We do this in two stages.
 
 *)
 
+Require Import Verse.Expression.
 Section Embedding.
-  Variable v : VariableT.
+  Variable v  : forall k, type k -> Type.
   Variable ty : type TypeSystem.direct.
 
   (** Class of all types [t] that can be converted into expressions *)
@@ -63,20 +64,20 @@ Section Embedding.
    *)
 
   Global Instance expr_to_expr   : EXPR (expr  v ty)  := { toExpr := fun t => t}.
-  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := fun x => valueOf (var v ty x)}.
+  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := fun x => valueOf (var x)}.
   Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := { toExpr := fun x => valueOf x}.
-  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := cval v ty }.
+  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := fun c => cval c }.
   Global Instance nat_to_exp     : EXPR nat
-  := { toExpr := fun n => cval v ty (Ast.natToConst ty n)}.
+  := { toExpr := fun n => cval (Ast.natToConst ty n)}.
 
   Global Instance N_to_exp       : EXPR N
-  := { toExpr := fun n => cval v ty (Ast.NToConst ty n)}.
+  := { toExpr := fun n => cval (Ast.NToConst ty n)}.
 
   (** Class similar to [EXPR] but creates l-expressions *)
   Global Class LEXPR t := { toLexpr : t -> lexpr v ty }.
 
   Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := { toLexpr := fun t => t}.
-  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := var v ty }.
+  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := fun x => var x }.
 
 
 
@@ -108,7 +109,7 @@ Section Embedding.
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
     Definition binOpApp
-      :=  Ast.app bop [toExpr e1 ; toExpr e2].
+      :=  app bop [toExpr e1 ; toExpr e2].
 
     (** Update instruction which uses an input binary operator to
         update the l-expression [x].  *)
@@ -120,7 +121,7 @@ Section Embedding.
     (** Applies the unary operator [o] to the value [e] that is
         convertible to expression. *)
     Definition uniOpApp
-    :=  Ast.app uop [toExpr e1].
+    :=  app uop [toExpr e1].
 
     (** Update a given lexpression using the given unary operator
         [o]. *)
@@ -158,10 +159,10 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
                    end
   }.
 
-Instance array_indexing v ty b e : INDEXING {i | i < b}
+Instance array_indexing v ty b e : INDEXING (index (array b e ty))
                                             (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
-  := { idx := fun a ix =>  @deref v ty b e a ix }.
+  := { idx := fun a ix =>  deref a ix }.
 
 
 
@@ -179,36 +180,36 @@ precedence in Coq.
 *)
 
 
-Infix  "^"          := (binOpApp Ast.bitXor)         (at level 30, right associativity).
-Notation "'neg' E"  := (uniOpApp Ast.bitComp E)      (at level 30, right associativity).
-Infix "*"           := (binOpApp Ast.mul)            (at level 40, left associativity).
-Infix "/"           := (binOpApp Ast.quot)           (at level 40, left associativity).
-Infix "%"           := (binOpApp Ast.rem)            (at level 40, left associativity).
-Infix "+"           := (binOpApp Ast.plus)           (at level 50, left associativity).
-Infix "-"           := (binOpApp Ast.minus)          (at level 50, left associativity).
-Notation "E  <<  N" := (uniOpApp (Ast.shiftL N) E)   (at level 55, left associativity).
-Notation "E  >>  N" := (uniOpApp (Ast.shiftR N) E)   (at level 55, left associativity).
-Notation "E <<<  N" := (uniOpApp (Ast.rotL N)   E)   (at level 55, left associativity).
-Notation "E >>>  N" := (uniOpApp (Ast.rotR N)   E)   (at level 55, left associativity).
-Infix "&"           := (binOpApp Ast.bitAnd)         (at level 56, left associativity).
-Infix "|"           := (binOpApp Ast.bitOr)          (at level 58, left associativity).
+Infix  "^"          := (binOpApp bitXor)         (at level 30, right associativity).
+Notation "'neg' E"  := (uniOpApp bitComp E)      (at level 30, right associativity).
+Infix "*"           := (binOpApp mul)            (at level 40, left associativity).
+Infix "/"           := (binOpApp quot)           (at level 40, left associativity).
+Infix "%"           := (binOpApp rem)            (at level 40, left associativity).
+Infix "+"           := (binOpApp plus)           (at level 50, left associativity).
+Infix "-"           := (binOpApp minus)          (at level 50, left associativity).
+Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (at level 55, left associativity).
+Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 55, left associativity).
+Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 55, left associativity).
+Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 55, left associativity).
+Infix "&"           := (binOpApp bitAnd)         (at level 56, left associativity).
+Infix "|"           := (binOpApp bitOr)          (at level 58, left associativity).
 
 
 Infix "::="   := assignStmt               (at level 70).
 Infix "<-"     := moveStmt                 (at level 70).
-Infix "::=+"  := (binOpUpdate Ast.plus)   (at level 70).
-Infix "::=-"  := (binOpUpdate Ast.minus ) (at level 70).
-Infix "::=*"  := (binOpUpdate Ast.mul   ) (at level 70).
-Infix "::=/"  := (binOpUpdate Ast.quot  ) (at level 70).
-Infix "::=%"  := (binOpUpdate Ast.rem   ) (at level 70).
-Infix "::=|"  := (binOpUpdate Ast.bitOr ) (at level 70).
-Infix "::=&"  := (binOpUpdate Ast.bitAnd) (at level 70).
-Infix "::=^"  := (binOpUpdate Ast.bitXor) (at level 70).
+Infix "::=+"  := (binOpUpdate plus)   (at level 70).
+Infix "::=-"  := (binOpUpdate minus ) (at level 70).
+Infix "::=*"  := (binOpUpdate mul   ) (at level 70).
+Infix "::=/"  := (binOpUpdate quot  ) (at level 70).
+Infix "::=%"  := (binOpUpdate rem   ) (at level 70).
+Infix "::=|"  := (binOpUpdate bitOr ) (at level 70).
+Infix "::=&"  := (binOpUpdate bitAnd) (at level 70).
+Infix "::=^"  := (binOpUpdate bitXor) (at level 70).
 
-Notation "A ::=<< N"   := (uniOpUpdate (Ast.shiftL N) A)   (at level 70).
-Notation "A ::=>> N"   := (uniOpUpdate (Ast.shiftR N) A)   (at level 70).
-Notation "A ::=<<< N"  := (uniOpUpdate (Ast.rotL N)   A)   (at level 70).
-Notation "A ::=>>> N"  := (uniOpUpdate (Ast.rotR N)   A)   (at level 70).
+Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70).
+Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70).
+Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70).
+Notation "A ::=>>> N"  := (uniOpUpdate (rotR N)   A)   (at level 70).
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))         (at level 70).
 
 (** * The verse tactic.
