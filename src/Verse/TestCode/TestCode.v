@@ -5,7 +5,7 @@ Open Scope string_scope.
 Import List.ListNotations.
 Section TestFunction.
 
-  Variable variable : VariableT.
+  Variable variable : forall k, type k -> Type.
 
   Arguments variable [k] _.
   (* The parameters of the function *)
