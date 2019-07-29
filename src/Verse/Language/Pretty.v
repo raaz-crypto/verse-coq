@@ -180,18 +180,23 @@ precedence in Coq.
 *)
 
 
-Infix  "^"          := (binOpApp bitXor)         (at level 30, right associativity).
+
 Notation "'neg' E"  := (uniOpApp bitComp E)      (at level 30, right associativity).
+
 Infix "*"           := (binOpApp mul)            (at level 40, left associativity).
 Infix "/"           := (binOpApp quot)           (at level 40, left associativity).
 Infix "%"           := (binOpApp rem)            (at level 40, left associativity).
+
 Infix "+"           := (binOpApp plus)           (at level 50, left associativity).
 Infix "-"           := (binOpApp minus)          (at level 50, left associativity).
+
 Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (at level 55, left associativity).
 Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 55, left associativity).
 Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 55, left associativity).
 Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 55, left associativity).
+
 Infix "&"           := (binOpApp bitAnd)         (at level 56, left associativity).
+Infix  "^^"         := (binOpApp bitXor)         (at level 57, right associativity).
 Infix "|"           := (binOpApp bitOr)          (at level 58, left associativity).
 
 
