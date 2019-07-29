@@ -206,6 +206,8 @@ Infix "::=|"  := (binOpUpdate bitOr ) (at level 70).
 Infix "::=&"  := (binOpUpdate bitAnd) (at level 70).
 Infix "::=^"  := (binOpUpdate bitXor) (at level 70).
 
+Notation "++ A"        := (increment (toLexpr A))      (at level 70).
+Notation "-- A"        := (decrement (toLexpr A))      (at level 70).
 Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70).
 Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70).
 Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70).
