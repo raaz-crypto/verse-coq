@@ -195,8 +195,8 @@ Infix "&"           := (binOpApp bitAnd)         (at level 56, left associativit
 Infix "|"           := (binOpApp bitOr)          (at level 58, left associativity).
 
 
-Infix "::="   := assignStmt               (at level 70).
-Infix "<-"     := moveStmt                 (at level 70).
+Infix "::="   := assignStmt           (at level 70).
+Infix "<-"    := moveStmt             (at level 70).
 Infix "::=+"  := (binOpUpdate plus)   (at level 70).
 Infix "::=-"  := (binOpUpdate minus ) (at level 70).
 Infix "::=*"  := (binOpUpdate mul   ) (at level 70).
@@ -212,7 +212,7 @@ Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70).
 Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70).
 Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70).
 Notation "A ::=>>> N"  := (uniOpUpdate (rotR N)   A)   (at level 70).
-Notation "'CLOBBER' A" := (existT _ _ (clobber A))         (at level 70).
+Notation "'CLOBBER' A" := (existT _ _ (clobber A))     (at level 70).
 
 (** * The verse tactic.
 
