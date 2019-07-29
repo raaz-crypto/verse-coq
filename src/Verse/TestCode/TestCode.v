@@ -29,7 +29,7 @@ Section TestFunction.
   Require Import Omega.
   (* Definition regAssignment := (- cr uint16_t "temp" -). *)
   Definition someInstruction i (_ : i < 5) : code variable.
-    verse [ arr[- i -] ::=^ arr[- (i + 1) mod 5 -] + tmp + 1]%list.
+    verse [ arr[- i -] ::=x arr[- (i + 1) mod 5 -] + tmp + 1]%list.
   Defined.
 
 
@@ -47,8 +47,8 @@ Section TestFunction.
         num      ::= tmp      * arr[-1-];
         num      ::= arr[-1-] / tmp ;
         arr[-1-] ::= tmp      | num ;
-        num      ::= tmp  ^ arr[-1-];
-        num      ::= tmp  ^ num;
+        num      ::= tmp  xor arr[-1-];
+        num      ::= tmp  xor num;
 
        (* Assignments using unary operators *)
 
@@ -66,7 +66,7 @@ Section TestFunction.
         num ::=/ tmp;
         num ::=| 5;
         num ::=& tmp;
-        num ::=^ tmp;
+        num ::=x tmp;
 
       (* Unary update operators *)
         tmp      ::=<<  (42%nat);
@@ -76,6 +76,7 @@ Section TestFunction.
     ]%list.
   Defined.
 
+  Print testFunction.
 End TestFunction.
 
 (*
