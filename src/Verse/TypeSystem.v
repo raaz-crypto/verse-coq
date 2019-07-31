@@ -20,6 +20,16 @@ Structure typeSystem :=
                contentType  : type memory -> type direct
              }.
 
+(** ** Typed variables.
+
+When building programming constructs, we need variables. In a typed
+setting, we would like the variables to be parameterised by types. The
+[VariableT ts] should be seen as the universe of program variables for
+programs that use the type system [ts].
+
+*)
+Definition VariableT (ts : typeSystem) := forall k, forall ty : type ts k, Type.
+
 (** ** Type systems under translation
 
 All our languages are typed. When compiling from one language to

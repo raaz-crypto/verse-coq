@@ -32,9 +32,6 @@ Require Vector.
 
 Section Expr.
 
-
-  Definition VariableT (ts : typeSystem) := forall k, forall ty : type ts k, Type.
-
   (** Expressions that can occur on the left of an assignment. *)
   Inductive lexpr {ts : typeSystem}(v : VariableT ts) : type ts direct ->  Type :=
   | var   :  forall {ty},  v direct ty -> lexpr v ty  (* Location associated with a variable *)
