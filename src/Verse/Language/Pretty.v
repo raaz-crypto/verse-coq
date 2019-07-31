@@ -51,7 +51,7 @@ etc, to be considered as verse expressions. We do this in two stages.
 
 *)
 
-Require Import Verse.Expression.
+Require Import Verse.Instruction.
 Section Embedding.
   Variable v  : forall k, type k -> Type.
   Variable ty : type TypeSystem.direct.
@@ -100,11 +100,12 @@ Section Embedding.
     Variable class2 : EXPR t2.
 
 
+
     Definition assignStmt : statement v
-      := existT _ ty (Ast.assign (toLexpr lhs)  (toExpr e1)).
+      := Ast.generic (assign (toLexpr lhs)  (toExpr e1)).
 
      Definition moveStmt (x : v ty) : statement v
-      := existT _ ty (Ast.moveTo (toLexpr lhs) x).
+      := special (Ast.moveTo (toLexpr lhs) x).
 
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
@@ -115,7 +116,7 @@ Section Embedding.
         update the l-expression [x].  *)
 
     Definition binOpUpdate : statement v
-      := existT _ ty (Ast.update bop (toLexpr lhs) [toExpr e1]).
+      := generic (update bop (toLexpr lhs) [toExpr e1]).
 
 
     (** Applies the unary operator [o] to the value [e] that is
@@ -126,7 +127,7 @@ Section Embedding.
     (** Update a given lexpression using the given unary operator
         [o]. *)
     Definition uniOpUpdate : statement v
-      := existT _ ty (Ast.update uop (toLexpr lhs) []).
+      := generic (update uop (toLexpr lhs) []).
 
     End Operators.
 End Embedding.

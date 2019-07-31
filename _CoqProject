@@ -1,7 +1,7 @@
 -R src Verse
 src/Verse.v
 src/Verse/Error.v
-src/Verse/Expression.v
+src/Verse/Instruction.v
 src/Verse/Language.v
 src/Verse/Language/Ast.v
 src/Verse/Language/Pretty.v

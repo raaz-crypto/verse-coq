@@ -43,16 +43,22 @@ Section Expr.
   | valueOf  : lexpr v ty -> expr v ty
   | app      : forall {arity : nat}, op arity -> Vector.t (expr v ty) arity -> expr v ty.
 
-
-
-(** * Expressions
-
-We now define expressions over this operators. This is defined with
-respect to the type system.
-
- *)
-
 End Expr.
+
+(** ** Instructions
+
+We expect verse and most target languages to support C like
+assignments and update operations. The [instruction] inductive type
+captures such instructions.
+
+*)
+
+Inductive instruction {ts : typeSystem} (v : VariableT ts) (ty : type ts TypeSystem.direct) : Type :=
+| assign    : lexpr v ty -> expr v ty  -> instruction v ty
+| update    : forall n, op (S n) -> lexpr v ty -> Vector.t (expr v ty)  n -> instruction v ty
+| increment : lexpr v ty -> instruction v ty
+| decrement : lexpr v ty -> instruction v ty
+.
 
 Arguments lexpr [ts].
 Arguments var [ts v ty].
