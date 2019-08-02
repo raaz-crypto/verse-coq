@@ -53,7 +53,7 @@ etc, to be considered as verse expressions. We do this in two stages.
 
 Require Import Verse.Instruction.
 Section Embedding.
-  Variable v  : forall k, type k -> Type.
+  Variable v  : forall k, type k -> Set.
   Variable ty : type TypeSystem.direct.
 
   (** Class of all types [t] that can be converted into expressions *)

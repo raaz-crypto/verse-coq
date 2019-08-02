@@ -12,7 +12,7 @@ the operation.
 *)
 
 
-Inductive op : nat -> Type :=
+Inductive op : nat -> Set :=
 | plus    : op 2
 | minus   : op 2
 | mul     : op 2
@@ -33,12 +33,12 @@ Require Vector.
 Section Expr.
 
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr {ts : typeSystem}(v : VariableT ts) : type ts direct ->  Type :=
+  Inductive lexpr {ts : typeSystem}(v : VariableT ts) : type ts direct ->  Set :=
   | var   :  forall {ty},  v direct ty -> lexpr v ty  (* Location associated with a variable *)
   | deref :  forall {ty : type ts memory}, v memory ty -> index ts ty -> lexpr v (contentType ts ty).
 
   (** The expression type *)
-  Inductive expr {ts : typeSystem}(v : VariableT ts)(ty : type ts direct) : Type :=
+  Inductive expr {ts : typeSystem}(v : VariableT ts)(ty : type ts direct) : Set :=
   | cval     : const ts ty -> expr v ty
   | valueOf  : lexpr v ty -> expr v ty
   | app      : forall {arity : nat}, op arity -> Vector.t (expr v ty) arity -> expr v ty.

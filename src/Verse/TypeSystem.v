@@ -14,9 +14,9 @@ arrays and pointers.
 Inductive kind := direct | memory.
 
 Structure typeSystem :=
-  TypeSystem { type         : kind -> Type;
-               const        : type direct -> Type;
-               index        : type memory -> Type;
+  TypeSystem { type         : kind -> Set;
+               const        : type direct -> Set;
+               index        : type memory -> Set;
                contentType  : type memory -> type direct
              }.
 
@@ -28,7 +28,7 @@ setting, we would like the variables to be parameterised by types. The
 programs that use the type system [ts].
 
 *)
-Definition VariableT (ts : typeSystem) := forall k, forall ty : type ts k, Type.
+Definition VariableT (ts : typeSystem) := forall k, forall ty : type ts k, Set.
 
 (** ** Type systems under translation
 
