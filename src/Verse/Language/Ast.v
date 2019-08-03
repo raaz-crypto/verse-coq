@@ -36,6 +36,8 @@ We begin by defining the types for the language.
 
 Require Verse.TypeSystem.
 Require Verse.Nibble.
+
+Require Export Verse.Language.Core.
 Require Import Arith.
 Require Import NArith.
 Import Nat.
@@ -52,8 +54,6 @@ The Verse EDSL is a typed machine language consisting of [word]s,
 indicates this distinction in type.
 
 *)
-Inductive endian : Type := bigE | littleE | hostE.
-
 
 Inductive type       : TypeSystem.kind -> Type :=
 | word               : nat -> type TypeSystem.direct
@@ -110,40 +110,13 @@ Definition size (ty : type TypeSystem.direct) : nat := 2 ^ logSize ty.
 Definition Array  := array.
 Definition Ref (ty : type TypeSystem.direct) : type TypeSystem.memory := array 1 hostE ty.
 
-
-(** ** Expressions.
-
-We begin defining expressions by defining operators for the expression
-language.  Most architectures allow various basic arithmetic and
-bitwise operations on values stored in the registers. These operations
-are captured by the type [op] which is parameterised by the arity of
-the operation.
-
-*)
-
-
-Inductive op : nat -> Set :=
-| plus    : op 2
-| minus   : op 2
-| mul     : op 2
-| quot    : op 2
-| rem     : op 2
-| bitOr   : op 2
-| bitAnd  : op 2
-| bitXor  : op 2
-| bitComp : op 1
-| rotL    : nat -> op 1
-| rotR    : nat -> op 1
-| shiftL  : nat -> op 1
-| shiftR  : nat -> op 1
-.
-
 Require Vector.
 
-Section Statements.
+Section Code.
 
   Variable v : TypeSystem.VariableT verse_type_system.
   Arguments v [k].
+
   (** Expressions that can occur on the left of an assignment. *)
   Inductive lexpr : type TypeSystem.direct -> Set :=
   | var   :  forall {ty}, v ty -> lexpr ty
@@ -195,7 +168,7 @@ Section Statements.
   Definition statement := sigT instruction.
   Definition code      := list statement.
 
-End Statements.
+End Code.
 
 
 Arguments var [v ty].

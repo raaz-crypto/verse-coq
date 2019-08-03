@@ -18,6 +18,7 @@ Require Import NArith.
 Require Import Nat.
 Require        Verse.TypeSystem.
 Require Import Verse.Language.Ast.
+Require Import Verse.Language.Core.
 Require        Vector.
 Import         Vector.VectorNotations.
 Require Import Verse.Nibble.
@@ -109,7 +110,7 @@ Section Embedding.
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
     Definition binOpApp
-      :=  app bop [toExpr e1 ; toExpr e2].
+      := app bop [toExpr e1 ; toExpr e2].
 
     (** Update instruction which uses an input binary operator to
         update the l-expression [x].  *)
