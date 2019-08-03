@@ -15,9 +15,7 @@ Inductive kind := direct | memory.
 
 Structure typeSystem :=
   TypeSystem { type         : kind -> Set;
-               const        : type direct -> Set;
-               index        : type memory -> Set;
-               contentType  : type memory -> type direct
+               const        : type direct -> Type;
              }.
 
 (** ** Typed variables.
@@ -56,19 +54,7 @@ Section TranslatedType.
     | inright e =>  TranslationError
     end.
 
-  Definition transIndex (errType : transType memory) :=
-    match errType with
-    | inleft  ty => index ts ty
-    | inright e  => TranslationError
-    end.
-
-  Definition transContentType (errType : transType memory) : transType direct :=
-    match errType with
-    | inleft  ty =>  inleft (contentType ts ty)
-    | inright e  =>  inright e
-    end.
-
 End TranslatedType.
 
 Canonical Structure translation_result (ts : typeSystem)
-  := TypeSystem (transType ts) (transConst ts) (transIndex ts) (transContentType ts).
+  := TypeSystem (transType ts) (transConst ts).

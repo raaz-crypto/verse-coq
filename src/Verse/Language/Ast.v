@@ -67,16 +67,6 @@ Definition const (t : type TypeSystem.direct) :=
   | multiword m n => Vector.t (Nibble.bytes (2^n))  (2 ^ m)
   end.
 
-Definition index (t : type TypeSystem.memory) :=
-  match t with
-  | array b _ _ => {i | i < b}
-  end.
-
-Definition contentType (t : type TypeSystem.memory) :=
-  match t with
-  | array _ _ ty => ty
-  end.
-
 Definition NToConst (ty : type TypeSystem.direct) (num : N) : const ty
   := match ty in type TypeSystem.direct return const ty with
      | word n => Nibble.fromN num
@@ -90,7 +80,7 @@ Definition natToConst (ty : type TypeSystem.direct) (num : nat) : const ty
      end.
 
 Canonical Structure verse_type_system : TypeSystem.typeSystem
-  := TypeSystem.TypeSystem type const index contentType.
+  := TypeSystem.TypeSystem type const.
 
 
 

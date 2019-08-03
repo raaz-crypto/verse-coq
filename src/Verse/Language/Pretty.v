@@ -160,7 +160,7 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
   }.
 
 Print deref.
-Instance array_indexing v ty b e : INDEXING (index (array b e ty))
+Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
   := { idx := fun a ix =>  deref a ix }.
