@@ -51,9 +51,8 @@ etc, to be considered as verse expressions. We do this in two stages.
 
 *)
 
-Require Import Verse.Instruction.
 Section Embedding.
-  Variable v  : forall k, type k -> Set.
+  Variable v  : TypeSystem.VariableT verse_type_system.
   Variable ty : type TypeSystem.direct.
 
   (** Class of all types [t] that can be converted into expressions *)
@@ -100,12 +99,12 @@ Section Embedding.
     Variable class2 : EXPR t2.
 
 
-
+    Print sigT.
     Definition assignStmt : statement v
-      := Ast.generic (assign (toLexpr lhs)  (toExpr e1)).
+      := existT _  _ (assign (toLexpr lhs)  (toExpr e1)).
 
      Definition moveStmt (x : v ty) : statement v
-      := special (Ast.moveTo (toLexpr lhs) x).
+      := existT _ _ (Ast.moveTo (toLexpr lhs) x).
 
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
@@ -116,7 +115,7 @@ Section Embedding.
         update the l-expression [x].  *)
 
     Definition binOpUpdate : statement v
-      := generic (update bop (toLexpr lhs) [toExpr e1]).
+      := existT _ _ (update bop (toLexpr lhs) [toExpr e1]).
 
 
     (** Applies the unary operator [o] to the value [e] that is
@@ -127,7 +126,7 @@ Section Embedding.
     (** Update a given lexpression using the given unary operator
         [o]. *)
     Definition uniOpUpdate : statement v
-      := generic (update uop (toLexpr lhs) []).
+      := existT _ _ (update uop (toLexpr lhs) []).
 
     End Operators.
 End Embedding.
@@ -160,6 +159,7 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
                    end
   }.
 
+Print deref.
 Instance array_indexing v ty b e : INDEXING (index (array b e ty))
                                             (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
