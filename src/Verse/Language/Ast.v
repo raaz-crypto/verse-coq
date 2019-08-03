@@ -179,10 +179,6 @@ Arguments valueOf [v ty].
 Arguments app [v ty arity].
 Arguments clobber [v ty].
 
-
-Print sigT.
-
-
 (**
 
 Many cryptographic primitives work on streams of data that are divided

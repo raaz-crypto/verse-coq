@@ -99,8 +99,6 @@ Section Embedding.
     Variable class1 : EXPR t1.
     Variable class2 : EXPR t2.
 
-
-    Print sigT.
     Definition assignStmt : statement v
       := existT _  _ (assign (toLexpr lhs)  (toExpr e1)).
 
@@ -160,7 +158,6 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
                    end
   }.
 
-Print deref.
 Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v ty)
                                             (v TypeSystem.memory (array b e ty))
