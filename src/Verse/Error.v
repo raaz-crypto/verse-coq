@@ -1,4 +1,3 @@
-Set Implicit Arguments.
 
 (** * Representing Erros.
 
@@ -44,8 +43,28 @@ Section Error.
        | inright b => b
        end.
 
-End Error.
+  Definition noErrorIsNotError {e : Err} {a : A}  : error e <> inleft a.
+    intro pf.
+    refine (match pf with
+            |eq_refl => _
+            end); exact idProp.
+  Defined.
 
+  Definition recover' (ae : A + {Err}) : (exists a, ae = inleft a) -> { a : A | ae = inleft a}
+    := match ae as ae0 return (exists a, ae0 = {- a -}) -> {a | ae0 = {- a -} } with
+       | inleft a  => fun _  => exist _ a eq_refl
+       | inright _ =>
+         let absurdity pf :=  match pf with
+                              | ex_intro _ _ pf0 => noErrorIsNotError pf0
+                              end in
+         fun pf => False_rect _ (absurdity pf)
+       end.
+
+
+End Error.
+Arguments recover' [A Err].
+
+(*
 Section Extract.
 
   Variable T : Type.
@@ -71,19 +90,20 @@ Section Extract.
       destruct 1; discriminate.
   Defined.
 
-  Lemma getTgetsT (x : T + {E}) (p : noErr x) : x = {- getT p -}.
+  Lemma getTgetsT (x : T + {E}) (p : noErr x) : x = {- getT x p -}.
     destruct p.
     rewrite e.
     trivial.
   Defined.
 
-  Lemma getTunique (x : T + {E}) (p1 p2 : noErr x) : getT p1 = getT p2.
+  Lemma getTunique (x : T + {E}) (p1 p2 : noErr x) : getT x p1 = getT x p2.
     destruct (x).
     simpl; trivial.
     contradict p1; destruct 1; discriminate.
   Defined.
 
 End Extract.
+*)
 
 Class Castable (E1 E2 : Prop) := { cast : E1 -> E2 }.
 
@@ -178,3 +198,30 @@ Section Merge.
     | cons {- x -} xs  => cons x <$> merge xs
     end.
 End Merge.
+
+Section PartialFunctions.
+  Variable A B : Type.
+  Variable E   : Prop.
+  Variable partial : A -> B + {E}.
+
+
+  Definition InDomain a := exists b, partial a = inleft b.
+  Definition InRange  b := exists a, partial a = inleft b.
+
+  Definition domain := {a | InDomain a}.
+  Definition range  := {b | InRange b}.
+
+
+  (* Get the total core of the partial function *)
+  Definition totalCore (aD : domain) : range :=
+    match aD with
+    | exist _ a pf =>
+      match recover' (partial a) pf with
+      | exist _ b pf0 => exist _ b (ex_intro _ a pf0)
+      end
+    end.
+
+End PartialFunctions.
+Arguments InDomain [A B E].
+Arguments InRange  [A B E].
+Arguments totalCore [A B E].
