@@ -14,9 +14,10 @@ arrays and pointers.
 Inductive kind := direct | memory.
 
 Structure typeSystem :=
-  TypeSystem { type         : kind -> Set;
-               const        : type direct -> Type;
+  TypeSystem { typeOf       : kind -> Set;
+               constOf      : typeOf direct -> Type;
              }.
+
 
 (** ** Typed variables.
 
@@ -26,35 +27,88 @@ setting, we would like the variables to be parameterised by types. The
 programs that use the type system [ts].
 
 *)
-Definition VariableT (ts : typeSystem) := forall k, forall ty : type ts k, Set.
 
-(** ** Type systems under translation
+Definition VariableT (ts : typeSystem) := forall k, forall ty : typeOf ts k, Set.
+
+
+(** ** Translation between typed languages.
 
 All our languages are typed. When compiling from one language to
-another, we need translations of these types. Not all types in the
-source language might have meaningful translations into the target
-type system in which case such translation should result in a
-translation error. Given a type system [ts], we now define a type
-system where the underlying types are a type of the type system [ts]
-or a translation error. Such a type system can be the target of a type
-translation into the language with the type system [ts].
+another, we need translations of these types. Type maps are such
+translations. We need to preserve typing which mapping constants.
 
-*)
+ *)
+
+Structure typeSystemMap
+  := TypeSystemMap { dom      : typeSystem;
+                     rng      : typeSystem;
+                     mapType  : forall k, typeOf dom k -> typeOf rng k;
+                     mapConst : forall ty, constOf dom ty -> constOf rng (mapType direct ty)
+                   }.
+
+
+Section SubType.
+
+  Variable ts : typeSystem.
+  Variable P : forall k, typeOf ts k -> Prop.
+
+  Definition subSystem  :=
+  let subType k := { ty : typeOf ts k | P k ty } in
+  let subConst sty := match sty with
+                      | exist _ ty _ => constOf ts ty
+                      end
+  in TypeSystem subType subConst.
+
+  Definition typeInj k ( tyS : typeOf subSystem k) : typeOf ts k :=
+    let (ty0, _) := tyS in ty0.
+
+
+  Definition constInj
+    : forall tyS : typeOf subSystem direct, constOf subSystem tyS -> constOf ts (typeInj direct tyS)
+    := fun tyS : typeOf subSystem direct =>
+         match tyS as tyS0 return constOf subSystem tyS0 -> constOf ts (typeInj direct tyS0) with
+         | exist _ ty0 _  => fun x : constOf ts ty0 => x
+         end.
+
+
+
+
+End SubType.
+
+Arguments subSystem [ts].
+Arguments typeInj   [ts].
+Arguments constInj  [ts].
+
+Canonical Structure injection {ts} P := TypeSystemMap (subSystem P) ts (typeInj P) (constInj P).
+
+
+
+(** It is not always possible to map the types in the source language
+    to meaningful types in the target language. In such cases, we look
+    at type maps which result in translation errors.
+ *)
+
 Inductive TranslationError : Prop :=
 | CouldNotTranslate : forall A : Type, A -> TranslationError.
 
 Arguments  CouldNotTranslate [A].
 
-Section TranslatedType.
-  Variable ts  : typeSystem.
-  Definition transType k  := type ts k + { TranslationError }.
-  Definition transConst (errType : transType direct) :=
-    match errType with
-    | inleft ty => const ts ty
-    | inright e =>  TranslationError
-    end.
+Definition translation ts0 ts1 := forall k, typeOf ts0 k -> typeOf ts1 k + { TranslationError }.
 
-End TranslatedType.
+Require Import Verse.Error.
+Definition domain {ts0 ts1}(tr : translation ts0 ts1) :=
+  subSystem (fun k => InDomain (tr k)).
 
-Canonical Structure translation_result (ts : typeSystem)
-  := TypeSystem (transType ts) (transConst ts).
+
+Definition range {ts0 ts1}(tr : translation ts0 ts1) :=
+  subSystem (fun k => InRange (tr k)).
+
+
+Definition domainToRange {ts0 ts1}(tr :translation ts0 ts1) k
+  : typeOf (domain tr) k -> typeOf (range tr) k := (totalCore (tr k)).
+
+Definition constTranslation {ts0 ts1} (tr : translation ts0 ts1) :=
+  forall ty, constOf (domain tr) ty -> constOf (range tr) (domainToRange tr direct ty).
+
+Definition TypeTranslation {ts0 ts1} (tr : translation ts0 ts1)(comp : constTranslation tr)
+  := TypeSystemMap (domain tr)(range tr) (domainToRange tr) comp.
