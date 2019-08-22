@@ -72,12 +72,17 @@ Section SubType.
 
 
 
+  Definition injectVar (v : VariableT ts) : VariableT subSystem :=
+    fun k tyS => match tyS with
+              | exist _ ty _ => v k ty
+              end.
 
 End SubType.
 
 Arguments subSystem [ts].
 Arguments liftType   [ts].
 Arguments liftConst  [ts].
+Arguments injectVar  [ts].
 
 Canonical Structure injection {ts} P := TypeSystemMap (subSystem P) ts (liftType P) (liftConst P).
 
