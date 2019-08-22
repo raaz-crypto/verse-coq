@@ -59,14 +59,14 @@ Section SubType.
                       end
   in TypeSystem subType subConst.
 
-  Definition typeInj k ( tyS : typeOf subSystem k) : typeOf ts k :=
+  Definition liftType k ( tyS : typeOf subSystem k) : typeOf ts k :=
     let (ty0, _) := tyS in ty0.
 
 
-  Definition constInj
-    : forall tyS : typeOf subSystem direct, constOf subSystem tyS -> constOf ts (typeInj direct tyS)
+  Definition liftConst
+    : forall tyS : typeOf subSystem direct, constOf subSystem tyS -> constOf ts (liftType direct tyS)
     := fun tyS : typeOf subSystem direct =>
-         match tyS as tyS0 return constOf subSystem tyS0 -> constOf ts (typeInj direct tyS0) with
+         match tyS as tyS0 return constOf subSystem tyS0 -> constOf ts (liftType direct tyS0) with
          | exist _ ty0 _  => fun x : constOf ts ty0 => x
          end.
 
@@ -76,10 +76,10 @@ Section SubType.
 End SubType.
 
 Arguments subSystem [ts].
-Arguments typeInj   [ts].
-Arguments constInj  [ts].
+Arguments liftType   [ts].
+Arguments liftConst  [ts].
 
-Canonical Structure injection {ts} P := TypeSystemMap (subSystem P) ts (typeInj P) (constInj P).
+Canonical Structure injection {ts} P := TypeSystemMap (subSystem P) ts (liftType P) (liftConst P).
 
 
 
