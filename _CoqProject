@@ -5,6 +5,7 @@ src/Verse/Language.v
 src/Verse/Language/Ast.v
 src/Verse/Language/Core.v
 src/Verse/Language/Pretty.v
+src/Verse/Language/Types.v
 src/Verse/Nibble.v
 src/Verse/PrettyPrint.v
 src/Verse/Target/C.v

@@ -1,16 +1,10 @@
-Require Verse.TypeSystem.
+(* begin hide *)
 Require Verse.Nibble.
 Require Import Arith.
-Import Nat.
-Set Implicit Arguments.
+Require Import NArith.
+(* end hide *)
 
-(** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
-(** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
-(** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
-(** printing power2np3 $ 2^{n+3} $ # 2<sup> n+3 </sup> # *)
-
-
-(** * Types in its full glory.
+(** ** The type system for Verse.
 
 The Verse EDSL is a typed machine language consisting of [word]s,
 [multiword]s, and [array]s of which the first two, i.e. [word]s and
@@ -19,35 +13,53 @@ The Verse EDSL is a typed machine language consisting of [word]s,
 indicates this distinction in type.
 
 *)
-Inductive endian : Type := bigE | littleE | hostE.
 
+Inductive kind := direct | memory.
+Inductive type       : kind -> Type :=
+| word               : nat -> type direct
+| multiword          : nat -> nat    -> type direct
+| array              : nat -> endian -> type direct -> type memory
+with endian : Set := bigE | littleE | hostE.
 
-Inductive type       : TypeSystem.kind -> Type :=
-| word               : nat -> type TypeSystem.direct
-| multiword          : nat -> nat    -> type TypeSystem.direct
-| array              : nat -> endian -> type TypeSystem.direct -> type TypeSystem.memory
-.
-
-Definition const (t : type TypeSystem.direct) :=
+Definition const (t : type direct) :=
   match t with
   | word n => Nibble.bytes (2^n)
   | multiword m n => Vector.t (Nibble.bytes (2^n))  (2 ^ m)
   end.
 
-Canonical Structure verse_type_system : TypeSystem.typeSystem := TypeSystem.TypeSystem type const.
+Definition NToConst (ty : type direct) (num : N) : const ty
+  := match ty in type direct return const ty with
+     | word n => Nibble.fromN num
+     | multiword m n => Vector.const (Nibble.fromN num) (2^m)
+     end.
 
+Definition natToConst (ty : type direct) (num : nat) : const ty
+  := match ty in type direct return const ty with
+         | word n => Nibble.fromNat num
+         | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
+     end.
 
-(** Compute the size of a type in bytes. *)
-Fixpoint sizeOf {k} (ty : type k) :=
+(** Standard word types/scalars *)
+Notation Byte   := (word 0).
+Notation Word8  := (word 0).
+Notation Word16 := (word 1).
+Notation Word32 := (word 2).
+Notation Word64 := (word 3).
+
+(**
+The logSize of a direct type measures the size of the word in
+logarithmic scale.  This is often a convenient way to measure the
+length because of the fact that [word n] type denotes the word of
+[2^n] bytes.
+*)
+
+Definition logSize (ty : type direct) : nat :=
   match ty with
-  | word n         => 2 ^ n
-  | multiword m n  => 2 ^ m * 2 ^ n
-  | array n _ tw => n * sizeOf tw
+  | word n => n
+  | multiword m n => m + n
   end.
+Definition size (ty : type direct) : nat := 2 ^ logSize ty.
 
-
-(** Often we need to existentially quantify over types and other
-    objects. This definition is just for better readability.
- *)
-
-Definition some {P: Type} (A : P -> Type) := sigT A.
+(* Array constructor *)
+Definition Array  := array.
+Definition Ref (ty : type direct) : type memory := array 1 hostE ty.

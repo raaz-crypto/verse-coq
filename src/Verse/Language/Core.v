@@ -35,5 +35,3 @@ Inductive op : nat -> Set :=
  Type that captures endian of a machine.
 
  *)
-
-Inductive endian : Set := bigE | littleE | hostE.
