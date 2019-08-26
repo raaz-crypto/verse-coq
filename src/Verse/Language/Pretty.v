@@ -16,9 +16,8 @@ syntax of these code values palatable to the user.
 
 Require Import NArith.
 Require Import Nat.
-Require        Verse.TypeSystem.
 Require Import Verse.Language.Ast.
-Require Import Verse.Language.Core.
+Require Import Verse.Language.Types.
 Require        Vector.
 Import         Vector.VectorNotations.
 Require Import Verse.Nibble.
@@ -53,8 +52,8 @@ etc, to be considered as verse expressions. We do this in two stages.
 *)
 
 Section Embedding.
-  Variable v  : TypeSystem.VariableT verse_type_system.
-  Variable ty : type TypeSystem.direct.
+  Variable v  : VariableT.
+  Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
   Global Class EXPR  t := { toExpr  : t -> expr v ty }.
@@ -68,10 +67,10 @@ Section Embedding.
   Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := { toExpr := fun x => valueOf x}.
   Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := fun c => cval c }.
   Global Instance nat_to_exp     : EXPR nat
-  := { toExpr := fun n => cval (Ast.natToConst ty n)}.
+  := { toExpr := fun n => cval (natToConst ty n)}.
 
   Global Instance N_to_exp       : EXPR N
-  := { toExpr := fun n => cval (Ast.NToConst ty n)}.
+  := { toExpr := fun n => cval (NToConst ty n)}.
 
   (** Class similar to [EXPR] but creates l-expressions *)
   Global Class LEXPR t := { toLexpr : t -> lexpr v ty }.
@@ -100,7 +99,7 @@ Section Embedding.
     Variable class2 : EXPR t2.
 
     Definition assignStmt : statement v
-      := existT _  _ (assign (toLexpr lhs)  (toExpr e1)).
+      := existT _  _ (assign  (toLexpr lhs)  (toExpr e1)).
 
      Definition moveStmt (x : v ty) : statement v
       := existT _ _ (Ast.moveTo (toLexpr lhs) x).
@@ -160,7 +159,7 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
 
 Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v ty)
-                                            (v TypeSystem.memory (array b e ty))
+                                            (v memory (array b e ty))
   := { idx := fun a ix =>  deref a ix }.
 
 
