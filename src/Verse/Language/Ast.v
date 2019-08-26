@@ -33,36 +33,48 @@ We begin by defining the types for the language.
 
 (* begin hide *)
 Require Import Verse.Language.Types.
+Require        Verse.Target.C.Ast.
 (* end hide *)
 
 
 (** * Operators of Verse language.
 
 We define the arithmetic and bitwise operators that the verse language
-supports. Most target languages have support for these. The nat
-parameter captures the arity of the operator. The shifts and rotate
-instructions are arity one here because they only support constant
+supports. Target languages have support for these. The nat parameter
+captures the arity of the operator. The shifts and rotate instructions
+are arity one here because they only support constant
 offsets. Cryptographic implementations only need this and infact it is
 better to restrict to such shifts/rotates --- argument dependent
 shifts and rotates can become side channel leaking instructions.
 
+We define the verse language operators as C operators with the
+additional rotation operation (for some inexplicable reasons C still
+does not have rotation instructions in the standards).
+
  *)
 
 Inductive op : nat -> Set :=
-| plus    : op 2
-| minus   : op 2
-| mul     : op 2
-| quot    : op 2
-| rem     : op 2
-| bitOr   : op 2
-| bitAnd  : op 2
-| bitXor  : op 2
-| bitComp : op 1
+| cop     : forall n, C.Ast.op n -> op n
 | rotL    : nat -> op 1
 | rotR    : nat -> op 1
-| shiftL  : nat -> op 1
-| shiftR  : nat -> op 1
 .
+
+Arguments cop [n].
+
+(** We now define the Verse version of the C operators *)
+Definition plus     := cop Ast.plus.
+Definition minus    := cop Ast.minus.
+Definition mul      := cop Ast.mul.
+Definition quot     := cop Ast.quot.
+Definition rem      := cop Ast.rem.
+Definition bitOr    := cop Ast.bitOr.
+Definition bitAnd   := cop Ast.bitAnd.
+Definition bitXor   := cop Ast.bitXor.
+Definition bitComp  := cop Ast.bitComp.
+Definition shiftL m := cop (Ast.shiftL m).
+Definition shiftR m := cop (Ast.shiftR m).
+
+
 
 Definition VariableT := forall k, type k -> Set.
 

@@ -35,7 +35,6 @@ Notation "'0xF'" := OxF (only printing): c_scope.
 
 
 Require Vector.
-Require Import Verse.Language.Ast.
 Require Import Verse.Language.Types.
 Import Vector.VectorNotations.
 

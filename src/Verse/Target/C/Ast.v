@@ -1,5 +1,4 @@
 Require Import Verse.Language.Types.
-Require Verse.Language.Ast.
 Require Verse.Nibble.
 Require Verse.Error.
 
@@ -40,7 +39,25 @@ us considerably.
 
 (* ** Operators.
 
+We now capture the arithmetic and bit-wise operators for the C
+language.
+
  *)
+
+
+Inductive op : nat -> Set :=
+| plus    : op 2
+| minus   : op 2
+| mul     : op 2
+| quot    : op 2
+| rem     : op 2
+| bitOr   : op 2
+| bitAnd  : op 2
+| bitXor  : op 2
+| bitComp : op 1
+| shiftL  : nat -> op 1
+| shiftR  : nat -> op 1
+.
 
 (** * Explanation for the constructors.
 
@@ -69,7 +86,7 @@ Module Internal.
   Inductive voidparams : Set.
 
   Inductive expr :=
-  | app            : forall n, Ast.op n -> Vector.t expr n -> expr
+  | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
   | rotateL        : nat -> (expr * nat) -> expr
   | rotateR        : nat -> (expr * nat) -> expr
@@ -112,7 +129,7 @@ Arguments declare_variable [ty].
 Inductive statement :=
 | declareStmt : declaration -> statement
 | assign      : expr -> expr -> statement
-| update      : forall n, Ast.op (S n) -> expr -> Vector.t expr n -> statement
+| update      : forall n, op (S n) -> expr -> Vector.t expr n -> statement
 | increment   : expr -> statement
 | decrement   : expr -> statement.
 
