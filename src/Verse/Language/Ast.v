@@ -1,4 +1,3 @@
-
 (** printing power2m   $ 2^m     $ # 2<sup> m   </sup> # *)
 (** printing power2n   $ 2^n     $ # 2<sup> n   </sup> # *)
 (** printing power2p3  $ 2^3     $ # 2<sup> 3   </sup> # *)
@@ -33,97 +32,52 @@ We begin by defining the types for the language.
 
 
 (* begin hide *)
-
-Require Verse.TypeSystem.
-Require Verse.Nibble.
-
-Require Export Verse.Language.Core.
-Require Import Arith.
-Require Import NArith.
-Import Nat.
-Set Implicit Arguments.
-
+Require Import Verse.Language.Types.
 (* end hide *)
 
-(** ** The type system for Verse.
 
-The Verse EDSL is a typed machine language consisting of [word]s,
-[multiword]s, and [array]s of which the first two, i.e. [word]s and
-[multiword]s, can reside in the registers of the machine where as
-[array]s are necessarily stored in the machine memory. The kind system
-indicates this distinction in type.
+(** * Operators of Verse language.
 
-*)
+We define the arithmetic and bitwise operators that the verse language
+supports. Most target languages have support for these. The nat
+parameter captures the arity of the operator. The shifts and rotate
+instructions are arity one here because they only support constant
+offsets. Cryptographic implementations only need this and infact it is
+better to restrict to such shifts/rotates --- argument dependent
+shifts and rotates can become side channel leaking instructions.
 
-Inductive type       : TypeSystem.kind -> Type :=
-| word               : nat -> type TypeSystem.direct
-| multiword          : nat -> nat    -> type TypeSystem.direct
-| array              : nat -> endian -> type TypeSystem.direct -> type TypeSystem.memory
+ *)
+
+Inductive op : nat -> Set :=
+| plus    : op 2
+| minus   : op 2
+| mul     : op 2
+| quot    : op 2
+| rem     : op 2
+| bitOr   : op 2
+| bitAnd  : op 2
+| bitXor  : op 2
+| bitComp : op 1
+| rotL    : nat -> op 1
+| rotR    : nat -> op 1
+| shiftL  : nat -> op 1
+| shiftR  : nat -> op 1
 .
 
-Definition const (t : type TypeSystem.direct) :=
-  match t with
-  | word n => Nibble.bytes (2^n)
-  | multiword m n => Vector.t (Nibble.bytes (2^n))  (2 ^ m)
-  end.
-
-Definition NToConst (ty : type TypeSystem.direct) (num : N) : const ty
-  := match ty in type TypeSystem.direct return const ty with
-     | word n => Nibble.fromN num
-     | multiword m n => Vector.const (Nibble.fromN num) (2^m)
-     end.
-
-Definition natToConst (ty : type TypeSystem.direct) (num : nat) : const ty
-  := match ty in type TypeSystem.direct return const ty with
-         | word n => Nibble.fromNat num
-         | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
-     end.
-
-Canonical Structure verse_type_system : TypeSystem.typeSystem
-  := TypeSystem.TypeSystem type const.
-
-
-
-
-(** Standard word types/scalars *)
-Notation Byte   := (word 0).
-Notation Word8  := (word 0).
-Notation Word16 := (word 1).
-Notation Word32 := (word 2).
-Notation Word64 := (word 3).
-
-(**
-The logSize of a direct type measures the size of the word in
-logarithmic scale.  This is often a convenient way to measure the
-length because of the fact that [word n] type denotes the word of
-[2^n] bytes.
-*)
-
-Definition logSize (ty : type TypeSystem.direct) : nat :=
-  match ty with
-  | word n => n
-  | multiword m n => m + n
-  end.
-Definition size (ty : type TypeSystem.direct) : nat := 2 ^ logSize ty.
-
-(* Array constructor *)
-Definition Array  := array.
-Definition Ref (ty : type TypeSystem.direct) : type TypeSystem.memory := array 1 hostE ty.
-
-Require Vector.
+Definition VariableT := forall k, type k -> Set.
 
 Section Code.
 
-  Variable v : TypeSystem.VariableT verse_type_system.
+  Variable v : VariableT.
   Arguments v [k].
 
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : type TypeSystem.direct -> Set :=
+  Inductive lexpr : type direct -> Set :=
   | var   :  forall {ty}, v ty -> lexpr ty
   | deref :  forall {ty b e}, v (array b e ty)-> {i | i < b} -> lexpr ty.
 
   (** The expression type *)
-  Inductive expr (ty : type TypeSystem.direct) : Set :=
+  Inductive expr (ty : type direct) : Set :=
   | cval     : const ty -> expr ty
   | valueOf  : lexpr ty -> expr ty
   | app      : forall {arity : nat}, op arity -> Vector.t (expr ty) arity -> expr ty.
@@ -173,12 +127,13 @@ End Code.
 
 Arguments var [v ty].
 Arguments deref [v ty b e].
-
+Arguments assign [v ty].
 Arguments cval [v ty].
 Arguments valueOf [v ty].
 Arguments app [v ty arity].
 Arguments clobber [v ty].
-
+Arguments moveTo [v ty].
+Arguments update [v ty n].
 (**
 
 Many cryptographic primitives work on streams of data that are divided
@@ -187,9 +142,9 @@ body of the an iterator that works with such a stream of blocks of
 type [ty].
 
 *)
-Record iterator (ty : type TypeSystem.memory) v
+Record iterator (ty : type memory) v
   := { setup    : code v;
-       process  : v TypeSystem.memory ty -> code v;
+       process  : v memory ty -> code v;
        finalise : code v
      }.
 
