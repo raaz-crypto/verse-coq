@@ -2,13 +2,13 @@ Require Import Verse.Target.C.Ast.
 Import Verse.Target.C.Ast.Internal.
 
 Notation "T X"
-  := (@declare_variable TypeSystem.direct T X)
+  := (@declare_variable T X)
        (at level 29, only printing) : c_scope.
 Notation "T X [ N ]"
-  := (@declare_variable TypeSystem.memory (array N T) X)
+  := (@declare_variable (array N T) X)
        (at level 29, only printing) : c_scope.
 Notation "T (* X ) [ N ]"
-  := (@declare_variable TypeSystem.memory (ptrToArray N T) X)
+  := (@declare_variable (ptrToArray N T) X)
        (at level 29, only printing,
         format "T  '(*' X ')' [ N ]"
 
@@ -35,9 +35,8 @@ Notation "'0xF'" := OxF (only printing): c_scope.
 
 
 Require Vector.
-
-
-Require Import Verse.Language.Core.
+Require Import Verse.Language.Ast.
+Require Import Verse.Language.Types.
 Import Vector.VectorNotations.
 
 Notation "/**/~ X"  := (app bitComp [ X ])
@@ -118,8 +117,8 @@ Notation "'verse_from_le32' ( X )" := (convert_from littleE 32 X)
 Notation "'verse_from_le64' ( X )" := (convert_from littleE 64 X)
          (at level 0, only printing) : c_scope.
 
-Definition binOpUpdate (o : op 2) X Y := update o X [ Y ].
-Definition uniOpUpdate (o : op 1) X   := update o X [].
+Definition binOpUpdate (o : op 2) X Y := C.Ast.update 1 o X [ Y ].
+Definition uniOpUpdate (o : op 1) X   := C.Ast.update 0 o X [].
 
 Infix "="     := (assign)             (at level 70, only printing) : c_scope.
 Infix "+="    := (binOpUpdate plus)   (at level 70, only printing) : c_scope.

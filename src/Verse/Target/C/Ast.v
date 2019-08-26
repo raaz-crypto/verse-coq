@@ -1,7 +1,7 @@
-Require Verse.TypeSystem.
+Require Import Verse.Language.Types.
+Require Verse.Language.Ast.
 Require Verse.Nibble.
 Require Verse.Error.
-Set Implicit Arguments.
 
 (** * Naming stuff
 
@@ -19,13 +19,13 @@ translation of verse code is captured here.
 
  *)
 
-Inductive type : TypeSystem.kind -> Set :=
-| uint8_t    : type TypeSystem.direct
-| uint16_t   : type TypeSystem.direct
-| uint32_t   : type TypeSystem.direct
-| uint64_t   : type TypeSystem.direct
-| array      : nat -> type TypeSystem.direct    -> type TypeSystem.memory
-| ptrToArray : nat -> type TypeSystem.direct    -> type TypeSystem.memory
+Inductive type : Set :=
+| uint8_t       : type
+| uint16_t      : type
+| uint32_t      : type
+| uint64_t      : type
+| array         : nat -> type -> type
+| ptrToArray    : nat -> type -> type
 .
 
 
@@ -34,7 +34,11 @@ Inductive type : TypeSystem.kind -> Set :=
 We begin by defining C expressions. Since C is our target language,
 and not a source language, its role is merely in obtaining the pretty
 printed code. Therefore, being not too strict in the types would aid
-us considerabily.
+us considerably.
+
+ *)
+
+(* ** Operators.
 
  *)
 
@@ -56,7 +60,6 @@ we now explain.
 
 *)
 
-Require Import Verse.Language.Core.
 
 Require Vector.
 Import Vector.VectorNotations.
@@ -66,7 +69,7 @@ Module Internal.
   Inductive voidparams : Set.
 
   Inductive expr :=
-  | app : forall n, op n -> Vector.t expr n -> expr
+  | app            : forall n, Ast.op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
   | rotateL        : nat -> (expr * nat) -> expr
   | rotateR        : nat -> (expr * nat) -> expr
@@ -83,11 +86,11 @@ End Internal.
 
 
 Import Internal.
-
-Definition const (ty : type TypeSystem.direct) := Internal.expr.
+(*
+Definition const (ty : type direct) := Internal.expr.
 Canonical Structure c_type_system : TypeSystem.typeSystem
     := TypeSystem.TypeSystem type const.
-
+*)
 (** ** Variables and Constants as expressions.
 
 Constants and variables are also represented by expressions. This is
@@ -98,18 +101,18 @@ the pretty printed form, this is not really a problem.
  *)
 
 
-Definition cvar k (ty : type k) := Internal.expr.
-Arguments cvar [k].
-Inductive declaration :=
-| declare_variable : forall k (ty : type k), cvar ty -> declaration.
+Definition cvar (ty : type) := Internal.expr.
 
-Arguments declare_variable [k].
+Inductive declaration :=
+| declare_variable : forall ty, cvar ty -> declaration.
+
+Arguments declare_variable [ty].
 
 
 Inductive statement :=
 | declareStmt : declaration -> statement
 | assign      : expr -> expr -> statement
-| update      : forall n, op (S n) -> expr -> Vector.t expr n -> statement
+| update      : forall n, Ast.op (S n) -> expr -> Vector.t expr n -> statement
 | increment   : expr -> statement
 | decrement   : expr -> statement.
 
@@ -122,7 +125,6 @@ Inductive block :=
 | sequence   : statement -> block -> block.
 
 
-Print List.fold_right.
 Definition mkBlock := List.fold_right sequence endBlock.
 
 
@@ -145,5 +147,4 @@ Inductive function :=
 
 
 Require List.
-Print List.fold_right.
 Import List.ListNotations.
