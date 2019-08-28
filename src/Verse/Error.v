@@ -64,6 +64,12 @@ Section Error.
 End Error.
 Arguments recover' [A Err].
 
+(* Type to capture translation error *)
+Inductive TranslationError : Prop :=
+| CouldNotTranslate : forall A : Type, A -> TranslationError.
+
+Arguments  CouldNotTranslate [A].
+
 (*
 Section Extract.
 

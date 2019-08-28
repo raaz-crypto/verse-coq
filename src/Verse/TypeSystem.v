@@ -101,11 +101,6 @@ Canonical Structure injection {ts} P := TypeSystemMap (subSystem P) ts (liftType
     at type maps which result in translation errors.
  *)
 
-Inductive TranslationError : Prop :=
-| CouldNotTranslate : forall A : Type, A -> TranslationError.
-
-Arguments  CouldNotTranslate [A].
-
 Definition translation ts0 ts1 := forall k, typeOf ts0 k -> typeOf ts1 k + { TranslationError }.
 
 Require Import Verse.Error.
