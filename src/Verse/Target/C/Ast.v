@@ -88,10 +88,10 @@ Module Internal.
   Inductive expr :=
   | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
-  | rotateL        : nat -> (expr * nat) -> expr
-  | rotateR        : nat -> (expr * nat) -> expr
-  | convert_to     : endian -> nat -> expr -> expr
-  | convert_from   : endian -> nat -> expr -> expr
+  | rotateL        : type -> expr * nat -> expr
+  | rotateR        : type -> expr * nat -> expr
+  | convert_to     : endian -> type -> expr -> expr
+  | convert_from   : endian -> type -> expr -> expr
   | verse_u8       : forall c, c -> expr
   | verse_u16      : forall c, c -> expr
   | verse_u32      : forall c, c -> expr
