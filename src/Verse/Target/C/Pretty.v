@@ -1,5 +1,5 @@
 Require Import Verse.Target.C.Ast.
-Import Verse.Target.C.Ast.Internal.
+Import Verse.Target.C.Ast.Expr.
 
 Notation "T X"
   := (@declare_variable T X)

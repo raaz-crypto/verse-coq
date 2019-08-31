@@ -81,7 +81,7 @@ we now explain.
 Require Vector.
 Import Vector.VectorNotations.
 
-Module Internal.
+Module Expr.
 
   Inductive voidparams : Set.
 
@@ -97,14 +97,12 @@ Module Internal.
   | verse_u32      : forall c, c -> expr
   | verse_u64      : forall c, c -> expr.
 
+End Expr.
 
 
-End Internal.
-
-
-Import Internal.
+Import Expr.
 (*
-Definition const (ty : type direct) := Internal.expr.
+Definition const (ty : type direct) := Expr.expr.
 Canonical Structure c_type_system : TypeSystem.typeSystem
     := TypeSystem.TypeSystem type const.
 *)
@@ -118,7 +116,7 @@ the pretty printed form, this is not really a problem.
  *)
 
 
-Definition cvar (ty : type) := Internal.expr.
+Definition cvar (ty : type) := Expr.expr.
 
 Inductive declaration :=
 | declare_variable : forall ty, cvar ty -> declaration.
