@@ -32,7 +32,8 @@ We begin by defining the types for the language.
 
 
 (* begin hide *)
-Require Import Verse.Language.Types.
+Require Import Verse.TypeSystem.
+Require        Verse.Language.Types.
 Require        Verse.Target.C.Ast.
 (* end hide *)
 
@@ -74,23 +75,26 @@ Definition bitComp  := cop Ast.bitComp.
 Definition shiftL m := cop (Ast.shiftL m).
 Definition shiftR m := cop (Ast.shiftR m).
 
+(**
+    The verse language ast is defined for a generic type system
 
-
-Definition VariableT := forall k, type k -> Set.
-
+*)
 Section Code.
 
-  Variable v : VariableT.
+  Variable ts : typeSystem.
+
+  Variable v : VariablesOf ts.
   Arguments v [k].
 
+
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : type direct -> Set :=
+  Inductive lexpr : typeOf ts Types.direct -> Set :=
   | var   :  forall {ty}, v ty -> lexpr ty
-  | deref :  forall {ty b e}, v (array b e ty)-> {i | i < b} -> lexpr ty.
+  | deref :  forall {ty b e}, v (arrayType ts b e ty)-> {i | i < b} -> lexpr ty.
 
   (** The expression type *)
-  Inductive expr (ty : type direct) : Set :=
-  | cval     : const ty -> expr ty
+  Inductive expr (ty : typeOf ts Types.direct) : Type :=
+  | cval     : constOf ts ty -> expr ty
   | valueOf  : lexpr ty -> expr ty
   | app      : forall {arity : nat}, op arity -> Vector.t (expr ty) arity -> expr ty.
 
@@ -134,31 +138,40 @@ Section Code.
   Definition statement := sigT instruction.
   Definition code      := list statement.
 
+  (**
+
+   Many cryptographic primitives work on streams of data that are divided
+  into chunks of fixed size. The record [iterator] is essentially the
+  body of the an iterator that works with such a stream of blocks of
+  type [ty].
+
+   *)
+  Record iterator (ty : typeOf ts Types.memory) v
+  := { setup    : code;
+       process  : v Types.memory ty -> code;
+       finalise : code
+     }.
+
 End Code.
 
+Arguments expr [ts].
+Arguments lexpr [ts].
+Arguments instruction [ts].
+Arguments code [ts].
+Arguments statement [ts].
 
-Arguments var [v ty].
-Arguments deref [v ty b e].
-Arguments assign [v ty].
-Arguments cval [v ty].
-Arguments valueOf [v ty].
-Arguments app [v ty arity].
-Arguments clobber [v ty].
-Arguments moveTo [v ty].
-Arguments update [v ty n].
-(**
 
-Many cryptographic primitives work on streams of data that are divided
-into chunks of fixed size. The record [iterator] is essentially the
-body of the an iterator that works with such a stream of blocks of
-type [ty].
+Arguments iterator [ts].
 
-*)
-Record iterator (ty : type memory) v
-  := { setup    : code v;
-       process  : v memory ty -> code v;
-       finalise : code v
-     }.
+Arguments var [ts v ty].
+Arguments deref [ts v ty b e].
+Arguments assign [ts v ty].
+Arguments cval [ts v ty].
+Arguments valueOf [ts v ty].
+Arguments app [ts v ty arity].
+Arguments clobber [ts v ty].
+Arguments moveTo [ts v ty].
+Arguments update [ts v ty n].
 
 (*
 

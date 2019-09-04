@@ -1,4 +1,6 @@
 Require Export Verse.Language.
+Require Export Verse.TypeSystem.
+
 (* Require Export Verse.Types. *)
 (* Require Export Verse.Types.Internal. *)
 (* Require Export Verse.Word. *)

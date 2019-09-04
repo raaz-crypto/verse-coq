@@ -17,6 +17,7 @@ syntax of these code values palatable to the user.
 Require Import NArith.
 Require Import Nat.
 Require Import Verse.Language.Ast.
+Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require        Vector.
 Import         Vector.VectorNotations.
@@ -52,7 +53,7 @@ etc, to be considered as verse expressions. We do this in two stages.
 *)
 
 Section Embedding.
-  Variable v  : VariableT.
+  Variable v  : VariablesOf verse_type_system.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
