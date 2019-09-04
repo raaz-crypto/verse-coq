@@ -32,8 +32,7 @@ We begin by defining the types for the language.
 
 
 (* begin hide *)
-Require Import Verse.TypeSystem.
-Require        Verse.Language.Types.
+Require Import Verse.Language.Types.
 Require        Verse.Target.C.Ast.
 (* end hide *)
 

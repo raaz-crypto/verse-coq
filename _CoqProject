@@ -10,7 +10,6 @@ src/Verse/PrettyPrint.v
 src/Verse/Target/C.v
 src/Verse/Target/C/Ast.v
 src/Verse/Target/C/Pretty.v
-src/Verse/TypeSystem.v
 src/Verse/TestCode/TestCode.v
 
 # src/Verse/Word.v
