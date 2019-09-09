@@ -99,3 +99,37 @@ programs that use the type system [ts].
 
 Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
 Definition VariableT := VariablesOf verse_type_system.
+
+(** * Type translation
+
+ *)
+
+Require Import Verse.Error.
+
+(* ** Translation results *)
+
+Definition resultType ts k    := typeOf ts k + {TranslationError}.
+Definition resultArray ts b e : resultType ts direct -> resultType ts memory
+  := ap (arrayType ts b e).
+Definition resultConst ts  (ty : resultType ts direct) :=
+  match ty with
+  | {- tyC -} => constOf ts tyC
+  | _         => Empty_set + {TranslationError}
+  end.
+
+
+Definition typeMap ts
+  := type direct -> resultType ts direct.
+
+Definition resultSystem ts :=
+  TypeSystem (resultType ts) (resultArray ts) (resultConst ts).
+
+
+Structure typeTranslation (ts : typeSystem)
+  := TypeTranslation { typeTrans   : type direct -> typeOf ts direct;
+                       constTrans  : forall ty : type direct,
+                           const ty -> constOf ts (typeTrans ty)
+                     }.
+
+Arguments TypeTranslation [ts].
+Definition typeCompile ts := typeTranslation (resultSystem ts).
