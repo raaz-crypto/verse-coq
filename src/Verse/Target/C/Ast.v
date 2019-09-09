@@ -1,5 +1,5 @@
 Require Import Verse.Language.Types.
-Require Verse.Nibble.
+Require Import Verse.Nibble.
 Require Verse.Error.
 
 (** * Naming stuff
@@ -18,15 +18,23 @@ translation of verse code is captured here.
 
  *)
 
-Inductive type : Set :=
-| uint8_t       : type
-| uint16_t      : type
-| uint32_t      : type
-| uint64_t      : type
-| array         : nat -> type -> type
-| ptrToArray    : nat -> type -> type
+Inductive type  : kind -> Set :=
+| uint8_t       : type direct
+| uint16_t      : type direct
+| uint32_t      : type direct
+| uint64_t      : type direct
+| array         : nat -> type direct -> type memory
+| ptrToArray    : nat -> type direct -> type memory
 .
 
+Definition carrayType n (e : endian) t := array n t.
+Definition const (ty : type direct)
+  := match ty with
+     | uint8_t  => nibbleTuple 1
+     | uint16_t => nibbleTuple 3
+     | uint32_t => nibbleTuple 7
+     | uint64_t => nibbleTuple 15
+     end%type.
 
 (** * The expression language.
 
@@ -79,6 +87,7 @@ we now explain.
 
 
 Require Vector.
+Require Import Verse.Nibble.
 Import Vector.VectorNotations.
 
 Module Expr.
@@ -88,24 +97,20 @@ Module Expr.
   Inductive expr :=
   | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
-  | rotateL        : type -> expr * nat -> expr
-  | rotateR        : type -> expr * nat -> expr
-  | convert_to     : endian -> type -> expr -> expr
-  | convert_from   : endian -> type -> expr -> expr
-  | verse_u8       : forall c, c -> expr
-  | verse_u16      : forall c, c -> expr
-  | verse_u32      : forall c, c -> expr
-  | verse_u64      : forall c, c -> expr.
+  | rotateL        : type direct -> expr * nat -> expr
+  | rotateR        : type direct -> expr * nat -> expr
+  | convert_to     : endian -> type direct -> expr -> expr
+  | convert_from   : endian -> type direct -> expr -> expr
+  | verse_u8       : const uint8_t  -> expr
+  | verse_u16      : const uint16_t -> expr
+  | verse_u32      : const uint32_t -> expr
+  | verse_u64      : const uint64_t -> expr.
 
 End Expr.
 
 
 Import Expr.
-(*
-Definition const (ty : type direct) := Expr.expr.
-Canonical Structure c_type_system : TypeSystem.typeSystem
-    := TypeSystem.TypeSystem type const.
-*)
+
 (** ** Variables and Constants as expressions.
 
 Constants and variables are also represented by expressions. This is
@@ -116,12 +121,13 @@ the pretty printed form, this is not really a problem.
  *)
 
 
-Definition cvar (ty : type) := Expr.expr.
+Definition cvar k (ty : type k) := Expr.expr.
+
 
 Inductive declaration :=
-| declare_variable : forall ty, cvar ty -> declaration.
+| declare_variable : forall k (ty : type k), cvar k ty -> declaration.
 
-Arguments declare_variable [ty].
+Arguments declare_variable [k ty].
 
 
 Inductive statement :=
@@ -160,6 +166,5 @@ Inductive function :=
       block         -> (* finalisation *)
       function.
 
-
-Require List.
-Import List.ListNotations.
+Canonical Structure c_type_system :=
+    TypeSystem  type carrayType const.
