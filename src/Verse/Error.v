@@ -217,6 +217,13 @@ Section PartialFunctions.
   Definition domain := {a | InDomain a}.
   Definition range  := {b | InRange b}.
 
+  Definition totalise (aD : domain) : B :=
+    match aD with
+    | exist _ a pf
+      => match recover' (partial a) pf with
+         | exist _ b _ => b
+         end
+    end.
 
   (* Get the total core of the partial function *)
   Definition totalCore (aD : domain) : range :=
@@ -226,6 +233,7 @@ Section PartialFunctions.
       | exist _ b pf0 => exist _ b (ex_intro _ a pf0)
       end
     end.
+
 
 End PartialFunctions.
 Arguments InDomain [A B E].
