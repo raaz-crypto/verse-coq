@@ -133,3 +133,20 @@ Structure typeTranslation (ts : typeSystem)
 
 Arguments TypeTranslation [ts].
 Definition typeCompile ts := typeTranslation (resultSystem ts).
+
+(** ** Some helper functions. *)
+
+(** A more convenient way of existentially quantifying over types *)
+Definition some := @sigT kind.
+
+Import Vector.VectorNotations.
+(** A declaration is just a sequence of types *)
+Definition Declaration n
+  := Vector.t (some type) n.
+
+Arguments Declaration [n].
+
+Definition Empty : Declaration    := [].
+
+(** Helper function that recovers the type of the given variable *)
+Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
