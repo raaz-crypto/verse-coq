@@ -33,5 +33,5 @@ Module Internal.
 
 End Internal.
 
-Canonical Structure c_type_compile : typeCompile c_type_system
-  := TypeTranslation Internal.trType Internal.trConst.
+Canonical Structure c_type_compile : typeCompile verse_type_system c_type_system
+  := TypeTranslation (completeTypeTrans Internal.trType) Internal.trConst.
