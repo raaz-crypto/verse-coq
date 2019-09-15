@@ -100,9 +100,35 @@ programs that use the type system [ts].
 Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
 Definition VariableT := VariablesOf verse_type_system.
 
-(** * Type translation
+(** * Type translation and compilation.
+
+A type translation is mapping between the types of two type systems
+which preserves the constants. A compilation is a translation which
+can err --- it might be the case that certain types in the source type
+system might not have faithful representation in the type system. We
+represent type translation using the following structure.
 
  *)
+
+Structure typeTranslation (ts0 ts1 : typeSystem)
+  := TypeTranslation { typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
+                       constTrans  : forall ty : typeOf ts0 direct,
+                           constOf ts0 ty -> constOf ts1 (typeTrans direct ty)
+                     }.
+
+Arguments TypeTranslation [ts0 ts1].
+Arguments typeTrans [ts0 ts1] _ [k].
+Arguments constTrans [ts0 ts1] _ [ty].
+
+(** ** Type compilation and result types.
+
+For an arbitrary target type system [ts], type compilation into [ts]
+can also be represented by the [typeTranslation] structure by first
+considering the types [resultType ts] and the associated type system
+[resultSystem ts]. Type compilation to [ts] can then be seen as a type
+transaltion into [resultSystem ts].
+
+*)
 
 Require Import Verse.Error.
 
@@ -117,22 +143,43 @@ Definition resultConst ts  (ty : resultType ts direct) :=
   | _         => Empty_set + {TranslationError}
   end.
 
-
-Definition typeMap ts
-  := type direct -> resultType ts direct.
-
 Definition resultSystem ts :=
   TypeSystem (resultType ts) (resultArray ts) (resultConst ts).
 
+Definition typeCompile src ts := typeTranslation src (resultSystem ts).
 
-Structure typeTranslation (ts : typeSystem)
-  := TypeTranslation { typeTrans   : type direct -> typeOf ts direct;
-                       constTrans  : forall ty : type direct,
-                           const ty -> constOf ts (typeTrans ty)
-                     }.
+(** ** Translating verse types.
 
-Arguments TypeTranslation [ts].
-Definition typeCompile ts := typeTranslation (resultSystem ts).
+To define translations from verse types, all we need is translations
+of direct types. The function given below lifts such a translation
+into a full type translation.
+
+*)
+Definition completeTypeTrans ts (tf : type direct -> typeOf ts direct)
+  := fun k =>
+       match k as k0 return type k0 -> typeOf ts k0 with
+       | direct => tf
+       | memory => fun ty : type memory =>
+                     match ty with
+                       array b e stype => arrayType ts b e (tf stype)
+                     end
+       end.
+
+Arguments completeTypeTrans [ts].
+
+Definition transVar ts0 ts1
+           (tyTr : typeTranslation ts0 ts1)
+  : VariablesOf ts1 -> VariablesOf ts0
+  := fun v =>  fun k (ty : typeOf ts0 k) => v k (typeTrans tyTr ty).
+
+Definition compileVar ts0 ts1
+           (tyComp : typeCompile ts0 ts1)
+  : VariablesOf ts1 -> VariablesOf ts0
+  := fun v k (ty : typeOf ts0 k) =>
+       match typeTrans tyComp ty with
+       | {- ty0 -} => v k ty0
+       | error _   => Empty_set
+       end.
 
 (** ** Some helper functions. *)
 
@@ -149,4 +196,6 @@ Arguments Declaration [n].
 Definition Empty : Declaration    := [].
 
 (** Helper function that recovers the type of the given variable *)
-Definition Var {v : VariableT}{k}{t : type k} : v k t -> some type := fun _ => existT _ _ t.
+Definition Var {v : VariableT}{k}{t : type k}
+  : v k t -> some type
+  := fun _ => existT _ _ t.
