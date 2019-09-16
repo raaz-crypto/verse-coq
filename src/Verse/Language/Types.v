@@ -113,12 +113,15 @@ represent type translation using the following structure.
 Structure typeTranslation (ts0 ts1 : typeSystem)
   := TypeTranslation { typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
                        constTrans  : forall ty : typeOf ts0 direct,
-                           constOf ts0 ty -> constOf ts1 (typeTrans direct ty)
+                           constOf ts0 ty -> constOf ts1 (typeTrans direct ty);
+                       arrayCompatibility : forall b e ty,
+                           typeTrans memory (arrayType ts0 b e ty) = arrayType ts1 b e (typeTrans direct ty)
                      }.
 
 Arguments TypeTranslation [ts0 ts1].
 Arguments typeTrans [ts0 ts1] _ [k].
 Arguments constTrans [ts0 ts1] _ [ty].
+Arguments arrayCompatibility [ts0 ts1].
 
 (** ** Type compilation and result types.
 
