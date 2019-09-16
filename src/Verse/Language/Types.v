@@ -181,6 +181,8 @@ Definition compileVar ts0 ts1
        | error _   => Empty_set
        end.
 
+Arguments transVar [ts0 ts1].
+Arguments compileVar [ts0 ts1].
 (** ** Some helper functions. *)
 
 (** A more convenient way of existentially quantifying over types *)
