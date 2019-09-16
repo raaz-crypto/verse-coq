@@ -10,10 +10,10 @@ Module Internal.
   Definition trType (ty : Types.type direct) : typeOf tgt direct
     := let couldNotError := error (CouldNotTranslate ty)
        in match ty with
-          | Types.word 0 => {- uint8_t  -}
-          | Types.word 1 => {- uint16_t -}
-          | Types.word 2 => {- uint32_t -}
-          | Types.word 3 => {- uint64_t -}
+          | Word8  => {- uint8_t  -}
+          | Word16 => {- uint16_t -}
+          | Word32 => {- uint32_t -}
+          | Word64 => {- uint64_t -}
           | _ => couldNotError
           end.
 
