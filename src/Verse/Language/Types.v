@@ -154,21 +154,41 @@ Definition typeCompile src ts := typeTranslation src (resultSystem ts).
 (** ** Translating verse types.
 
 To define translations from verse types, all we need is translations
-of direct types. The function given below lifts such a translation
-into a full type translation.
+of direct types which we can use to [extend] it to the entire universe
+of verse types.
 
-*)
-Definition completeTypeTrans ts (tf : type direct -> typeOf ts direct)
-  := fun k =>
-       match k as k0 return type k0 -> typeOf ts k0 with
-       | direct => tf
-       | memory => fun ty : type memory =>
-                     match ty with
-                       array b e stype => arrayType ts b e (tf stype)
-                     end
-       end.
+ *)
 
-Arguments completeTypeTrans [ts].
+Section VerseTranslation.
+
+  Variable ts : typeSystem.
+  Variable tf : type direct -> typeOf ts direct.
+  Variable cf : forall ty, const ty -> constOf ts (tf ty).
+
+  Definition extend : forall k, type k -> typeOf ts k :=
+    fun k => match k as k0 return type k0 -> typeOf ts k0 with
+          | direct => tf
+          | memory => fun ty : type memory =>
+                       match ty with
+                       | array b e stype => arrayType ts b e (tf stype)
+                       end
+          end.
+
+  Lemma extends_to_array : forall b e ty,
+      extend memory (array b e ty) = arrayType ts b e (extend direct ty).
+  Proof.
+    intros; trivial.
+  Defined.
+
+  Definition verseTranslation := TypeTranslation extend cf extends_to_array.
+
+End VerseTranslation.
+
+Arguments extend [ts].
+Arguments extends_to_array [ts].
+Arguments verseTranslation [ts].
+
+
 
 Definition transVar ts0 ts1
            (tyTr : typeTranslation ts0 ts1)
