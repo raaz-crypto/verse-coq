@@ -195,14 +195,18 @@ Definition transVar ts0 ts1
   : VariablesOf ts1 -> VariablesOf ts0
   := fun v =>  fun k (ty : typeOf ts0 k) => v k (typeTrans tyTr ty).
 
+Definition resultVar (ts : typeSystem) (v : VariablesOf ts)
+  : VariablesOf (resultSystem ts) :=
+  fun k tyE => match tyE with
+               | {- ty0 -} => v k ty0
+               | error _   => Empty_set
+               end.
+
+Arguments resultVar [ts].
 Definition compileVar ts0 ts1
            (tyComp : typeCompile ts0 ts1)
   : VariablesOf ts1 -> VariablesOf ts0
-  := fun v k (ty : typeOf ts0 k) =>
-       match typeTrans tyComp ty with
-       | {- ty0 -} => v k ty0
-       | error _   => Empty_set
-       end.
+  := fun v k (ty : typeOf ts0 k) => resultVar v k (typeTrans tyComp ty).
 
 Arguments transVar [ts0 ts1].
 Arguments compileVar [ts0 ts1].
