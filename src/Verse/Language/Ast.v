@@ -137,20 +137,6 @@ Section Code.
   Definition statement := sigT instruction.
   Definition code      := list statement.
 
-  (**
-
-   Many cryptographic primitives work on streams of data that are divided
-  into chunks of fixed size. The record [iterator] is essentially the
-  body of the an iterator that works with such a stream of blocks of
-  type [ty].
-
-   *)
-  Record iterator (ty : typeOf ts Types.memory) v
-  := { setup    : code;
-       process  : v Types.memory ty -> code;
-       finalise : code
-     }.
-
 End Code.
 
 Arguments expr [ts].
@@ -160,7 +146,25 @@ Arguments code [ts].
 Arguments statement [ts].
 
 
+(**
+
+Many cryptographic primitives work on streams of data that are divided
+into chunks of fixed size. The record [iterator] is essentially the
+body of the an iterator that works with such a stream of blocks of
+type [ty].
+
+ *)
+Record iterator ts (v : VariablesOf ts) (ty : typeOf ts memory)
+  := { setup    : code v;
+       process  : v memory ty -> code v;
+       finalise : code v
+     }.
+
 Arguments iterator [ts].
+Arguments setup [ts v ty].
+Arguments process [ts v ty].
+Arguments finalise [ts v ty].
+
 
 Arguments var [ts v ty].
 Arguments deref [ts v ty b e].
@@ -236,6 +240,52 @@ Arguments translateExpr [src tgt] _ [v ty].
 Arguments translateCode [src tgt] _ [v].
 Arguments translateIterator [src tgt] _ [v].
 
+Require Import Verse.Error.
+Section Compile.
+
+  Variable src : typeSystem.
+  Variable tgt : typeSystem.
+  Variable tr  : typeCompile src tgt.
+  (*
+  Section Recover.
+    Variable func : forall ts : typeSystem, typeOf ts direct -> Type.
+    Variable ty   : typeOf src direct.
+    Definition extract (u : func (resultSystem tgt) (typeTrans tr ty)) :=
+      :=
+        match typeTrans tr ty as ty0
+              return  match ty0 with
+                      | {- good -} => func tgt good
+                      | error _   => Empty_set + {TranslationError}
+                      end
+        with
+          | {- good -}
+
+
+    *)
+
+  Variable v   : VariablesOf tgt.
+  Section ForATypeTY.
+    Variable ty  : typeOf src direct.
+
+    Definition compileLexp (l : lexpr (compileVar tr v) ty)
+      := match translateLexpr tr l in lexpr _ ty0 return
+               match ty0 with
+               | {- tyc -} => lexpr v tyc
+               | error _   => Empty_set + {TranslationError}
+             end
+         with
+         | @var _ _ {- good -}  x        => var x
+         | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
+         | _                             => error (CouldNotTranslate l)
+         end.
+
+    (* There is some yak shaving here as we essentially need to have a compile versions
+       of the translation; I am not sure whether we can reuse the work done for translation
+       *)
+  End ForATypeTY.
+
+
+End Compile.
 (*
 
 (** Compute the size of a type in bytes. *)
