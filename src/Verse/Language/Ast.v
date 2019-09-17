@@ -220,7 +220,21 @@ Section Translate.
        | existT _ ty i => existT _ _ (translateInstruction ty i)
        end.
 
+  Definition translateCode : code (transVar tr v) -> code v
+    := List.map translateStatement.
+
+  Definition translateIterator memty (itr : iterator (transVar tr v) memty)
+    : iterator v (typeTrans tr memty)
+    := {| setup := translateCode (setup itr);
+          finalise := translateCode (finalise itr);
+          process  := fun x => translateCode (process itr x)
+       |}.
+
 End Translate.
+Arguments translateLexpr [src tgt] _ [v ty].
+Arguments translateExpr [src tgt] _ [v ty].
+Arguments translateCode [src tgt] _ [v].
+Arguments translateIterator [src tgt] _ [v].
 
 (*
 
