@@ -92,10 +92,12 @@ Section Code.
   | deref :  forall {ty b e}, v (arrayType ts b e ty)-> {i | i < b} -> lexpr ty.
 
   (** The expression type *)
-  Inductive expr (ty : typeOf ts Types.direct) : Type :=
-  | cval     : constOf ts ty -> expr ty
-  | valueOf  : lexpr ty -> expr ty
-  | app      : forall {arity : nat}, op arity -> Vector.t (expr ty) arity -> expr ty.
+
+  Inductive expr : typeOf ts Types.direct -> Type :=
+  | cval     : forall {ty}, constOf ts ty -> expr ty
+  | valueOf  : forall {ty}, lexpr ty -> expr ty
+  | app      : forall {ty} {arity : nat}, op arity -> Vector.t (expr ty) arity -> expr ty
+  .
 
   (** ** Instructions
 
