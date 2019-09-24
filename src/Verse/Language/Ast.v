@@ -267,20 +267,78 @@ Section Compile.
     *)
 
   Variable v   : VariablesOf tgt.
+
   Section ForATypeTY.
     Variable ty  : typeOf src direct.
 
-    Definition compileLexp (l : lexpr (compileVar tr v) ty)
-      := match translateLexpr tr l in lexpr _ ty0 return
-               match ty0 with
-               | {- tyc -} => lexpr v tyc
-               | error _   => Empty_set + {TranslationError}
-             end
-         with
+    Definition compileLexpAux ty0 (l : lexpr (resultVar v) ty0)
+      : match ty0 with
+        | {- tyc -} => lexpr v tyc
+        | error _   => Empty_set + {TranslationError}
+        end
+      := match l with
          | @var _ _ {- good -}  x        => var x
          | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
          | _                             => error (CouldNotTranslate l)
          end.
+
+    Definition compileLexp (l : lexpr (compileVar tr v) ty)
+      := compileLexpAux _ (translateLexpr tr l).
+
+    Fixpoint compileExpAux ty0 (e : expr (resultVar v) ty0)
+      (* This definition does not compile without the return type *)
+      : match ty0 with
+        | {- tyc -} => expr v tyc
+        | error _   => Empty_set + {TranslationError}
+        end
+      := match e with
+         (* The match annotation is not required once return type is made explicit.
+           Does not work with the match annotation but without the return type! *)
+         | @cval _ _ {- good -} c        => @cval _ _ good c
+         | @valueOf _ _ {- good -} x     =>
+           match x with
+           | @var _ _ {- good -} x         => valueOf (var x)
+           | @deref _ _ {- good -} _ _ a i => valueOf (deref (ty:=good) a i)
+           | _                             => inright Empty_set (CouldNotTranslate e)
+           end
+         | @app _ _ {- good -} _ op args => app op (Vector.map (compileExpAux _) args)
+         | _                             => error (CouldNotTranslate e)
+         end.
+
+      Fixpoint compileExp (e : expr (compileVar tr v) ty)
+        := compileExpAux _ (translateExpr tr e).
+
+
+      Definition compileInstAux ty0 : instruction (resultVar v) ty0
+                                      ->  match ty0 with
+                                          | {- tyc -} => instruction v tyc
+                                          | error _   => Empty_set + {TranslationError}
+                                          end
+        (* Type signature added above just for clarity *)
+        := match ty0 return
+                 instruction (resultVar v) ty0
+                 ->  match ty0 with
+                     | {- tyc -} => instruction v tyc
+                     | error _   => Empty_set + {TranslationError}
+                     end
+           with
+           | {- good -} => fun i => match i with
+                                    | assign x e => assign (compileLexpAux _ x)
+                                                           (compileExpAux _ e)
+                                    | update o x args => update o
+                                                                (compileLexpAux _ x)
+                                                                (Vector.map (compileExpAux _) args)
+                                    | increment x => increment (compileLexpAux _ x)
+                                    | decrement x => decrement (compileLexpAux _ x)
+                                    | moveTo x y  => moveTo (compileLexpAux _ x)
+                                                            y
+                                    | clobber x   => clobber x
+                                    end
+           | error _    => fun i => error (CouldNotTranslate i)
+           end.
+
+      Definition compileInstruction ty (i : instruction (compileVar tr v) ty)
+        := compileInstAux _ (translateInstruction tr i).
 
     (* There is some yak shaving here as we essentially need to have a compile versions
        of the translation; I am not sure whether we can reuse the work done for translation
