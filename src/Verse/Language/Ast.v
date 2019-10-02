@@ -295,12 +295,7 @@ Section Compile.
          (* The match annotation is not required once return type is made explicit.
            Does not work with the match annotation but without the return type! *)
          | @cval _ _ {- good -} c        => @cval _ _ good c
-         | @valueOf _ _ {- good -} x     =>
-           match x with
-           | @var _ _ {- good -} x         => valueOf (var x)
-           | @deref _ _ {- good -} _ _ a i => valueOf (deref (ty:=good) a i)
-           | _                             => inright Empty_set (CouldNotTranslate e)
-           end
+         | @valueOf _ _ {- good -} x     => valueOf (compileLexpAux _ x)
          | @app _ _ {- good -} _ op args => app op (Vector.map (compileExpAux _) args)
          | _                             => error (CouldNotTranslate e)
          end.
