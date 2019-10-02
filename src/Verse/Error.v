@@ -37,6 +37,32 @@ Section Error.
       end.
 
   End Apply.
+
+  Definition TypeE := Type + {Err}.
+
+  Definition inject (A : TypeE) : Type :=
+    match A with
+    | {- T -} => T
+    | _       => Empty_set + {Err}
+    end.
+
+  Definition lift (fam : A -> Type) : A + {Err} -> Type
+    := fun ae => inject (ap Type fam ae).
+
+  Section DependentApply.
+
+    Variable fam : A -> Type.
+
+    Definition apD (f : forall a, fam a) : forall y, lift fam y
+      := fun y =>
+           match y as y0 return lift fam y0 with
+           | {- a -} => f a
+           |  error e => error e
+           end.
+
+
+  End DependentApply.
+
   Definition recover (x : A + {Err}) : if x then A else Err
     := match x with
        | {- a -} => a
@@ -172,6 +198,7 @@ End Conditionals.
 Arguments when [A P] _ _.
 Arguments unless [A P] _ _.
 Arguments ap [A Err B] _ _.
+Arguments apD [A Err fam].
 Arguments apA [A Err B] _ _.
 Arguments recover [A Err] _.
 Arguments bind [A Err B] _ _.
