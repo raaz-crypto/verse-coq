@@ -92,9 +92,19 @@ Arguments recover' [A Err].
 
 (* Type to capture translation error *)
 Inductive TranslationError : Prop :=
-| CouldNotTranslate : forall A : Type, A -> TranslationError.
+| CouldNotTranslate : forall A : Type, A -> TranslationError
+| CouldNotTranslateBecause : forall A : Type, A -> TranslationError -> TranslationError.
 
 Arguments  CouldNotTranslate [A].
+Arguments  CouldNotTranslateBecause [A].
+
+
+Notation "'could' 'not' 'translate' X" := (CouldNotTranslate  X) (at level 100, only printing).
+Notation "'unable' 'to' 'translate' X 'because,' E"
+  := (CouldNotTranslateBecause X E)
+       ( at level 101, right associativity, only printing,
+         format "'[v   ' 'unable'  'to'  'translate'  X  'because,' '/' E ']'"
+       ).
 
 (*
 Section Extract.
