@@ -34,6 +34,8 @@ We begin by defining the types for the language.
 (* begin hide *)
 Require Import Verse.Language.Types.
 Require        Verse.Target.C.Ast.
+
+Import EqNotations.
 (* end hide *)
 
 
@@ -337,6 +339,32 @@ Section Compile.
 
     Definition compileInstruction ty (i : instruction (compileVar tr v) ty)
       := compileInstAux _ (translateInstruction tr i).
+
+
+    Definition instructionErr (ty : typeOf (resultSystem tgt) direct)
+      := match ty with
+         | {- good -} => instruction v good
+         | error _    => Empty_set + {TranslationError}
+         end.
+
+
+    Definition compileStatement (s : statement (compileVar tr v))
+      :=
+      match typeTrans tr (projT1 s) as ty0 return
+            typeTrans tr (projT1 s) = ty0 -> statement v + {TranslationError}
+      with
+      | {- good -} => fun tyeq => {- existT _ good
+                                            (rew [instructionErr] tyeq
+                                              in
+                                                (compileInstruction _ (projT2 s))) -}
+      | error _    => fun _    => error (CouldNotTranslate s)
+      end eq_refl.
+
+    Definition compileCode (c : code (compileVar tr v))
+      : code v + {TranslationError}
+      :=
+        let compile := fun s => liftErr (compileStatement s) in
+        merge _ _ (List.map compile c).
 
   (* There is some yak shaving here as we essentially need to have a compile versions
        of the translation; I am not sure whether we can reuse the work done for translation
