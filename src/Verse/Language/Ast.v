@@ -300,44 +300,43 @@ Section Compile.
          | _                             => error (CouldNotTranslate e)
          end.
 
-      Fixpoint compileExp (e : expr (compileVar tr v) ty)
-        := compileExpAux _ (translateExpr tr e).
+    Fixpoint compileExp (e : expr (compileVar tr v) ty)
+      := compileExpAux _ (translateExpr tr e).
 
+    Definition compileInstAux ty0 : instruction (resultVar v) ty0
+                                    ->  match ty0 with
+                                        | {- tyc -} => instruction v tyc
+                                        | error _   => Empty_set + {TranslationError}
+                                        end
+      (* Type signature added above just for clarity *)
+      := match ty0 return
+               instruction (resultVar v) ty0
+               ->  match ty0 with
+                   | {- tyc -} => instruction v tyc
+                   | error _   => Empty_set + {TranslationError}
+                   end
+         with
+         | {- good -} => fun i => match i with
+                                  | assign x e => assign (compileLexpAux _ x)
+                                                         (compileExpAux _ e)
+                                  | update o x args => update o
+                                                              (compileLexpAux _ x)
+                                                              (Vector.map (compileExpAux _) args)
+                                  | increment x => increment (compileLexpAux _ x)
+                                  | decrement x => decrement (compileLexpAux _ x)
+                                  | moveTo x y  => moveTo (compileLexpAux _ x)
+                                                          y
+                                  | clobber x   => clobber x
+                                  end
+         | error _    => fun i => error (CouldNotTranslate i)
+         end.
 
-      Definition compileInstAux ty0 : instruction (resultVar v) ty0
-                                      ->  match ty0 with
-                                          | {- tyc -} => instruction v tyc
-                                          | error _   => Empty_set + {TranslationError}
-                                          end
-        (* Type signature added above just for clarity *)
-        := match ty0 return
-                 instruction (resultVar v) ty0
-                 ->  match ty0 with
-                     | {- tyc -} => instruction v tyc
-                     | error _   => Empty_set + {TranslationError}
-                     end
-           with
-           | {- good -} => fun i => match i with
-                                    | assign x e => assign (compileLexpAux _ x)
-                                                           (compileExpAux _ e)
-                                    | update o x args => update o
-                                                                (compileLexpAux _ x)
-                                                                (Vector.map (compileExpAux _) args)
-                                    | increment x => increment (compileLexpAux _ x)
-                                    | decrement x => decrement (compileLexpAux _ x)
-                                    | moveTo x y  => moveTo (compileLexpAux _ x)
-                                                            y
-                                    | clobber x   => clobber x
-                                    end
-           | error _    => fun i => error (CouldNotTranslate i)
-           end.
+    Definition compileInstruction ty (i : instruction (compileVar tr v) ty)
+      := compileInstAux _ (translateInstruction tr i).
 
-      Definition compileInstruction ty (i : instruction (compileVar tr v) ty)
-        := compileInstAux _ (translateInstruction tr i).
-
-    (* There is some yak shaving here as we essentially need to have a compile versions
+  (* There is some yak shaving here as we essentially need to have a compile versions
        of the translation; I am not sure whether we can reuse the work done for translation
-       *)
+   *)
   End ForATypeTY.
 
 
