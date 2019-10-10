@@ -2,16 +2,19 @@ Require Import Verse.Target.C.Ast.
 Import Verse.Target.C.Ast.Expr.
 
 Notation "T X"
-  := (@declare_variable T X)
+  := (declare_variable T X)
        (at level 29, only printing) : c_scope.
+
 Notation "T X [ N ]"
-  := (@declare_variable (array N T) X)
-       (at level 29, only printing) : c_scope.
+  := (declare_variable (array N T) X)
+       (at level 29, only printing,
+        format "T  X [ N ]"
+       ) : c_scope.
+
 Notation "T (* X ) [ N ]"
-  := (@declare_variable (ptrToArray N T) X)
+  := (declare_variable (ptrToArray N T) X)
        (at level 29, only printing,
         format "T  '(*' X ')' [ N ]"
-
        ) : c_scope.
 
 (** * Pretty printing constants *)
