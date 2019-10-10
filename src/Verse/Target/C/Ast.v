@@ -127,7 +127,8 @@ Definition cvar k (ty : type k) := Expr.expr.
 Inductive declaration :=
 | declare_variable : forall k (ty : type k), cvar k ty -> declaration.
 
-Arguments declare_variable [k ty].
+
+Definition declare k ty := declare_variable k ty.
 
 
 Inductive statement :=
@@ -137,9 +138,6 @@ Inductive statement :=
 | increment   : expr -> statement
 | decrement   : expr -> statement.
 
-
-Definition declare k ty := @declare_variable k ty.
-Arguments declare [k ty].
 
 Inductive block :=
 | endBlock   : block
@@ -165,6 +163,12 @@ Inductive function :=
       option whileLoop -> (* iteration    *)
       block         -> (* finalisation *)
       function.
+
+
+
+Arguments cvar [k].
+Arguments declare_variable [k].
+Arguments declare [k ty].
 
 Canonical Structure c_type_system :=
     TypeSystem  type carrayType const.
