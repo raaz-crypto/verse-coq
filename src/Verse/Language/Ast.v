@@ -271,15 +271,17 @@ Section Compile.
   Section ForATypeTY.
     Variable ty  : typeOf src direct.
 
-    Definition compileLexpAux ty0 (l : lexpr (resultVar v) ty0)
-      : match ty0 with
-        | {- tyc -} => lexpr v tyc
-        | error _   => Empty_set + {TranslationError}
-        end
-      := match l with
-         | @var _ _ {- good -}  x        => var x
-         | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
-         | _                             => error (CouldNotTranslate l)
+    Definition compileLexpAux ty0 : lexpr (resultVar v) ty0 ->
+                                    match ty0 with
+                                    | {- tyc -} => lexpr v tyc
+                                    | error _   => Empty_set + {TranslationError}
+                                    end
+      := match ty0 with
+         | {- good -} => fun l => match l with
+                                  | @var _ _ {- good -}  x        => var x
+                                  | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
+                                  end
+         | error err  => fun l => error (CouldNotTranslateBecause l err)
          end.
 
     Definition compileLexp (l : lexpr (compileVar tr v) ty)
@@ -297,7 +299,9 @@ Section Compile.
          | @cval _ _ {- good -} c        => @cval _ _ good c
          | @valueOf _ _ {- good -} x     => valueOf (compileLexpAux _ x)
          | @app _ _ {- good -} _ op args => app op (Vector.map (compileExpAux _) args)
-         | _                             => error (CouldNotTranslate e)
+         | @cval _ _ (error err) _       => error (CouldNotTranslateBecause e err)
+         | @valueOf _ _ (error err) x    => error (CouldNotTranslateBecause e err)
+         | @app _ _ (error err) _ _ _    => error (CouldNotTranslateBecause e err)
          end.
 
     Fixpoint compileExp (e : expr (compileVar tr v) ty)
@@ -328,7 +332,7 @@ Section Compile.
                                                           y
                                   | clobber x   => clobber x
                                   end
-         | error _    => fun i => error (CouldNotTranslate i)
+         | error err => fun i => error (CouldNotTranslateBecause i err)
          end.
 
     Definition compileInstruction ty (i : instruction (compileVar tr v) ty)
