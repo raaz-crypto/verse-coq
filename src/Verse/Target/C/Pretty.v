@@ -40,22 +40,21 @@ Notation "'0xF'" := OxF (only printing): c_scope.
 Require Vector.
 Require Import Verse.Language.Types.
 Import Vector.VectorNotations.
-
 Notation "/**/~ X"  := (app bitComp [ X ])
                          (at level 30, right associativity, only printing) : c_scope.
 Notation "X [ I ]"  := (index X I)
                          (at level 29, only printing)    : c_scope.
 
-Infix "*"           := (app mul)
+Notation "X * Y "   := (app mul [ X ; Y ])
                          (at level 40, left associativity, only printing) : c_scope.
-Infix "/"           := (app quot)
+Notation "X / Y"    := (app quot [ X ; Y])
                          (at level 40, left associativity, only printing) : c_scope.
-Infix "%"           := (app rem)
+Notation "X % Y"       := (app rem  [ X ; Y])
                          (at level 40, left associativity, only printing) : c_scope.
 
-Infix "+"           := (app plus)
+Notation "X + Y"           := (app plus [X; Y])
                          (at level 50, left associativity, only printing) : c_scope.
-Infix "-"           := (app minus)
+Notation "X - Y"           := (app minus [ X; Y] )
                          (at level 50, left associativity, only printing) : c_scope.
 
 Notation "X  <<  N" := (app (shiftL N) [ X ])
@@ -63,11 +62,11 @@ Notation "X  <<  N" := (app (shiftL N) [ X ])
 Notation "X  >>  N" := (app (shiftR N) [ X ])
                          (at level 55, left associativity, only printing) : c_scope.
 
-Infix "&"           := (app bitAnd)
+Notation "X & Y"        := (app bitAnd [X ; Y])
                          (at level 56, left associativity, only printing) : c_scope.
-Infix "/**/^/**/"   := (app bitXor)
+Notation "X /**/^/**/ Y"  := (app bitXor [X; Y])
                          (at level 57, left associativity, only printing) : c_scope.
-Infix "|"           := (app bitOr)
+Notation "X | Y"          := (app bitOr [X; Y])
                          (at level 58, left associativity, only printing) : c_scope.
 
 
@@ -119,44 +118,39 @@ Notation "'verse_from_le32' ( X )" := (convert_from littleE uint32_t X)
 Notation "'verse_from_le64' ( X )" := (convert_from littleE uint64_t X)
          (at level 0, only printing) : c_scope.
 
-Definition binOpUpdate (o : op 2) X Y := C.Ast.update 1 o X [ Y ].
-Definition uniOpUpdate (o : op 1) X   := C.Ast.update 0 o X [].
 
-Infix "="     := (assign)             (at level 70, only printing) : c_scope.
-Infix "+="    := (binOpUpdate plus)   (at level 70, only printing) : c_scope.
-Infix "-="    := (binOpUpdate minus)  (at level 70, only printing) : c_scope.
-Infix "*="    := (binOpUpdate mul)    (at level 70, only printing) : c_scope.
-Infix "/="    := (binOpUpdate quot  ) (at level 70, only printing) : c_scope.
-Infix "%="    := (binOpUpdate rem   ) (at level 70, only printing) : c_scope.
-Infix "|="    := (binOpUpdate bitOr ) (at level 70, only printing) : c_scope.
-Infix "&="    := (binOpUpdate bitAnd) (at level 70, only printing) : c_scope.
-Infix "^="    := (binOpUpdate bitXor) (at level 70, only printing) : c_scope.
+Infix "="         := (assign)              (at level 70, only printing) : c_scope.
+Notation "X += Y" := (update plus   X [Y]) (at level 70, only printing) : c_scope.
+Notation "X -= Y" := (update minus  X [Y]) (at level 70, only printing) : c_scope.
+Notation "X *= Y" := (update mul    X [Y]) (at level 70, only printing) : c_scope.
+Notation "X /= Y" := (update quot   X [Y]) (at level 70, only printing) : c_scope.
+Notation "X %= Y" := (update rem    X [Y]) (at level 70, only printing) : c_scope.
+Notation "X |= Y" := (update bitOr  X [Y]) (at level 70, only printing) : c_scope.
+Notation "X &= Y" := (update bitAnd X [Y]) (at level 70, only printing) : c_scope.
+Notation "X ^= Y" := (update bitXor X [Y]) (at level 70, only printing) : c_scope.
 
-Notation "X <<= N" := (uniOpUpdate (shiftL N) X) (at level 70, only printing) : c_scope.
-Notation "X >>= N" := (uniOpUpdate (shiftR N) X) (at level 70, only printing) : c_scope.
+Notation "X <<= N" := (update (shiftL N) X []) (at level 70, only printing) : c_scope.
+Notation "X >>= N" := (update (shiftR N) X []) (at level 70, only printing) : c_scope.
 Notation "++ X"    := (increment X)   (at level 70, only printing) : c_scope.
 Notation "-- X"    := (decrement X)   (at level 70, only printing) : c_scope.
 
 
-Notation "/* 'End' 'Block' */" :=
-         (endBlock) (at level 70, only printing) : c_scope.
-Notation "X ; Y"
-  := (sequence X Y) ( at level 71, only printing, format "X ; '//' Y" ) : c_scope.
+Notation "/* X */" := (endBlock X) ( at level 71, only printing, format " /* X */") : c_scope.
 
-Notation "'while' ( X > 0 ) { Y }" := (while X Y)
-         ( at level 70, only printing,
-           format "'while' ( X > 0 ) '//' { Y }"
+Notation "X ; Y"
+  := (sequence X Y) ( at level 71, right associativity, only printing,
+                      format "'//' X ; Y" ) : c_scope.
+
+Notation "'while' ( X > 0 ) { Y ; Z }" := (Some (while X (sequence Y Z)))
+         ( at level 69, only printing,
+           format "'//' 'while' (  X  >  0  ) '//' { '[v   '  '/' Y ; Z ']' '//' }"
          ) : c_scope.
 
-
 Notation "/*No Loop*/" := None (at level 0, only printing).
-Notation "'/* 'Iterate' 'over' 'blocks' */' B" := (Some B) (at level 0, only printing)  : c_scope.
 Notation "'auto' X" := (declareStmt X) (at level 70, only printing) : c_scope.
-
-
 Notation "'void' FN PS { S W F }" := (void_function FN PS S W F)
          ( at level 70, only printing,
-           format "'void'  FN PS '//' { '[v    ' '//' S '//' W '//' F ']' '//' }"
+           format "'//' 'void'  FN PS '//' { '[v    ' S '//' W '//' F ']' '//' }"
          ) : c_scope.
 
 Delimit Scope c_scope with clang.
