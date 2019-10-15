@@ -10,6 +10,7 @@ by assuming names.
  *)
 
 Axiom name : Set.
+Axiom annotation : Set.
 
 (** * The type of C
 
@@ -106,6 +107,7 @@ Module Expr.
   | verse_u32      : const uint32_t -> expr
   | verse_u64      : const uint64_t -> expr.
 
+  Arguments app [n].
 End Expr.
 
 
@@ -138,13 +140,15 @@ Inductive statement :=
 | increment   : expr -> statement
 | decrement   : expr -> statement.
 
+Arguments update [n].
 
 Inductive block :=
-| endBlock   : block
+| endBlock   : annotation -> block
 | sequence   : statement -> block -> block.
 
 
-Definition mkBlock := List.fold_right sequence endBlock.
+
+Definition mkBlock n := List.fold_right sequence (endBlock n).
 
 
 Inductive whileLoop :=
@@ -169,6 +173,6 @@ Inductive function :=
 Arguments cvar [k].
 Arguments declare_variable [k].
 Arguments declare [k ty].
-
+Arguments void_function _ [params].
 Canonical Structure c_type_system :=
     TypeSystem  type carrayType const.
