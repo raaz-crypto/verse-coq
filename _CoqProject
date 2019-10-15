@@ -12,6 +12,7 @@ src/Verse/Target/C.v
 src/Verse/Target/C/Ast.v
 src/Verse/Target/C/Pretty.v
 src/Verse/Target/C/Translate.v
+src/Verse/Target/C/Test.v
 src/Verse/TestCode/TestCode.v
 
 # src/Verse/Word.v
