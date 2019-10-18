@@ -102,10 +102,7 @@ Module Expr.
   | rotateR        : type direct -> expr * nat -> expr
   | convert_to     : endian -> type direct -> expr -> expr
   | convert_from   : endian -> type direct -> expr -> expr
-  | verse_u8       : const uint8_t  -> expr
-  | verse_u16      : const uint16_t -> expr
-  | verse_u32      : const uint32_t -> expr
-  | verse_u64      : const uint64_t -> expr.
+  | verse_const    : forall ty, const ty -> expr.
 
   Arguments app [n].
 End Expr.

@@ -69,6 +69,10 @@ Notation "X /**/^/**/ Y"  := (app bitXor [X; Y])
 Notation "X | Y"          := (app bitOr [X; Y])
                          (at level 58, left associativity, only printing) : c_scope.
 
+Notation "'verse_u8'"   := (verse_const uint8_t ) (at level 0, only printing) : c_scope.
+Notation "'verse_u16'"  := (verse_const uint16_t) (at level 0, only printing) : c_scope.
+Notation "'verse_u32'"  := (verse_const uint32_t) (at level 0, only printing) : c_scope.
+Notation "'verse_u64'"  := (verse_const uint64_t) (at level 0, only printing) : c_scope.
 
 Notation "'verse_rotL8'"  := (rotateL uint8_t)  (at level 0, only printing) : c_scope.
 Notation "'verse_rotL16'" := (rotateL uint16_t) (at level 0, only printing) : c_scope.
