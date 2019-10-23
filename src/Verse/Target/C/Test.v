@@ -18,8 +18,10 @@ Compute (declare x).
 Compute (declare arr).
 Compute (declare ptr).
 
+Definition index_ptr := ptrDeref ptr.
+Compute (index (index_ptr) 10).
 Compute (convert_to bigE uint32_t (rotateL uint32_t (x, 2))).
-Compute (verse_u8 (Ox1,Ox2)).
+Compute (verse_const uint8_t (Ox1,Ox2)).
 Axiom myfunc : name.
 Axiom a : cvar uint8_t.
 Axiom b : cvar uint64_t.
