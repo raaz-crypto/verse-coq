@@ -157,9 +157,19 @@ Notation "'while' ( X > 0 ) { Y ; Z }" := (Some (while X (sequence Y Z)))
 
 Notation "/*No Loop*/" := None (at level 0, only printing).
 Notation "'auto' X" := (declareStmt X) (at level 70, only printing) : c_scope.
+
+(**
+
+For the notation below the level might not seem important but to use the
+idtac as a means to print stuff, we need to use a low level for other wise
+it will print a parenthesis around the expression
+
+ *)
+
 Notation "'void' FN PS { S W F }" := (void_function FN PS S W F)
-         ( at level 70, only printing,
+         ( at level 0, only printing,
            format "'//' 'void'  FN PS '//' { '[v    ' S '//' W '//' F ']' '//' }"
          ) : c_scope.
+
 
 Delimit Scope c_scope with clang.
