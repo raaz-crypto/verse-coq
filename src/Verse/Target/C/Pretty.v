@@ -42,6 +42,7 @@ Require Import Verse.Language.Types.
 Import Vector.VectorNotations.
 Notation "/**/~ X"  := (app bitComp [ X ])
                          (at level 30, right associativity, only printing) : c_scope.
+Notation "* X"      := (ptrDeref X) (at level 29, only printing) : c_scope.
 Notation "X [ I ]"  := (index X I)
                          (at level 29, only printing)    : c_scope.
 

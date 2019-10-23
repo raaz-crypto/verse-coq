@@ -98,6 +98,7 @@ Module Expr.
   Inductive expr :=
   | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
+  | ptrDeref       : expr -> expr
   | rotateL        : type direct -> expr * nat -> expr
   | rotateR        : type direct -> expr * nat -> expr
   | convert_to     : endian -> type direct -> expr -> expr
