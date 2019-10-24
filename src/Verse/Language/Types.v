@@ -88,18 +88,6 @@ Structure typeSystem :=
 
 Canonical Structure verse_type_system := TypeSystem type array const.
 
-(** ** Typed variables.
-
-When building programming constructs, we need variables. In a typed
-setting, we would like the variables to be parameterised by types. The
-[VariableT ts] should be seen as the universe of program variables for
-programs that use the type system [ts].
-
-*)
-
-Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
-Definition VariableT := VariablesOf verse_type_system.
-
 (** * Type translation and compilation.
 
 A type translation is mapping between the types of two type systems
@@ -187,6 +175,18 @@ End VerseTranslation.
 Arguments extend [ts].
 Arguments extends_to_array [ts].
 Arguments verseTranslation [ts].
+
+(** ** Typed variables.
+
+When building programming constructs, we need variables. In a typed
+setting, we would like the variables to be parameterised by types. The
+[VariableT ts] should be seen as the universe of program variables for
+programs that use the type system [ts].
+
+*)
+
+Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
+Definition VariableT := VariablesOf verse_type_system.
 
 
 
