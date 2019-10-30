@@ -238,7 +238,7 @@ Ltac  verse_warn :=
 Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
-Global Hint Resolve NPeano.Nat.mod_upper_bound.
+Global Hint Resolve PeanoNat.Nat.mod_upper_bound.
 
 (* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
 
@@ -248,7 +248,7 @@ Require Import Omega.
 Ltac verse_simplify := match goal with
                        | [ H : ?T |- ?T ]     => exact H
                        | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
-                       | [ |- ?A mod ?B < ?B ] => apply (NPeano.Nat.mod_upper_bound A B)
+                       | [ |- ?A mod ?B < ?B ] => apply (PeanoNat.Nat.mod_upper_bound A B)
                        | [ |- _ <= ?T         ] => compute; omega
                        | [ |- _ < ?T         ] => compute; omega
                        end.
