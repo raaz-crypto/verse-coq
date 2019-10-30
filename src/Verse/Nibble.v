@@ -159,11 +159,11 @@ represented as [Ox "aabb"].
 
 Definition Ox s := let t := Internal.trim_separators s
                    in recover (Internal.fromString (String.length t) t).
-
+(*
 Require Import Verse.PrettyPrint.
 Instance pretty_print (n : nat) : PrettyPrint (Vector.t Nibble n) :=
   { doc := fun v => text (Internal.toString v) }.
-
+*)
 Definition toN {n} : Vector.t Nibble n -> N :=
   (let fldr := fun m x =>  16 * m + Internal.nibbleToN x in
   Vector.fold_left fldr 0)%N.
