@@ -228,9 +228,13 @@ Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
 Global Notation "X <- A ; B" := (bind A (fun X => B))(at level 81, right associativity, only parsing).
 Global Notation "X *<- A ; B" := (bind (liftErr A) (fun X => B))(at level 81, right associativity, only parsing).
 
+Require Import List.
+Import ListNotations.
+
+Require Import Vector.
+Import VectorNotations.
+
 Section Merge.
-  Require Import Vector.
-  Import VectorNotations.
 
   Variable A : Type.
   Variable Err : Prop.
@@ -242,14 +246,12 @@ Section Merge.
   | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (@mergeVector m xs)
   end.
 
-  Require Import List.
-  Import ListNotations.
   Fixpoint merge (actions : list (A + {Err})) : list A + {Err} :=
     match actions with
-    | nil => {- nil -}
-    | error err :: _ => inright err
-    | cons {- x -} xs  => cons x <$> merge xs
-    end.
+    | [] => {- [] -}
+    | error err :: _  => inright err
+    | {- x -}   :: xs => res <- merge xs; {- x :: res -}
+    end%list.
 End Merge.
 
 Section PartialFunctions.

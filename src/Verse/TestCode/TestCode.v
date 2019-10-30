@@ -1,3 +1,5 @@
+Require Import Nat.
+Require Import NArith.
 Require Import Verse.
 Require Import Verse.Nibble.
 Require Import String.
@@ -26,7 +28,7 @@ Section TestFunction.
 
   (* Definition registers := [Var tmp]. *)
 
-  Require Import Omega.
+
   (* Definition regAssignment := (- cr uint16_t "temp" -). *)
   Definition someInstruction i (_ : i < 5) : code variable.
     verse [ arr[- i -] ::=x arr[- (i + 1) mod 5 -] + tmp + 1]%list.
