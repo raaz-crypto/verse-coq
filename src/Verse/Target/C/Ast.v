@@ -10,7 +10,12 @@ by assuming names.
  *)
 
 Axiom name : Set.
-Axiom annotation : Set.
+
+Inductive annotation : Set :=
+| begin_while
+| end_while
+| variable_declaration
+| move_to_next_block.
 
 (** * The type of C
 
