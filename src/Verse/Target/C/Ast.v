@@ -103,8 +103,8 @@ Module Expr.
   | rotateR        : type direct -> expr * nat -> expr
   | convert_to     : endian -> type direct -> expr -> expr
   | convert_from   : endian -> type direct -> expr -> expr
-  | verse_const    : forall ty, const ty -> expr.
-
+  | verse_const    : forall ty, const ty -> expr
+  | gt_zero        : expr -> expr.
   Arguments app [n].
 End Expr.
 

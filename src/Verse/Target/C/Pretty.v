@@ -142,6 +142,7 @@ Notation "X <<= N" := (update (shiftL N) X []) (at level 70, only printing) : c_
 Notation "X >>= N" := (update (shiftR N) X []) (at level 70, only printing) : c_scope.
 Notation "++ X"    := (increment X)   (at level 70, only printing) : c_scope.
 Notation "-- X"    := (decrement X)   (at level 70, only printing) : c_scope.
+Notation "E > 0" := (gt_zero E) (at level 70, only printing) : c_scope.
 
 
 Notation "/* X */" := (endBlock X) ( at level 71, only printing, format " /* X */") : c_scope.
