@@ -139,11 +139,12 @@ Definition declare k ty := declare_variable k ty.
 Inductive statement :=
 | declareStmt : declaration -> statement
 | assign      : expr -> expr -> statement
-| update      : forall n, op (S n) -> expr -> Vector.t expr n -> statement
+| update      : expr -> forall n, op (S n) -> Vector.t expr n -> statement
 | increment   : expr -> statement
 | decrement   : expr -> statement.
 
-Arguments update [n].
+Arguments update _ [n].
+
 
 Inductive block :=
 | endBlock   : annotation -> block

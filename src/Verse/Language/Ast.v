@@ -131,7 +131,7 @@ Section Code.
 
   Inductive instruction ty : Type :=
   | assign    : lexpr ty -> expr ty  -> instruction ty
-  | update    : forall n, op (S n) -> lexpr ty -> Vector.t (expr ty)  n -> instruction ty
+  | update    : lexpr ty -> forall n, op (S n) -> Vector.t (expr ty)  n -> instruction ty
   | increment : lexpr ty -> instruction ty
   | decrement : lexpr ty -> instruction ty
   | moveTo    : lexpr ty -> v ty  -> instruction ty
@@ -178,7 +178,7 @@ Arguments valueOf [ts v ty].
 Arguments app [ts v ty arity].
 Arguments clobber [ts v ty].
 Arguments moveTo [ts v ty].
-Arguments update [ts v ty n].
+Arguments update [ts v ty] le [ n ].
 Arguments increment [ts v ty].
 Arguments decrement [ts v ty].
 (** ** Ast under type level transations. *)
@@ -213,7 +213,7 @@ Section Translate.
       : instruction v (typeTrans tr ty) :=
       match i with
       | assign x e => assign (translateLexpr x) (translateExpr _ e)
-      | update o x args => update o (translateLexpr x) (Vector.map (translateExpr _) args)
+      | update x o args => update (translateLexpr x) o (Vector.map (translateExpr _) args)
       | increment x => increment (translateLexpr x)
       | decrement x => decrement (translateLexpr x)
       | moveTo x y  => (fun yp : v direct (typeTrans tr ty) => moveTo (translateLexpr x) yp) y
@@ -325,8 +325,8 @@ Section Compile.
          | {- good -} => fun i => match i with
                                   | assign x e => assign (compileLexpAux _ x)
                                                          (compileExpAux _ e)
-                                  | update o x args => update o
-                                                              (compileLexpAux _ x)
+                                  | update x o args => update (compileLexpAux _ x)
+                                                              o
                                                               (Vector.map (compileExpAux _) args)
                                   | increment x => increment (compileLexpAux _ x)
                                   | decrement x => decrement (compileLexpAux _ x)

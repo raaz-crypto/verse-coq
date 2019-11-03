@@ -113,7 +113,7 @@ Section Embedding.
         update the l-expression [x].  *)
 
     Definition binOpUpdate : statement v
-      := existT _ _ (update bop (toLexpr lhs) [toExpr e1]).
+      := existT _ _ (update (toLexpr lhs) bop [toExpr e1]).
 
 
     (** Applies the unary operator [o] to the value [e] that is
@@ -124,7 +124,7 @@ Section Embedding.
     (** Update a given lexpression using the given unary operator
         [o]. *)
     Definition uniOpUpdate : statement v
-      := existT _ _ (update uop (toLexpr lhs) []).
+      := existT _ _ (update (toLexpr lhs) uop []).
 
     End Operators.
 End Embedding.

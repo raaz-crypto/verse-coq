@@ -100,8 +100,8 @@ Module CompilerInternals.
        in
        match inst with
        | Ast.assign le ex     => {- trAssign le ex -}
-       | Ast.update o le vex  => co <- getCOP o;
-                                  handleUpdate le (fun lhs => update co lhs (Vector.map trExpr vex))
+       | Ast.update le o vex  => co <- getCOP o;
+                                  handleUpdate le (fun lhs => update lhs co (Vector.map trExpr vex))
        | Ast.increment le     => handleUpdate le increment
        | Ast.decrement le     => handleUpdate le decrement
        | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
