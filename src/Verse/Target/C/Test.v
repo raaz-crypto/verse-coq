@@ -1,7 +1,6 @@
 (* Testing of C pretty printing *)
 Require Import Verse.Language.Types.
 Require Import Verse.Target.C.Ast.
-Require Import Verse.Target.C.Pretty.
 Require Verse.Language.Ast.
 Require List.
 Import List.ListNotations.
@@ -9,7 +8,6 @@ Import Ast.Expr.
 Import Nibble.
 Require Vector.
 Import Vector.VectorNotations.
-Open Scope c_scope.
 
 Axiom x : cvar uint8_t.
 Axiom arr : cvar (array 42 uint16_t).
@@ -20,21 +18,13 @@ Axiom myfunc : name.
 Axiom a : cvar uint8_t.
 Axiom b : cvar uint64_t.
 Axiom temp : cvar uint8_t.
-Axiom vardec : annotation.
-Axiom empty  : annotation.
-Notation "'variable' 'declarations'" := vardec (only printing, format " 'variable'  'declarations'  ").
 
 Definition e : Expr.expr := app mul [a ; app plus [a ; b]].
-Definition stmts :=
-  mkBlock vardec [ declareStmt (declare temp);
-                     declareStmt (declare a);
-                     declareStmt (declare ptr);
-                     assign (index (ptrDeref(ptr)) 2) e;
-                     update bitXor a [e]
-                 ].
-Definition foo : function :=
-  void_function myfunc (declare a, declare b)
-                 stmts (Some (while b stmts))  (mkBlock empty []).
+Definition lDec := [ declare temp; declare a; declare ptr ]%list.
+
+Definition stmts := [ assign (index (ptrDeref(ptr)) 2) e;
+                      update a bitAnd [e]%vector
+                    ]%list.
 
 (*
 Compute (declare x).
@@ -46,6 +36,8 @@ Compute (verse_const uint8_t (Ox1,Ox2)).
  *)
 
 Require Import Verse.Print.
-Goal to_print foo.
+Require Import Verse.Target.C.Pretty.
+
+Goal to_print (function myfunc (params [declare temp; declare temp]) (Braces stmts)).
   print.
 Abort.

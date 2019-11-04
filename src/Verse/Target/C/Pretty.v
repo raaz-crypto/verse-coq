@@ -129,48 +129,57 @@ Notation "'verse_from_le64' ( X )" := (convert_from littleE uint64_t X)
 
 
 Infix "="         := (assign)              (at level 70, only printing) : c_scope.
-Notation "X += Y" := (update plus   X [Y]) (at level 70, only printing) : c_scope.
-Notation "X -= Y" := (update minus  X [Y]) (at level 70, only printing) : c_scope.
-Notation "X *= Y" := (update mul    X [Y]) (at level 70, only printing) : c_scope.
-Notation "X /= Y" := (update quot   X [Y]) (at level 70, only printing) : c_scope.
-Notation "X %= Y" := (update rem    X [Y]) (at level 70, only printing) : c_scope.
-Notation "X |= Y" := (update bitOr  X [Y]) (at level 70, only printing) : c_scope.
-Notation "X &= Y" := (update bitAnd X [Y]) (at level 70, only printing) : c_scope.
-Notation "X ^= Y" := (update bitXor X [Y]) (at level 70, only printing) : c_scope.
+Notation "X += Y" := (update X plus [Y]) (at level 70, only printing) : c_scope.
+Notation "X -= Y" := (update X minus  [Y]) (at level 70, only printing) : c_scope.
+Notation "X *= Y" := (update X mul    [Y]) (at level 70, only printing) : c_scope.
+Notation "X /= Y" := (update X quot   [Y]) (at level 70, only printing) : c_scope.
+Notation "X %= Y" := (update X rem    [Y]) (at level 70, only printing) : c_scope.
+Notation "X |= Y" := (update X bitOr  [Y]) (at level 70, only printing) : c_scope.
+Notation "X &= Y" := (update X bitAnd [Y]) (at level 70, only printing) : c_scope.
+Notation "X ^= Y" := (update X bitXor [Y]) (at level 70, only printing) : c_scope.
 
-Notation "X <<= N" := (update (shiftL N) X []) (at level 70, only printing) : c_scope.
-Notation "X >>= N" := (update (shiftR N) X []) (at level 70, only printing) : c_scope.
+Notation "X <<= N" := (update X (shiftL N) []) (at level 70, only printing) : c_scope.
+Notation "X >>= N" := (update X (shiftR N) []) (at level 70, only printing) : c_scope.
 Notation "++ X"    := (increment X)   (at level 70, only printing) : c_scope.
 Notation "-- X"    := (decrement X)   (at level 70, only printing) : c_scope.
 Notation "E > 0" := (gt_zero E) (at level 70, only printing) : c_scope.
 
+Notation "{;}" := (Braces nil) : c_scope.
 
-Notation "/* X */" := (endBlock X) ( at level 71, only printing, format " /* X */") : c_scope.
+Notation "{ X ; }"
+  := (Braces (cons X nil))
+       (at level 0, only printing, right associativity
+        , format "{ '[  ' '//' X ; '//' ']' }") : c_scope.
 
-Notation "X ; Y"
-  := (sequence X Y) ( at level 71, right associativity, only printing,
-                      format "'//' X ; Y" ) : c_scope.
+Notation "{ X ; .. ; Y ; }"
+  := (Braces (cons X .. (cons Y nil) .. ))
+       (at level 0, only printing, right associativity
+        , format "{ '[  ' '//' X ; '//' .. ; '//' Y ; ']' '//' }") : c_scope.
 
-Notation "'while' ( X > 0 ) { Y ; Z }" := (Some (while X (sequence Y Z)))
-         ( at level 69, only printing,
-           format "'//' 'while' (  X  >  0  ) '//' { '[v   '  '/' Y ; Z ']' '//' }"
-         ) : c_scope.
+Notation "( X )"
+  := (params (cons X nil))
+       (only printing, format "( X )") : c_scope.
+Notation "( 'void' )"
+  := (params nil)
+       (only printing, format "( 'void' )" ) : c_scope.
+Notation "( X , .. , Y )"
+  := (params (cons X .. (cons Y nil)..))
+       (only printing) : c_scope.
 
-Notation "/*No Loop*/" := None (at level 0, only printing).
+Notation "'void' FN P B"
+  := (function FN P B)
+       (at level 8, only printing,
+        format "'void'  FN  P '//' B") : c_scope.
+
+Notation "'while' ( C ) B"
+  := (whileLoop C B)
+       (at level 70, only printing,
+        format "'while'  ( C ) '//' B") : c_scope.
+
+
+
+
 Notation "'auto' X" := (declareStmt X) (at level 70, only printing) : c_scope.
 
-(**
 
-For the notation below the level might not seem important but to use the
-idtac as a means to print stuff, we need to use a low level for other wise
-it will print a parenthesis around the expression
-
- *)
-
-Notation "'void' FN PS { S W F }" := (void_function FN PS S W F)
-         ( at level 0, only printing,
-           format "'//' 'void'  FN PS '//' { '[v    ' S '//' W '//' F ']' '//' }"
-         ) : c_scope.
-
-
-Delimit Scope c_scope with clang.
+Open Scope c_scope.

@@ -11,12 +11,6 @@ by assuming names.
 
 Axiom name : Set.
 
-Inductive annotation : Set :=
-| begin_while
-| end_while
-| variable_declaration
-| move_to_next_block.
-
 (** * The type of C
 
 We now capture the type system for C. Only types that arise in
@@ -41,6 +35,9 @@ Definition const (ty : type direct)
      | uint32_t => nibbleTuple 7
      | uint64_t => nibbleTuple 15
      end%type.
+
+Canonical Structure c_type_system :=
+    TypeSystem  type carrayType const.
 
 (** * The expression language.
 
@@ -128,55 +125,28 @@ the pretty printed form, this is not really a problem.
 
 Definition cvar k (ty : type k) := Expr.expr.
 
-
 Inductive declaration :=
 | declare_variable : forall k (ty : type k), cvar k ty -> declaration.
 
-
 Definition declare k ty := declare_variable k ty.
 
+Inductive parameters := params : list declaration -> parameters.
 
 Inductive statement :=
-| declareStmt : declaration -> statement
+| declareStmt : declaration  -> statement
 | assign      : expr -> expr -> statement
 | update      : expr -> forall n, op (S n) -> Vector.t expr n -> statement
 | increment   : expr -> statement
-| decrement   : expr -> statement.
+| decrement   : expr -> statement
+| comment   : forall Text , Text -> statement
+| whileLoop : forall C, C -> braces -> statement
+| function  : forall FN,  FN -> parameters -> braces -> statement
+with braces := Braces : list statement -> braces.
+
 
 Arguments update _ [n].
-
-
-Inductive block :=
-| endBlock   : annotation -> block
-| sequence   : statement -> block -> block.
-
-
-
-Definition mkBlock n := List.fold_right sequence (endBlock n).
-
-
-Inductive whileLoop :=
-| while : expr ->    (* counter expression *)
-          block ->   (* body               *)
-          whileLoop.
-
-(* All the compiled C functions look like a setup block, an optional while loop
-     followed by a finalisation block
- *)
-Inductive function :=
-| void_function :
-    name -> forall params,
-      params ->
-      block  ->        (* setup        *)
-      option whileLoop -> (* iteration    *)
-      block         -> (* finalisation *)
-      function.
-
-
 
 Arguments cvar [k].
 Arguments declare_variable [k].
 Arguments declare [k ty].
-Arguments void_function _ [params].
-Canonical Structure c_type_system :=
-    TypeSystem  type carrayType const.
+Arguments function [FN].
