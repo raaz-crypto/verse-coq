@@ -1,5 +1,3 @@
-
-
 (* begin hide *)
 Definition to_print {A}(a : A) := False.
 Global Opaque to_print.
