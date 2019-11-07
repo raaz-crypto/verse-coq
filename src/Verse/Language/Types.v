@@ -1,5 +1,6 @@
 (* begin hide *)
 Require Verse.Nibble.
+Require Import Verse.TypeSystem.
 Require Import Arith.
 Require Import NArith.
 (* end hide *)
@@ -14,12 +15,10 @@ indicates this distinction in type.
 
 *)
 
-Inductive kind := direct | memory.
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
 | multiword          : nat -> nat    -> type direct
-| array              : nat -> endian -> type direct -> type memory
-with endian : Set := bigE | littleE | hostE.
+| array              : nat -> endian -> type direct -> type memory.
 
 Definition const (t : type direct) :=
   match t with
@@ -64,28 +63,6 @@ Definition size (ty : type direct) : nat := 2 ^ logSize ty.
 Definition Array  := array.
 Definition Ref (ty : type direct) : type memory := array 1 hostE ty.
 
-
-(** * Type Systems.
-
-Verse has a strong type system that catch a lot of bugs at compile
-time.  The targets that verse compile to is also expected to share a
-few features of the verse type system. For example, it has a notion of
-direct types and memory types. It has a way to build array of direct
-types. Target languages might choose to ignore some aspects, like for
-example arrays do not carry a notion of endianness in C, but the
-translation process from verse to the target language is expected to
-take care of these. One can view this as a erasure of some of the
-typing information as we compile to a low level target language.
-
-*)
-
-Structure typeSystem :=
-  TypeSystem { typeOf       : kind -> Set;
-               arrayType    : nat -> endian -> typeOf direct -> typeOf memory;
-               constOf      : typeOf direct -> Type;
-             }.
-
-
 Canonical Structure verse_type_system := TypeSystem type array const.
 
 (** * Type translation and compilation.
@@ -98,7 +75,7 @@ represent type translation using the following structure.
 
  *)
 
-Structure typeTranslation (ts0 ts1 : typeSystem)
+Structure translator (ts0 ts1 : typeSystem)
   := TypeTranslation { typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
                        constTrans  : forall ty : typeOf ts0 direct,
                            constOf ts0 ty -> constOf ts1 (typeTrans direct ty);
@@ -125,19 +102,19 @@ Require Import Verse.Error.
 
 (* ** Translation results *)
 
-Definition resultType ts k    := typeOf ts k + {TranslationError}.
-Definition resultArray ts b e : resultType ts direct -> resultType ts memory
-  := ap (arrayType ts b e).
-Definition resultConst ts  (ty : resultType ts direct) :=
-  match ty with
-  | {- tyC -} => constOf ts tyC
-  | _         => Empty_set + {TranslationError}
-  end.
-
 Definition resultSystem ts :=
+  let resultType ts k := typeOf ts k + {TranslationError} in
+  let resultArray ts b e : resultType ts direct -> resultType ts memory
+      := ap (arrayType ts b e) in
+  let resultConst ts  (ty : resultType ts direct) :=
+      match ty with
+      | {- tyC -} => constOf ts tyC
+      | _         => Empty_set + {TranslationError}
+      end in
+
   TypeSystem (resultType ts) (resultArray ts) (resultConst ts).
 
-Definition typeCompile src ts := typeTranslation src (resultSystem ts).
+Definition compiler src ts := translator src (resultSystem ts).
 
 (** ** Translating verse types.
 
@@ -187,33 +164,6 @@ programs that use the type system [ts].
 
 Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
 Definition VariableT := VariablesOf verse_type_system.
-
-
-
-Definition transVar ts0 ts1
-           (tyTr : typeTranslation ts0 ts1)
-  : VariablesOf ts1 -> VariablesOf ts0
-  := fun v =>  fun k (ty : typeOf ts0 k) => v k (typeTrans tyTr ty).
-
-Definition resultVar (ts : typeSystem) (v : VariablesOf ts)
-  : VariablesOf (resultSystem ts) :=
-  fun k tyE => match tyE with
-               | {- ty0 -} => v k ty0
-               | error _   => Empty_set
-               end.
-
-Arguments resultVar [ts].
-Definition compileVar ts0 ts1
-           (tyComp : typeCompile ts0 ts1)
-  : VariablesOf ts1 -> VariablesOf ts0
-  := fun v k (ty : typeOf ts0 k) => resultVar v k (typeTrans tyComp ty).
-
-Arguments transVar [ts0 ts1].
-Arguments compileVar [ts0 ts1].
-(** ** Some helper functions. *)
-
-(** A more convenient way of existentially quantifying over types *)
-Definition some := @sigT kind.
 
 Import Vector.VectorNotations.
 (** A declaration is just a sequence of types *)
