@@ -57,6 +57,10 @@ Section Scoped.
 
   Definition emptyAllocation : allocation [] := tt.
 
+  Definition uncurryScope {CODE} {n} {st : scopeType n}
+    : scoped st CODE -> allocation st -> CODE
+    := fun sc al =>  fill al sc.
+
 End Scoped.
 
 Arguments scoped [ts] _ [n].
