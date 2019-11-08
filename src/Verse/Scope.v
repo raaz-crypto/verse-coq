@@ -1,4 +1,6 @@
 Require Import Verse.Language.Types.
+Require Import Verse.TypeSystem.
+Require Import Verse.Variables.
 Require Vector.
 Import Vector.VectorNotations.
 
@@ -19,7 +21,7 @@ Section Scoped.
 
 
   Variable ts : typeSystem.
-  Variable v  : VariablesOf ts.
+  Variable v  : Variables.U ts.
   Arguments v [k].
 
   (** Since variables themselves have types, a scoped code of [n]

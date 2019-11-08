@@ -1,4 +1,5 @@
 Require Import Verse.Target.C.Ast.
+Require Import Verse.TypeSystem.
 Import Verse.Target.C.Ast.Expr.
 
 Notation "T X"

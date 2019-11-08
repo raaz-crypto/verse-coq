@@ -1,4 +1,4 @@
-Require Import Verse.Language.Types.
+Require Import Verse.TypeSystem.
 Require Import Verse.Nibble.
 Require Verse.Error.
 

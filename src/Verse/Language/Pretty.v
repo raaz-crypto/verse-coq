@@ -18,6 +18,8 @@ Require Import NArith.
 Require Import Nat.
 Require Import Verse.Language.Ast.
 Require Import Verse.Language.Types.
+Require Import Verse.TypeSystem.
+Require Import Verse.Variables.
 Require        Vector.
 Import         Vector.VectorNotations.
 Require Import Verse.Nibble.
@@ -52,7 +54,7 @@ etc, to be considered as verse expressions. We do this in two stages.
 *)
 
 Section Embedding.
-  Variable v  : VariablesOf verse_type_system.
+  Variable v  : Variables.U verse_type_system.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)

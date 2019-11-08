@@ -13,16 +13,16 @@ Axiom x : cvar uint8_t.
 Axiom arr : cvar (array 42 uint16_t).
 Axiom ptr : cvar (ptrToArray 30 uint64_t).
 
-Definition index_ptr := ptrDeref ptr.
+Definition index_ptr := Expr.ptrDeref ptr.
 Axiom myfunc : name.
 Axiom a : cvar uint8_t.
 Axiom b : cvar uint64_t.
 Axiom temp : cvar uint8_t.
 
-Definition e : Expr.expr := app mul [a ; app plus [a ; b]].
+Definition e : Expr.expr := Expr.app mul [a ; Expr.app plus [a ; b]].
 Definition lDec := [ declare temp; declare a; declare ptr ]%list.
 
-Definition stmts := [ assign (index (ptrDeref(ptr)) 2) e;
+Definition stmts := [ assign (Expr.index (Expr.ptrDeref(ptr)) 2) e;
                       update a bitAnd [e]%vector
                     ]%list.
 

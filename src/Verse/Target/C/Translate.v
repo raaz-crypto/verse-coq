@@ -1,11 +1,12 @@
 Require Import Verse.Language.Types.
+Require Import Verse.TypeSystem.
 Require Import Verse.Target.C.Ast.
 Require Import Verse.Error.
 Require Import Verse.Nibble.
 
 Module Internal.
 
-  Definition tgt  := resultSystem c_type_system.
+  Definition tgt  := TypeSystem.result c_type_system.
 
   Definition trType (ty : Types.type direct) : typeOf tgt direct
     := let couldNotError := error (CouldNotTranslate ty)
@@ -33,7 +34,7 @@ Module Internal.
 
 End Internal.
 
-Canonical Structure c_type_compile : typeCompile verse_type_system c_type_system
+Canonical Structure c_type_compile : TypeSystem.compiler verse_type_system c_type_system
   := verseTranslation Internal.trType Internal.trConst.
 
 
