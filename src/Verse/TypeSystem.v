@@ -97,6 +97,9 @@ Definition compiler src ts := translator src (result ts).
 (** *** The translate, compile and result for types. *)
 Module Types.
 
+  (** The universe of types *)
+  Definition U := kind -> Set.
+
   Definition translate src tgt (tr : translator src tgt) k (ty : typeOf src k)
   : typeOf tgt k := typeTrans tr ty.
 
