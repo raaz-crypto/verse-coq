@@ -1,14 +1,17 @@
 (** * Type Systems.
 
-Verse has a strong type system that catch a lot of bugs at compile
-time.  The targets that verse compile to is also expected to share a
-few features of the verse type system. For example, it has a notion of
-direct types and memory types. It has a way to build array of direct
-types. Target languages might choose to ignore some aspects, like for
-example arrays do not carry a notion of endianness in C, but the
-translation process from verse to the target language is expected to
-take care of these. One can view this as a erasure of some of the
-typing information as we compile to a low level target language.
+The verse language, as well as the target systems, are expected to be
+typed. Types themselves are distinguished by [kind]; types of the
+[direct] [kind] capture types that can be held in machine registers
+where as that of [memory] [kind] are stored in the memory. Arrays are
+example of memory types. In addition, arrays also have endianness
+encoded.
+
+Target languages might choose to ignore some aspects, like for example
+arrays do not carry a notion of endianness in C, but the translation
+process from verse to the target language is expected to take care of
+these. One can view this as a erasure of some of the typing
+information as we compile to a low level target language.
 
 *)
 
@@ -21,16 +24,17 @@ Structure typeSystem :=
                constOf      : typeOf direct -> Type;
              }.
 
-
 Definition some := @sigT kind.
 
-(** * Type translation and compilation.
+(** * Translator and compilers.
 
-A type translation is mapping between the types of two type systems
-which preserves the constants. A compilation is a translation which
-can err --- it might be the case that certain types in the source type
-system might not have faithful representation in the type system. We
-represent type translation using the following structure.
+A translator between type systems is mapping between their types
+together with a type preserving mapping of constants. A compiler is a
+translator which can err --- in general not all types in the source
+type system might not have faithful representation in the target type
+system.
+
+
 
  *)
 
@@ -49,19 +53,32 @@ Arguments typeTrans [ts0 ts1] _ [k].
 Arguments constTrans [ts0 ts1] _ [ty].
 Arguments arrayCompatibility [ts0 ts1].
 
-(** ** Type compilation and result types.
+(** ** Translating/compiling under type translation/compilation
 
-For an arbitrary target type system [ts], type compilation into [ts]
-can also be represented by the [typeTranslation] structure by first
-considering the types [resultType ts] and the associated type system
-[resultSystem ts]. Type compilation to [ts] can then be seen as a type
-transaltion into [resultSystem ts].
+
+Giving a type translator/compiler is the first step towards eventual
+translation/compilation of verse programs to executable code. By just
+specifying the type tranlator/compiler, translation/compilation of
+various [typeSystem] parameterised [Type]s can be defined. The naming
+convention we follow are:
+
+1. The function [translate] takes a [typeSystem] [translator] and
+   appropriate and performs the translation for the type in question.
+
+2. The [result] type captures the result of a compilation. Recall that
+   compilation of types can result in error and we need to handle this
+   error case. The result type captures such a situation.
+
+3. The function [compile] is like translate but takes a type
+   [compiler] instead. The result of a compilation is defined by the
+   result type as mentioned above.
+
+In particular, we define a [result] such that [result tgt] is the result
+of compiling a typeSystem to the target type system [tgt].
 
 *)
 
 Require Import Verse.Error.
-
-(* ** Translation results *)
 
 Definition result ts :=
   let resultType ts k := typeOf ts k + {TranslationError} in
@@ -77,6 +94,7 @@ Definition result ts :=
 
 Definition compiler src ts := translator src (result ts).
 
+(** *** The translate, compile and result for types. *)
 Module Types.
 
   Definition translate src tgt (tr : translator src tgt) k (ty : typeOf src k)
@@ -93,6 +111,8 @@ Module Types.
 
 
 End Types.
+
+(** *** Translate/result/compile for constants. *)
 
 Module Const.
 
