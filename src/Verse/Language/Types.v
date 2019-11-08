@@ -65,57 +65,6 @@ Definition Ref (ty : type direct) : type memory := array 1 hostE ty.
 
 Canonical Structure verse_type_system := TypeSystem type array const.
 
-(** * Type translation and compilation.
-
-A type translation is mapping between the types of two type systems
-which preserves the constants. A compilation is a translation which
-can err --- it might be the case that certain types in the source type
-system might not have faithful representation in the type system. We
-represent type translation using the following structure.
-
- *)
-
-Structure translator (ts0 ts1 : typeSystem)
-  := TypeTranslation { typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
-                       constTrans  : forall ty : typeOf ts0 direct,
-                           constOf ts0 ty -> constOf ts1 (typeTrans direct ty);
-                       arrayCompatibility : forall b e ty,
-                           typeTrans memory (arrayType ts0 b e ty) = arrayType ts1 b e (typeTrans direct ty)
-                     }.
-
-Arguments TypeTranslation [ts0 ts1].
-Arguments typeTrans [ts0 ts1] _ [k].
-Arguments constTrans [ts0 ts1] _ [ty].
-Arguments arrayCompatibility [ts0 ts1].
-
-(** ** Type compilation and result types.
-
-For an arbitrary target type system [ts], type compilation into [ts]
-can also be represented by the [typeTranslation] structure by first
-considering the types [resultType ts] and the associated type system
-[resultSystem ts]. Type compilation to [ts] can then be seen as a type
-transaltion into [resultSystem ts].
-
-*)
-
-Require Import Verse.Error.
-
-(* ** Translation results *)
-
-Definition resultSystem ts :=
-  let resultType ts k := typeOf ts k + {TranslationError} in
-  let resultArray ts b e : resultType ts direct -> resultType ts memory
-      := ap (arrayType ts b e) in
-  let resultConst ts  (ty : resultType ts direct) :=
-      match ty with
-      | {- tyC -} => constOf ts tyC
-      | _         => Empty_set + {TranslationError}
-      end in
-
-  TypeSystem (resultType ts) (resultArray ts) (resultConst ts).
-
-Definition compiler src ts := translator src (resultSystem ts).
-
 (** ** Translating verse types.
 
 To define translations from verse types, all we need is translations
@@ -149,32 +98,4 @@ Section VerseTranslation.
 
 End VerseTranslation.
 
-Arguments extend [ts].
-Arguments extends_to_array [ts].
 Arguments verseTranslation [ts].
-
-(** ** Typed variables.
-
-When building programming constructs, we need variables. In a typed
-setting, we would like the variables to be parameterised by types. The
-[VariableT ts] should be seen as the universe of program variables for
-programs that use the type system [ts].
-
-*)
-
-Definition VariablesOf (ts : typeSystem) := forall k, typeOf ts k -> Set.
-Definition VariableT := VariablesOf verse_type_system.
-
-Import Vector.VectorNotations.
-(** A declaration is just a sequence of types *)
-Definition Declaration n
-  := Vector.t (some type) n.
-
-Arguments Declaration [n].
-
-Definition Empty : Declaration    := [].
-
-(** Helper function that recovers the type of the given variable *)
-Definition Var {v : VariableT}{k}{t : type k}
-  : v k t -> some type
-  := fun _ => existT _ _ t.
