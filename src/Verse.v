@@ -1,7 +1,6 @@
 Require Export Verse.Language.
 Require Export Verse.TypeSystem.
-Require Import Verse.Variables.
-Definition VariableT := Verse.Variables.U verse_type_system.
+Definition VariableT := Variables.U verse_type_system.
 (* Require Export Verse.Types. *)
 (* Require Export Verse.Types.Internal. *)
 (* Require Export Verse.Word. *)

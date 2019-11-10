@@ -35,7 +35,6 @@ We begin by defining the types for the language.
 Require Import Verse.Language.Types.
 Require        Verse.Target.C.Ast.
 Require Import Verse.TypeSystem.
-Require        Verse.Variables.
 
 Import EqNotations.
 (* end hide *)
