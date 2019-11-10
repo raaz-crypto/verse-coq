@@ -122,14 +122,13 @@ Module Types.
 
     Arguments translate [src tgt].
 
-    Definition result tgt := some (typeOf tgt) + {TranslationError}.
+    Definition result tgt := some (result tgt).
 
     Definition compile src tgt
                (cr : compiler src tgt)
                (s : some (typeOf src))
       : result tgt
-      := let sp := translate cr s in
-         ap (fun good => existT _ (projT1 s) good) (projT2 sp).
+      := translate cr s.
 
     Arguments compile [src tgt].
   End Some.
@@ -166,3 +165,70 @@ Module Const.
   Arguments compile [src tgt] cr [ty].
 
 End Const.
+
+Module Variables.
+
+  (** The universe of variables (of a given type system) *)
+  Definition U ts := forall k, typeOf ts k -> Set.
+
+  (* Namespacing it so that can be used by the qualified module *)
+
+  Definition translate src tgt
+             (tr : translator src tgt)
+             (v : U tgt) : U src
+    := fun k ty => v k (Types.translate tr ty).
+
+  Arguments translate [src tgt] tr.
+  Definition result tgt (v : U tgt) : U (result tgt)
+    := fun k ty => match ty with
+                   | {- good -} => v k good
+                   | error _    => Empty_set
+                   end.
+
+  Arguments result [tgt].
+
+  Definition compile  src tgt
+             (cr : compiler src tgt)
+             (v : U tgt) : U src
+    := translate cr (result v).
+
+
+  Arguments compile [src tgt].
+End Variables.
+
+
+(** Stuff qualified by types *)
+Definition qualified ts (v : Variables.U ts) (s : some (typeOf ts))
+  := v (projT1 s) (projT2 s).
+
+Arguments qualified [ts].
+
+Module Qualified.
+
+  Definition translate src tgt
+             (tr : translator src tgt)
+             (v : Variables.U tgt)
+             (s : some (typeOf src))
+  : qualified v (Types.Some.translate tr s) -> qualified (Variables.translate tr v) s
+    := fun H => H.
+
+
+  Arguments translate [src tgt] tr [v s].
+
+  Definition result tgt
+             (v : Variables.U tgt)
+             (s : Types.Some.result tgt)
+    := qualified (Variables.result v) s.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : compiler src tgt)
+             (v : Variables.U tgt)
+             (s : some (typeOf src))
+    : result v (Types.Some.compile cr s) -> qualified (Variables.compile cr v) s
+    := fun H => H.
+
+  Arguments compile [src tgt] cr [v s].
+
+End Qualified.

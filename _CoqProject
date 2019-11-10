@@ -13,7 +13,6 @@ src/Verse/Target/C/Ast.v
 src/Verse/Target/C/Pretty.v
 src/Verse/Target/C/Translate.v
 src/Verse/TypeSystem.v
-src/Verse/Variables.v
 
 # Test code
 src/Verse/Target/C/Test.v
