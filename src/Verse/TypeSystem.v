@@ -112,6 +112,27 @@ Module Types.
 
   Definition result tgt := fun k => typeOf tgt k + {TranslationError}.
 
+  Module Some.
+
+    Definition translate src tgt
+               (tr : translator src tgt)
+               (s : some (typeOf src))
+    : some (typeOf tgt)
+      := existT _ (projT1 s) (Types.translate tr (projT2 s)).
+
+    Arguments translate [src tgt].
+
+    Definition result tgt := some (typeOf tgt) + {TranslationError}.
+
+    Definition compile src tgt
+               (cr : compiler src tgt)
+               (s : some (typeOf src))
+      : result tgt
+      := let sp := translate cr s in
+         ap (fun good => existT _ (projT1 s) good) (projT2 sp).
+
+    Arguments compile [src tgt].
+  End Some.
 
 End Types.
 
