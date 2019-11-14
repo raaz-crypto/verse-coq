@@ -265,8 +265,9 @@ Module Expr.
            ty (e : expr (Variables.Universe.result v) ty)
     : result v ty
     := match e with
-       (* The match annotation is not required once return type is made explicit.
-          D   oes not work with the match annotation but without the return type! *)
+       (* The match annotation is not required once return type is
+          made explicit.  Does not work with the match annotation but
+          without the return type! *)
        | @cval _ _ {- good -} c        => @cval _ _ good c
        | @valueOf _ _ {- good -} x     => valueOf (LExpr.extract x)
        | @app _ _ {- good -} _ op args => app op (Vector.map (extract _ _ _) args)
