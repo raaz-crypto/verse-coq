@@ -190,8 +190,8 @@ Module LExpr.
 
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
-             (v : Variables.U tgt) ty
-             (le : lexpr (Variables.translate tr v) ty)
+             (v : Variables.U tgt) (ty : typeOf src direct)
+             (le : lexpr (Variables.Universe.translate tr v) ty)
   : lexpr v (Types.translate tr ty).
     refine (match le with
             | @var _ _ ty x => var (ty := Types.translate tr ty) x
@@ -210,7 +210,7 @@ Module LExpr.
   Arguments result [tgt].
 
   Definition extract tgt (v : Variables.U tgt) ty :
-    lexpr (Variables.result v) ty -> result v ty
+    lexpr (Variables.Universe.result v) ty -> result v ty
     := match ty with
        | {- good -} => fun l => match l with
                                 | @var _ _ {- good -}  x        => var x
@@ -224,7 +224,7 @@ Module LExpr.
              (cr : TypeSystem.compiler src tgt)
              (v  : Variables.U tgt)
              (ty : typeOf src direct)
-             (le : lexpr (Variables.compile cr v) ty)
+             (le : lexpr (Variables.Universe.compile cr v) ty)
     : result v (Types.compile cr ty)
     := extract (translate cr le).
 
@@ -238,7 +238,7 @@ Module Expr.
            (tr : TypeSystem.translator src tgt)
            (v       : Variables.U tgt)
            ty
-           (e : expr (Variables.translate tr v) ty)
+           (e : expr (Variables.Universe.translate tr v) ty)
   : expr v (Types.translate tr ty)
     := match e with
          | cval c      => cval (constTrans tr c)
@@ -262,7 +262,7 @@ Module Expr.
 
   Fixpoint extract tgt
            (v : Variables.U tgt)
-           ty (e : expr (Variables.result v) ty)
+           ty (e : expr (Variables.Universe.result v) ty)
     : result v ty
     := match e with
        (* The match annotation is not required once return type is made explicit.
@@ -279,7 +279,7 @@ Module Expr.
            (cr : TypeSystem.compiler src tgt)
            (v  : Variables.U tgt)
            (ty : typeOf src direct)
-           (e : expr (Variables.compile cr v) ty)
+           (e : expr (Variables.Universe.compile cr v) ty)
     := extract (translate cr e).
   Arguments compile [src tgt] cr [v ty].
 End Expr.
@@ -289,7 +289,7 @@ Module Instruction.
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt)
-             ty (i : instruction (Variables.translate tr v) ty)
+             ty (i : instruction (Variables.Universe.translate tr v) ty)
   : instruction v (Types.translate tr ty) :=
     match i with
     | assign x e => assign (LExpr.translate tr x) (Expr.translate tr e)
@@ -317,7 +317,7 @@ Module Instruction.
              (v : Variables.U tgt)
              (ty : Types.result tgt direct)
 
-    : instruction (Variables.result v) ty -> result v ty
+    : instruction (Variables.Universe.result v) ty -> result v ty
       (* Type signature added above just for clarity *)
     := match ty
          with
@@ -342,7 +342,7 @@ Module Instruction.
              src tgt
              (cr : TypeSystem.compiler src tgt)
              (v : Variables.U tgt)
-             ty (i : instruction (Variables.compile cr v) ty)
+             ty (i : instruction (Variables.Universe.compile cr v) ty)
     := extract (translate cr i).
 
   Arguments compile [src tgt] cr [v ty].
@@ -353,7 +353,7 @@ Module Statement.
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt)
-             (s : statement (Variables.translate tr v))
+             (s : statement (Variables.Universe.translate tr v))
   : statement v
   := match s with
      | existT _ ty i => existT _ _ (Instruction.translate tr i)
@@ -370,7 +370,7 @@ Module Statement.
   Definition compile src tgt
              (cr : TypeSystem.compiler src tgt)
              (v : Variables.U tgt)
-             (s : statement (Variables.compile cr v))
+             (s : statement (Variables.Universe.compile cr v))
              : result v
     := match Types.translate cr (projT1 s) as ty0
              return Types.translate cr (projT1 s) = ty0
@@ -396,7 +396,7 @@ Module Code.
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt)
-  : code (Variables.translate tr v) -> code v
+  : code (Variables.Universe.translate tr v) -> code v
   := List.map (Statement.translate (v := v)tr).
 
   Arguments translate [src tgt] tr [v].
@@ -407,7 +407,7 @@ Module Code.
   Definition compile src tgt
              (cr : TypeSystem.compiler src tgt)
              (v : Variables.U tgt)
-             (c : code (Variables.compile cr v)) : result v
+             (c : code (Variables.Universe.compile cr v)) : result v
     :=  let compile := fun s => liftErr (Statement.compile cr s) in
         merge _ _ (List.map compile c).
 
@@ -418,7 +418,7 @@ Module Iterator.
   Definition translate src tgt
              (tr : translator src tgt)
              (v  : Variables.U tgt)
-             memty (itr : iterator (Variables.translate tr v) memty)
+             memty (itr : iterator (Variables.Universe.translate tr v) memty)
   : iterator v (Types.translate tr memty)
     := {| setup := Code.translate tr (setup itr);
           finalise := Code.translate tr (finalise itr);

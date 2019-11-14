@@ -107,7 +107,7 @@ Module Allocation.
              (n : nat)
              (st : type src n)
   :  allocation v (Types.translate tr st) ->
-     allocation (Variables.translate tr v) st
+     allocation (Variables.Universe.translate tr v) st
     := match st with
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
@@ -119,7 +119,7 @@ Module Allocation.
   Definition result tgt (v  : Variables.U tgt)
              (n : nat)
              (st : type (result tgt) n)
-             := allocation (Variables.result v) st.
+             := allocation (Variables.Universe.result v) st.
 
   Arguments result [tgt] v [n] st.
 
@@ -128,7 +128,7 @@ Module Allocation.
              (v : Variables.U tgt)
              (st : type src n)
              (res : result v (Types.compile cr st))
-    : allocation (Variables.compile cr v) st
+    : allocation (Variables.Universe.compile cr v) st
     := translate cr res.
 
 End Allocation.
