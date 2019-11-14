@@ -173,35 +173,68 @@ End Const.
 (**
 This module captures variables used in verse programs.
 
-*)
+ *)
+
+Import EqNotations.
 Module Variables.
 
   (** The universe of variables (of a given type system) *)
   Definition U ts := forall k, typeOf ts k -> Set.
 
-  (* Namespacing it so that can be used by the qualified module *)
+
+  Module Universe.
+
+    Definition translate src tgt
+               (tr : translator src tgt)
+               (v : U tgt) : U src
+      := fun k ty => v k (Types.translate tr ty).
+
+    Arguments translate [src tgt] tr.
+    Definition result tgt (v : U tgt) : U (result tgt)
+      := fun k ty => match ty with
+                     | {- good -} => v k good
+                     | error _    => Empty_set
+                     end.
+
+    Arguments result [tgt].
+
+    Definition compile  src tgt
+               (cr : compiler src tgt)
+               (v : U tgt) : U src
+      := translate cr (result v).
+
+
+    Arguments compile [src tgt].
+
+  End Universe.
 
   Definition translate src tgt
              (tr : translator src tgt)
-             (v : U tgt) : U src
-    := fun k ty => v k (Types.translate tr ty).
+             (v : U tgt) (k : kind)
+             (ty : typeOf src k)
+    : v k (Types.translate tr ty) -> Universe.translate tr v k ty
+    := fun x => x.
 
-  Arguments translate [src tgt] tr.
-  Definition result tgt (v : U tgt) : U (result tgt)
-    := fun k ty => match ty with
-                   | {- good -} => v k good
-                   | error _    => Empty_set
-                   end.
+  Arguments translate [src tgt] tr [v k ty].
+  Definition result tgt (v : U tgt)
+             (k : kind)
+             (good : typeOf tgt k)
+             (x  : v k good)
+             (ty : Types.result tgt k)
+    := ty = {- good -} -> Universe.result v k ty.
 
-  Arguments result [tgt].
+  Arguments result [tgt v k good].
 
-  Definition compile  src tgt
+  Definition compile src tgt
              (cr : compiler src tgt)
-             (v : U tgt) : U src
-    := translate cr (result v).
+             (v : U tgt) (k : kind)
+             (good : typeOf tgt k)
+             (x : v k good)
+             (ty : typeOf src k)
+    : result x (Types.compile cr ty)
+    := fun pf : Types.compile cr ty = {- good -} => rew <- pf in x.
+  Arguments compile [src tgt] cr [v k good] x [ty] pf.
 
-
-  Arguments compile [src tgt].
 End Variables.
 
 
@@ -222,7 +255,7 @@ Module Qualified.
              (tr : translator src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-  : qualified v (Types.Some.translate tr s) -> qualified (Variables.translate tr v) s
+  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.translate tr v) s
     := fun H => H.
 
 
@@ -231,7 +264,7 @@ Module Qualified.
   Definition result tgt
              (v : Variables.U tgt)
              (s : Types.Some.result tgt)
-    := qualified (Variables.result v) s.
+    := qualified (Variables.Universe.result v) s.
 
   Arguments result [tgt].
 
@@ -239,7 +272,7 @@ Module Qualified.
              (cr : compiler src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-    : result v (Types.Some.compile cr s) -> qualified (Variables.compile cr v) s
+    : result v (Types.Some.compile cr s) -> qualified (Variables.Universe.compile cr v) s
     := fun H => H.
 
   Arguments compile [src tgt] cr [v s].
