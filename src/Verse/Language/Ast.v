@@ -411,7 +411,7 @@ Module Code.
              (c : code (Variables.Universe.compile cr v)) : result v
     :=  let compile := fun s => liftErr (Statement.compile cr s) in
         merge _ _ (List.map compile c).
-
+  Arguments compile [src tgt] cr [v].
 End Code.
 
 Module Iterator.
@@ -428,11 +428,30 @@ Module Iterator.
 
   Arguments translate [src tgt] tr [v memty].
 
+  (** The trick thing about iterator compilation is that the result
+      cannot be made into an iterator. This is because the process
+      field is not a code v but a function from v to code v. For the
+      process element, the best we can do is v -> code v + Error.
+      This means we have the following result of compilation.
+   *)
   Definition result tgt (v : Variables.U tgt)
              (memty : Types.result tgt memory)
-    := match memty with
-       | {- good -} => iterator v good + {TranslationError}
-       | _          => Empty_set + {TranslationError}
-       end.
+    := forall good,  memty = {- good -} ->
+                     v memory good ->
+                     (code v * code v * code v) + {TranslationError}.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : compiler src tgt)
+             (v  : Variables.U tgt)
+             memty (itr : iterator (Variables.Universe.compile cr v) memty)
+    : result v (Types.compile cr memty)
+    := fun good pf x => stup <- Code.compile cr (setup itr);
+           fnls <- Code.compile cr (finalise itr);
+           prcs <- Code.compile cr (process itr (Variables.compile cr x pf));
+           {- (stup, prcs, fnls) -}.
+
+  Arguments compile [src tgt] cr [v memty] itr [good].
 
 End Iterator.
