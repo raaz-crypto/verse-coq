@@ -85,18 +85,23 @@ follow for these lifted functions are:
 1. The function [translate] takes a [typeSystem] [translator] and
    lifts it to a translation of the object in question.
 
-
 2. The function [compile] is like translate but takes a type
    [compiler] instead.
 
-2. The [result] type captures the result of a compiling an
-   object. Recall that compilation of types can result in error and we
-   need to handle these errors.
+3. Given objects that are parameterised by type systems, the
+   compilation can be seen as a translation from the source object to
+   the target object + error. We use the [result] type captures the
+   result of a compilation.
 
-To avoid name conflicts, we package the translate/compile/result
+4. In some cases the translation/compilation is contra-variant, in the
+   sense that they give a map from the target object to the source
+   object (with errors handled appropriately). Typed qualified
+   variables are an example of such objects. In such cases we use the
+   terminology [input] instead of [result] type.
+
+To avoid name conflicts, we package the translate/compile/result/input
 functions of each objects into its own separate modules. The functions
-are expected to be used qualified.
-*)
+are expected to be used qualified.  *)
 
 (** *** The translate/compile/result functions for types. *)
 Module Types.
@@ -261,18 +266,18 @@ Module Qualified.
 
   Arguments translate [src tgt] tr [v s].
 
-  Definition result tgt
+  Definition input tgt
              (v : Variables.U tgt)
              (s : Types.Some.result tgt)
     := qualified (Variables.Universe.result v) s.
 
-  Arguments result [tgt].
+  Arguments input [tgt].
 
   Definition compile src tgt
              (cr : compiler src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-    : result v (Types.Some.compile cr s) -> qualified (Variables.Universe.compile cr v) s
+    : input v (Types.Some.compile cr s) -> qualified (Variables.Universe.compile cr v) s
     := fun H => H.
 
   Arguments compile [src tgt] cr [v s].

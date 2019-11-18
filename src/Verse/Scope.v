@@ -138,18 +138,18 @@ Module Allocation.
         end.
 
   Arguments translate [src tgt] tr [v n st].
-  Definition result tgt (v  : Variables.U tgt)
+  Definition input tgt (v  : Variables.U tgt)
              (n : nat)
              (st : type (result tgt) n)
              := allocation (Variables.Universe.result v) st.
 
-  Arguments result [tgt] v [n] st.
+  Arguments input [tgt] v [n] st.
 
   Definition compile src tgt n
              (cr : compiler src tgt)
              (v : Variables.U tgt)
              (st : type src n)
-             (res : result v (Types.compile cr st))
+             (res : input v (Types.compile cr st))
     : allocation (Variables.Universe.compile cr v) st
     := translate cr res.
 
