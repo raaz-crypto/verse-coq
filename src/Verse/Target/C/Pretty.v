@@ -167,6 +167,11 @@ Notation "( X , .. , Y )"
   := (params (cons X .. (cons Y nil)..))
        (only printing) : c_scope.
 
+Notation "# 'include' < F >"
+  := (include F)
+       (at level 8, only printing,
+        format "#  'include'  < F > '//'").
+
 Notation "'void' FN P B"
   := (function FN P B)
        (at level 8, only printing,

@@ -138,6 +138,7 @@ Inductive statement :=
 | update      : expr -> forall n, op (S n) -> Vector.t expr n -> statement
 | increment   : expr -> statement
 | decrement   : expr -> statement
+| include     : forall FileName,  FileName -> statement
 | comment   : forall Text , Text -> statement
 | whileLoop : forall C, C -> braces -> statement
 | function  : forall FN,  FN -> parameters -> braces -> statement
@@ -150,3 +151,4 @@ Arguments cvar [k].
 Arguments declare_variable [k].
 Arguments declare [k ty].
 Arguments function [FN].
+Arguments include [FileName].
