@@ -66,11 +66,33 @@ Section Scoped.
     : scoped st CODE -> allocation st -> CODE
     := fun sc al =>  fill al sc.
 
+  Fixpoint map A B (f : A -> B) n (st : type n) : scoped st A -> scoped st B
+    := match st as st0
+             return scoped st0 A -> scoped st0 B with
+       | [] => f
+       | _ :: xs => fun sStA z => map _ _ f _ _ (sStA z)
+       end.
+
+  Fixpoint scopedAlloc {n} (st : type n) : scoped st (allocation st)
+    := match st as st0
+             return scoped st0 (allocation st0) with
+       | [] => tt
+       | _ :: xs =>
+         fun z =>
+           map _ _ (fun a => (z, a)) _ _  (scopedAlloc xs)
+       end.
+
+    Definition curryScope {CODE}{n}{st : type n}(f : allocation st -> CODE) : scoped st CODE
+    := map _ _ f _ _ (scopedAlloc st).
+
 End Scoped.
 
 Arguments allocation [ts] v [n].
 Arguments scoped [ts] v [n].
-
+Arguments map [ts v A B] f [n st].
+Arguments curryScope [ts v CODE n st] f.
+Arguments uncurryScope [ts v CODE n st].
+Print uncurryScope.
 Require Import Verse.Error.
 
 (** ** Translation/compilation for type of scopes *)
@@ -132,3 +154,15 @@ Module Allocation.
     := translate cr res.
 
 End Allocation.
+
+Definition translate src tgt
+         (tr : translator src tgt)
+         (v  : Variables.U tgt)
+         (n : nat)
+         (CODE : Type)
+         (st : type src n)
+         (sCode : scoped (Variables.Universe.translate tr v) st CODE)
+  : scoped v (Types.translate tr st) CODE
+  := let sCodeUncurried := uncurryScope sCode in
+     let resultUncurry := fun a => sCodeUncurried (Allocation.translate tr a) in
+     curryScope resultUncurry.
