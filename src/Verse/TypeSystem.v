@@ -208,6 +208,11 @@ Module Variables.
 
     Arguments result [tgt].
 
+    Lemma variable_injection_lemma : forall ts (v : U ts), translate (inject ts) (result v) = v.
+      trivial.
+      Show Proof.
+    Qed.
+
     Definition compile  src tgt
                (cr : compiler src tgt)
                (v : U tgt) : U src
