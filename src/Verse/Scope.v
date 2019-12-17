@@ -127,8 +127,8 @@ Module Allocation.
              (v  : Variables.U tgt)
              (n : nat)
              (st : type src n)
-  :  allocation v (Types.translate tr st) ->
-     allocation (Variables.Universe.translate tr v) st
+  : allocation v (Types.translate tr st) ->
+    allocation (Variables.Universe.translate tr v) st
     := match st with
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
@@ -136,7 +136,24 @@ Module Allocation.
               let (f, r) := a in (Qualified.translate tr f, translate src tgt tr v n0 xs r)
         end.
 
+  Fixpoint inverseTranslate src tgt
+           (tr : translator src tgt)
+           (v  : Variables.U tgt)
+           (n : nat)
+           (st : type src n)
+    : allocation (Variables.Universe.translate tr v) st
+      -> allocation v (Types.translate tr st)
+    := match st with
+       | [] => fun H : unit => H
+       | Vector.cons _ x n0 xs
+         => fun a =>
+             let (f, r) := a in (Qualified.translate tr f, inverseTranslate src tgt tr v n0 xs r)
+       end.
+
+
   Arguments translate [src tgt] tr [v n st].
+  Arguments inverseTranslate [src tgt] tr [v n st].
+
   Definition input tgt (v  : Variables.U tgt)
              (n : nat)
              (st : type (result tgt) n)
