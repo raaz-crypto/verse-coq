@@ -92,7 +92,6 @@ Arguments scoped [ts] v [n].
 Arguments map [ts v A B] f [n st].
 Arguments curryScope [ts v CODE n st] f.
 Arguments uncurryScope [ts v CODE n st].
-Print uncurryScope.
 Require Import Verse.Error.
 
 (** ** Translation/compilation for type of scopes *)
