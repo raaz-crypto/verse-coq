@@ -73,6 +73,11 @@ Definition result tgt :=
 
 Definition compiler src tgt := translator src (result tgt).
 
+Definition inject ts : translator ts (result ts) :=
+  {| typeTrans := fun k ty => (fun t : typeOf (result ts) k => t) {- ty -};
+     constTrans := fun _ c => c ;
+     arrayCompatibility := fun _ _ _ => eq_refl
+  |}.
 
 (** ** Translating/compiling under type translation/compilation
 
