@@ -108,6 +108,9 @@ Module Types.
   Definition result tgt n
     := type (TypeSystem.result tgt) n.
 
+  Definition inject ts := translate (TypeSystem.injector ts).
+  Print inject.
+  Arguments inject [ts n].
 
   Definition compile src tgt
              (cr : compiler src tgt)
@@ -117,6 +120,7 @@ Module Types.
     := translate cr st .
 
   Arguments compile [src tgt] cr [n].
+
 End Types.
 
 (** ** Translation/compilation for allocations *)
@@ -150,9 +154,52 @@ Module Allocation.
              let (f, r) := a in (Qualified.translate tr f, inverseTranslate src tgt tr v n0 xs r)
        end.
 
-
   Arguments translate [src tgt] tr [v n st].
   Arguments inverseTranslate [src tgt] tr [v n st].
+
+  Definition inject ts := translate (injector ts).
+  Definition inverseInject ts := inverseTranslate (injector ts).
+
+  Arguments inject [ts v n st].
+  Arguments inverseInject [ts v n st].
+
+
+  (*  Lemma variable_injection_lemma : forall ts (v : U ts), translate (inject ts) (result v) = v.
+  Lemma injection_lemma : forall n ts (sts : type tgt n) (cr : compiler ts (inject ts), compile  *)
+(*
+  Types.translate (TypeSystem.inject tgt) stgt) *)
+  Import EqNotations.
+
+
+  Section Compile.
+    Variables src tgt : typeSystem.
+    Variable  cr : compiler src tgt.
+
+
+    Variable n  : nat.
+
+  Definition compatible  (st : type tgt n) (ss : type src n)
+    := Types.inject st = Types.translate cr ss.
+
+
+  Definition comp (v  : Variables.U tgt)(st : type tgt n)
+  (*  : allocation v  st ->
+      allocation (Variables.Universe.result v) (Types.inject st)*)
+
+    := fun a => (rew [fun u => allocation u st] (Variables.Universe.injection_lemma tgt v) in a).
+
+  Check (comp, inject).
+
+
+  Definition compile (st : type tgt n) (ss : type src n)
+             (pfCompat : compatible st ss)
+             (v : Variables.U tgt)
+             (a : allocation v st)
+    : allocation (Variables.Universe.compile cr v) ss.
+    refine (translate cr (_ (inverseInject (comp v st a)))).
+    rewrite <- pfCompat.
+    trivial.
+  Defined.
 
   Definition input tgt (v  : Variables.U tgt)
              (n : nat)
@@ -160,15 +207,7 @@ Module Allocation.
              := allocation (Variables.Universe.result v) st.
 
   Arguments input [tgt] v [n] st.
-
-  Definition compile src tgt n
-             (cr : compiler src tgt)
-             (v : Variables.U tgt)
-             (st : type src n)
-             (res : input v (Types.compile cr st))
-    : allocation (Variables.Universe.compile cr v) st
-    := translate cr res.
-
+  End Compile.
 End Allocation.
 
 Definition translate src tgt
