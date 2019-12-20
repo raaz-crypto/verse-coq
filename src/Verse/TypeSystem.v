@@ -73,7 +73,12 @@ Definition result tgt :=
 
 Definition compiler src tgt := translator src (result tgt).
 
-Definition inject ts : translator ts (result ts) :=
+(**
+An injector is a special translator from a type system to is
+associated resultant type system.
+
+*)
+Definition injector ts : translator ts (result ts) :=
   {| typeTrans := fun k ty => (fun t : typeOf (result ts) k => t) {- ty -};
      constTrans := fun _ c => c ;
      arrayCompatibility := fun _ _ _ => eq_refl
@@ -119,6 +124,9 @@ Module Types.
 
   Arguments translate [src tgt] tr [k].
 
+  Definition inject ts := translate (injector ts).
+  Arguments inject [ts k].
+
   Definition compile src tgt (cr : compiler src tgt) k (ty : typeOf src k)
     := translate cr ty.
 
@@ -136,6 +144,9 @@ Module Types.
       := existT _ (projT1 s) (Types.translate tr (projT2 s)).
 
     Arguments translate [src tgt].
+
+    Definition inject ts := translate (injector ts).
+    Arguments inject [ts].
 
     Definition result tgt := some (result tgt).
 
@@ -161,6 +172,10 @@ Module Const.
     := constTrans tr c.
 
   Arguments translate [src tgt] tr [ty].
+
+  Definition inject ts := translate (injector ts).
+  Arguments inject [ts ty].
+
 
   Definition result tgt (ty  : Types.result tgt direct) :=
     match ty with
@@ -200,6 +215,11 @@ Module Variables.
       := fun k ty => v k (Types.translate tr ty).
 
     Arguments translate [src tgt] tr.
+
+    Definition inject ts := translate (injector ts).
+
+    Arguments inject [ts].
+
     Definition result tgt (v : U tgt) : U (result tgt)
       := fun k ty => match ty with
                      | {- good -} => v k good
@@ -208,9 +228,8 @@ Module Variables.
 
     Arguments result [tgt].
 
-    Lemma variable_injection_lemma : forall ts (v : U ts), translate (inject ts) (result v) = v.
+    Lemma injection_lemma : forall ts (v : U ts), v = inject (result v).
       trivial.
-      Show Proof.
     Qed.
 
     Definition compile  src tgt
@@ -275,6 +294,10 @@ Module Qualified.
 
 
   Arguments translate [src tgt] tr [v s].
+
+  Definition inject ts := translate (injector ts).
+
+    Arguments inject [ts v s].
 
   Definition input tgt
              (v : Variables.U tgt)
