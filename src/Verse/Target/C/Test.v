@@ -9,6 +9,10 @@ Import Nibble.
 Require Vector.
 Import Vector.VectorNotations.
 
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+
+
 Section Variables.
   Variable x : cvar uint8_t.
   Variable arr : cvar (array 42 uint16_t).
@@ -37,9 +41,6 @@ Section Variables.
     Compute (convert_to bigE uint32_t (rotateL uint32_t (x, 2))).
     Compute (verse_const uint8_t (Ox1,Ox2)).
    *)
-
-  Require Import Verse.Print.
-  Require Import Verse.Target.C.Pretty.
 
   Goal to_print (function myfunc (params [declare temp; declare temp]) (Braces stmts)).
     print.
