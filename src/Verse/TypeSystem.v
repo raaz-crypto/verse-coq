@@ -155,11 +155,6 @@ Module Types.
     Definition inject ts := translate (injector ts).
     Arguments inject [ts].
 
-    Lemma injection_lemma : forall ts (sty : some (typeOf ts)),
-         projT1 sty = projT1 (inject sty) /\ {- projT2 sty -} = projT2 (inject sty).
-      intros; constructor; trivial.
-    Qed.
-
     Definition result tgt := some (result tgt).
 
     Definition compile src tgt
@@ -185,11 +180,18 @@ Module Const.
   Arguments translate [src tgt] tr [ty].
 
   Definition inject ts := translate (injector ts).
-  Arguments inject [ts ty].
 
-
+  (** Constants have a default co-injection **)
   Definition coInject ts : forall ty, constOf (result ts) (Types.inject ty) -> constOf ts ty
     := fun ty => fun X => X.
+
+  Arguments inject [ts ty].
+  Arguments coInject [ts ty].
+
+  Lemma injection_lemma : forall ts ty (c : constOf ts ty), c = coInject (inject c).
+  Proof.
+    trivial.
+  Qed.
 
   Definition result tgt (ty  : Types.result tgt direct) :=
     match ty with
@@ -216,6 +218,7 @@ This module captures variables used in verse programs.
  *)
 
 Import EqNotations.
+
 Module Variables.
 
   (** The universe of variables (of a given type system) *)
@@ -230,16 +233,21 @@ Module Variables.
 
     Arguments coTranslate [src tgt] tr.
 
+    (** Translation of the variable universe is contravariant and
+        hence the injector naturally gives a coInject instead of
+        an inject. However, like in the case of constants, we can
+        define an injection explicityly and we have an injection_lemma
+        as a result.
+     *)
     Definition coInject ts := coTranslate (injector ts).
-
-    Arguments coInject [ts].
-
     Definition inject tgt (v : U tgt) : U (result tgt)
       := fun k ty => match ty with
                      | {- good -} => v k good
                      | error _    => Empty_set
                      end.
 
+
+    Arguments coInject [ts].
     Arguments inject [tgt].
 
     Lemma injection_lemma : forall ts (v : U ts), v = coInject (inject v).
@@ -264,6 +272,23 @@ Module Variables.
     := fun x => x.
 
   Arguments coTranslate [src tgt] tr [v k ty].
+
+  Definition coInject ts : forall (v : U (result ts)) k (ty : typeOf ts k),
+      v k (Types.inject ty) -> Universe.coInject v k ty
+    := coTranslate (injector ts).
+
+  Definition inject ts : forall (v : U ts) k (ty : typeOf ts k),
+      v k ty -> Universe.inject v k (Types.inject ty)
+    := fun _ _ _ x => x.
+
+  Arguments coInject [ts v k ty].
+  Arguments inject   [ts v k ty].
+
+  Lemma injection_lemma : forall ts (v : U ts) k (ty : typeOf ts k) (x : v k ty),
+      x = coInject (inject x).
+  Proof.
+    trivial.
+  Qed.
 
   Definition result tgt (v : U tgt)
              (k : kind)
@@ -311,9 +336,24 @@ Module Qualified.
 
   Arguments coTranslate [src tgt] tr [v s].
 
-  Definition coInject ts := coTranslate (injector ts).
+  Definition coInject ts :
+    forall v s, qualified v (Types.Some.inject s) -> qualified (Variables.Universe.coInject  v) s
+    := coTranslate (injector ts).
+
+  Definition inject ts :
+    forall (v : Variables.U ts) s,
+      qualified v s
+      -> qualified (Variables.Universe.inject v) (Types.Some.inject s)
+    := fun _ _ x => x.
 
   Arguments coInject [ts v s].
+  Arguments inject [ts v s].
+  Lemma injection_lemma : forall ts (v : Variables.U ts) s (x : qualified v s),
+      x = coInject (inject x).
+  Proof.
+    trivial.
+  Qed.
+
 
   Definition input tgt
              (v : Variables.U tgt)
