@@ -132,12 +132,12 @@ Module Allocation.
              (n : nat)
              (st : type src n)
   : allocation v (Types.translate tr st) ->
-    allocation (Variables.Universe.translate tr v) st
+    allocation (Variables.Universe.coTranslate tr v) st
     := match st with
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-              let (f, r) := a in (Qualified.translate tr f, translate src tgt tr v n0 xs r)
+              let (f, r) := a in (Qualified.coTranslate tr f, translate src tgt tr v n0 xs r)
         end.
 
   Fixpoint inverseTranslate src tgt
@@ -145,13 +145,13 @@ Module Allocation.
            (v  : Variables.U tgt)
            (n : nat)
            (st : type src n)
-    : allocation (Variables.Universe.translate tr v) st
+    : allocation (Variables.Universe.coTranslate tr v) st
       -> allocation v (Types.translate tr st)
     := match st with
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-             let (f, r) := a in (Qualified.translate tr f, inverseTranslate src tgt tr v n0 xs r)
+             let (f, r) := a in (Qualified.coTranslate tr f, inverseTranslate src tgt tr v n0 xs r)
        end.
 
   Arguments translate [src tgt] tr [v n st].
@@ -192,7 +192,7 @@ Module Allocation.
              (pfCompat : compatible st ss)
              (v : Variables.U tgt)
              (a : allocation v st)
-    : allocation (Variables.Universe.compile cr v) ss.
+    : allocation (Variables.Universe.coCompile cr v) ss.
     refine (translate cr (_ (inverseInject (comp v st a)))).
     rewrite <- pfCompat.
     trivial.
@@ -201,7 +201,7 @@ Module Allocation.
   Definition input tgt (v  : Variables.U tgt)
              (n : nat)
              (st : type (result tgt) n)
-             := allocation (Variables.Universe.result v) st.
+             := allocation (Variables.Universe.inject v) st.
 
   Arguments input [tgt] v [n] st.
   End Compile.
@@ -213,7 +213,7 @@ Definition translate src tgt
          (n : nat)
          (CODE : Type)
          (st : type src n)
-         (sCode : scoped (Variables.Universe.translate tr v) st CODE)
+         (sCode : scoped (Variables.Universe.coTranslate tr v) st CODE)
   : scoped v (Types.translate tr st) CODE
   := let sCodeUncurried := uncurryScope sCode in
      let resultUncurry := fun a => sCodeUncurried (Allocation.translate tr a) in
