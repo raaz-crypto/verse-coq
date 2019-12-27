@@ -109,7 +109,7 @@ Module Types.
     := type (TypeSystem.result tgt) n.
 
   Definition inject ts := translate (TypeSystem.injector ts).
-  Print inject.
+
   Arguments inject [ts n].
 
   Definition compile src tgt
@@ -187,9 +187,6 @@ Module Allocation.
       allocation (Variables.Universe.result v) (Types.inject st)*)
 
     := fun a => (rew [fun u => allocation u st] (Variables.Universe.injection_lemma tgt v) in a).
-
-  Check (comp, inject).
-
 
   Definition compile (st : type tgt n) (ss : type src n)
              (pfCompat : compatible st ss)
