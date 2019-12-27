@@ -1,7 +1,7 @@
 (** * Type Systems.
 
-The verse language, as well as the target systems, are expected to be
-typed. Types themselves are distinguished by [kind]; types of the
+The verse language, as well as the target languages, are expected to
+be typed. Types themselves are distinguished by [kind]; types of the
 [direct] [kind] capture types that can be held in machine registers
 where as that of [memory] [kind] are stored in the memory. Arrays
 types are examples of types of the [memory] kind. In addition, arrays
@@ -74,21 +74,24 @@ Definition result tgt :=
 Definition compiler src tgt := translator src (result tgt).
 
 (**
-An injector is a special translator from a type system to is
-associated resultant type system.
 
-*)
-Definition injector ts : translator ts (result ts) :=
+An injector is a special compiler from a type system to itself which
+just injects the type into the result type system.
+
+ *)
+
+Definition injector ts : compiler ts ts :=
   {| typeTrans := fun k ty => (fun t : typeOf (result ts) k => t) {- ty -};
      constTrans := fun _ c => c ;
      arrayCompatibility := fun _ _ _ => eq_refl
   |}.
 
+
 (** ** Translating/compiling under type translation/compilation
 
 Giving a type translator/compiler is the first step towards eventual
 translation/compilation of verse programs to executable code. The
-[typeSystem] tranlator/compiler, can often be lifted to compile
+[typeSystem] translator/compiler, can often be lifted to compile
 various [typeSystem] parameterised objects. The naming convention we
 follow for these lifted functions are:
 
@@ -96,22 +99,24 @@ follow for these lifted functions are:
    lifts it to a translation of the object in question.
 
 2. The function [compile] is like translate but takes a type
-   [compiler] instead.
+   [compiler] instead. Also the result of the compilation is captured
+   by the [result] type.
 
-3. Given objects that are parameterised by type systems, the
-   compilation can be seen as a translation from the source object to
-   the target object + error. We use the [result] type captures the
-   result of a compilation.
+3. In some cases, the translation/compilation is contra-variant, in
+   the sense that they give a map from the target object to the source
+   object (with errors handled appropriately). In such cases, we call
+   them coTranslate and coCompile respectively and instead of the
+   result type, we will have the input type.
 
-4. In some cases the translation/compilation is contra-variant, in the
-   sense that they give a map from the target object to the source
-   object (with errors handled appropriately). Typed qualified
-   variables are an example of such objects. In such cases we use the
-   terminology [input] instead of [result] type.
+4. The inject/coInject are the compilation/coCompilation using the
+   [injector] compiler. In some cases, they may both exist.
 
-To avoid name conflicts, we package the translate/compile/result/input
-functions of each objects into its own separate modules. The functions
-are expected to be used qualified.  *)
+To avoid name conflicts, we package the translate/compile functions of
+each objects into its own separate modules. The functions are expected
+to be used qualified.
+
+*)
+
 
 (** *** The translate/compile/result functions for types. *)
 Module Types.
@@ -120,11 +125,13 @@ Module Types.
   Definition U := kind -> Set.
 
   Definition translate src tgt (tr : translator src tgt) k (ty : typeOf src k)
-  : typeOf tgt k := typeTrans tr ty.
+    : typeOf tgt k := typeTrans tr ty.
 
   Arguments translate [src tgt] tr [k].
 
-  Definition inject ts := translate (injector ts).
+  Definition inject ts : forall k, typeOf ts k -> typeOf (result ts) k
+    := translate (injector ts).
+
   Arguments inject [ts k].
 
   Definition compile src tgt (cr : compiler src tgt) k (ty : typeOf src k)
@@ -132,7 +139,7 @@ Module Types.
 
   Arguments compile [src tgt] cr [k].
 
-  Definition result tgt := fun k => typeOf tgt k + {TranslationError}.
+  Definition result tgt := typeOf (result tgt).
 
   (** *** Translate/Compile for existentially quantified types. *)
   Module Some.
@@ -148,12 +155,16 @@ Module Types.
     Definition inject ts := translate (injector ts).
     Arguments inject [ts].
 
+    Lemma injection_lemma : forall ts (sty : some (typeOf ts)),
+         projT1 sty = projT1 (inject sty) /\ {- projT2 sty -} = projT2 (inject sty).
+      intros; constructor; trivial.
+    Qed.
+
     Definition result tgt := some (result tgt).
 
     Definition compile src tgt
                (cr : compiler src tgt)
                (s : some (typeOf src))
-      : result tgt
       := translate cr s.
 
     Arguments compile [src tgt].
@@ -177,6 +188,9 @@ Module Const.
   Arguments inject [ts ty].
 
 
+  Definition coInject ts : forall ty, constOf (result ts) (Types.inject ty) -> constOf ts ty
+    := fun ty => fun X => X.
+
   Definition result tgt (ty  : Types.result tgt direct) :=
     match ty with
     | {- good -} => constOf tgt good
@@ -195,6 +209,7 @@ Module Const.
 
 End Const.
 
+
 (**
 This module captures variables used in verse programs.
 
@@ -206,60 +221,60 @@ Module Variables.
   (** The universe of variables (of a given type system) *)
   Definition U ts := forall k, typeOf ts k -> Set.
 
-
   Module Universe.
 
-    Definition translate src tgt
+    Definition coTranslate src tgt
                (tr : translator src tgt)
                (v : U tgt) : U src
       := fun k ty => v k (Types.translate tr ty).
 
-    Arguments translate [src tgt] tr.
+    Arguments coTranslate [src tgt] tr.
 
-    Definition inject ts := translate (injector ts).
+    Definition coInject ts := coTranslate (injector ts).
 
-    Arguments inject [ts].
+    Arguments coInject [ts].
 
-    Definition result tgt (v : U tgt) : U (result tgt)
+    Definition inject tgt (v : U tgt) : U (result tgt)
       := fun k ty => match ty with
                      | {- good -} => v k good
                      | error _    => Empty_set
                      end.
 
-    Arguments result [tgt].
+    Arguments inject [tgt].
 
-    Lemma injection_lemma : forall ts (v : U ts), v = inject (result v).
+    Lemma injection_lemma : forall ts (v : U ts), v = coInject (inject v).
       trivial.
     Qed.
 
-    Definition compile  src tgt
+    Definition coCompile  src tgt
                (cr : compiler src tgt)
                (v : U tgt) : U src
-      := translate cr (result v).
+      := coTranslate cr (inject v).
 
 
-    Arguments compile [src tgt].
+    Arguments coCompile [src tgt].
 
   End Universe.
 
-  Definition translate src tgt
+  Definition coTranslate src tgt
              (tr : translator src tgt)
              (v : U tgt) (k : kind)
              (ty : typeOf src k)
-    : v k (Types.translate tr ty) -> Universe.translate tr v k ty
+    : v k (Types.translate tr ty) -> Universe.coTranslate tr v k ty
     := fun x => x.
 
-  Arguments translate [src tgt] tr [v k ty].
+  Arguments coTranslate [src tgt] tr [v k ty].
+
   Definition result tgt (v : U tgt)
              (k : kind)
              (good : typeOf tgt k)
              (x  : v k good)
              (ty : Types.result tgt k)
-    := ty = {- good -} -> Universe.result v k ty.
+    := ty = {- good -} -> Universe.inject v k ty.
 
   Arguments result [tgt v k good].
 
-  Definition compile src tgt
+  Definition coCompile src tgt
              (cr : compiler src tgt)
              (v : U tgt) (k : kind)
              (good : typeOf tgt k)
@@ -267,7 +282,8 @@ Module Variables.
              (ty : typeOf src k)
     : result x (Types.compile cr ty)
     := fun pf : Types.compile cr ty = {- good -} => rew <- pf in x.
-  Arguments compile [src tgt] cr [v k good] x [ty] pf.
+
+  Arguments coCompile [src tgt] cr [v k good] x [ty] pf.
 
 End Variables.
 
@@ -285,34 +301,34 @@ Arguments qualified [ts].
 
 Module Qualified.
 
-  Definition translate src tgt
+  Definition coTranslate src tgt
              (tr : translator src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.translate tr v) s
+  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.coTranslate tr v) s
     := fun H => H.
 
 
-  Arguments translate [src tgt] tr [v s].
+  Arguments coTranslate [src tgt] tr [v s].
 
-  Definition inject ts := translate (injector ts).
+  Definition coInject ts := coTranslate (injector ts).
 
-    Arguments inject [ts v s].
+  Arguments coInject [ts v s].
 
   Definition input tgt
              (v : Variables.U tgt)
              (s : Types.Some.result tgt)
-    := qualified (Variables.Universe.result v) s.
+    := qualified (Variables.Universe.inject v) s.
 
   Arguments input [tgt].
 
-  Definition compile src tgt
+  Definition coCompile src tgt
              (cr : compiler src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-    : input v (Types.Some.compile cr s) -> qualified (Variables.Universe.compile cr v) s
+    : input v (Types.Some.compile cr s) -> qualified (Variables.Universe.coCompile cr v) s
     := fun H => H.
 
-  Arguments compile [src tgt] cr [v s].
+  Arguments coCompile [src tgt] cr [v s].
 
 End Qualified.
