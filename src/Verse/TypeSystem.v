@@ -179,7 +179,9 @@ Module Const.
 
   Arguments translate [src tgt] tr [ty].
 
-  Definition inject ts := translate (injector ts).
+  Definition inject ts : forall ty,
+       constOf ts ty -> constOf (result ts) (Types.inject ty)
+    := translate (injector ts).
 
   (** Constants have a default co-injection **)
   Definition coInject ts : forall ty, constOf (result ts) (Types.inject ty) -> constOf ts ty
@@ -239,16 +241,16 @@ Module Variables.
         define an injection explicityly and we have an injection_lemma
         as a result.
      *)
-    Definition coInject ts := coTranslate (injector ts).
-    Definition inject tgt (v : U tgt) : U (result tgt)
-      := fun k ty => match ty with
+    Definition coInject ts : U (result ts) -> U ts := coTranslate (injector ts).
+    Definition inject   ts : U ts  -> U (result ts)
+      := fun v k ty => match ty with
                      | {- good -} => v k good
                      | error _    => Empty_set
                      end.
 
 
     Arguments coInject [ts].
-    Arguments inject [tgt].
+    Arguments inject   [ts].
 
     Lemma injection_lemma : forall ts (v : U ts), v = coInject (inject v).
       trivial.
@@ -258,8 +260,6 @@ Module Variables.
                (cr : compiler src tgt)
                (v : U tgt) : U src
       := coTranslate cr (inject v).
-
-
     Arguments coCompile [src tgt].
 
   End Universe.
@@ -325,6 +325,13 @@ Definition qualified ts (v : Variables.U ts) (s : some (typeOf ts))
 Arguments qualified [ts].
 
 Module Qualified.
+
+  Definition coTranslate src tgt
+             (tr : translator src tgt)
+             (v : Variables.U tgt)
+             (s : some (typeOf src))
+  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.coTranslate tr v) s
+    := fun H => H.
 
   Definition coTranslate src tgt
              (tr : translator src tgt)
