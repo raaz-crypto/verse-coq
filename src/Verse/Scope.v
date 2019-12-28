@@ -126,7 +126,7 @@ End Types.
 (** ** Translation/compilation for allocations *)
 Module Allocation.
 
-  Fixpoint translate src tgt
+  Fixpoint coTranslate src tgt
              (tr : translator src tgt)
              (v  : Variables.U tgt)
              (n : nat)
@@ -137,10 +137,10 @@ Module Allocation.
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-              let (f, r) := a in (Qualified.coTranslate tr f, translate src tgt tr v n0 xs r)
+              let (f, r) := a in (Qualified.coTranslate tr f, coTranslate src tgt tr v n0 xs r)
         end.
 
-  Fixpoint inverseTranslate src tgt
+  Fixpoint translate src tgt
            (tr : translator src tgt)
            (v  : Variables.U tgt)
            (n : nat)
@@ -151,25 +151,28 @@ Module Allocation.
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-             let (f, r) := a in (Qualified.coTranslate tr f, inverseTranslate src tgt tr v n0 xs r)
+             let (f, r) := a in (Qualified.coTranslate tr f, translate src tgt tr v n0 xs r)
        end.
 
+  Arguments coTranslate [src tgt] tr [v n st].
   Arguments translate [src tgt] tr [v n st].
-  Arguments inverseTranslate [src tgt] tr [v n st].
 
-  Definition inject ts := translate (injector ts).
-  Definition inverseInject ts := inverseTranslate (injector ts).
+  Definition inject ts :
+    forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
+      allocation (Variables.Universe.coInject v) st ->
+      allocation v (Types.inject st)
+    := translate (injector ts).
+  Definition coInject ts :
+    forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
+      allocation v (Types.inject st) ->
+      allocation (Variables.Universe.coInject v) st
+     := coTranslate (injector ts).
+
 
   Arguments inject [ts v n st].
-  Arguments inverseInject [ts v n st].
+  Arguments coInject [ts v n st].
 
-
-  (*  Lemma variable_injection_lemma : forall ts (v : U ts), translate (inject ts) (result v) = v.
-  Lemma injection_lemma : forall n ts (sts : type tgt n) (cr : compiler ts (inject ts), compile  *)
-(*
-  Types.translate (TypeSystem.inject tgt) stgt) *)
   Import EqNotations.
-
 
   Section Compile.
     Variables src tgt : typeSystem.
@@ -181,19 +184,20 @@ Module Allocation.
   Definition compatible  (st : type tgt n) (ss : type src n)
     := Types.inject st = Types.translate cr ss.
 
-
   Definition comp (v  : Variables.U tgt)(st : type tgt n)
-  (*  : allocation v  st ->
-      allocation (Variables.Universe.result v) (Types.inject st)*)
-
+    : allocation v st ->
+      allocation (Variables.Universe.coInject (Variables.Universe.inject v)) st
     := fun a => (rew [fun u => allocation u st] (Variables.Universe.injection_lemma tgt v) in a).
+
 
   Definition compile (st : type tgt n) (ss : type src n)
              (pfCompat : compatible st ss)
              (v : Variables.U tgt)
-             (a : allocation v st)
-    : allocation (Variables.Universe.coCompile cr v) ss.
-    refine (translate cr (_ (inverseInject (comp v st a)))).
+
+    : allocation v st ->
+      allocation (Variables.Universe.coCompile cr v) ss.
+    intro a.
+    refine (coTranslate cr (_ (inject (comp v st a)))).
     rewrite <- pfCompat.
     trivial.
   Defined.
@@ -216,5 +220,5 @@ Definition translate src tgt
          (sCode : scoped (Variables.Universe.coTranslate tr v) st CODE)
   : scoped v (Types.translate tr st) CODE
   := let sCodeUncurried := uncurryScope sCode in
-     let resultUncurry := fun a => sCodeUncurried (Allocation.translate tr a) in
+     let resultUncurry := fun a => sCodeUncurried (Allocation.coTranslate tr a) in
      curryScope resultUncurry.
