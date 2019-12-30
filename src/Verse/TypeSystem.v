@@ -333,15 +333,16 @@ Module Qualified.
   : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.coTranslate tr v) s
     := fun H => H.
 
-  Definition coTranslate src tgt
+  Definition translate src tgt
              (tr : translator src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.coTranslate tr v) s
+  : qualified (Variables.Universe.coTranslate tr v) s -> qualified v (Types.Some.translate tr s)
     := fun H => H.
 
 
   Arguments coTranslate [src tgt] tr [v s].
+  Arguments translate   [src tgt] tr [v s].
 
   Definition coInject ts :
     forall v s, qualified v (Types.Some.inject s) -> qualified (Variables.Universe.coInject  v) s
