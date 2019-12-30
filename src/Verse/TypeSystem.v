@@ -135,6 +135,7 @@ Module Types.
   Arguments inject [ts k].
 
   Definition compile src tgt (cr : compiler src tgt) k (ty : typeOf src k)
+    : typeOf tgt k + {TranslationError}
     := translate cr ty.
 
   Arguments compile [src tgt] cr [k].
