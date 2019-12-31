@@ -8,6 +8,7 @@ src/Verse/Language/Types.v
 src/Verse/Nibble.v
 src/Verse/Print.v
 src/Verse/Scope.v
+src/Verse/Target.v
 src/Verse/Target/C.v
 src/Verse/Target/C/Ast.v
 src/Verse/Target/C/Pretty.v
