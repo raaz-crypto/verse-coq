@@ -434,11 +434,16 @@ Module Iterator.
       process element, the best we can do is v -> code v + Error.
       This means we have the following result of compilation.
    *)
+
+  Record compiled tgt (v : Variables.U tgt) := { preamble : code v;
+                                                 loopBody : code v;
+                                                 finalisation : code v
+                                               }.
   Definition result tgt (v : Variables.U tgt)
              (memty : Types.result tgt memory)
     := forall good,  memty = {- good -} ->
                      v memory good ->
-                     (code v * code v * code v) + {TranslationError}.
+                     compiled tgt v + {TranslationError}.
 
   Arguments result [tgt].
 
@@ -450,8 +455,8 @@ Module Iterator.
     := fun good pf x => stup <- Code.compile cr (setup itr);
            fnls <- Code.compile cr (finalise itr);
            prcs <- Code.compile cr (process itr (Variables.coCompile cr x pf));
-           {- (stup, prcs, fnls) -}.
+           inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
-
+  Arguments compiled [tgt].
 End Iterator.
