@@ -162,6 +162,7 @@ Module Allocation.
       allocation (Variables.Universe.coInject v) st ->
       allocation v (Types.inject st)
     := translate (injector ts).
+
   Definition coInject ts :
     forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
       allocation v (Types.inject st) ->
@@ -177,48 +178,49 @@ Module Allocation.
   Section Compile.
     Variables src tgt : typeSystem.
     Variable  cr : compiler src tgt.
-
-
     Variable n  : nat.
 
   Definition compatible  (st : type tgt n) (ss : type src n)
     := Types.inject st = Types.translate cr ss.
 
-  Definition comp (v  : Variables.U tgt)(st : type tgt n)
-    : allocation v st ->
-      allocation (Variables.Universe.coInject (Variables.Universe.inject v)) st
-    := fun a => (rew [fun u => allocation u st] (Variables.Universe.injection_lemma tgt v) in a).
-
-
-  Definition compile (st : type tgt n) (ss : type src n)
+  Definition coCompile (st : type tgt n) (ss : type src n)
              (pfCompat : compatible st ss)
              (v : Variables.U tgt)
-
     : allocation v st ->
-      allocation (Variables.Universe.coCompile cr v) ss.
-    intro a.
-    refine (coTranslate cr (_ (inject (comp v st a)))).
-    rewrite <- pfCompat.
-    trivial.
-  Defined.
+      allocation (Variables.Universe.coCompile cr v) ss :=
+    fun a => coTranslate cr (rew pfCompat in (inject a)).
 
-  Definition input tgt (v  : Variables.U tgt)
-             (n : nat)
-             (st : type (result tgt) n)
-             := allocation (Variables.Universe.inject v) st.
-
-  Arguments input [tgt] v [n] st.
   End Compile.
+
+  Arguments coCompile [src tgt] cr [n st ss] pfCompat [v] a.
+  Arguments compatible [src tgt] cr  [n].
 End Allocation.
 
 Definition translate src tgt
-         (tr : translator src tgt)
-         (v  : Variables.U tgt)
-         (n : nat)
-         (CODE : Type)
-         (st : type src n)
-         (sCode : scoped (Variables.Universe.coTranslate tr v) st CODE)
-  : scoped v (Types.translate tr st) CODE
+           (tr    : translator src tgt)
+           (v     : Variables.U tgt)
+           (n     : nat)
+           (ss    : type src n)
+           (CODE  : Type)
+           (sCode : scoped (Variables.Universe.coTranslate tr v) ss CODE)
+  : scoped v (Types.translate tr ss) CODE
   := let sCodeUncurried := uncurryScope sCode in
      let resultUncurry := fun a => sCodeUncurried (Allocation.coTranslate tr a) in
      curryScope resultUncurry.
+
+Definition compile src tgt
+           (cr : compiler src tgt)
+           (v  : Variables.U tgt)
+           (n : nat)
+           (ss : type src n)
+           (st : type tgt n)
+           (pfCompat: Allocation.compatible cr st ss)
+           (CODE : Type)
+           (sCode : scoped (Variables.Universe.coCompile cr v) ss CODE)
+  : scoped v st CODE
+  := let sCodeUncurried := uncurryScope sCode in
+     let resultUncurry := fun a => sCodeUncurried (Allocation.coCompile cr pfCompat a) in
+     curryScope resultUncurry.
+
+Arguments translate [src tgt] tr [v n ss CODE].
+Arguments compile   [src tgt] cr [v n ss st] pfCompat [CODE].
