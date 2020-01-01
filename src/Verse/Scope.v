@@ -112,6 +112,14 @@ Module Types.
 
   Arguments inject [ts n].
 
+  Definition compatible  (src tgt : typeSystem)
+             (cr : compiler src tgt)
+             (n  : nat)
+             (st : type tgt n) (ss : type src n) : Prop
+    := inject st = translate cr ss.
+
+  Arguments compatible [src tgt] cr [n].
+
   Definition compile src tgt
              (cr : compiler src tgt)
              (n : nat)
@@ -155,7 +163,7 @@ Module Allocation.
        end.
 
   Arguments coTranslate [src tgt] tr [v n st].
-  Arguments translate [src tgt] tr [v n st].
+  Arguments translate   [src tgt] tr [v n st].
 
   Definition inject ts :
     forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
@@ -180,11 +188,8 @@ Module Allocation.
     Variable  cr : compiler src tgt.
     Variable n  : nat.
 
-  Definition compatible  (st : type tgt n) (ss : type src n)
-    := Types.inject st = Types.translate cr ss.
-
   Definition coCompile (st : type tgt n) (ss : type src n)
-             (pfCompat : compatible st ss)
+             (pfCompat : Types.compatible cr st ss)
              (v : Variables.U tgt)
     : allocation v st ->
       allocation (Variables.Universe.coCompile cr v) ss :=
@@ -193,7 +198,7 @@ Module Allocation.
   End Compile.
 
   Arguments coCompile [src tgt] cr [n st ss] pfCompat [v] a.
-  Arguments compatible [src tgt] cr  [n].
+
 End Allocation.
 
 Definition translate src tgt
@@ -214,7 +219,7 @@ Definition compile src tgt
            (n : nat)
            (ss : type src n)
            (st : type tgt n)
-           (pfCompat: Allocation.compatible cr st ss)
+           (pfCompat: Types.compatible cr st ss)
            (CODE : Type)
            (sCode : scoped (Variables.Universe.coCompile cr v) ss CODE)
   : scoped v st CODE
