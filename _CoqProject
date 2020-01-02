@@ -11,6 +11,7 @@ src/Verse/Scope.v
 src/Verse/Target.v
 src/Verse/Target/C.v
 src/Verse/Target/C/Ast.v
+src/Verse/Target/C/CodeGen.v
 src/Verse/Target/C/Pretty.v
 src/Verse/Target/C/Translate.v
 src/Verse/TypeSystem.v
