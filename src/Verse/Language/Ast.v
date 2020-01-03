@@ -182,6 +182,7 @@ Arguments moveTo [ts v ty].
 Arguments update [ts v ty] le [ n ].
 Arguments increment [ts v ty].
 Arguments decrement [ts v ty].
+
 (** ** Ast under type level transations. *)
 
 Require Import Verse.Error.
@@ -414,48 +415,62 @@ Module Code.
   Arguments compile [src tgt] cr [v].
 End Code.
 
+
 Module Iterator.
+
+  (**
+      The translation of an iterator is pretty straight forward and
+      results in an iterator
+   *)
+
+
 
   Definition translate src tgt
              (tr : translator src tgt)
-             (v  : Variables.U tgt)
-             memty (itr : iterator (Variables.Universe.coTranslate tr v) memty)
+             (v : Variables.U tgt)
+             memty
+             (itr : iterator (Variables.Universe.coTranslate tr v) memty)
   : iterator v (Types.translate tr memty)
-    := {| setup := Code.translate tr (setup itr);
+    := {| setup    := Code.translate tr (setup itr);
           finalise := Code.translate tr (finalise itr);
-          process  := fun x => Code.translate tr (process itr x)
+          process := fun x => Code.translate tr (process itr x)
        |}.
 
-  Arguments translate [src tgt] tr [v memty].
 
-  (** The trick thing about iterator compilation is that the result
-      cannot be made into an iterator. This is because the process
-      field is not a code v but a function from v to code v. For the
-      process element, the best we can do is v -> code v + Error.
-      This means we have the following result of compilation.
+  (** The result of a compilation cannot be an iterator due to the
+     field process being a lambda form and the best we can do is v ->
+     code v + Error. The following type captures compiles form of an
+     iterator.
+
+      Recall that the iterator is supposed to iterate over a set of
+      blocks each of which needs to be processed by the
+      loopBody. However, the code to step to the next block is /not/
+      included in it as typically this would be target dependent and
+      not expressible in the verse sub language itself.
    *)
 
   Record compiled tgt (v : Variables.U tgt) := { preamble : code v;
                                                  loopBody : code v;
                                                  finalisation : code v
                                                }.
-  Definition result tgt (v : Variables.U tgt)
-             (memty : Types.result tgt memory)
-    := forall good,  memty = {- good -} ->
-                     v memory good ->
-                     compiled tgt v + {TranslationError}.
 
-  Arguments result [tgt].
+
+
+  Arguments translate [src tgt] tr [v memty].
 
   Definition compile src tgt
              (cr : compiler src tgt)
              (v  : Variables.U tgt)
-             memty (itr : iterator (Variables.Universe.coCompile cr v) memty)
-    : result v (Types.compile cr memty)
-    := fun good pf x => stup <- Code.compile cr (setup itr);
-           fnls <- Code.compile cr (finalise itr);
-           prcs <- Code.compile cr (process itr (Variables.coCompile cr x pf));
-           inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
+             memty
+             (itr : iterator (Variables.Universe.coCompile cr v) memty)
+             (good : typeOf tgt memory)
+             (pf : Types.compile cr memty = {- good -})
+             (x  : v memory good)
+    : compiled tgt v + {TranslationError}
+    := stup <- Code.compile cr (setup itr);
+         fnls <- Code.compile cr (finalise itr);
+         prcs <- Code.compile cr (process itr (Variables.coCompile cr x pf));
+         inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
   Arguments compiled [tgt].
