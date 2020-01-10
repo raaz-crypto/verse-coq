@@ -437,16 +437,19 @@ Module Iterator.
        |}.
 
 
-  (** The result of a compilation cannot be an iterator due to the
-     field process being a lambda form and the best we can do is v ->
-     code v + Error. The following type captures compiles form of an
-     iterator.
+  (**
+
+      The result of a compilation cannot be an iterator due to the
+      field process being a lambda form and the best we can do is v ->
+      code v + Error. The following type captures compiles form of an
+      iterator.
 
       Recall that the iterator is supposed to iterate over a set of
       blocks each of which needs to be processed by the
       loopBody. However, the code to step to the next block is /not/
       included in it as typically this would be target dependent and
       not expressible in the verse sub language itself.
+
    *)
 
   Record compiled tgt (v : Variables.U tgt) := { preamble : code v;
@@ -474,4 +477,7 @@ Module Iterator.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
   Arguments compiled [tgt].
+  Arguments preamble [tgt v].
+  Arguments loopBody [tgt v].
+  Arguments finalisation [tgt v].
 End Iterator.
