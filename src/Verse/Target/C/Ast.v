@@ -9,7 +9,6 @@ by assuming names.
 
  *)
 
-Axiom name : Set.
 
 (** * The type of C
 
@@ -140,7 +139,7 @@ Inductive statement :=
 | decrement   : expr -> statement
 | include     : forall FileName,  FileName -> statement
 | comment   : forall Text , Text -> statement
-| whileLoop : forall C, C -> braces -> statement
+| whileLoop : expr -> braces -> statement
 | function  : forall FN,  FN -> parameters -> braces -> statement
 with braces := Braces : list statement -> braces.
 

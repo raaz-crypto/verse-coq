@@ -14,6 +14,7 @@ Require Import Verse.Target.C.Pretty.
 
 
 Section Variables.
+  Variable name : Set.
   Variable x : cvar uint8_t.
   Variable arr : cvar (array 42 uint16_t).
   Variable ptr : cvar (ptrToArray 30 uint64_t).
