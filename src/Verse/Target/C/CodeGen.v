@@ -10,7 +10,7 @@ Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
 
-Module Config : CONFIG.
+Module Config <: CONFIG.
 
   Definition ast       := statement.
   Definition typeS     := c_type_system.
