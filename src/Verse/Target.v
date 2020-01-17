@@ -287,16 +287,6 @@ Module CodeGen (T : CONFIG).
     Variable lts  : Scope.type T.typeS l.
     Variable rts  : Scope.type T.typeS r.
 
-
-    (** Having captured all the above types we now get to the three
-       relevant arguments to the code generator namely the allocation
-       used to hold the parameters, locals and register variables on
-       the target side.  *)
-
-    Variable params : Scope.allocation T.variables pts.
-    Variable locals : Scope.allocation T.variables lts.
-    Variable regs   : Scope.allocation T.variables rts.
-
     (**
        Proofs of compatibility of the allocation types on the verse
        and the target side.
@@ -306,6 +296,16 @@ Module CodeGen (T : CONFIG).
     Variable pCompat : compatible pts pvs.
     Variable lCompat : compatible lts lvs.
     Variable rCompat : compatible rts rvs.
+
+
+    (** Having captured all the above types we now get to the three
+       relevant arguments to the code generator namely the allocation
+       used to hold the parameters, locals and register variables on
+       the target side.  *)
+
+    Variable params : Scope.allocation T.variables pts.
+    Variable locals : Scope.allocation T.variables lts.
+    Variable regs   : Scope.allocation T.variables rts.
 
 
     (**
