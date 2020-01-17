@@ -6,7 +6,7 @@ Require Import Verse.Error.
 Require Import Verse.Target.C.Ast.
 
 Require Verse.Scope.
-Require Vector.
+Require Import Vector.
 Import Vector.VectorNotations.
 (* end hide *)
 
@@ -380,13 +380,26 @@ Module CodeGen (T : CONFIG).
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
 
-
-
   Arguments function [name] _
-            [p l r]
-            pvs lvs rvs
-            [pts lts rts].
-  Arguments iterativeFunction [name] _ memty [p l r] pvs lvs rvs [blockType] blockTypeCompat
-            blockPtrVar [counterType] counterVar.
+            [p l r].
+  Arguments iterativeFunction [name] _ _ [p l r] pvs lvs rvs blockType blockTypeCompat
+            blockPtrVar [counterType].
 
+  Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
+    := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
+
+  Notation Function name pvs lvs rvs := (function pvs lvs rvs
+                                                  (recover (targetTypes pvs))
+                                                  (recover (targetTypes lvs))
+                                                  (recover (targetTypes rvs))
+                                                  eq_refl eq_refl eq_refl).
+
+  Notation Iterator name memty pvs lvs rvs bType bPtrVar ctrVar
+    := (iterativeFunction name memty pvs lvs rvs
+                          (recover (Types.compile T.typeCompiler memty)) eq_refl
+                          bPtrVar ctrVar
+                          (recover (targetTypes pvs))
+                          (recover (targetTypes lvs))
+                          (recover (targetTypes rvs))
+                          eq_refl eq_refl eq_refl).
 End CodeGen.
