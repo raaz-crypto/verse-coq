@@ -234,25 +234,37 @@ Import ListNotations.
 Require Import Vector.
 Import VectorNotations.
 
-Section Merge.
+Section PullOut.
 
   Variable A : Type.
   Variable Err : Prop.
 
-  Fixpoint mergeVector {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
+  Fixpoint pullOutVector {n} (verr : Vector.t (A + {Err}) n) : Vector.t A n + {Err} :=
   match verr with
   | []                            => {- [] -}
   | inright err :: _              => inright err
-  | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (@mergeVector m xs)
+  | Vector.cons _ {- x -} m xs => Vector.cons _ x m  <$> (pullOutVector xs)
   end.
 
-  Fixpoint merge (actions : list (A + {Err})) : list A + {Err} :=
-    match actions with
+  Fixpoint pullOutList (lerr : list (A + {Err})) : list A + {Err} :=
+    match lerr with
     | [] => {- [] -}
     | error err :: _  => inright err
-    | {- x -}   :: xs => res <- merge xs; {- x :: res -}
+    | {- x -}   :: xs => res <- pullOutList xs; {- x :: res -}
     end%list.
-End Merge.
+
+  Definition pullOutSigT {P : A -> Type} (serr : sigT (fun A => P A + {Err})) : sigT P + {Err}
+    := let 'existT _ a pae := serr in
+       match pae with
+       | error err => inright err
+       | {- pa -}  => {- existT _ _ pa -}
+       end.
+
+End PullOut.
+
+Arguments pullOutVector [A Err n].
+Arguments pullOutList [A Err].
+Arguments pullOutSigT {A Err P}.  (* Using [] instead of {} does not allow this to be mapped! *)
 
 Section PartialFunctions.
   Variable A B : Type.
