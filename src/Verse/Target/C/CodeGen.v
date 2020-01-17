@@ -128,7 +128,7 @@ Module Config <: CONFIG.
 
 
   Definition compileCode : Language.Ast.code variables -> list ast + {TranslationError}
-    := fun cs => merge _ _ (List.map trStatement cs).
+    := fun cs => pullOutList (List.map trStatement cs).
 
   Definition mapOverBlocks mem ty
              (blockPtrVar : variables memory mem)

@@ -411,7 +411,7 @@ Module Code.
              (v : Variables.U tgt)
              (c : code (Variables.Universe.coCompile cr v)) : result v
     :=  let compile := fun s => liftErr (Statement.compile cr s) in
-        merge _ _ (List.map compile c).
+        pullOutList (List.map compile c).
   Arguments compile [src tgt] cr [v].
 End Code.
 
