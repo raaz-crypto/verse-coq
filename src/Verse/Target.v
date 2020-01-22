@@ -388,11 +388,17 @@ Module CodeGen (T : CONFIG).
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
+  (** These notations are only for making our life easy when writing
+      these functions with an incredibly many arguments. We do not
+      really care about their use in pretty printing and hence they
+      are marked as (only parsing). This also suppress some warnings
+      from Coq *)
   Notation Function name pvs lvs rvs := (function pvs lvs rvs
                                                   (recover (targetTypes pvs))
                                                   (recover (targetTypes lvs))
                                                   (recover (targetTypes rvs))
-                                                  eq_refl eq_refl eq_refl).
+                                                  eq_refl eq_refl eq_refl)
+                                          (only parsing).
 
   Notation Iterator name memty pvs lvs rvs bType bPtrVar ctrVar
     := (iterativeFunction name memty pvs lvs rvs
@@ -401,5 +407,6 @@ Module CodeGen (T : CONFIG).
                           (recover (targetTypes pvs))
                           (recover (targetTypes lvs))
                           (recover (targetTypes rvs))
-                          eq_refl eq_refl eq_refl).
+                          eq_refl eq_refl eq_refl)
+         (only parsing).
 End CodeGen.
