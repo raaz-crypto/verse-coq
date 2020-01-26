@@ -18,6 +18,27 @@ src/Verse/Target/C/CodeGen.v
 src/Verse/Target/C/Pretty.v
 src/Verse/TypeSystem.v
 
+########################################
+## CryptoLib: Actual implementations  ##
+########################################
+
+# src/Verse/CryptoLib/Names.v
+# src/Verse/CryptoLib/blake2.v
+# src/Verse/CryptoLib/blake2/c/portable.v
+# src/Verse/CryptoLib/blake2b/c/portable.v
+# src/Verse/CryptoLib/blake2s/c/portable.v
+# src/Verse/CryptoLib/chacha20/common.v
+# src/Verse/CryptoLib/chacha20/c/portable.v
+# src/Verse/CryptoLib/poly1305/c/portable.v
+src/Verse/CryptoLib/sha2.v
+src/Verse/CryptoLib/sha2/c/portable.v
+# src/Verse/CryptoLib/sha2/c/portableAlternate.v
+# src/Verse/CryptoLib/sha2/c/portableAnnotated.v
+# src/Verse/CryptoLib/sha256/c/portable.v
+# src/Verse/CryptoLib/sha512/c/portable.v
+
+
+
 # Test code
 src/Verse/Target/C/Test.v
 src/Verse/TestCode/TestCode.v
@@ -52,17 +73,3 @@ src/Verse/TestCode/TestCode.v
 # src/Verse/TestCode/TestSemantics.v
 # src/Verse/Extraction/Ocaml.v
 # src/Verse/FFI/Raaz.v
-# src/Verse/CryptoLib/Names.v
-# src/Verse/CryptoLib/blake2.v
-# src/Verse/CryptoLib/blake2/c/portable.v
-# src/Verse/CryptoLib/blake2b/c/portable.v
-# src/Verse/CryptoLib/blake2s/c/portable.v
-# src/Verse/CryptoLib/chacha20/common.v
-# src/Verse/CryptoLib/chacha20/c/portable.v
-# src/Verse/CryptoLib/poly1305/c/portable.v
-# src/Verse/CryptoLib/sha2.v
-# src/Verse/CryptoLib/sha2/c/portable.v
-# src/Verse/CryptoLib/sha2/c/portableAlternate.v
-# src/Verse/CryptoLib/sha2/c/portableAnnotated.v
-# src/Verse/CryptoLib/sha256/c/portable.v
-# src/Verse/CryptoLib/sha512/c/portable.v
