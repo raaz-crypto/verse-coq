@@ -39,9 +39,9 @@ Module SHA2 (C : CONFIG).
 
 
   (** Some helper inequalities *)
-  Hint Resolve NPeano.Nat.lt_0_succ.
+
   Definition zltBlockSize : 0 < BLOCK_SIZE.
-    unfold BLOCK_SIZE. eauto.
+    unfold BLOCK_SIZE. repeat constructor.
   Defined.
 
 
@@ -92,7 +92,7 @@ Module SHA2 (C : CONFIG).
 
     Definition message_variables
       := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-    Definition locals : Declaration := Vector.map Var message_variables.
+    Definition locals : Declaration := Vector.map (fun x => Var x) message_variables.
     Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
 
@@ -112,7 +112,7 @@ Module SHA2 (C : CONFIG).
     Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
     Definition registers : Declaration :=
-      Vector.map Var (Vector.append state_variables [ t ; tp ; temp]%vector).
+      Vector.map (fun x => Var x) (Vector.append state_variables [ t ; tp ; temp]%vector).
 
 
     Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.
@@ -146,12 +146,12 @@ Module SHA2 (C : CONFIG).
 
 
       (** Function to increment message index *)
-      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
+      Definition nextIdx : { sIdx : nat | sIdx < BLOCK_SIZE } :=
         if idx =? 15 then @exist _ _ 0 zltBlockSize
         else let sIdx := S idx in
              @exist _ _
                    (sIdx mod BLOCK_SIZE)
-                   (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
+                   (PeanoNat.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
       Definition M  : v Word.
         verse (W[- idx -]).
@@ -168,8 +168,8 @@ Module SHA2 (C : CONFIG).
        *)
       Definition sigma (r0 r1 s : nat)(x : v Word) :=
         [ temp ::= x >>> r1; tp ::= x >>> r0;
-          temp ::=^ tp;      tp ::= x >> s;
-          temp ::=^ tp; M ::=+ temp
+          temp ::=x tp;      tp ::= x >> s;
+          temp ::=x tp; M ::=+ temp
         ]%list.
 
       Definition SCHEDULE :=
@@ -256,8 +256,8 @@ Module SHA2 (C : CONFIG).
 
 
     Definition Sigma r0 r1 r2 (x : v Word) :=
-      [ temp ::= x >>> (r2 - r1); temp ::=^ x;
-        temp ::=>>> (r1 - r0);    temp ::=^ x;
+      [ temp ::= x >>> (r2 - r1); temp ::=x x;
+        temp ::=>>> (r1 - r0);    temp ::=x x;
         temp ::=>>> r0
       ]%list.
 
@@ -269,15 +269,15 @@ Module SHA2 (C : CONFIG).
         into the temp variable temp
      *)
     Definition CH (s : State) : code v:=
-            [ tp ::=~ E s;
+            [ tp ::= neg (E s);
               tp ::=& G s;
-              temp ::= E s & F s; temp ::=^ tp
+              temp ::= E s AND F s; temp ::=x tp
             ]%list.
 
     Definition MAJ (s : State) : code v :=
-      [ temp  ::=  B s | C s;
+      [ temp  ::=  B s OR C s;
         temp  ::=& A s;
-        tp    ::=  B s & C s;
+        tp    ::=  B s AND C s;
         temp  ::=| tp
       ].
 
@@ -370,7 +370,7 @@ Module SHA2 (C : CONFIG).
     Definition UPDATE : code v
       := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash STATE.
 
-    Definition sha2 : iterator Block v :=
+    Definition sha2 : iterator v Block :=
       {|
         setup   := LOAD_STATE;
         process := fun block => (LOAD_BLOCK block
