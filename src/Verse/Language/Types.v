@@ -65,6 +65,8 @@ Definition Ref (ty : type direct) : type memory := array 1 hostE ty.
 
 Canonical Structure verse_type_system := TypeSystem type array const.
 
+Definition VariableT := Variables.U verse_type_system.
+
 (** ** Translating verse types.
 
 To define translations from verse types, all we need is translations
