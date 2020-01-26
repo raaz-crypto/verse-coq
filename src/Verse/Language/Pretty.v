@@ -194,14 +194,14 @@ Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 55, left associativit
 Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 55, left associativity).
 Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 55, left associativity).
 
-Infix "&"           := (binOpApp bitAnd)         (at level 56, left associativity).
+Infix "AND"         := (binOpApp bitAnd)         (at level 56, left associativity).
 Infix "⊕"           := (binOpApp bitXor)         (at level 57, left associativity).
-Infix "xor"         := (binOpApp bitXor)         (at level 57, left associativity, only parsing).
-Infix "|"           := (binOpApp bitOr)          (at level 58, left associativity).
+Infix "XOR"         := (binOpApp bitXor)         (at level 57, left associativity, only parsing).
+Infix "OR"          := (binOpApp bitOr)          (at level 58, left associativity).
 
 
 Infix "::="   := assignStmt           (at level 70).
-Infix "<-"    := moveStmt             (at level 70).
+Infix "<-"     := moveStmt             (at level 70).
 Infix "::=+"  := (binOpUpdate plus)   (at level 70).
 Infix "::=-"  := (binOpUpdate minus ) (at level 70).
 Infix "::=*"  := (binOpUpdate mul   ) (at level 70).
@@ -214,6 +214,7 @@ Infix "::=⊕"  := (binOpUpdate bitXor) (at level 70).
 
 Notation "++ A"        := (increment (toLexpr A))      (at level 70).
 Notation "-- A"        := (decrement (toLexpr A))      (at level 70).
+
 Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70).
 Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70).
 Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70).

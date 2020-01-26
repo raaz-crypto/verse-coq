@@ -48,7 +48,7 @@ Section TestFunction.
         num ::= tmp - num ;
         num      ::= tmp      * arr[-1-];
         num      ::= arr[-1-] / tmp ;
-        arr[-1-] ::= tmp      | num ;
+        arr[-1-] ::= tmp      .|. num ;
         num      ::= tmp  xor arr[-1-];
         num      ::= tmp  xor num;
 
