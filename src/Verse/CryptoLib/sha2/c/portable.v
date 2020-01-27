@@ -107,12 +107,12 @@ Module SHA2 (C : CONFIG).
 
 
     Variable a b c d e f g h : v Word.
-    Variable t tp temp       : v Word.
+    Variable t               : v Word.
 
     Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
     Definition registers : Declaration :=
-      Vector.map (fun x => Var x) (Vector.append state_variables [ t ; tp ; temp]%vector).
+      Vector.map (fun x => Var x) (Vector.append state_variables [ t ]%vector).
 
 
     Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.
@@ -166,17 +166,14 @@ Module SHA2 (C : CONFIG).
       (** We now give the code for updating the message M with the value
           of the appropriate sigma function.
        *)
-      Definition sigma (r0 r1 s : nat)(x : v Word) :=
-        [ temp ::= x >>> r1; tp ::= x >>> r0;
-          temp ::=x tp;      tp ::= x >> s;
-          temp ::=x tp; M ::=+ temp
-        ]%list.
+
+      Definition sigma (r0 r1 s : nat)(x : v Word) : expr v Word :=
+        (x >>> r1) XOR (x >>> r0) XOR (x >> s).
 
       Definition SCHEDULE :=
         let sigma0 := sigma r00 r01 s0 (MM 15) in
         let sigma1 := sigma r10 r11 s1 (MM 2) in
-        [ M ::=+ MM 7 ] ++ sigma0 ++ sigma1.
-      (** This completes the code for message scheduling *)
+        [ M ::=+ MM 7 + sigma0 + sigma1].
     End MessageSchedule.
 
     Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
@@ -255,11 +252,8 @@ Module SHA2 (C : CONFIG).
       |}.
 
 
-    Definition Sigma r0 r1 r2 (x : v Word) :=
-      [ temp ::= x >>> (r2 - r1); temp ::=x x;
-        temp ::=>>> (r1 - r0);    temp ::=x x;
-        temp ::=>>> r0
-      ]%list.
+    Definition Sigma r0 r1 r2 (x : v Word) : expr v Word :=
+      (x >>> r2) XOR (x >>> r1) XOR (x >>> r0).
 
     Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
     Definition Sigma1 (s : State) := Sigma R10 R11 R12 (E s).
@@ -268,18 +262,13 @@ Module SHA2 (C : CONFIG).
     (** The CH and the MAJ functions are also defined computing their result
         into the temp variable temp
      *)
-    Definition CH (s : State) : code v:=
-            [ tp ::= neg (E s);
-              tp ::=& G s;
-              temp ::= E s AND F s; temp ::=x tp
-            ]%list.
 
-    Definition MAJ (s : State) : code v :=
-      [ temp  ::=  B s OR C s;
-        temp  ::=& A s;
-        tp    ::=  B s AND C s;
-        temp  ::=| tp
-      ].
+    Definition CH (B C D : v Word) : expr v Word :=
+      (D XOR (B AND (C XOR D))). (* === (B AND C) XOR (neg B and D)  *)
+
+    Definition MAJ (B C D : v Word) : expr v Word :=
+      (B AND C) OR (D AND (C OR B)). (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
+
 
     (** The heart of the hash algorithm a single round where we update
         the state held in the variables [a b c d e f g h] according to
@@ -288,17 +277,10 @@ Module SHA2 (C : CONFIG).
         the round constant [K].
      *)
     Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
-      [ t ::= H s + K  ;  t ::=+ M ]
-        ++ CH s        (* temp = CH e f g *)
-        ++ [ t ::=+ temp ]
-        ++  Sigma1 s   (* temp =  σ₁(e)   *)
-        ++ [ t ::=+ temp ]
-        ++ [ D s ::=+ t ]
-        ++ Sigma0 s    (* temp =  σ₀(a) *)
-        ++ [ t ::=+ temp ]
-        ++ MAJ s       (* temp = MAJ a b c *)
-        ++ [ H s ::= temp + t ] (* h =  t + MAJ a b c *)
-    .
+      [ t ::= H s + K + M + CH (E s) (F s) (G s) + Sigma1 s;
+        D s ::=+ t;
+        H s ::= t + Sigma0 s + MAJ (A s) (B s) (C s)
+      ].
 
     (** Having defined the [STEP] we look at a single round. A round
         [r] consists of an application of the [STEP] together with
