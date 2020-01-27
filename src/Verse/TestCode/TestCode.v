@@ -48,9 +48,9 @@ Section TestFunction.
         num ::= tmp - num ;
         num      ::= tmp      * arr[-1-];
         num      ::= arr[-1-] / tmp ;
-        arr[-1-] ::= tmp      .|. num ;
-        num      ::= tmp  xor arr[-1-];
-        num      ::= tmp  xor num;
+        arr[-1-] ::= tmp  OR num ;
+        num      ::= tmp  XOR arr[-1-];
+        num      ::= tmp  XOR num;
 
        (* Assignments using unary operators *)
 
