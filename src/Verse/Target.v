@@ -165,6 +165,8 @@ End CONFIG.
 
 Module CodeGen (T : CONFIG).
 
+  Definition variables := T.variables.
+  Arguments variables [k].
   (** The code generation function only needs three things to
       complete its code generation, the allocations (in the target
       variable) to hold the parameters, local variables, and the
