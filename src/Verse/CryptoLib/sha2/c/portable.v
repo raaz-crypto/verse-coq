@@ -30,7 +30,7 @@ module.
 *)
 Module SHA2 (C : CONFIG).
 
-  Import C.
+  Export C.
 
   Definition Word  := word WordSize.
 
