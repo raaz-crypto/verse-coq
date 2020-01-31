@@ -153,7 +153,7 @@ Module Config <: CONFIG.
     end.
 
   Arguments allocToList [n st].
-  About params.
+
   Definition makeFunction (name : Set) (fname : name)(fsig : funSig typeS variables) (body : list ast)
     := let ps := params (allocToList (Target.parameters fsig)) in
        let ls := List.map declareStmt (allocToList (Target.locals fsig)) in
