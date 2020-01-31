@@ -37,12 +37,6 @@ src/Verse/CryptoLib/sha2/c/portable.v
 src/Verse/CryptoLib/sha256/c/portable.v
 src/Verse/CryptoLib/sha512/c/portable.v
 
-
-
-# Test code
-src/Verse/Target/C/Test.v
-src/Verse/TestCode/TestCode.v
-
 # src/Verse/Word.v
 # src/Verse/CoLoR_VecUtil.v
 # src/Verse/Tutorial.v
