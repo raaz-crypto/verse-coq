@@ -1,9 +1,14 @@
+(** printing x₁ %$x_1$%  #x<sub>1</sub># *)
+(** printing xₙ %$x_n$%  #x<sub>n</sub># *)
+
+
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
 Require Vector.
 Import Vector.VectorNotations.
 
 Section Scoped.
+
 
   (** * Scopes and allocations.
 
