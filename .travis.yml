@@ -39,6 +39,7 @@ script:
   - make
   - make html
   - make all.pdf
+  - make test
   - make -C crypto-lib libverse
   - make -C crypto-lib/libverse libverse.a
 after_success:
