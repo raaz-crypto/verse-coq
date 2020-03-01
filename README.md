@@ -1,7 +1,8 @@
-[![Build Staus][travis-status]][travis-raaz]
-
 Verse
 =====
+
+[![License: Apache-2.0][shields-license]][apache-2]
+[![Build Staus][travis-status]][travis-raaz]
 
 A domain specific language in coq used to write low-level
 cryptographic primitives.
@@ -165,3 +166,5 @@ SPDX-License-Identifier: Apache-2.0
 
 [travis-raaz]: <https://travis-ci.org/raaz-crypto/verse-coq/>
 [libverse]: <https://github.com/raaz-crypto/libverse>
+[shields-license]: <https://img.shields.io/badge/License-Apache--2.0-informational.svg>
+[apache-2]: <http://www.apache.org/licenses/LICENSE-2.0> "Apache-2.0 license"
