@@ -235,3 +235,37 @@ Definition compile src tgt
 
 Arguments translate [src tgt] tr [v n ss CODE].
 Arguments compile   [src tgt] cr [v n ss st] pfCompat [CODE].
+
+
+(**
+
+Often we want to query the underlying object sitting inside a scoping
+structure. If the scoped is parameterised over the variable type, then
+we can fill in a dummy query variable to get hold of the value.
+
+*)
+
+
+Module Query.
+
+  Module Internal.
+
+    Inductive qvar ts : Variables.U ts :=
+    | q : forall k (ty : typeOf ts k),  qvar ts k ty.
+
+    Arguments q [ts k].
+
+    Fixpoint alloc {ts} {n} (sty : type ts n) : allocation (qvar ts) sty
+    := match sty as sty0 in (Vector.t _ n0) return (allocation (qvar ts) sty0) with
+       | [] => tt
+       | x :: xs => (q (projT2 x), alloc xs)
+       end.
+
+  End Internal.
+
+  Definition doit n ts (sty : type ts n) CODE (f : forall v : Variables.U ts, scoped v sty CODE) :=
+    fill (Internal.alloc sty) (f (Internal.qvar ts)).
+
+  Arguments doit [n ts sty CODE].
+
+End Query.
