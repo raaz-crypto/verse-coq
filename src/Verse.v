@@ -2,16 +2,17 @@ Require Export String.
 Require Export Verse.Nibble.
 Require Export Verse.Language.
 Require Export Verse.TypeSystem.
-Require Vector.
+Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
 Require Export List.
 Coercion Vector.to_list : Vector.t >-> list.
 
-Require Vector.
+(** Some definitions that are need for code generation *)
+
 Definition VariableT := Variables.U verse_type_system.
 Definition constant ty := const ty.
-Definition Declaration n := Vector.t (some (typeOf verse_type_system)) n.
+Definition Declaration n := Verse.Scope.type verse_type_system n.
 Definition Var (v : VariableT) k ty : v k ty -> some (typeOf verse_type_system)
   := fun _ => existT _ k ty.
 
