@@ -269,3 +269,6 @@ Module Query.
   Arguments doit [n ts sty CODE].
 
 End Query.
+
+Notation "(--)"             := (tt).
+Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
