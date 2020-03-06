@@ -12,23 +12,6 @@ Inductive Nibble
 
 Definition bytes n := Vector.t Nibble (2 * n).
 
-Fixpoint nibbleTuple n := match n with
-                          | 0  => Nibble
-                          | S m => nibbleTuple m * Nibble
-                          end%type.
-
-Fixpoint toNibbleTupleP n : Vector.t Nibble (S n) -> nibbleTuple n
-  := match n as n0 return Vector.t Nibble (S n0) -> nibbleTuple n0 with
-     | 0 => Vector.hd
-     | S m => fun xs : Vector.t _ (S (S _))
-              => let u := Vector.hd xs in
-                 let us := Vector.tl xs
-                 in (toNibbleTupleP m us, u)
-     end.
-
-Definition toNibbleTuple {n} xs := toNibbleTupleP n (Vector.rev xs).
-Arguments toNibbleTuple [n].
-
 (* Errors while encoding *)
 Inductive EncodeError : Prop := BadBase16 | TooFewDigits | TooManyDigits.
 
