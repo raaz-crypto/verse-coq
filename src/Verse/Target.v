@@ -1,4 +1,5 @@
 (* begin hide *)
+Require Verse.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Ast.
 Require Import Verse.Language.Types.
@@ -395,20 +396,32 @@ Module CodeGen (T : CONFIG).
       really care about their use in pretty printing and hence they
       are marked as (only parsing). This also suppress some warnings
       from Coq *)
-  Notation Function name pvs lvs rvs := (function pvs lvs rvs
-                                                  (recover (targetTypes pvs))
-                                                  (recover (targetTypes lvs))
-                                                  (recover (targetTypes rvs))
-                                                  eq_refl eq_refl eq_refl)
-                                          (only parsing).
 
-  Notation Iterator name memty pvs lvs rvs bType bPtrVar ctrVar
-    := (iterativeFunction name memty pvs lvs rvs
+  Notation Function name pvsf lvsf rvsf
+    := ( let pvs := Verse.infer pvsf in
+         let lvs := Verse.infer lvsf in
+         let rvs := Verse.infer rvsf in
+         function pvs lvs rvs
+                  (recover (targetTypes pvs))
+                  (recover (targetTypes lvs))
+                  (recover (targetTypes rvs))
+                  eq_refl eq_refl eq_refl
+       )
+         (only parsing).
+
+  Notation Iterator name memty pvsf lvsf rvsf bPtrVar ctrVar
+    := (let pvs := Verse.infer pvsf in
+        let lvs := Verse.infer lvsf in
+        let rvs := Verse.infer rvsf in
+        iterativeFunction name memty pvs lvs rvs
                           (recover (Types.compile T.typeCompiler memty)) eq_refl
                           bPtrVar ctrVar
                           (recover (targetTypes pvs))
                           (recover (targetTypes lvs))
                           (recover (targetTypes rvs))
-                          eq_refl eq_refl eq_refl)
+                          eq_refl eq_refl eq_refl
+       )
          (only parsing).
+
+  Definition program := T.ast.
 End CodeGen.
