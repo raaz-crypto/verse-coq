@@ -70,7 +70,7 @@ Notation "X  >>  N" := (app (shiftR N) [ X ])
 
 Notation "X & Y"        := (app bitAnd [X ; Y])
                          (at level 56, left associativity, only printing) : c_scope.
-Notation "X /**/^/**/ Y"  := (app bitXor [X; Y])
+Notation "X XOR Y"  := (app bitXor [X; Y])
                          (at level 57, left associativity, only printing) : c_scope.
 Notation "X | Y"          := (app bitOr [X; Y])
                          (at level 58, left associativity, only printing) : c_scope.
