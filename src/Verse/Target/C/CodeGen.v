@@ -17,7 +17,7 @@ Module Config <: CONFIG.
 
   Definition variables := cvar.
 
-    Definition typeCompiler : TypeSystem.compiler verse_type_system c_type_system
+  Definition typeCompiler : TypeSystem.compiler verse_type_system c_type_system
     :=
       let targetTs := TypeSystem.result typeS in
       let trType (ty : Types.type direct) : typeOf targetTs direct
@@ -37,7 +37,7 @@ Module Config <: CONFIG.
                      return Types.const (word n0)
                             -> constOf targetTs (trType (word n0))
                with
-               | 0 | 1 | 2 | 3  => @toNibbleTuple _
+               | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
                | _ => fun x : _ => error (CouldNotTranslate x)
                end
              | multiword _ _  => fun x => error (CouldNotTranslate x)

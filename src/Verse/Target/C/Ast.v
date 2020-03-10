@@ -27,13 +27,8 @@ Inductive type  : kind -> Set :=
 .
 
 Definition carrayType n (e : endian) t := array n t.
-Definition const (ty : type direct)
-  := match ty with
-     | uint8_t  => nibbleTuple 1
-     | uint16_t => nibbleTuple 3
-     | uint32_t => nibbleTuple 7
-     | uint64_t => nibbleTuple 15
-     end%type.
+
+Definition const (ty : type direct) := list Nibble.
 
 Canonical Structure c_type_system :=
     TypeSystem  type carrayType const.
