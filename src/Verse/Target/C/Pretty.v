@@ -20,23 +20,23 @@ Notation "T (* X ) [ N ]"
 
 (** * Pretty printing constants *)
 Require Import Verse.Nibble.
-Notation "'0x0'" := Ox0 (only printing): c_scope.
-Notation "'0x1'" := Ox1 (only printing): c_scope.
-Notation "'0x2'" := Ox2 (only printing): c_scope.
-Notation "'0x3'" := Ox3 (only printing): c_scope.
-Notation "'0x4'" := Ox4 (only printing): c_scope.
-Notation "'0x5'" := Ox5 (only printing): c_scope.
-Notation "'0x6'" := Ox6 (only printing): c_scope.
-Notation "'0x7'" := Ox7 (only printing): c_scope.
-Notation "'0x8'" := Ox8 (only printing): c_scope.
-Notation "'0x9'" := Ox9 (only printing): c_scope.
-Notation "'0xA'" := OxA (only printing): c_scope.
-Notation "'0xB'" := OxB (only printing): c_scope.
-Notation "'0xC'" := OxC (only printing): c_scope.
-Notation "'0xD'" := OxD (only printing): c_scope.
-Notation "'0xE'" := OxE (only printing): c_scope.
-Notation "'0xF'" := OxF (only printing): c_scope.
 
+Notation "'0'" := Ox0 (only printing) : c_scope.
+Notation "'1'" := Ox1 (only printing) : c_scope.
+Notation "'2'" := Ox2 (only printing) : c_scope.
+Notation "'3'" := Ox3 (only printing) : c_scope.
+Notation "'4'" := Ox4 (only printing) : c_scope.
+Notation "'5'" := Ox5 (only printing) : c_scope.
+Notation "'6'" := Ox6 (only printing) : c_scope.
+Notation "'7'" := Ox7 (only printing) : c_scope.
+Notation "'8'" := Ox8 (only printing) : c_scope.
+Notation "'9'" := Ox9 (only printing) : c_scope.
+Notation "'a'" := OxA (only printing) : c_scope.
+Notation "'b'" := OxB (only printing) : c_scope.
+Notation "'c'" := OxC (only printing) : c_scope.
+Notation "'d'" := OxD (only printing) : c_scope.
+Notation "'e'" := OxE (only printing) : c_scope.
+Notation "'f'" := OxF (only printing) : c_scope.
 
 Require Vector.
 Require Import Verse.Language.Types.
@@ -74,20 +74,29 @@ Notation "X 'XOR' Y"  := (app bitXor [X; Y])
                          (at level 57, left associativity, only printing) : c_scope.
 Notation "X | Y"          := (app bitOr [X; Y])
                          (at level 58, left associativity, only printing) : c_scope.
-Notation "'verse_u8' ( X , Y )"
-  := (verse_const uint8_t (cons X (cons Y nil) )) (at level 0, only printing) : c_scope.
+Notation "'0x' X Y 'U'"
+  := (verse_const uint8_t (cons X (cons Y nil) ))
+       ( at level 0,
+         format "'0x' X Y 'U'",
+         only printing) : c_scope.
 
-Notation "'verse_u16' ( X , .. , Y )"
+Notation "'0x' X .. Y 'U'"
   := (verse_const uint16_t (cons X .. (cons Y nil) ..))
-       (at level 0, only printing) : c_scope.
+       ( at level 0,
+         format "'0x' X .. Y 'U'",
+         only printing) : c_scope.
 
-Notation "'verse_u32' ( X , .. , Y )"
+Notation "'0x' X .. Y 'UL'"
   := (verse_const uint32_t (cons X .. (cons Y nil) ..))
-       (at level 0, only printing) : c_scope.
+       ( at level 0,
+         format "'0x' X .. Y 'UL'",
+         only printing) : c_scope.
 
-Notation "'verse_u64' ( X , .. , Y )"
+Notation "'0x' X .. Y 'ULL'"
   := (verse_const uint64_t (cons X .. (cons Y nil) ..))
-       (at level 0, only printing) : c_scope.
+       ( at level 0,
+         format "'0x' X .. Y 'ULL'",
+         only printing) : c_scope.
 
 Notation "'verse_rotL8'"  := (rotateL uint8_t)  (at level 0, only printing) : c_scope.
 Notation "'verse_rotL16'" := (rotateL uint16_t) (at level 0, only printing) : c_scope.
@@ -152,7 +161,7 @@ Notation "X <<= N" := (update X (shiftL N) []) (at level 70, only printing) : c_
 Notation "X >>= N" := (update X (shiftR N) []) (at level 70, only printing) : c_scope.
 Notation "++ X"    := (increment X)   (at level 70, only printing) : c_scope.
 Notation "-- X"    := (decrement X)   (at level 70, only printing) : c_scope.
-Notation "E > 0" := (gt_zero E) (at level 70, only printing) : c_scope.
+Notation "X > 0" := (gt_zero X) (at level 70, only printing) : c_scope.
 
 Notation "{;}" := (Braces nil) : c_scope.
 
@@ -176,20 +185,20 @@ Notation "( X , .. , Y )"
   := (params (cons X .. (cons Y nil)..))
        (only printing) : c_scope.
 
-Notation "# 'include' < F >"
-  := (include F)
+Notation "# 'include' < FILE >"
+  := (include FILE)
        (at level 8, only printing,
-        format "#  'include'  < F > '//'").
+        format "#  'include'  < FILE > '//'").
 
-Notation "'void' FN P B"
-  := (function FN P B)
+Notation "'void' FN P BODY"
+  := (function FN P BODY)
        (at level 8, only printing,
-        format "'void'  FN  P '//' B") : c_scope.
+        format "'void'  FN  P '//' BODY") : c_scope.
 
-Notation "'while' ( C ) B"
-  := (whileLoop C B)
+Notation "'while' ( COND ) BODY"
+  := (whileLoop COND BODY)
        (at level 70, only printing,
-        format "'while'  ( C ) '//' B") : c_scope.
+        format "'while'  ( COND ) '//' BODY") : c_scope.
 
 
 
