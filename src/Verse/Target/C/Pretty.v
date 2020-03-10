@@ -68,10 +68,11 @@ Notation "X  <<  N" := (app (shiftL N) [ X ])
 Notation "X  >>  N" := (app (shiftR N) [ X ])
                          (at level 55, left associativity, only printing) : c_scope.
 
-Notation "X & Y"        := (app bitAnd [X ; Y])
-                         (at level 56, left associativity, only printing) : c_scope.
+Notation "X & Y" := (app bitAnd [X ; Y])
+                      (at level 56, left associativity, only printing) : c_scope.
+
 Notation "X 'XOR' Y"  := (app bitXor [X; Y])
-                         (at level 57, left associativity, only printing) : c_scope.
+                             (at level 57, left associativity, only printing) : c_scope.
 Notation "X | Y"          := (app bitOr [X; Y])
                          (at level 58, left associativity, only printing) : c_scope.
 Notation "'0x' X Y 'U'"
@@ -107,43 +108,44 @@ Notation "'verse_rotR8'"  := (rotateR uint8_t)  (at level 0, only printing) : c_
 Notation "'verse_rotR16'" := (rotateR uint16_t) (at level 0, only printing) : c_scope.
 Notation "'verse_rotR32'" := (rotateR uint32_t) (at level 0, only printing) : c_scope.
 Notation "'verse_rotR64'" := (rotateR uint64_t) (at level 0, only printing) : c_scope.
+
 Notation "'verse_to_be16' ( X )" := (convert_to bigE uint16_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_to_be32' ( X )" := (convert_to bigE uint32_t X)
+Notation "'verse_to_be32' (  X  )" := (convert_to bigE uint32_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_to_be64' ( X )" := (convert_to bigE uint64_t X)
-         (at level 0, only printing) : c_scope.
-
-
-Notation "'verse_to_le16' ( X )" := (convert_to littleE uint16_t X)
-         (at level 0, only printing) : c_scope.
-
-Notation "'verse_to_le32' ( X )" := (convert_to littleE uint32_t X)
-         (at level 0, only printing) : c_scope.
-
-Notation "'verse_to_le64' ( X )" := (convert_to littleE uint64_t X)
+Notation "'verse_to_be64' (  X  )" := (convert_to bigE uint64_t X)
          (at level 0, only printing) : c_scope.
 
 
-Notation "'verse_from_be16' ( X )" := (convert_from bigE uint16_t X)
+Notation "'verse_to_le16' (  X  )" := (convert_to littleE uint16_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_from_be32' ( X )" := (convert_from bigE uint32_t X)
+Notation "'verse_to_le32' (  X  )" := (convert_to littleE uint32_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_from_be64' ( X )" := (convert_from bigE uint64_t X)
+Notation "'verse_to_le64' (  X  )" := (convert_to littleE uint64_t X)
          (at level 0, only printing) : c_scope.
 
 
-Notation "'verse_from_le16' ( X )" := (convert_from littleE uint16_t X)
+Notation "'verse_from_be16' (  X  )" := (convert_from bigE uint16_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_from_le32' ( X )" := (convert_from littleE uint32_t X)
+Notation "'verse_from_be32' (  X  )" := (convert_from bigE uint32_t X)
          (at level 0, only printing) : c_scope.
 
-Notation "'verse_from_le64' ( X )" := (convert_from littleE uint64_t X)
+Notation "'verse_from_be64' (  X  )" := (convert_from bigE uint64_t X)
+         (at level 0, only printing) : c_scope.
+
+
+Notation "'verse_from_le16' (  X  )" := (convert_from littleE uint16_t X)
+         (at level 0, only printing) : c_scope.
+
+Notation "'verse_from_le32' (  X  )" := (convert_from littleE uint32_t X)
+         (at level 0, only printing) : c_scope.
+
+Notation "'verse_from_le64' (  X  )" := (convert_from littleE uint64_t X)
          (at level 0, only printing) : c_scope.
 
 
