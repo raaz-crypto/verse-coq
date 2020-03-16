@@ -221,6 +221,8 @@ Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70).
 Notation "A ::=>>> N"  := (uniOpUpdate (rotR N)   A)   (at level 70).
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))     (at level 70).
 
+Notation "'MOVE' B 'TO' A [- N -]"
+  := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (at level 200, A ident).
 (** * The verse tactic.
 
 The notations clean up the surface syntax but it still leaves routine
