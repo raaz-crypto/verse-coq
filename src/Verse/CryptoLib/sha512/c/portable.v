@@ -106,3 +106,54 @@ Module Config <: CONFIG.
 
 End Config.
 Module SHA512 := SHA2 Config.
+
+Require Import Verse.Target.C.
+
+Inductive name := verse_sha512_c_portable.
+
+Require Verse.CryptoLib.sha2.
+
+Module Allocation.
+
+  Axiom blockPtr : cvar (ptrToArray sha2.BLOCK_SIZE uint64_t).
+  Axiom nBlocks  : cvar uint64_t.
+  Axiom hash     : cvar (ptrToArray sha2.HASH_SIZE uint64_t).
+  Axiom w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : cvar uint64_t.
+  Axiom a b c d e f g h : cvar uint64_t.
+  Axiom t               : cvar uint64_t.
+
+End Allocation.
+
+Import Allocation.
+
+Definition params    := (- hash -).
+Definition locals    := (- w0 , w1 , w2 , w3 , w4 , w5 , w6 , w7 , w8 , w9 , w10 , w11 , w12 , w13,  w14 ,  w15 -).
+Definition registers := (- a, b, c, d, e, f, g, h, t -).
+
+Definition sha512iter
+  := Compile.Iterator verse_sha512_c_portable
+                      SHA512.Block
+                      SHA512.parameters
+                      SHA512.locals
+                      SHA512.registers
+                      blockPtr
+                      nBlocks
+                      params
+                      locals
+                      registers
+                      SHA512.sha2.
+
+
+Require Import Verse.Error.
+Require Import Verse.Target.C.Pretty.
+Definition program : Compile.program := recover (sha512iter).
+
+(*
+
+Require Import Verse.Print.
+
+Goal to_print program.
+  print.
+Abort.
+
+*)
