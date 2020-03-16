@@ -12,6 +12,10 @@ Notation "T X [ N ]"
         format "T  X [ N ]"
        ) : c_scope.
 
+Notation "T  (* X )"
+  := (declare_variable (array 1 T) X)
+       (at level 29, only printing) : c_scope.
+
 Notation "T (* X ) [ N ]"
   := (declare_variable (ptrToArray N T) X)
        (at level 29, only printing,

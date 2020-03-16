@@ -63,8 +63,11 @@ Module Config <: CONFIG.
     | Ast.cval   c     => verse_const _ c
     | Ast.valueOf le   => match le with
                          | Ast.var v => v
-                         | @Ast.deref _ _ _ _ endn arr (exist _ i _) =>
-                           let arrI := index arr i in
+                         | @Ast.deref _ _ _ b endn arr (exist _ i _) =>
+                           let arrI := match b with
+                                       | 1 => ptrDeref arr (* array[1] = pointer *)
+                                       | _ => index arr i
+                                       end in
                            match endn with
                            | hostE => arrI
                            | _     => convert_from endn ty arrI
