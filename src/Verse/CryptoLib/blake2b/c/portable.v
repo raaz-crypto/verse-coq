@@ -31,101 +31,61 @@ End Config.
 
 
 Module Blake2b := Blake2 (Config).
+Require Import Verse.Target.C.
 
-Require Import Verse.Arch.C.
+Inductive name := verse_blake2b_c_portable.
 
-Module Internal.
-  Definition Word := uint64_t.
-  Definition reg := cr uint64_t.
-  Definition cRegIterator :=
-    (- reg "w0" , reg "w1" , reg "w2" , reg "w3" ,
-       reg "w4" , reg "w5" , reg "w6" , reg "w7" ,
-       reg "w8" , reg "w9" , reg "w10", reg "w11",
-       reg "w12", reg "w13", reg "w14", reg "w15",
-       reg "v0" , reg "v4" , reg "v8" , reg "v12",
-       reg "v1" , reg "v5" , reg "v9" , reg "v13",
-       reg "v2" , reg "v6" , reg "v10", reg "v14",
-       reg "v3" , reg "v7" , reg "v11", reg "v15",
-       reg "C"  , reg "LMSB",
-       reg "U"  , reg "L"
-    -).
-
-  Definition cRegLast :=
-    (- reg "w0" , reg "w1" , reg "w2" , reg "w3" ,
-       reg "w4" , reg "w5" , reg "w6" , reg "w7" ,
-       reg "w8" , reg "w9" , reg "w10", reg "w11",
-       reg "w12", reg "w13", reg "w14", reg "w15",
-       reg "v0" , reg "v4" , reg "v8" , reg "v12",
-       reg "v1" , reg "v5" , reg "v9" , reg "v13",
-       reg "v2" , reg "v6" , reg "v10", reg "v14",
-       reg "v3" , reg "v7" , reg "v11", reg "v15",
-       reg "C"  , reg "LMSB"
-    -).
+Require Verse.CryptoLib.blake2.
 
 
+Module Allocation.
+  Axiom blockPtr : cvar (ptrToArray blake2.BLOCK_SIZE uint64_t).
+  Axiom nBlocks  : cvar uint64_t.
+  Axiom UpperRef LowerRef : cvar (array 1 uint64_t).
+  Axiom hash     : cvar (ptrToArray blake2.HASH_SIZE uint64_t).
+  Axiom h0 h1 h2 h3 h4 h5 h6 h7 : cvar uint64_t.
+  Axiom w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : cvar uint64_t.
+  Axiom v0 v1 v2 v3 v4 v5 v6 v7 v8 v9 v10 v11 v12 v13 v14 v15 : cvar uint64_t.
+  Axiom C LMSB U L : cvar uint64_t.
+End Allocation.
 
-  Definition prototypeIter (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype Blake2b.Block fname Blake2b.paramIterator.
-  Defined.
+Import Allocation.
 
-  Definition implementationIter (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator Blake2b.Block fname Blake2b.paramIterator Blake2b.stack Blake2b.regIterator.
-    assignRegisters cRegIterator.
-    statements Blake2b.Iterator.
-  Defined.
+Definition params     := (- UpperRef , LowerRef , hash -).
+Definition locals     := (- h0 , h1 , h2 , h3 , h4 , h5 , h6 , h7 -).
+Definition registers  :=
+  (- w0 , w1 , w2 , w3 , w4 , w5 , w6 , w7 , w8 , w9 , w10 , w11 , w12 , w13,  w14 ,  w15 ,
+     v0 , v4 , v8 , v12,
+     v1 , v5 , v9 , v13,
+     v2 , v6 , v10, v14,
+     v3 , v7 , v11, v15,
+     C, LMSB, U, L
+  -).
 
-  Definition prototypeLast (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.functionPrototype fname Blake2b.paramLastBlock.
-  Defined.
 
-  Definition implementationLast (fname : string) : Doc + {Compile.CompileError}.
-    Compile.function fname Blake2b.paramLastBlock Blake2b.stack Blake2b.regLastBlock.
-    assignRegisters cRegLast.
-    statements Blake2b.LastBlockCompress.
-  Defined.
+Definition blake2bIter
+  := Compile.Iterator verse_blake2b_c_portable
+                      Blake2b.Block
+                      Blake2b.paramIterator
+                      Blake2b.stack
+                      Blake2b.regIterator
+                      blockPtr
+                      nBlocks
+                      params
+                      locals
+                      registers
+                      Blake2b.Iterator.
 
-  Definition iterName (fname : string) := fname ++ "_iter".
-  Definition lastName (fname : string) := fname ++ "_last".
+Require Import Verse.Error.
+Definition program : Compile.program := recover (blake2bIter).
 
-  Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
-    iter <- implementationIter (iterName fname);
-      lastBlock <- implementationLast (lastName fname);
-      {- vcat [iter; lastBlock] -}.
-
-  Definition prototypes fname :=
-    iterProto <- prototypeIter (iterName fname);
-      lastProto <- prototypeLast (lastName fname);
-      {- [ iterProto ; lastProto ]%list -}.
-
-End Internal.
 
 (*
 
-This is the function that prints the code on the standard output given a function name
-for the c-code.
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+Goal to_print program.
+  print.
+Abort.
 
- *)
-
-Require Import Verse.Extraction.Ocaml.
-Require Import Verse.CryptoLib.Names.
-Require Import Verse.CryptoLib.Names.
-
-Definition implementation_name : Name := {| primitive := "blake2b";
-                                            arch      := "c";
-                                            features  := ["portable"]
-                                         |}.
-
-Definition cname     := cFunName implementation_name.
-Definition cfilename := libVerseFilePath implementation_name.
-
-Definition implementation : unit
-  := writeProgram (C cfilename) (Internal.implementation cname).
-
-Definition prototypes
-  := recover (Internal.prototypes cname).
-
-Require Import Verse.FFI.Raaz.
-
-Definition raazFFI : unit :=
-  let module := raazModule implementation_name in
-  write_module module (List.map ccall prototypes).
+*)
