@@ -1,6 +1,6 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.blake2.
-Require Import Nat.
+Require Import PeanoNat.
 
 
 (** * Blake2 implementation in C
@@ -133,7 +133,7 @@ Module Blake2 (C : CONFIG).
 
      *)
     Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar Word.
-    Definition stack : Declaration := Vector.map Var [h0 ;h1 ;h2; h3; h4; h5; h6; h7].
+    Definition stack : Declaration := Vector.map (fun x => Var x) [h0 ;h1 ;h2; h3; h4; h5; h6; h7].
     Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
 
     (** *** The register variables.
@@ -195,10 +195,10 @@ Module Blake2 (C : CONFIG).
     Variable U L    : progvar Word.
 
     Definition regLastBlock
-      := Vector.map Var (Vector.append (Vector.append message_variables state) [C ; LMSB]).
+      := Vector.map (fun x => Var x) (Vector.append (Vector.append message_variables state) [C ; LMSB]).
 
     Definition regIterator : Declaration
-      := Vector.append regLastBlock  (Vector.map Var [ U   ; L])%vector.
+      := Vector.append regLastBlock  ([ Var U ; Var L])%vector.
 
 
     (** ** Updating the count.
@@ -222,8 +222,8 @@ Module Blake2 (C : CONFIG).
 
     Section UpdateCount.
 
-      Hint Resolve NPeano.Nat.add_pos_pos.
-      Hint Resolve NPeano.Nat.add_pos_nonneg.
+      Hint Resolve Nat.add_pos_pos.
+      Hint Resolve Nat.add_pos_nonneg.
       Hint Constructors le.
       Lemma zeroLtPower2 : forall n, 0 < 2 ^ n.
         intros; induction n; simpl; eauto.
@@ -247,7 +247,7 @@ Module Blake2 (C : CONFIG).
        *)
 
       Variable A : Type.
-      Variable a_is_rarg : RARG progvar Word A.
+      Variable a_is_expr : EXPR progvar Word A.
       Variable byteCount : A.
 
       Definition UPDATE_COUNTER (u l : progvar Word) : code progvar :=
@@ -260,7 +260,7 @@ Module Blake2 (C : CONFIG).
           LMSB ::=>> (8 * size(Word) - 1); (* get he msb to the lsb *)
 
           (* Now get the carry that flows into MSB from the previous bits *)
-          C  ::= l & mask; (* select every bit except msb *)
+          C  ::= l AND mask; (* select every bit except msb *)
           C  ::=+ byteCount; (* carry at the msb position   *)
           C  ::=>> (8 * size(Word) - 1); (* move it to the lsb *)
 
@@ -275,7 +275,7 @@ Module Blake2 (C : CONFIG).
         ]%list.
     End UpdateCount.
 
-    Arguments UPDATE_COUNTER [A a_is_rarg] _ _ _ .
+    Arguments UPDATE_COUNTER [A a_is_expr] _ _ _ .
 
     (** The update count function as defined for the iterator and the
         last block compressor respectively *)
@@ -305,10 +305,10 @@ Module Blake2 (C : CONFIG).
 
     Definition G (a b c d m0 m1 : progvar Word) : code progvar :=
       [
-        a ::=+ b; a ::=+ m0; d ::=^ a; d ::=>>> R0;
-        c ::=+ d;            b ::=^ c; b ::=>>> R1;
-        a ::=+ b; a ::=+ m1; d ::=^ a; d ::=>>> R2;
-        c ::=+ d;            b ::=^ c; b ::=>>> R3
+        a ::=+ b; a ::=+ m0; d ::=x a; d ::= d >>> R0;
+        c ::=+ d;            b ::=x c; b ::= b >>> R1;
+        a ::=+ b; a ::=+ m1; d ::=x a; d ::= d >>> R2;
+        c ::=+ d;            b ::=x c; b ::= b >>> R3
       ]%list.
 
     (** *** Message permutations.
@@ -341,9 +341,14 @@ Module Blake2 (C : CONFIG).
                 | _ => tac
                 end.
 
-    Theorem round_perms_are_permutations :  Vector.Forall (@Permutation BLOCK_SIZE) RoundPerms .
+    Theorem round_perms_are_permutations :  Vector.Forall (@Permutation BLOCK_SIZE) RoundPerms.
+    (** TODO This proof is too slow in the current version fix it *)
+    (*
       crush_forall (compute; crush_permutation_obligation 16).
-    Qed.
+      Qed.
+     *)
+
+    Abort.
 
     (** *** The round function.
 
@@ -372,7 +377,7 @@ Module Blake2 (C : CONFIG).
                G v0 v5 v10 v15 (M 8 _)  (M 9  _) ++
                G v1 v6 v11 v12 (M 10 _) (M 11 _) ++
                G v2 v7 v8  v13 (M 12 _) (M 13 _) ++
-               G v3 v4 v9  v14 (M 14 _) (M 15 _)).
+               G v3 v4 v9  v14 (M 14 _) (M 15 _))%list.
       Defined.
     End Round.
 
@@ -381,7 +386,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H ).
+      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H )%list.
     Defined.
 
     (** ** The initialisation of state.
@@ -406,8 +411,8 @@ Module Blake2 (C : CONFIG).
 	  v9  ::= IV 1 _;
 	  v10 ::= IV 2 _;
 	  v11 ::= IV 3 _;
-	  v12 ::= IV 4 _ ^ L;
-	  v13 ::= IV 5 _ ^ U;
+	  v12 ::= IV 4 _ XOR L;
+	  v13 ::= IV 5 _ XOR U;
 	  v14 ::= IV 6 _ ;
 	  v15 ::= IV 7 _
         ]%list.
@@ -427,10 +432,10 @@ Module Blake2 (C : CONFIG).
 	  v9  ::= IV 1 _;
 	  v10 ::= IV 2 _;
 	  v11 ::= IV 3 _;
-	  v12 ::= IV 4 _ ^ Lower;
-	  v13 ::= IV 5 _ ^ Upper;
-	  v14 ::= IV 6 _ ^ f0;
-	  v15 ::= IV 7 _ ^ f1
+	  v12 ::= IV 4 _ XOR Lower;
+	  v13 ::= IV 5 _ XOR Upper;
+	  v14 ::= IV 6 _ XOR f0;
+	  v15 ::= IV 7 _ XOR f1
         ]%list.
       Defined.
 
@@ -456,41 +461,41 @@ Module Blake2 (C : CONFIG).
 
      *)
     Definition UPDATE_HASH : code progvar :=
-      [ h0 ::=^ v0 ; h0 ::=^ v8;
-        h1 ::=^ v1 ; h1 ::=^ v9;
-        h2 ::=^ v2 ; h2 ::=^ v10;
-        h3 ::=^ v3 ; h3 ::=^ v11;
-        h4 ::=^ v4 ; h4 ::=^ v12;
-        h5 ::=^ v5 ; h5 ::=^ v13;
-        h6 ::=^ v6 ; h6 ::=^ v14;
-        h7 ::=^ v7 ; h7 ::=^ v15
+      [ h0 ::=x v0 ; h0 ::=x v8;
+        h1 ::=x v1 ; h1 ::=x v9;
+        h2 ::=x v2 ; h2 ::=x v10;
+        h3 ::=x v3 ; h3 ::=x v11;
+        h4 ::=x v4 ; h4 ::=x v12;
+        h5 ::=x v5 ; h5 ::=x v13;
+        h6 ::=x v6 ; h6 ::=x v14;
+        h7 ::=x v7 ; h7 ::=x v15
       ]%list.
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
     Definition FINALISE : code progvar.
-      verse ([ MOVE U TO UpperRef[- 0 -]; MOVE L TO LowerRef[- 0 -] ] ++ moveBackCache hash H ).
+      verse ([ MOVE U TO UpperRef[- 0 -]; MOVE L TO LowerRef[- 0 -] ] ++ moveBackCache hash H )%list.
     Defined.
 
 
     Definition PROCESS_BLOCK blk :=
-      LOAD_MESSAGE blk
-      ++ ALL_ROUNDS
-      ++ UPDATE_HASH.
+      ( LOAD_MESSAGE blk
+                     ++ ALL_ROUNDS
+                     ++ UPDATE_HASH)%list.
 
     (** ** The BLAKE2 iterator and the last block compressor.  *)
-    Definition Iterator : iterator Block progvar :=
+    Definition Iterator : iterator progvar Block :=
       {| setup   := SETUP;
          process := fun blk => UPDATE_COUNTER_ITER ++ INIT_STATE ++ PROCESS_BLOCK blk;
          finalise := FINALISE
-      |}.
+      |}%list.
 
     Definition LastBlockCompress :=
-      loadCache hash H
+      (loadCache hash H
                 ++ UPDATE_COUNTER_LAST
                 ++ INIT_STATE_LAST
                 ++ PROCESS_BLOCK  LastBlock
-                ++ moveBackCache hash H.
+                ++ moveBackCache hash H)%list.
     End Program.
 
 End Blake2.
