@@ -92,8 +92,6 @@ Module Config <: CONFIG.
 End Config.
 Module SHA256 := SHA2 Config.
 
-Check Config.KVec.
-
 Require Import Verse.Target.C.
 
 Inductive name := verse_sha256_c_portable.
