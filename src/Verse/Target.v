@@ -401,7 +401,7 @@ Module CodeGen (T : CONFIG).
     := ( let pvs := Verse.infer pvsf in
          let lvs := Verse.infer lvsf in
          let rvs := Verse.infer rvsf in
-         function pvs lvs rvs
+         function name pvs lvs rvs
                   (recover (targetTypes pvs))
                   (recover (targetTypes lvs))
                   (recover (targetTypes rvs))
