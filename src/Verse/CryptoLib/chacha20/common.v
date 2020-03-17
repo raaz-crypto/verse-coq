@@ -30,10 +30,14 @@ variant for use in the csprg.
 
 *)
 
-Definition Block e := Array 16 e Word.
-Definition Key     := Array 8 hostE Word.
+Definition BLOCK_SIZE := 16.
+Definition KEY_SIZE   := 8.
+Definition IV_SIZE    := 3.
+
+Definition Block e := Array BLOCK_SIZE e Word.
+Definition Key     := Array KEY_SIZE hostE Word.
 Definition Counter := Word.
-Definition IV   := Array 3 hostE Word.
+Definition IV   := Array IV_SIZE hostE Word.
 
 (** ** Constants
 

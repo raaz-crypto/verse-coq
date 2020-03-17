@@ -10,10 +10,9 @@ This module implements the following
 *)
 
 Require Import Verse.
-Require Import Verse.Arch.C.
 Require Import Verse.CryptoLib.chacha20.common.
-Require Import Verse.Extraction.Ocaml.
-Require Import Verse.CryptoLib.Names.
+Require List.
+Import List.ListNotations.
 
 Module Internal.
 
@@ -51,7 +50,7 @@ Module Internal.
       := [Var key; Var hiv0; Var hiv1; Var hiv2; Var hiv3].
 
     (* We do not have local stack variables *)
-    Definition stack : Declaration    := Empty.
+    Definition stack : Declaration    := [].
 
     (**
        Besides we have the following in registers
@@ -64,12 +63,12 @@ Module Internal.
 
    *)
 
+    Variable Temp            : progvar Word.
+    Variable ctr             : progvar Counter.
     Variable x0  x1  x2  x3
              x4  x5  x6  x7
              x8  x9  x10 x11
              x12 x13 x14 x15 : progvar Word.
-    Variable ctr             : progvar Counter.
-    Variable Temp            : progvar Word.
 
     (**
         Let us make some auxiliary definitions that simplify some of
@@ -82,12 +81,15 @@ Module Internal.
                               x12; x13; x14; x15
                             ].
 
-    (** The register variables required by the cipher *)
-    Definition registers  := Vector.map Var (Vector.append [ctr; Temp] stateVars).
+    (** The registers required for HCHaCha20 hash *)
+    Definition hregisters := Vector.map (fun x => Var x) stateVars.
 
-    Definition hregisters := Vector.map Var stateVars.
     (** The registers required by the key stream generator *)
-    Definition csprgRegisters := Vector.map Var ( ctr :: stateVars ).
+    Definition csprgRegisters := Var ctr :: hregisters.
+
+    (** The register variables required by the cipher *)
+    Definition registers  := Var Temp :: csprgRegisters.
+
     (** It is useful to have a uniform way to index the state variables. *)
 
     Definition X : VarIndex progvar 16 Word := varIndex stateVars.
@@ -132,10 +134,10 @@ Module Internal.
      *)
 
     Definition QRound (a b c d : progvar Word) : code progvar
-      := [ a ::=+ b; d ::=^ a; d ::=<<< 16;
-           c ::=+ d; b ::=^ c; b ::=<<< 12;
-           a ::=+ b; d ::=^ a; d ::=<<< 8;
-           c ::=+ d; b ::=^ c; b ::=<<< 7
+      := [ a ::=+ b; d ::=x a; d ::= d <<< 16;
+           c ::=+ d; b ::=x c; b ::= b <<< 12;
+           a ::=+ b; d ::=x a; d ::= d <<< 8;
+           c ::=+ d; b ::=x c; b ::= b <<< 7
          ].
 
     (**
@@ -219,7 +221,7 @@ Module Internal.
 
     Definition XorBlock (B : progvar (Block littleE))(i : nat) (_ : i < 16)
       : code progvar.
-      verse [ Temp ::= B[- i -]; Temp ::=^ X [- i -]; MOVE Temp TO B[- i -] ].
+      verse [ Temp ::= B[- i -]; Temp ::=x X [- i -]; MOVE Temp TO B[- i -] ].
     Defined.
 
     Definition EmitStream (B : progvar (Block hostE))(i : nat) (_ : i < 16)
@@ -285,13 +287,13 @@ Module Internal.
       verse [ MOVE ctr TO ctrRef[- 0 -] ].
     Defined.
 
-    Definition EncryptIterator : iterator (Block littleE) progvar :=
+    Definition EncryptIterator : iterator progvar (Block littleE) :=
       {| setup    := LoadCounter;
          process  := Encrypt;
          finalise := StoreCounter
       |}.
 
-    Definition CSPRGIterator : iterator (Block hostE) progvar :=
+    Definition CSPRGIterator : iterator progvar (Block hostE) :=
       {| setup    := LoadCounter;
          process  := CSPRGStream;
          finalise := StoreCounter
@@ -300,112 +302,98 @@ Module Internal.
 
   End ChaCha20.
 
-  (* ** Generating the C code.
-
-    We start by defining the variables to use for the C code.
-
-   *)
-
-  Definition wordTy    : CType direct := recover (typeDenote Word).
-  Definition counterTy : CType direct := recover (typeDenote Counter).
-
-  Definition regVars
-    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
-          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
-          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
-          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15",
-          cr counterTy "ctr", cr wordTy "Tmp"
-       -).
-
-  Definition hchacha20Vars
-    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
-          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
-          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
-          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15"
-       -).
-
-    Definition csprgVars
-    := (- cr wordTy "x0",  cr wordTy "x1",  cr wordTy "x2",  cr wordTy "x3",
-          cr wordTy "x4",  cr wordTy "x5",  cr wordTy "x6",  cr wordTy "x7",
-          cr wordTy "x8",  cr wordTy "x9",  cr wordTy "x10", cr wordTy "x11",
-          cr wordTy "x12", cr wordTy "x13", cr wordTy "x14", cr wordTy "x15",
-          cr counterTy "ctr"
-       -).
-
-  (** The prototype and the code for the chacha20 encryption routine *)
-  Definition prototype_encrypt (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype (Block littleE) fname parameters.
-  Defined.
-
-  Definition prototype_hchacha20 (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.functionPrototype fname hparameters.
-  Defined.
-
-  Definition implementation_hchacha20 (fname : string) : Doc + {Compile.CompileError}.
-    Compile.function fname hparameters stack hregisters.
-    assignRegisters hchacha20Vars.
-    statements HChaCha20.
-  Defined.
-
-  Definition implementation_encrypt (fname : string) : Doc  + {Compile.CompileError}.
-    Compile.iterator (Block littleE) fname parameters stack registers.
-    assignRegisters regVars.
-    statements EncryptIterator.
-  Defined.
-
-  (** The prototype and the code for chacha20 csprg routine *)
-
-  Definition prototype_csprg (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype (Block hostE) fname parameters.
-  Defined.
-
-  Definition implementation_csprg (fname : string) : Doc  + {Compile.CompileError}.
-    Compile.iterator (Block hostE) fname parameters stack csprgRegisters.
-    assignRegisters csprgVars.
-    statements CSPRGIterator.
-  Defined.
-
-
-  (** The combined source code and prototypes. *)
-  Definition encryptName   iname := cFunName iname.
-  Definition csprgName     iname :=
-    let newName := set_primitive (iname) (primitive iname ++ "csprg")
-    in cFunName newName.
-  Definition hchacha20Name iname := cFunName (set_primitive iname "hchacha20").
-
-  Definition implementation iname : Doc + {Compile.CompileError} :=
-    encrypt <- implementation_encrypt (encryptName iname);
-      csprg  <- implementation_encrypt (csprgName iname);
-      hchacha20 <- implementation_hchacha20 (hchacha20Name iname);
-      {- vcat [encrypt; csprg; hchacha20 ] -}.
-
-  Definition prototypes iname :=
-    encrypt <- prototype_encrypt (encryptName iname);
-      csprg <- prototype_csprg (csprgName iname);
-      hchacha20 <- prototype_hchacha20 (hchacha20Name iname);
-      {- [ encrypt ; csprg; hchacha20 ]%list -}.
-
 End Internal.
 
-(** Stuff to generate the C file and the raaz FFI call stubs
-
-*)
-
-Definition implementation_name : Name := {| primitive := "chacha20";
-                                            arch      := "c";
-                                            features  := ["portable"]
-                                         |}.
-
-Definition cfilename := libVerseFilePath implementation_name.
 
 
-Definition implementation : unit
-  := writeProgram (C cfilename) (Internal.implementation implementation_name).
+Require Import Verse.Target.C.
 
-Definition prototypes := recover (Internal.prototypes implementation_name).
+Module Allocation.
+  Definition cword := uint32_t.
+  Axiom blockPtr : cvar (ptrToArray BLOCK_SIZE cword).
+  Axiom nBlocks  : cvar uint64_t.
+  Axiom key      : cvar (array KEY_SIZE cword).
+  Axiom iv       : cvar (array IV_SIZE cword).
+  Axiom hiv0 hiv1 hiv2 hiv3 : cvar cword.
 
-Require Import Verse.FFI.Raaz.
 
-Definition raazFFI : unit :=
-  let module := raazModule implementation_name in
-  write_module module (List.map ccall prototypes).
+  Axiom ctrRef : cvar (array 1 cword).
+
+
+  Axiom x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 : cvar cword.
+  Axiom ctr    : cvar cword.
+  Axiom Temp   : cvar cword.
+
+End Allocation.
+
+Inductive name := verse_chacha20_c_portable
+                | verse_chacha20csprg_c_portable
+                | verse_hchacha20_c_portable.
+
+Import Allocation.
+
+Definition params    := (- key , iv , ctrRef -).
+Definition hparams   := (- key , hiv0, hiv1, hiv2, hiv3 -).
+Definition locals    := (--).
+Definition hregisters := (- x0 , x1 , x2 , x3 ,
+                            x4 , x5 , x6 , x7 ,
+                            x8 , x9 , x10, x11,
+                            x12, x13, x14, x15
+                                           -).
+Definition csprgRegs  := ( ctr, hregisters).
+Definition registers  := ( Temp, csprgRegs).
+
+Definition chacha20_iter :=
+  Compile.Iterator verse_chacha20_c_portable
+                   (common.Block littleE)
+                   Internal.parameters
+                   Internal.stack
+                   Internal.registers
+                   blockPtr
+                   nBlocks
+                   params
+                   locals
+                   registers
+                   Internal.EncryptIterator.
+
+Definition hchacha20_fun :=
+  Compile.Function verse_hchacha20_c_portable
+                   Internal.hparameters
+                   Internal.stack
+                   Internal.hregisters
+                   hparams
+                   locals
+                   hregisters
+                   Internal.HChaCha20.
+
+
+Definition csprg_iter :=
+  Compile.Iterator verse_chacha20csprg_c_portable
+                   (common.Block hostE)
+                   Internal.parameters
+                   Internal.stack
+                   Internal.csprgRegisters
+                   blockPtr
+                   nBlocks
+                   params
+                   locals
+                   csprgRegs
+                   Internal.CSPRGIterator.
+
+
+Require Import Verse.Error.
+
+
+Definition chacha20  : Compile.program := recover chacha20_iter.
+Definition hchacha20 : Compile.program := recover hchacha20_fun.
+Definition csprg     : Compile.program := recover csprg_iter.
+
+(*
+
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+Goal to_print chacha20.
+  print.
+Abort.
+
+ *)
