@@ -86,8 +86,6 @@ Module Config <: CONFIG.
     let endianConversion endn cex :=
         match endn, cex with
         | hostE, _                            => cex
-        | littleE, convert_from littleE _ cep => cep
-        | bigE, convert_from bigE _ cep       => cep
         | _, _                                => convert_to endn ty cex
         end in
 
