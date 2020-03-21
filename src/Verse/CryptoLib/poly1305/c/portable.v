@@ -4,6 +4,7 @@
 
 (** printing α %$\alpha$% #α#  *)
 (** printing β %$\beta$%  #β#  *)
+(** printing ell %$\ell$% #ℓ#  *)
 
 (** printing 2³²  %$2^{32}$%  #2<sup>32</sup>#  *)
 (** printing 2⁶⁴  %$2^{64}$%  #2<sup>64</sup>#  *)
@@ -25,6 +26,7 @@
 (** printing T0 %$T_0$% #T<sub>0</sub># *)
 (** printing T1 %$T_1$% #T<sub>1</sub># *)
 
+(** printing M1 %$M_1$% #M<sub>1</sub># *)
 (** printing Mt %$M_t$% #M<sub>t</sub># *)
 (** printing Mi %$M_i$% #M<sub>i</sub># *)
 
@@ -63,27 +65,52 @@
 
 Require Import Verse.
 
-(** * The poly1305 message hash.
+(** * Introduction
 
-Let [GF] denote the finite field [GF(2¹³⁰ - 5)]. The poly1305 MAC in
-essence is just the evaluation of the message thought of as a
-polynomial over the finite field [GF]. Elements of this field can be
-represented using 130 bit word. To get the polynomial corresponding to
-the message [M], we divide it into blocks [Mi] of 16 byte (128-bits)
-with the possibility of the last block [Mt] to be of less than 16
-bytes. The message [M] is then considered as the polynomial
+Let [GF] denote the finite field [GF(2¹³⁰ - 5)]. A message [M] can be
+considered as a univariate polynomial as follows: Break the message
+[M] into chunks [Mi] of 128-bits each. Define the coefficients [Ci] as
+a 129 bit element of [GF] whose least significant 128 bits is the
+block [Mi] and most significant 129th bit is a 1. The message [M] is
+then identified with the polynomial:
 
 [ M(X) = C1 Xt + ... + Ci Xti + ... + Ct X].
 
-where the coefficient [Ci] is the element in [GF] whose least
-significant bits are that of [Mi] with an additional 1-bit appended to
-it. Thus the length of [Ci] in bits is one more than that of [Mi].
+For secrets [R] and [S] in [GF], the poly1305 MAC of [M] is in essence
+the evaluation of the polynomial [M(R) + S].element [R] in
+[GF]. Therefore, at the heart of any fast streaming implementation is
+the Horner's method of evaluation of a polynomial [M(X)] at [R]: start
+with an accumulator [A] which is at 0, update using the step [A := (A
++ Ci) * R] as the message [M = M1,...,Mt] is streamed, and finalise
+the MAC by computing [A + S].
 
-The poly1305 MAC for secrets [R] and [K] consists of computing [M(R) +
-K] rounded to 128 bits. At the heart of any fast implementations is
-therefore the Horner's method of evaluation of a polynomial: keep an
-accumulator [A] which starts with 0 and is updated using the step [A
-:= (A + Ci) * R]
+ *)
+
+(** ** Exported C functions.
+
+The verse code available here, exposes the inner loops of a fast and
+portable poly1305 implementation and some helper functions.
+
+- The iterator [verse_poly1305_c_portable_incremental] that is used to
+  incrementally process a stream of blocks when we know that there is
+  more blocks to follow (but we do not have them yet).
+
+- The iterator [verse_poly1305_c_portable_blockmac] that computes MAC
+  when the stream of blocks ends the message. This function is used to
+  complete the MAC computation when the end of the message is reached
+  and it has length that is a multiple of 128.
+
+- The function [verse_poly1305_c_portable_partialmac] is used to
+  process that last message chunk when it of length [ell < 128].
+
+*)
+
+(** *** Clamping
+
+The Poly1305 standard stipulates that certain bits of [R] should be
+zeros. The iterator [verse_poly1305_c_portable_clamp] takes a stream
+of 128-bit blocks and clear those bits (can be used for random
+generation of these [R] values for example).
 
  *)
 
@@ -93,7 +120,7 @@ Definition Block      := Array BLOCK_SIZE littleE Word.
 
 
 
-(** ** Arithmetic over [GF].
+(** * Field Arithmetic.
 
 In C the biggest supported word type is the type of 64-bit word. This
 means that we would need multiple 64-bit "Limbs" to represent a single
@@ -140,11 +167,12 @@ Definition Limb      := Word64.
 
 (** The masks that are required when selecting bits during. field
     arithmetic.
-*)
+ *)
+
 Definition Select32 : constant Limb := Ox "00:00:00:00 FF:FF:FF:FF".
 Definition Select2  : constant Limb := Ox "00:00:00:00 00:00:00:03".
 
-(** *** Managing the accumulator during evaluation.
+(** ** Managing accumulator without overflow.
 
 Although all elements in [GF] can be reduced to the standard form that
 we described above, during the evaluation of the MAC, we maintain a
