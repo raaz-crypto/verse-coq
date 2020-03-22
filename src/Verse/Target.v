@@ -61,8 +61,10 @@ generator.
 Module Type CONFIG.
 
 
-  (** The AST of the target language. *)
-  Parameter ast : Type.
+  (** The statements of the target language. *)
+  Parameter statement : Type.
+
+  Parameter programLine  : Type.
 
   (** The type system on the target side. *)
   Parameter typeS : TypeSystem.typeSystem.
@@ -107,7 +109,7 @@ Module Type CONFIG.
 
    *)
 
-  Parameter compileCode   : code variables -> list ast + {TranslationError}.
+  Parameter compileCode   : code variables -> list statement + {TranslationError}.
 
   (** *** Compiling Iterators.
 
@@ -145,14 +147,14 @@ Module Type CONFIG.
   Parameter mapOverBlocks : forall mem ty,
       variables memory mem -> (**  Block pointer variable *)
       variables direct ty  -> (** Counter variable       *)
-      list ast             -> (** Things to do on a single block *)
-      list ast.
+      list statement       -> (** Things to do on a single block *)
+      list statement.
 
   Parameter makeFunction
     : forall name : Set,
       name
       -> funSig typeS variables
-      -> list ast -> ast.
+      -> list statement -> programLine.
 
 End CONFIG.
 
@@ -324,7 +326,7 @@ Module CodeGen (T : CONFIG).
      *)
     Definition function
                (func   : forall v, abstracted v (code v))
-      : T.ast + { TranslationError }
+      : T.programLine + { TranslationError }
       := let body := Scope.fill verse_regs (Scope.fill verse_locals (Scope.fill verse_params (func _)))
          in btc <- typeCheckedTransform body ;
               btarget <- T.compileCode btc;
@@ -370,7 +372,7 @@ Module CodeGen (T : CONFIG).
 
     Definition iterativeFunction
                (iFunc       : forall v, abstracted v (iterator v memty))
-      : T.ast + {TranslationError}
+      : T.programLine + {TranslationError}
       := let iter    := Scope.fill verse_regs
                                    (Scope.fill verse_locals
                                                (Scope.fill verse_params (iFunc _))) in
@@ -423,5 +425,5 @@ Module CodeGen (T : CONFIG).
        )
          (only parsing).
 
-  Definition program := T.ast.
+  Definition programLine := T.programLine.
 End CodeGen.
