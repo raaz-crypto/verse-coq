@@ -107,14 +107,15 @@ Definition blake2bLast
                       Blake2b.LastBlockCompress.
 
 Require Import Verse.Error.
-Definition program   : Compile.program := recover (blake2bIter).
-Definition programLast : Compile.program := recover (blake2bLast).
+Definition iterator   : Compile.programLine := recover (blake2bIter).
+Definition lastBlock  : Compile.programLine := recover (blake2bLast).
+Definition program := verseC [iterator; lastBlock].
 
 (*
 
 Require Import Verse.Print.
 Require Import Verse.Target.C.Pretty.
-Goal to_print programLast.
+Goal to_print program.
   print.
 Abort.
 

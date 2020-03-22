@@ -130,12 +130,14 @@ Definition sha256iter
 
 
 Require Import Verse.Error.
-Require Import Verse.Target.C.Pretty.
-Definition program : Compile.program := recover (sha256iter).
+Definition iterator : Compile.programLine := recover sha256iter.
+Definition program := verseC [iterator].
 
 (*
 
 Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+
 
 Goal to_print program.
   print.

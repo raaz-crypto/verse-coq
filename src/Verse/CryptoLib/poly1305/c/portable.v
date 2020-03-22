@@ -792,6 +792,7 @@ Definition registers := (- a0 , a1 , a2 , a3 , a4,
                            T0 , T1
                         -).
 
+Require Import Verse.Error.
 
 Definition incremental :=
   Compile.Iterator verse_poly1305_c_portable_incremental
@@ -844,18 +845,25 @@ Definition clamp :=
                    (- Temp -)
                    Internal.clampIter.
 
-Require Import Verse.Error.
 
-Definition programClamp : Compile.program := recover clamp.
-Definition programIncremental : Compile.program := recover incremental.
-Definition programBlockMAC    : Compile.program := recover blockmac.
-Definition program            : Compile.program := recover partial.
+Definition clampI       : Compile.programLine := recover clamp.
+Definition incrementalI : Compile.programLine := recover incremental.
+Definition blockmacI    : Compile.programLine := recover blockmac.
+Definition partialF     : Compile.programLine := recover partial.
+
+Definition program := verseC [ incrementalI;
+                               blockmacI;
+                               partialF;
+                               clampI
+                             ].
+
+
 
 (*
 
 Require Import Verse.Print.
 Require Import Verse.Target.C.Pretty.
-Goal to_print programClamp.
+Goal to_print program.
   print.
 Abort.
 

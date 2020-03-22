@@ -145,12 +145,13 @@ Definition sha512iter
 
 
 Require Import Verse.Error.
-Require Import Verse.Target.C.Pretty.
-Definition program : Compile.program := recover (sha512iter).
+Definition iterator : Compile.programLine := recover (sha512iter).
+Definition program := verseC [iterator].
 
 (*
 
 Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
 
 Goal to_print program.
   print.

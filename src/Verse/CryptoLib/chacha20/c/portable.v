@@ -384,10 +384,11 @@ Definition csprg_iter :=
 Require Import Verse.Error.
 
 
-Definition chacha20  : Compile.program := recover chacha20_iter.
-Definition hchacha20 : Compile.program := recover hchacha20_fun.
-Definition csprg     : Compile.program := recover csprg_iter.
+Definition chacha20  : Compile.programLine := recover chacha20_iter.
+Definition hchacha20 : Compile.programLine := recover hchacha20_fun.
+Definition csprg     : Compile.programLine := recover csprg_iter.
 
+Definition program   := verseC [chacha20; hchacha20 ; csprg].
 (*
 
 Require Import Verse.Print.
