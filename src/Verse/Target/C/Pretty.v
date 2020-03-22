@@ -194,7 +194,7 @@ Notation "( X , .. , Y )"
 Notation "# 'include' < FILE >"
   := (include FILE)
        (at level 8, only printing,
-        format "#  'include'  < FILE > '//'").
+        format "#  'include'  < FILE >").
 
 Notation "'void' FN P BODY"
   := (function FN P BODY)
@@ -206,11 +206,16 @@ Notation "'while' ( COND ) BODY"
        (at level 70, only printing,
         format "'while'  ( COND ) '//' BODY") : c_scope.
 
-
-
+Notation "# 'define' 'XOR' ^" := defineXOR (only printing) : c_scope.
+Notation "/* 'Empty' 'Program' */" := (Program []) (only printing) : c_scope.
+Notation "X" := (Program [X]) (at level 0, only printing) : c_scope.
+Notation "X .. Y"
+  := (Program (cons X .. (cons Y nil) ..))
+       (at level 0,
+        format "X '//' .. '//' Y",
+        only printing) : c_scope.
 
 Notation "'auto' X" := (declareStmt X) (at level 70, only printing) : c_scope.
-
 
 Open Scope c_scope.
 

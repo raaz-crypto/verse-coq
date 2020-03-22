@@ -132,11 +132,17 @@ Inductive statement :=
 | update      : expr -> forall n, op (S n) -> Vector.t expr n -> statement
 | increment   : expr -> statement
 | decrement   : expr -> statement
-| include     : forall FileName,  FileName -> statement
 | comment   : forall Text , Text -> statement
 | whileLoop : expr -> braces -> statement
-| function  : forall FN,  FN -> parameters -> braces -> statement
 with braces := Braces : list statement -> braces.
+
+Inductive line :=
+| include   : forall FileName,  FileName -> line
+| defineXOR : line
+| function  : forall FN,  FN -> parameters -> braces -> line.
+
+Inductive program :=
+| Program : list line -> program.
 
 
 Arguments update _ [n].
@@ -146,3 +152,12 @@ Arguments declare_variable [k].
 Arguments declare [k ty].
 Arguments function [FN].
 Arguments include [FileName].
+
+(* Generates a complete verse C file with necessary includes *)
+Inductive headers := stdint_h | verse_h.
+
+Notation "'stdint.h'" := (stdint_h) (only printing).
+Notation "'verse.h'"  := (verse_h)  (only printing).
+
+Import List.ListNotations.
+Definition verseC l := Program ([ include stdint_h ; include verse_h ; defineXOR ] ++ l)%list.

@@ -12,7 +12,9 @@ Import Vector.VectorNotations.
 
 Module Config <: CONFIG.
 
-  Definition ast       := statement.
+  Definition statement   := C.Ast.statement.
+  Definition programLine := Ast.line.
+
   Definition typeS     := c_type_system.
 
   Definition variables := cvar.
@@ -128,14 +130,14 @@ Module Config <: CONFIG.
     end.
 
 
-  Definition compileCode : Language.Ast.code variables -> list ast + {TranslationError}
+  Definition compileCode : Language.Ast.code variables -> list statement + {TranslationError}
     := fun cs => pullOutList (List.map trStatement cs).
 
   Definition mapOverBlocks mem ty
              (blockPtrVar : variables memory mem)
              (ctrVar : variables direct ty)
-             (body : list ast)
-             : list ast
+             (body : list statement)
+             : list statement
     := [ whileLoop (gt_zero ctrVar)
                    (Braces
                       (body ++ [ increment blockPtrVar ; decrement ctrVar ]
@@ -155,7 +157,8 @@ Module Config <: CONFIG.
 
   Arguments allocToList [n st].
 
-  Definition makeFunction (name : Set) (fname : name)(fsig : funSig typeS variables) (body : list ast)
+  Definition makeFunction (name : Set) (fname : name)(fsig : funSig typeS variables)
+             (body : list statement)
     := let ps := params (allocToList (Target.parameters fsig)) in
        let ls := List.map declareStmt (allocToList (Target.locals fsig)) in
        let rs := List.map declareStmt (allocToList (Target.registers fsig)) in
