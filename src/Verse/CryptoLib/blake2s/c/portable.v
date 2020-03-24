@@ -60,7 +60,7 @@ Module Allocation.
   Axiom C LMSB U L : cvar cword.
 End Allocation.
 
-Import Allocation.
+Export Allocation.
 
 Definition params     := (- UpperRef , LowerRef , hash -).
 Definition paramsLast := (- lastBlock, nBytes, Upper, Lower, f0, f1, hash -).
@@ -110,8 +110,8 @@ Definition blake2sLast
 
 Require Import Verse.Error.
 Definition iterator   : Compile.programLine := recover (blake2sIter).
-Definition lastBlock  : Compile.programLine := recover (blake2sLast).
-Definition program := verseC [iterator; lastBlock].
+Definition lastchunk  : Compile.programLine := recover (blake2sLast).
+Definition program := verseC [iterator; lastchunk].
 
 (*
 

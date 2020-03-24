@@ -783,7 +783,7 @@ Module Allocation.
   Axiom Temp T0 T1     : cvar cword.
 End Allocation.
 
-Import Allocation.
+Export Allocation.
 
 
 Definition registers := (- a0 , a1 , a2 , a3 , a4,

@@ -330,7 +330,7 @@ Inductive name := verse_chacha20_c_portable
                 | verse_chacha20csprg_c_portable
                 | verse_hchacha20_c_portable.
 
-Import Allocation.
+Export Allocation.
 
 Definition params    := (- key , iv , ctrRef -).
 Definition hparams   := (- key , hiv0, hiv1, hiv2, hiv3 -).
