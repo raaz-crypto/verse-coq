@@ -1,5 +1,5 @@
 (** printing x₁ %$x_1$%  #x<sub>1</sub># *)
-(** printing xₙ %$x_n$%  #x<sub>n</sub># *)
+(** printing xn %$x_n$%  #x<sub>n</sub># *)
 
 
 Require Import Verse.Language.Types.
@@ -13,9 +13,9 @@ Section Scoped.
   (** * Scopes and allocations.
 
   In processing verse code, we often have code fragments [C] that use
-  variables [x₁,...,xₙ] which needs to be finally allocated into
+  variables [x₁,...,xn] which needs to be finally allocated into
   registers before code generation. A convenient representation of
-  such code fragment is using a function [fun x₁ => ... fun xₙ =>
+  such code fragment is using a function [fun x₁ => ... fun xn =>
   C]. Register allocation then becomes application of this function to
   appropriate register variables. We define the type [scoped] that is
   the type of all such PHOAS style code fragments. But first, we
