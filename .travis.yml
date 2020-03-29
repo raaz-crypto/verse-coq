@@ -9,6 +9,7 @@ addons:
       - libgmp-dev
       - opam
       - ghc
+      - indent
       - texlive-full
     sources: [avsm]
 matrix:
