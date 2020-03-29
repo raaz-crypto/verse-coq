@@ -214,10 +214,12 @@ Module LExpr.
     lexpr (Variables.Universe.inject v) ty -> result v ty
     := match ty with
        | {- good -} => fun l => match l with
-                                | @var _ _ {- good -}  x        => var x
-                                | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
-                                end
-       | error err  => fun l => error (CouldNotTranslateBecause l err)
+                            | @var _ _ {- good -}  x        => var x
+                            | @deref _ _ {- good -} _ _ a i => deref (ty:=good) a i
+                            | _ => idProp
+                            end
+       | error err
+         => fun l => error (CouldNotTranslateBecause l err)
        end.
   Arguments extract [tgt v ty].
 
