@@ -57,7 +57,7 @@ Section Embedding.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
-  Global Class EXPR  t := { toExpr  : t -> expr v ty }.
+  Class EXPR  t := { toExpr  : t -> expr v ty }.
 
 
   (** *** Instances of [EXPR]
@@ -74,7 +74,7 @@ Section Embedding.
   := { toExpr := fun n => cval (NToConst ty n)}.
 
   (** Class similar to [EXPR] but creates l-expressions *)
-  Global Class LEXPR t := { toLexpr : t -> lexpr v ty }.
+  Class LEXPR t := { toLexpr : t -> lexpr v ty }.
 
   Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := { toLexpr := fun t => t}.
   Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := fun x => var x }.
