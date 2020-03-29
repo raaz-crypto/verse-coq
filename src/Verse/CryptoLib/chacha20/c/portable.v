@@ -11,8 +11,6 @@ This module implements the following
 
 Require Import Verse.
 Require Import Verse.CryptoLib.chacha20.common.
-Require List.
-Import List.ListNotations.
 
 Module Internal.
 
