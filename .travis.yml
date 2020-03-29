@@ -42,9 +42,9 @@ script:
   - make
   - make html
   - make all.pdf
-  - make test
-  - make -C crypto-lib libverse
-  - make -C crypto-lib/libverse libverse.a
+  - make -C test
+  - make -C crypto-lib
+  - make -C crypto-lib compile-test
 after_success:
   - echo "All is well."
 after_failure:
