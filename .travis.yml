@@ -35,7 +35,7 @@ before_install:
 script:
   - eval $(opam config env)
   - coqtop --version
-  - ./configure.sh
+  - coq_makefile -f _CoqProject > Makefile
   - make
   - make html
   - make all.pdf
