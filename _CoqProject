@@ -63,5 +63,4 @@ src/Verse/CryptoLib/sha512/c/portable.v
 # src/Verse/Semantics/ScopeStore.v
 # src/Verse/Semantics/FunctionStore.v
 # src/Verse/TestCode/TestSemantics.v
-# src/Verse/Extraction/Ocaml.v
 # src/Verse/FFI/Raaz.v
