@@ -129,9 +129,9 @@ Module Types.
   Definition compile src tgt
              (cr : compiler src tgt)
              (n : nat)
-             (st : type src n)
+             (ss : type src n)
              : result tgt n
-    := translate cr st .
+    := translate cr ss.
 
   Arguments compile [src tgt] cr [n].
 
