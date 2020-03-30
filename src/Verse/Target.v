@@ -412,15 +412,20 @@ Module CodeGen (T : CONFIG).
          (only parsing).
 
   Notation Iterator name memty pvsf lvsf rvsf bPtrVar ctrVar
-    := (let pvs := Verse.infer pvsf in
+    := (
+        let memtyTgt : typeOf T.typeS memory
+            := recover (Types.compile T.typeCompiler memty) in
+        let pvs := Verse.infer pvsf in
         let lvs := Verse.infer lvsf in
         let rvs := Verse.infer rvsf in
-        iterativeFunction name memty pvs lvs rvs
-                          (recover (Types.compile T.typeCompiler memty)) eq_refl
+        let pvt : Scope.type T.typeS _ := recover (targetTypes pvs) in
+        let lvt : Scope.type T.typeS _ := recover (targetTypes lvs) in
+        let rvt : Scope.type T.typeS _ := recover (targetTypes rvs) in
+        iterativeFunction name memty
+                          pvs lvs rvs
+                          memtyTgt eq_refl
                           bPtrVar ctrVar
-                          (recover (targetTypes pvs))
-                          (recover (targetTypes lvs))
-                          (recover (targetTypes rvs))
+                          pvt lvt rvt
                           eq_refl eq_refl eq_refl
        )
          (only parsing).
