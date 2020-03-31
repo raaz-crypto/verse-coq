@@ -54,6 +54,7 @@ Module Config <: CONFIG.
        | _           => good
        end.
 
+  Definition counterType := uint64_t.
   Definition dereference : forall memty good (pf : Types.compile typeCompiler memty = {- good -}),
       variables memory (pointerType memty good pf) -> variables memory good :=
    fun _ _ _ x => Expr.ptrDeref x.
