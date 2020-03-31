@@ -131,6 +131,9 @@ Module Type CONFIG.
       Types.compile typeCompiler memty = {- good -}
       -> typeOf typeS memory.
 
+  (** Type used to count the number of blocks *)
+  Parameter counterType    : typeOf typeS direct.
+
   (** We need a way to dereference the current block so that the
      [process] fragment of the iterator can work on it.
 
@@ -273,8 +276,7 @@ Module CodeGen (T : CONFIG).
     Definition blockPtrType := T.pointerType memty blockType blockTypeCompat.
     Variable blockPtrVar : T.variables memory blockPtrType.
 
-    Variable counterType    : typeOf T.typeS direct.
-    Variable counterVar  : T.variables direct counterType.
+    Variable counterVar  : T.variables direct T.counterType.
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -364,7 +366,7 @@ Module CodeGen (T : CONFIG).
         and other for the counter
      *)
 
-    Definition fullpts := existT _ _ blockPtrType :: existT _ _ counterType :: pts.
+    Definition fullpts := existT _ _ blockPtrType :: existT _ _ T.counterType :: pts.
 
     (** Given an allocation for the parameters, this generates *)
     Definition fullParams : Scope.allocation T.variables fullpts
@@ -388,7 +390,7 @@ Module CodeGen (T : CONFIG).
   Arguments function [name] _
             [p l r].
   Arguments iterativeFunction [name] _ _ [p l r] pvs lvs rvs blockType blockTypeCompat
-            blockPtrVar [counterType].
+            blockPtrVar.
 
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
