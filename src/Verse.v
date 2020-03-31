@@ -5,7 +5,18 @@ Require Export Verse.TypeSystem.
 Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
-Require Export List.
+
+(* This allows us to use the vector notations for lists as well
+
+<<
+
+Definition foo : Vector.t nat _ := 1 :: [2;3].
+Definition bar : list nat := 1 :: [2;3].
+
+>>
+
+*)
+
 Coercion Vector.to_list : Vector.t >-> list.
 
 (** Some definitions that are need for code generation *)
