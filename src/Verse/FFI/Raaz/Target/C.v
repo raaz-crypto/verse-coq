@@ -30,16 +30,21 @@ Definition fromDecl {n}(params : @Declaration n) : list Raaz.type
   := List.map (fun st => translate (projT2 st)) (Vector.to_list params).
 
 
+Require Verse.
+Require Verse.Scope.
 (** Generate the Haskell FFI stub for a straight line function *)
 Definition function {Name} (name : Name)
-                    {n : nat} (params : @Declaration n) : Raaz.Foreign
-  := ccall name (fromDecl params).
+           {T}{ifr : Infer T} (params : T)
+  : Raaz.Foreign
+  := let ps := Verse.infer params in ccall name (fromDecl ps).
 
 (** Generate the Haskell FFI stub for an iterator *)
 Definition iterator
            {Name} (name : Name)
            (memty : typeOf verse_type_system memory)
-           {n : nat} (params : @Declaration n) : Raaz.Foreign :=
-  let block   := translate memty in
-  let args := fromDecl params in
+           {T}{ifr : Infer T} (params : T)
+  : Raaz.Foreign :=
+  let ps    := Verse.infer params in
+  let block := translate memty in
+  let args := fromDecl ps in
   ccall name (block :: counterType :: args).
