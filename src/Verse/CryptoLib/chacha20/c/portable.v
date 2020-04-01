@@ -387,11 +387,24 @@ Definition hchacha20 : Compile.programLine := recover hchacha20_fun.
 Definition csprg     : Compile.programLine := recover csprg_iter.
 
 Definition program   := verseC [chacha20; hchacha20 ; csprg].
-(*
 
+Require Import Verse.FFI.Raaz.
+Require Import Verse.FFI.Raaz.Target.C.
+
+Definition raazFFI
+  := ffi [ iterator verse_chacha20_c_portable
+                    (common.Block littleE)
+                    Internal.parameters;
+           function verse_hchacha20_c_portable Internal.hparameters;
+           iterator verse_chacha20csprg_c_portable
+                    (common.Block hostE)
+                    Internal.parameters
+         ].
+
+(*
 Require Import Verse.Print.
 Require Import Verse.Target.C.Pretty.
-Goal to_print chacha20.
+Goal to_print raazFFI.
   print.
 Abort.
 

@@ -148,6 +148,16 @@ Require Import Verse.Error.
 Definition iterator : Compile.programLine := recover (sha512iter).
 Definition program := verseC [iterator].
 
+
+Require Import Verse.FFI.Raaz.
+Require Import Verse.FFI.Raaz.Target.C.
+
+Definition raazFFI
+  := ffi [ iterator verse_sha512_c_portable
+                    SHA512.Block
+                    SHA512.parameters
+         ].
+
 (*
 
 Require Import Verse.Print.
