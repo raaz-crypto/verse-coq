@@ -55,5 +55,5 @@ Inductive FFI :=
 Notation "X .. Y" := (ffi (cons X .. (cons Y nil) ..))
          ( only printing,
            format "X '//' .. '//' Y",
-           at level 1
+           at level 0
          ).
