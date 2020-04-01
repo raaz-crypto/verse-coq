@@ -1,7 +1,7 @@
 -R src Verse
 src/Verse.v
 src/Verse/Error.v
-src/Verse/FFI/Raaz/Types.v
+src/Verse/FFI/Raaz.v
 src/Verse/FFI/Raaz/Target/C.v
 src/Verse/Language.v
 src/Verse/Language/Ast.v
