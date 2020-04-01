@@ -47,4 +47,4 @@ Definition iterator
   let ps    := Verse.infer params in
   let block := translate memty in
   let args := fromDecl ps in
-  ccall name (block :: counterType :: args).
+  ccall name (block :: counterType :: args)%list.
