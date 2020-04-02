@@ -20,15 +20,20 @@ export CRYPTOLIB
 export LIBVERSE
 export INDENT_OPTS
 
-.PHONY: all clean root gitrepos compile-test
+.PHONY: all clean implementation root update-libverse gitrepos  compile-test
 
-all: root gitrepos
+all: implementation
+
+implementation: root
 	make -C implementation
 
 root:
 	make -C ${ROOT}
 clean:
 	make -C implementation clean
+	if [ -d libverse ]; then \
+		make -C libverse clean; \
+	fi
 
 # This command only tests whether the generated c codes compiles. No
 # other interesting tests are present in the libverse library.
@@ -36,7 +41,10 @@ clean:
 compile-test: gitrepos
 	make -C libverse
 
-gitrepos:
+update-libverse: implementation gitrepos
+	cp -rv $(wildcard implementation/c/libverse/*) libverse
+
+gitrepos: implementation
 	if [ ! -d libverse/.git ]; then \
 		rm -rf libverse; \
 		git clone ${GIT_REPO_HTTP}; \
