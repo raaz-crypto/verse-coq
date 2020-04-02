@@ -1,7 +1,8 @@
 TESTS=C.v TestCode.v
+GENERATED=$(wildcard .*.aux *.glob *.vo)
 
 .PHONY: all clean
 all:
 	$(foreach test, ${TESTS}, coqc -R ../src Verse ${test};)
 clean:
-	echo "Someday there will be something to clean"
+	rm -f ${GENERATED}

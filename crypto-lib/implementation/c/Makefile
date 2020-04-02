@@ -3,6 +3,10 @@ IMPLS=sha256 sha512 \
        chacha20 \
        poly1305 \
 
+
+##################################################################
+GENERATED=$(wildcard .*.aux *.glob *.vo)
+
 implpath = $(1)/c/portable.c
 
 IMPL_FILES= $(foreach prim, ${IMPLS}, $(call implpath, ${prim}))
@@ -30,3 +34,4 @@ ${LIBVERSE_IMPL_MK}:
 
 clean:
 	rm -f ${EXTRACT}
+	rm -f ${GENERATED}
