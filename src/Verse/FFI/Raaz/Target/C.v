@@ -35,16 +35,15 @@ Require Verse.Scope.
 (** Generate the Haskell FFI stub for a straight line function *)
 Definition function {Name} (name : Name)
            {T}{ifr : Infer T} (params : T)
-  : Raaz.Foreign
-  := let ps := Verse.infer params in ccall name (fromDecl ps).
+  : Raaz.line
+  := let ps := Verse.infer params in ccall name (args (fromDecl ps)).
 
 (** Generate the Haskell FFI stub for an iterator *)
 Definition iterator
            {Name} (name : Name)
            (memty : typeOf verse_type_system memory)
            {T}{ifr : Infer T} (params : T)
-  : Raaz.Foreign :=
-  let ps    := Verse.infer params in
+  : Raaz.line :=
+  let ps    := fromDecl (Verse.infer params) in
   let block := translate memty in
-  let args := fromDecl ps in
-  ccall name (block :: counterType :: args)%list.
+  ccall name (args (block :: counterType :: ps))%list.

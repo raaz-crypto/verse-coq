@@ -36,23 +36,49 @@ Notation ":: X -> .. -> Y -> 'IO' ()"
 Notation ":: X -> 'IO' ()"
    := (args (cons X nil)) ( only printing, at level 1).
 
-Inductive Foreign :=
-| foreignC : forall N, N -> Args -> Foreign.
+Inductive extension := DataKinds | ForeignFunctionInterface.
 
-Definition ccall {N} (n : N) l := foreignC N n (args l).
+Inductive line :=
+| language  : extension -> line
+| module    : forall N, N    -> line
+| import    : forall N, N    -> line
+| ccall     : forall N, N    -> Args -> line.
 
+Inductive RaazMods := RaazCore.
+
+Notation "'Raaz.Core'" := RaazCore (only printing).
+
+
+Arguments module [N].
+Arguments import [N].
 Arguments ccall [N].
 
+Inductive Program := program : list line -> Program.
+
+Require List.
+Import List.ListNotations.
+
+Definition mkProgram {Name} (modName : Name)(lns : list line) : Program
+  := program ( [ language DataKinds;
+                 language ForeignFunctionInterface;
+                 module modName;
+                 import RaazCore
+               ]
+                 ++ lns)%list.
+
+Arguments mkProgram [Name].
+
+Notation "{-#  'LANGUAGE'  X  #-}" := (language X) (only printing).
+Notation "'module' N 'where'"   := (module N) (only printing).
+Notation "'import' N"           := (import N) (only printing, at level 1).
 Notation "'foreign' 'import' 'ccall' 'unsafe' N A"
-  := (foreignC _ N A)
+  := (ccall N A)
        ( only printing,
          format "'foreign'  '[hv' 'import'  'ccall'  'unsafe'  N '//' A ']'",
          at level 2).
 
-Inductive FFI :=
-| ffi : list Foreign -> FFI.
 
-Notation "X .. Y" := (ffi (cons X .. (cons Y nil) ..))
+Notation "X .. Y" := (program (cons X .. (cons Y nil) ..))
          ( only printing,
            format "X '//' .. '//' Y",
            at level 0
