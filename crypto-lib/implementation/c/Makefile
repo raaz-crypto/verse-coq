@@ -1,37 +1,39 @@
-IMPLS=sha256 sha512 \
-       blake2b blake2s \
-       chacha20 \
-       poly1305 \
+PRIMS=Sha256 Sha512 \
+       Blake2b Blake2s \
+       ChaCha20 \
+       Poly1305 \
 
 
 ##################################################################
 GENERATED=$(wildcard .*.aux *.glob *.vo)
+prims=$(foreach p,${PRIMS}, $(shell echo ${p} | tr A-Z a-z))
 
-implpath = $(1)/c/portable.c
+IMPL_FILES=$(patsubst %,libverse/%/c/portable.c, ${prims})
+RAAZ_FILES=$(patsubst %,libverse/Raaz/Verse/%/C/Portable.hs, ${PRIMS})
 
-IMPL_FILES= $(foreach prim, ${IMPLS}, $(call implpath, ${prim}))
-IMPL_FULL_PATH= $(addprefix ${LIBVERSE}/, ${IMPL_FILES})
+EXTRACT=$(addsuffix .v, ${prims})
+EXTRACT_RAAZ=$(addsuffix .v, ${PRIMS})
 
-LIBVERSE_IMPL_MK=${LIBVERSE}/Implementations.mk
+.PHONY: all clean
 
-EXTRACT=$(addsuffix .v, ${IMPLS})
+all: ${IMPL_FILES} ${RAAZ_FILES}
 
-.PHONY: all clean ${LIBVERSE_IMPL_MK}
-
-
-
-
-all: ${IMPL_FULL_PATH} ${LIBVERSE_IMPL_MK}
-
-${EXTRACT}: %.v : extract.m4
+${EXTRACT}: extract.m4
 	m4 -DPRIM=$(basename $@) extract.m4 > $@
+${EXTRACT_RAAZ}: raaz.m4
+	m4 -DPRIM=$(basename $@) raaz.m4 > $@
 
-${IMPL_FULL_PATH}: ${LIBVERSE}/%/c/portable.c : %.v
+${IMPL_FILES}: libverse/%/c/portable.c : %.v
+	mkdir -p $(dir $@)
 	coqc -R ${VERSE} Verse $<  | indent ${INDENT_OPTS} > $@
 
-${LIBVERSE_IMPL_MK}:
-	echo "IMPLS=${IMPL_FILES}" > $@
-
+${RAAZ_FILES}:  libverse/Raaz/Verse/%/C/Portable.hs : %.v
+	mkdir -p $(dir $@)
+	coqc -R ${VERSE} Verse $<  > $@
 clean:
 	rm -f ${EXTRACT}
+	rm -f ${EXTRACT_RAAZ}
+	rm -f ${RAAZ_FILES}
+	rm -f ${IMPL_FILES}
+	rm -rf libverse
 	rm -f ${GENERATED}
