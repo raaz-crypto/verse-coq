@@ -152,11 +152,11 @@ Definition program := verseC [iterator].
 Require Import Verse.FFI.Raaz.
 Require Import Verse.FFI.Raaz.Target.C.
 
-Definition raazFFI
-  := ffi [ iterator verse_sha512_c_portable
-                    SHA512.Block
-                    SHA512.parameters
-         ].
+Definition raazFFI {Name} (name : Name)
+  := mkProgram name [ iterator verse_sha512_c_portable
+                               SHA512.Block
+                               SHA512.parameters
+                    ].
 
 (*
 

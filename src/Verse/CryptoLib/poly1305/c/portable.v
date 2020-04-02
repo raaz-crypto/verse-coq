@@ -861,19 +861,19 @@ Definition program := verseC [ incrementalI;
 Require Import Verse.FFI.Raaz.
 Require Import Verse.FFI.Raaz.Target.C.
 
-Definition raazFFI
-  := ffi [ iterator verse_poly1305_c_portable_incremental
-                    Block
-                    Internal.paramsIncremental;
-           iterator verse_poly1305_c_portable_blockmac
-                    Block
-                    Internal.paramsBlockMac;
-           iterator verse_poly1305_c_portable_clamp
-                    Internal.Array128
-                    [];
-           function verse_poly1305_c_portable_partialmac
-                    Internal.paramsPartialMac
-         ].
+Definition raazFFI {Name} (name : Name)
+  := mkProgram name [ iterator verse_poly1305_c_portable_incremental
+                               Block
+                               Internal.paramsIncremental;
+                      iterator verse_poly1305_c_portable_blockmac
+                               Block
+                               Internal.paramsBlockMac;
+                      iterator verse_poly1305_c_portable_clamp
+                               Internal.Array128
+                               [];
+                      function verse_poly1305_c_portable_partialmac
+                               Internal.paramsPartialMac
+                    ].
 
 
 (*

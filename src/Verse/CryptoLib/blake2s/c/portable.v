@@ -116,13 +116,15 @@ Definition program := verseC [iterator; lastchunk].
 Require Import Verse.FFI.Raaz.
 Require Import Verse.FFI.Raaz.Target.C.
 
-Definition raazFFI
-  := ffi [ iterator verse_blake2s_c_portable_iter
-                    Blake2s.Block
-                    Blake2s.paramIterator;
-           function verse_blake2s_c_portable_last
-                    Blake2s.paramLastBlock
-         ].
+Definition raazFFI {Name} (name : Name)
+  := mkProgram name [ iterator verse_blake2s_c_portable_iter
+                               Blake2s.Block
+                               Blake2s.paramIterator;
+                      function verse_blake2s_c_portable_last
+                               Blake2s.paramLastBlock
+                    ].
+
+Arguments raazFFI [Name].
 
 (*
 
