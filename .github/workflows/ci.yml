@@ -1,0 +1,19 @@
+name: Building and testing
+on: [push, pull_request]
+jobs:
+  linux:
+    name: 'Linux'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        coq: [ latest, 8.10, 8.9, 8.8, 8.7, 8.6 ]
+    container: coqorg/coq:${{ coq }}
+    steps:
+      - name: Setup
+        run: sudo apt-get install texlive-full -y
+
+      - name: Information
+        run: coqtop --version
+
+      - name: Get the Repository
+        uses: actions/checkout@v2
