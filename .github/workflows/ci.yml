@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ latest, 8.10, 8.9, 8.8, 8.7, 8.6 ]
+        coq: [ latest, '8.10', '8.9', '8.8', '8.7', '8.6' ]
     container: coqorg/coq:${{ matrix.coq }}
     steps:
       - name: Setup
