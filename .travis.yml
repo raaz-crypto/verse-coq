@@ -6,19 +6,20 @@ cache:
 addons:
   apt:
     packages:
-      - libgmp-dev
       - opam
-      - ghc
+      - indent
       - texlive-full
     sources: [avsm]
 matrix:
   include:
-    - env: COQ_VER=8.6   OCAML_VER=4.05.0
     - env: COQ_VER=8.6.1 OCAML_VER=4.05.0
     - env: COQ_VER=8.7.2 OCAML_VER=4.05.0
     - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
-  allow_failures:
-    - env: COQ_VER=8.8.0 OCAML_VER=4.05.0
+    - env: COQ_VER=8.9.1 OCAML_VER=4.05.0
+    - env: COQ_VER=8.10.2 OCAML_VER=4.05.0
+    - env: COQ_VER=8.11.0 OCAML_VER=4.05.0
+  # allow_failures:
+  #  - env: COQ_VER=8..0 OCAML_VER=4.05.0
 
 
 notifications:
@@ -35,12 +36,10 @@ before_install:
 script:
   - eval $(opam config env)
   - coqtop --version
-  - ./configure.sh
-  - make
+  - make all
+  - make test
   - make html
   - make all.pdf
-  - make -C crypto-lib libverse
-  - make -C crypto-lib/libverse libverse.a
 after_success:
   - echo "All is well."
 after_failure:

@@ -30,7 +30,7 @@ module.
 *)
 Module SHA2 (C : CONFIG).
 
-  Import C.
+  Export C.
 
   Definition Word  := word WordSize.
 
@@ -39,9 +39,9 @@ Module SHA2 (C : CONFIG).
 
 
   (** Some helper inequalities *)
-  Hint Resolve NPeano.Nat.lt_0_succ.
+
   Definition zltBlockSize : 0 < BLOCK_SIZE.
-    unfold BLOCK_SIZE. eauto.
+    unfold BLOCK_SIZE. repeat constructor.
   Defined.
 
 
@@ -92,7 +92,7 @@ Module SHA2 (C : CONFIG).
 
     Definition message_variables
       := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-    Definition locals : Declaration := Vector.map Var message_variables.
+    Definition locals : Declaration := Vector.map (fun x => Var x) message_variables.
     Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_BLOCK (blk : v Block) := loadCache blk W.
 
@@ -107,12 +107,12 @@ Module SHA2 (C : CONFIG).
 
 
     Variable a b c d e f g h : v Word.
-    Variable t tp temp       : v Word.
+    Variable t               : v Word.
 
     Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
     Definition registers : Declaration :=
-      Vector.map Var (Vector.append state_variables [ t ; tp ; temp]%vector).
+      Vector.map (fun x => Var x) (Vector.append state_variables [ t ]%vector).
 
 
     Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.
@@ -146,12 +146,12 @@ Module SHA2 (C : CONFIG).
 
 
       (** Function to increment message index *)
-      Definition nextIdx : { sIdx | sIdx < BLOCK_SIZE } :=
+      Definition nextIdx : { sIdx : nat | sIdx < BLOCK_SIZE } :=
         if idx =? 15 then @exist _ _ 0 zltBlockSize
         else let sIdx := S idx in
              @exist _ _
                    (sIdx mod BLOCK_SIZE)
-                   (NPeano.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
+                   (PeanoNat.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
       Definition M  : v Word.
         verse (W[- idx -]).
@@ -166,17 +166,14 @@ Module SHA2 (C : CONFIG).
       (** We now give the code for updating the message M with the value
           of the appropriate sigma function.
        *)
-      Definition sigma (r0 r1 s : nat)(x : v Word) :=
-        [ temp ::= x >>> r1; tp ::= x >>> r0;
-          temp ::=^ tp;      tp ::= x >> s;
-          temp ::=^ tp; M ::=+ temp
-        ]%list.
+
+      Definition sigma (r0 r1 s : nat)(x : v Word) : expr v Word :=
+        (x >>> r1) XOR (x >>> r0) XOR (x >> s).
 
       Definition SCHEDULE :=
         let sigma0 := sigma r00 r01 s0 (MM 15) in
         let sigma1 := sigma r10 r11 s1 (MM 2) in
-        [ M ::=+ MM 7 ] ++ sigma0 ++ sigma1.
-      (** This completes the code for message scheduling *)
+        [ M ::=+ MM 7 + sigma0 + sigma1].
     End MessageSchedule.
 
     Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
@@ -255,11 +252,8 @@ Module SHA2 (C : CONFIG).
       |}.
 
 
-    Definition Sigma r0 r1 r2 (x : v Word) :=
-      [ temp ::= x >>> (r2 - r1); temp ::=^ x;
-        temp ::=>>> (r1 - r0);    temp ::=^ x;
-        temp ::=>>> r0
-      ]%list.
+    Definition Sigma r0 r1 r2 (x : v Word) : expr v Word :=
+      (x >>> r2) XOR (x >>> r1) XOR (x >>> r0).
 
     Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
     Definition Sigma1 (s : State) := Sigma R10 R11 R12 (E s).
@@ -268,18 +262,13 @@ Module SHA2 (C : CONFIG).
     (** The CH and the MAJ functions are also defined computing their result
         into the temp variable temp
      *)
-    Definition CH (s : State) : code v:=
-            [ tp ::=~ E s;
-              tp ::=& G s;
-              temp ::= E s & F s; temp ::=^ tp
-            ]%list.
 
-    Definition MAJ (s : State) : code v :=
-      [ temp  ::=  B s | C s;
-        temp  ::=& A s;
-        tp    ::=  B s & C s;
-        temp  ::=| tp
-      ].
+    Definition CH (B C D : v Word) : expr v Word :=
+      (D XOR (B AND (C XOR D))). (* === (B AND C) XOR (neg B and D)  *)
+
+    Definition MAJ (B C D : v Word) : expr v Word :=
+      (B AND C) OR (D AND (C OR B)). (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
+
 
     (** The heart of the hash algorithm a single round where we update
         the state held in the variables [a b c d e f g h] according to
@@ -288,17 +277,10 @@ Module SHA2 (C : CONFIG).
         the round constant [K].
      *)
     Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
-      [ t ::= H s + K  ;  t ::=+ M ]
-        ++ CH s        (* temp = CH e f g *)
-        ++ [ t ::=+ temp ]
-        ++  Sigma1 s   (* temp =  σ₁(e)   *)
-        ++ [ t ::=+ temp ]
-        ++ [ D s ::=+ t ]
-        ++ Sigma0 s    (* temp =  σ₀(a) *)
-        ++ [ t ::=+ temp ]
-        ++ MAJ s       (* temp = MAJ a b c *)
-        ++ [ H s ::= temp + t ] (* h =  t + MAJ a b c *)
-    .
+      [ t ::= H s + K + M + CH (E s) (F s) (G s) + Sigma1 s;
+        D s ::=+ t;
+        H s ::= t + Sigma0 s + MAJ (A s) (B s) (C s)
+      ].
 
     (** Having defined the [STEP] we look at a single round. A round
         [r] consists of an application of the [STEP] together with
@@ -370,7 +352,7 @@ Module SHA2 (C : CONFIG).
     Definition UPDATE : code v
       := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash STATE.
 
-    Definition sha2 : iterator Block v :=
+    Definition sha2 : iterator v Block :=
       {|
         setup   := LOAD_STATE;
         process := fun block => (LOAD_BLOCK block

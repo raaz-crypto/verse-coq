@@ -105,62 +105,66 @@ Module Config <: CONFIG.
   Qed.
 
 End Config.
-
-Require Import Verse.Arch.C.
-
 Module SHA512 := SHA2 Config.
-Import Config.
 
-Module Internal.
+Require Import Verse.Target.C.
 
-  Definition wordTy := recover (typeDenote (word WordSize)).
+Inductive name := verse_sha512_c_portable.
 
-  Definition regVars
-    := (- cr wordTy "a",  cr wordTy "b",  cr wordTy "c",  cr wordTy "d",
-          cr wordTy "e",  cr wordTy "f",  cr wordTy "g",  cr wordTy "h",
-          cr wordTy "t",  cr wordTy "tp",  cr wordTy "temp"
-                                       -).
+Require Verse.CryptoLib.sha2.
+
+Module Allocation.
+
+  Axiom blockPtr : cvar (ptrToArray sha2.BLOCK_SIZE uint64_t).
+  Axiom nBlocks  : cvar uint64_t.
+  Axiom hash     : cvar (ptrToArray sha2.HASH_SIZE uint64_t).
+  Axiom w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : cvar uint64_t.
+  Axiom a b c d e f g h : cvar uint64_t.
+  Axiom t               : cvar uint64_t.
+
+End Allocation.
+
+Export Allocation.
+
+Definition params    := (- hash -).
+Definition locals    := (- w0 , w1 , w2 , w3 , w4 , w5 , w6 , w7 , w8 , w9 , w10 , w11 , w12 , w13,  w14 ,  w15 -).
+Definition registers := (- a, b, c, d, e, f, g, h, t -).
+
+Definition sha512iter
+  := Compile.Iterator verse_sha512_c_portable
+                      SHA512.Block
+                      SHA512.parameters
+                      SHA512.locals
+                      SHA512.registers
+                      blockPtr
+                      nBlocks
+                      params
+                      locals
+                      registers
+                      SHA512.sha2.
 
 
-  Definition prototype (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype SHA512.Block fname SHA512.parameters.
-  Defined.
+Require Import Verse.Error.
+Definition iterator : Compile.programLine := recover (sha512iter).
+Definition program := verseC [iterator].
 
-  Definition implementation (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator SHA512.Block fname SHA512.parameters SHA512.locals SHA512.registers.
-    assignRegisters regVars.
-    statements SHA512.sha2.
-  Defined.
 
-End Internal.
+Require Import Verse.FFI.Raaz.
+Require Import Verse.FFI.Raaz.Target.C.
+
+Definition raazFFI {Name} (name : Name)
+  := mkProgram name [ iterator verse_sha512_c_portable
+                               SHA512.Block
+                               SHA512.parameters
+                    ].
 
 (*
 
-This is the function that prints the code on the standard output given a function name
-for the c-code.
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
 
- *)
+Goal to_print program.
+  print.
+Abort.
 
-Require Import Verse.Extraction.Ocaml.
-Require Import Verse.CryptoLib.Names.
-
-Require Import Verse.CryptoLib.Names.
-
-Definition implementation_name : Name := {| primitive := "sha512";
-                                            arch      := "c";
-                                            features  := ["portable"]
-                                         |}.
-
-Definition cname     := cFunName implementation_name.
-Definition cfilename := libVerseFilePath implementation_name.
-
-Definition implementation : unit
-  := writeProgram (C cfilename) (Internal.implementation cname).
-
-Definition prototype := recover (Internal.prototype cname).
-
-Require Import Verse.FFI.Raaz.
-
-Definition raazFFI : unit :=
-  let module := raazModule implementation_name in
-  write_module module [ccall prototype].
+*)

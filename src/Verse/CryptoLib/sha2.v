@@ -28,7 +28,7 @@ Module Type CONFIG.
   Parameters ROUNDS : nat.
 
   (** The round constants for the hash *)
-  Parameter KVec : Vector.t (constant (word WordSize)) ROUNDS.
+  Parameter KVec : Vector.t (const (word WordSize)) ROUNDS.
 
   (** ** The sigma functions.
 

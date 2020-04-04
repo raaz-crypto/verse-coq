@@ -1,10 +1,10 @@
-
 (** printing Xt %$X^t$%  #X<sup>t</sup>#            *)
 (** printing Xti %$X^{t-i+1}$%  #X<sup>t-i+1</sup># *)
 (** printing GF %\ensuremath{\mathbb{F}}%  #𝔽#                 *)
 
 (** printing α %$\alpha$% #α#  *)
 (** printing β %$\beta$%  #β#  *)
+(** printing ell %$\ell$% #ℓ#  *)
 
 (** printing 2³²  %$2^{32}$%  #2<sup>32</sup>#  *)
 (** printing 2⁶⁴  %$2^{64}$%  #2<sup>64</sup>#  *)
@@ -26,6 +26,7 @@
 (** printing T0 %$T_0$% #T<sub>0</sub># *)
 (** printing T1 %$T_1$% #T<sub>1</sub># *)
 
+(** printing M1 %$M_1$% #M<sub>1</sub># *)
 (** printing Mt %$M_t$% #M<sub>t</sub># *)
 (** printing Mi %$M_i$% #M<sub>i</sub># *)
 
@@ -63,29 +64,53 @@
 
 
 Require Import Verse.
-Require Verse.Arch.C.
 
-(** * The poly1305 message hash.
+(** * Introduction
 
-Let [GF] denote the finite field [GF(2¹³⁰ - 5)]. The poly1305 MAC in
-essence is just the evaluation of the message thought of as a
-polynomial over the finite field [GF]. Elements of this field can be
-represented using 130 bit word. To get the polynomial corresponding to
-the message [M], we divide it into blocks [Mi] of 16 byte (128-bits)
-with the possibility of the last block [Mt] to be of less than 16
-bytes. The message [M] is then considered as the polynomial
+Let [GF] denote the finite field [GF(2¹³⁰ - 5)]. A message [M] can be
+considered as a univariate polynomial as follows: Break the message
+[M] into chunks [Mi] of 128-bits each. Define the coefficients [Ci] as
+a 129 bit element of [GF] whose least significant 128 bits is the
+block [Mi] and most significant 129th bit is a 1. The message [M] is
+then identified with the polynomial:
 
 [ M(X) = C1 Xt + ... + Ci Xti + ... + Ct X].
 
-where the coefficient [Ci] is the element in [GF] whose least
-significant bits are that of [Mi] with an additional 1-bit appended to
-it. Thus the length of [Ci] in bits is one more than that of [Mi].
+For secrets [R] and [S] in [GF], the poly1305 MAC of [M] is in essence
+the evaluation of the polynomial [M(R) + S].element [R] in
+[GF]. Therefore, at the heart of any fast streaming implementation is
+the Horner's method of evaluation of a polynomial [M(X)] at [R]: start
+with an accumulator [A] which is at 0, update using the step [A := (A
++ Ci) * R] as the message [M = M1,...,Mt] is streamed, and finalise
+the MAC by computing [A + S].
 
-The poly1305 MAC for secrets [R] and [K] consists of computing [M(R) +
-K] rounded to 128 bits. At the heart of any fast implementations is
-therefore the Horner's method of evaluation of a polynomial: keep an
-accumulator [A] which starts with 0 and is updated using the step [A
-:= (A + Ci) * R]
+ *)
+
+(** ** Exported C functions.
+
+The verse code available here, exposes the inner loops of a fast and
+portable poly1305 implementation and some helper functions.
+
+- The iterator [verse_poly1305_c_portable_incremental] that is used to
+  incrementally process a stream of blocks when we know that there is
+  more blocks to follow (but we do not have them yet).
+
+- The iterator [verse_poly1305_c_portable_blockmac] that computes MAC
+  when the stream of blocks ends the message. This function is used to
+  complete the MAC computation when the end of the message is reached
+  and it has length that is a multiple of 128.
+
+- The function [verse_poly1305_c_portable_partialmac] is used to
+  process that last message chunk when it of length [ell < 128].
+
+*)
+
+(** *** Clamping
+
+The Poly1305 standard stipulates that certain bits of [R] should be
+zeros. The iterator [verse_poly1305_c_portable_clamp] takes a stream
+of 128-bit blocks and clear those bits (can be used for random
+generation of these [R] values for example).
 
  *)
 
@@ -95,7 +120,7 @@ Definition Block      := Array BLOCK_SIZE littleE Word.
 
 
 
-(** ** Arithmetic over [GF].
+(** * Field Arithmetic.
 
 In C the biggest supported word type is the type of 64-bit word. This
 means that we would need multiple 64-bit "Limbs" to represent a single
@@ -142,11 +167,12 @@ Definition Limb      := Word64.
 
 (** The masks that are required when selecting bits during. field
     arithmetic.
-*)
+ *)
+
 Definition Select32 : constant Limb := Ox "00:00:00:00 FF:FF:FF:FF".
 Definition Select2  : constant Limb := Ox "00:00:00:00 00:00:00:03".
 
-(** *** Managing the accumulator during evaluation.
+(** ** Managing accumulator without overflow.
 
 Although all elements in [GF] can be reduced to the standard form that
 we described above, during the evaluation of the MAC, we maintain a
@@ -184,8 +210,8 @@ Module Internal.
         their indices are split up into 32-bit chunks.
      *)
 
-
-    Definition ElemArray := Array 3 hostE Limb.
+    Definition ELEM_SIZE := 3.
+    Definition ElemArray := Array ELEM_SIZE hostE Limb.
     Definition Array128  := Array 2 hostE Limb.
 
     Definition ElemIndex := VarIndex progvar 5 Limb.
@@ -241,7 +267,7 @@ Module Internal.
       := [Var AArray; Var RArray; Var SArray].
     Definition paramsPartialMac   : Declaration
       := [Var LastBlock; Var AArray; Var RArray; Var SArray].
-    Definition paramsClamp       : Declaration := Empty.
+    Definition paramsClamp       : Declaration := [].
 
     (** ** Registers.
 
@@ -268,11 +294,12 @@ Module Internal.
     Variable T0 T1 : progvar Limb.
 
     Definition register : Declaration
-      := Vector.map Var [ a0; a1; a2; a3; a4;
-                          r0; r1; r2; r3;
-                          p1; p2; p3; p4;
-                          T0; T1
-                        ].
+      := Vector.map (fun x => Var x)
+                    [ a0; a1; a2; a3; a4;
+                      r0; r1; r2; r3;
+                      p1; p2; p3; p4;
+                      T0; T1
+                    ].
 
 
     Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
@@ -287,7 +314,7 @@ Module Internal.
       Variable bpf   : i < bound.
       Definition Load64 : code progvar.
         verse [ x1 ::=  Arr [- i -];
-                x0 ::=  x1 & Select32;
+                x0 ::=  x1 AND Select32;
                 x1 ::=>> 32
               ].
       Defined.
@@ -367,7 +394,7 @@ Module Internal.
      Defined.
 
     Definition AddFullBlock (blk : progvar Block) : code progvar
-      := Add128 blk ++ [ ++ a4 ]%list.
+      := (Add128 blk ++ [ ++ a4 ])%list.
 
     (** ** Computing [A := A * R]
 
@@ -489,7 +516,7 @@ Module Internal.
               to [a4] where as [a3] is just [p3] at this point.  *)
 
           a3 ::= p3;
-          p4 ::= r0 & Select2; a4 ::=* p4
+          p4 ::= r0 AND Select2; a4 ::=* p4
         ].
 
 
@@ -520,9 +547,9 @@ Module Internal.
      *)
 
     Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
-      verse [ T0 ::= A i _ >> 32;
-              A i        _ ::=& Select32;
-              A (1 + i)  _ ::=+ T0
+      verse [ T0              ::= A [- i -] >> 32;
+              A [- i -]       ::=& Select32;
+              A [- 1 + i -]   ::=+ T0
             ].
     Defined.
 
@@ -552,7 +579,7 @@ Module Internal.
       verse  (PropagateIth 3 _
                            ++ Wrap
                            ++ Propagate
-             ).
+             )%list.
     Defined.
 
 
@@ -606,9 +633,9 @@ Module Internal.
       *)
 
      Definition FullReduction : code progvar :=
-       Wrap ++ ReductionAmount
+       (Wrap ++ ReductionAmount
             ++ [ T0 ::= T0 * 5; a0 ::=+ T0]
-            ++ Propagate.
+            ++ Propagate)%list.
 
      (** ** Computing the hash.
 
@@ -617,7 +644,7 @@ Module Internal.
 
       *)
 
-     Definition ComputeMAC := FullReduction ++ Add128 SArray ++ Propagate ++ MovA.
+     Definition ComputeMAC := (FullReduction ++ Add128 SArray ++ Propagate ++ MovA)%list.
 
 
      (** * Handling input.
@@ -631,7 +658,7 @@ Module Internal.
 
     Definition ProcessBlock (AddC : progvar Block -> code progvar)(blk : progvar Block)
       : code progvar
-      := AddC blk ++ MulR ++ AdjustBits.
+      := (AddC blk ++ MulR ++ AdjustBits)%list.
 
     Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
     Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
@@ -655,11 +682,11 @@ Module Internal.
 
      *)
 
-    Definition poly1305Iter : iterator Block progvar.
+    Definition poly1305Iter : iterator progvar Block.
       verse {| setup    := LoadA  ++ LoadR;
                process  := ProcessFullBlock;
                finalise := MovA
-            |}.
+            |}%list.
     Defined.
 
 
@@ -689,9 +716,9 @@ Module Internal.
      *)
 
     Definition poly1305PartialMAC : code progvar
-      := setup poly1305IterMAC
+      := (setup poly1305IterMAC
                ++ ProcessLastBlock LastBlock
-               ++ finalise poly1305IterMAC.
+               ++ finalise poly1305IterMAC)%list.
 
 
     (** ** Clamping [r].
@@ -719,110 +746,142 @@ Module Internal.
         ].
     Defined.
     Definition regClamp : Declaration := [Var T0]%vector.
-    Definition clampIter : iterator Array128 progvar
+    Definition clampIter : iterator progvar Array128
       := {| setup    := [];
             process  := clamp;
             finalise := []
-         |}.
+         |}%list.
 
 
 
   End Poly1305.
 
-
-  Import Verse.Arch.C.
-
-  Definition reg (regName : string) := cr uint64_t regName.
-
-  Definition polyRegs := (- reg "a0", reg "a1", reg "a2", reg "a3", reg "a4",
-                            reg "r0", reg "r1", reg "r2", reg "r3",
-                            reg "p1", reg "p2", reg "p3", reg "p4",
-                            reg "T0", reg "T1"
-                         -).
-
-  Definition clampReg := (- cr uint64_t "temp" -).
-
-  Definition prototypeIncremental (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype Block fname paramsIncremental.
-  Defined.
-  Definition prototypeBlockMac (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype Block fname paramsBlockMac.
-  Defined.
-  Definition prototypePartialMac (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.functionPrototype fname paramsPartialMac.
-  Defined.
-  Definition prototypeClamp (fname : string) : Prototype CType + {Compile.CompileError}.
-    Compile.iteratorPrototype Block fname paramsClamp.
-  Defined.
-
-
-  Definition implementationIncremental (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator Block fname paramsIncremental Empty register.
-    assignRegisters polyRegs.
-    statements poly1305Iter.
-  Defined.
-
-  Definition implementationBlockMac (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator Block fname paramsBlockMac Empty register.
-    assignRegisters polyRegs.
-    statements poly1305IterMAC.
-  Defined.
-
-  Definition implementationPartialMac (fname : string) : Doc + {Compile.CompileError}.
-    Compile.function fname paramsPartialMac Empty register.
-    assignRegisters polyRegs.
-    statements poly1305PartialMAC.
-  Defined.
-
-  Definition implementationClamp (fname : string) : Doc + {Compile.CompileError}.
-    Compile.iterator Array128 fname Empty Empty regClamp.
-    assignRegisters clampReg.
-    statements clampIter.
-  Defined.
-
-
-  Definition incrementalName (fname : string) := fname ++ "_incremental".
-  Definition blockMacName    (fname : string) := fname ++ "_blockmac".
-  Definition partialMacName(fname : string)    := fname ++ "_partialmac".
-  Definition clampName       (fname : string) := fname ++ "_clamp".
-
-  Definition implementation (fname : string) : Doc + {Compile.CompileError} :=
-    incr <- implementationIncremental (incrementalName  fname) ;
-      blockmac <- implementationBlockMac (blockMacName fname) ;
-      partialmac <- implementationPartialMac (partialMacName fname);
-      clamp <- implementationClamp (clampName fname);
-      {- vcat [ incr; blockmac; partialmac; clamp ] -}.
-
-
-  Definition prototypes fname :=
-    incrP <- prototypeIncremental (incrementalName fname);
-      blockmacP <- prototypeBlockMac (blockMacName fname);
-      partialmacP <- prototypePartialMac (partialMacName fname);
-      clampP <- prototypeClamp (clampName fname);
-      {- [ incrP; blockmacP; partialmacP; clampP] -}.
-
 End Internal.
 
-Require Import Verse.Extraction.Ocaml.
-Require Import Verse.CryptoLib.Names.
-Require Import Verse.CryptoLib.Names.
 
-Definition implementation_name : Name := {| primitive := "poly1305";
-                                            arch      := "c";
-                                            features  := ["portable"]
-                                         |}%string.
+Inductive name := verse_poly1305_c_portable_incremental
+                | verse_poly1305_c_portable_blockmac
+                | verse_poly1305_c_portable_partialmac
+                | verse_poly1305_c_portable_clamp.
 
-Definition cname     := cFunName implementation_name.
-Definition cfilename := libVerseFilePath implementation_name.
+Require Import Verse.Target.C.
 
-Definition implementation : unit
-  := writeProgram (C cfilename) (Internal.implementation cname).
+Module Allocation.
 
-Definition prototypes
-  := recover (Internal.prototypes cname).
+
+  Definition cword := uint64_t.
+  Axiom blockPtr : cvar (ptrToArray BLOCK_SIZE cword).
+  Axiom nBlocks  : cvar uint64_t.
+  Axiom LastBlock : cvar (array BLOCK_SIZE cword).
+
+  Axiom AArray : cvar (array Internal.ELEM_SIZE cword).
+  Axiom RArray SArray : cvar (array 2 cword).
+
+  Axiom a0 a1 a2 a3 a4 : cvar cword.
+  Axiom r0 r1 r2 r3    : cvar cword.
+  Axiom p1 p2 p3 p4    : cvar cword.
+  Axiom Temp T0 T1     : cvar cword.
+End Allocation.
+
+Export Allocation.
+
+
+Definition registers := (- a0 , a1 , a2 , a3 , a4,
+                           r0 , r1 , r2 , r3 ,
+                           p1 , p2 , p3 , p4 ,
+                           T0 , T1
+                        -).
+
+Require Import Verse.Error.
+
+Definition incremental :=
+  Compile.Iterator verse_poly1305_c_portable_incremental
+                   Block
+                   Internal.paramsIncremental
+                   []
+                   Internal.register
+                   blockPtr
+                   nBlocks
+                   (- AArray , RArray -)
+                   (--)
+                   registers
+                   Internal.poly1305Iter.
+
+
+Definition blockmac :=
+  Compile.Iterator verse_poly1305_c_portable_blockmac
+                   Block
+                   Internal.paramsBlockMac
+                   []
+                   Internal.register
+                   blockPtr
+                   nBlocks
+                   (- AArray , RArray, SArray -)
+                   (--)
+                   registers
+                   Internal.poly1305IterMAC.
+
+Definition partial :=
+  Compile.Function verse_poly1305_c_portable_partialmac
+                   Internal.paramsPartialMac
+                   []
+                   Internal.register
+                   (- LastBlock, AArray , RArray, SArray -)
+                   (--)
+                   registers
+                   Internal.poly1305PartialMAC.
+
+
+Definition clamp :=
+  Compile.Iterator verse_poly1305_c_portable_clamp
+                   Internal.Array128
+                   []
+                   []
+                   Internal.regClamp
+                   blockPtr
+                   nBlocks
+                   (--)
+                   (--)
+                   (- Temp -)
+                   Internal.clampIter.
+
+
+Definition clampI       : Compile.programLine := recover clamp.
+Definition incrementalI : Compile.programLine := recover incremental.
+Definition blockmacI    : Compile.programLine := recover blockmac.
+Definition partialF     : Compile.programLine := recover partial.
+
+Definition program := verseC [ incrementalI;
+                               blockmacI;
+                               partialF;
+                               clampI
+                             ].
+
 
 Require Import Verse.FFI.Raaz.
+Require Import Verse.FFI.Raaz.Target.C.
 
-Definition raazFFI : unit :=
-  let module := raazModule implementation_name in
-  write_module module (List.map ccall prototypes).
+Definition raazFFI {Name} (name : Name)
+  := mkProgram name [ iterator verse_poly1305_c_portable_incremental
+                               Block
+                               Internal.paramsIncremental;
+                      iterator verse_poly1305_c_portable_blockmac
+                               Block
+                               Internal.paramsBlockMac;
+                      iterator verse_poly1305_c_portable_clamp
+                               Internal.Array128
+                               [];
+                      function verse_poly1305_c_portable_partialmac
+                               Internal.paramsPartialMac
+                    ].
+
+
+(*
+
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+Goal to_print program.
+  print.
+Abort.
+
+*)

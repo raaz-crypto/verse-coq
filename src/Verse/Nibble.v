@@ -128,14 +128,6 @@ Module Internal.
        | _  => Ox0
       end%N.
 
-    About N.div_eucl.
-    Fixpoint fromNR (l : nat) (n : N) : Vector.t Nibble l :=
-      let (np,r) := N.div_eucl n 16 in
-      match l with
-      | 0%nat    => []
-      | S lp     => Vector.shiftin (NToNibble r) (fromNR lp np)
-      end.
-
 End Internal.
 
 (* end hide *)
@@ -150,16 +142,22 @@ represented as [Ox "aabb"].
 
 Definition Ox s := let t := Internal.trim_separators s
                    in recover (Internal.fromString (String.length t) t).
-
+(*
 Require Import Verse.PrettyPrint.
 Instance pretty_print (n : nat) : PrettyPrint (Vector.t Nibble n) :=
   { doc := fun v => text (Internal.toString v) }.
-
+*)
 Definition toN {n} : Vector.t Nibble n -> N :=
   (let fldr := fun m x =>  16 * m + Internal.nibbleToN x in
   Vector.fold_left fldr 0)%N.
 
-Definition fromN   l n := Internal.fromNR l n.
+Fixpoint fromN l n : Vector.t Nibble l :=
+  let (np,r) := N.div_eucl n 16 in
+  match l with
+  | 0%nat    => []
+  | S lp   => Vector.shiftin (Internal.NToNibble r) (fromN lp np)
+  end.
+
 Definition fromNat l n := fromN l (N_of_nat n).
 
 Arguments fromN [l] _.

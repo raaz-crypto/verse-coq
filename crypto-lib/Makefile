@@ -1,12 +1,3 @@
-# Currently supported primitives.
-IMPLS = chacha20/c/portable \
-        sha256/c/portable   \
-        sha512/c/portable   \
-	blake2b/c/portable  \
-	blake2s/c/portable  \
-	poly1305/c/portable \
-
-
 # Normally you need http repo but for release you need ssh repo.
 GIT_REPO_HTTP=https://github.com/raaz-crypto/libverse.git
 GIT_REPO_SSH=git@github.com:raaz-crypto/libverse.git
@@ -17,54 +8,51 @@ GIT_REPO_SSH=git@github.com:raaz-crypto/libverse.git
 ###    what you are doing.                                ###
 #############################################################
 
-.DEFAULT_GOAL = libverse
+INDENT_OPTS=-linux
+ROOT=$(abspath ..)
+VERSE=${ROOT}/src
+CRYPTOLIB=$(abspath .)
+LIBVERSE=${CRYPTOLIB}/libverse
 
-ML_DIR      = mlsrc
-ML_RAAZ_DIR = ${ML_DIR}/raaz
+export ROOT
+export VERSE
+export CRYPTOLIB
+export LIBVERSE
+export INDENT_OPTS
 
-ML_SRC       = $(addprefix ${ML_DIR}/, $(addsuffix .ml, ${IMPLS}))
-ML_RAAZ_SRC  = $(addprefix ${ML_RAAZ_DIR}/, $(addsuffix .ml, ${IMPLS}))
-ML_SRC_DIRS  = $(addprefix ${ML_DIR}/, $(dir ${IMPLS}))
-ML_RAAZ_DIRS = $(addprefix ${ML_RAAZ_DIR}/, $(dir ${IMPLS}))
-CODE_DIRS    = $(addprefix libverse/, $(dir ${IMPLS}))
-RAAZ_IMPLS     = $(shell runhaskell capitalize.hs ${IMPLS})
-RAAZ_CODE_DIRS =  $(addprefix libverse/Raaz/Verse/,$(dir ${RAAZ_IMPLS}))
+SUBDIRS=implementation libverse
 
-
-
-.PHONY: extract.v libverse clean verse dist-clean release
-.PHONY: dirs extract gen
+.PHONY: all subdirs test
+.PHONY: clean subdirs-clean
+.PHONY: ${SUBDIRS}
 
 
-gitrepos:
+all: subdirs
+subdirs: ${SUBDIRS}
+
+## Subdirectories.
+
+implementation:
+		make -C implementation
+
+libverse: implementation
 	if [ ! -d libverse/.git ]; then \
 		rm -rf libverse; \
 		git clone ${GIT_REPO_HTTP}; \
 	fi
+	cp -rv $(wildcard implementation/c/libverse/*) libverse
 
-dirs: gitrepos
-	mkdir -p ${ML_SRC_DIRS}
-	mkdir -p ${ML_RAAZ_DIRS}
-	mkdir -p ${CODE_DIRS}
-	mkdir -p ${RAAZ_CODE_DIRS}
 
-extract: verse dirs
-	coqc -R ../src Verse extract.v
+## Cleaning action.
+clean: subdirs-clean
+	make -C implementation clean
+	if [ -d libverse ]; then \
+		make -C libverse clean; \
+	fi
 
-libverse: extract
-	$(foreach mlprog, ${ML_SRC}, ocaml ${mlprog};)
-	echo IMPLS=${IMPLS} > libverse/Implementations.mk
-	$(foreach mlprog, ${ML_RAAZ_SRC}, ocaml ${mlprog};)
+subdirs-clean:
+	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean;)
 
-verse:
-	make -C ..
-
-clean:
-	rm -f $(addprefix extract., vo glob)
-	rm -rf mlsrc
-
-dist-clean: clean
-	make -C .. clean
-
-setup-release:
-	git clone ${GIT_REPO_SSH}
+# Tests by compiling the c code in libverse.
+test: libverse
+	make -C libverse
