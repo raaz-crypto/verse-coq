@@ -6,9 +6,7 @@ cache:
 addons:
   apt:
     packages:
-      - libgmp-dev
       - opam
-      - ghc
       - indent
       - texlive-full
     sources: [avsm]
@@ -38,13 +36,10 @@ before_install:
 script:
   - eval $(opam config env)
   - coqtop --version
-  - coq_makefile -f _CoqProject > Makefile
-  - make
+  - make all
+  - make test
   - make html
   - make all.pdf
-  - make -C test
-  - make -C crypto-lib
-  - make -C crypto-lib compile-test
 after_success:
   - echo "All is well."
 after_failure:
