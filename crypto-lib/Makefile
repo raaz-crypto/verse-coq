@@ -20,32 +20,39 @@ export CRYPTOLIB
 export LIBVERSE
 export INDENT_OPTS
 
-.PHONY: all clean implementation root update-libverse gitrepos  compile-test
+SUBDIRS=implementation libverse
 
-all: implementation
+.PHONY: all subdirs test
+.PHONY: clean subdirs-clean
+.PHONY: ${SUBDIRS}
 
-implementation: root
-	make -C implementation
 
-root:
-	make -C ${ROOT}
-clean:
+all: subdirs
+subdirs: ${SUBDIRS}
+
+## Subdirectories.
+
+implementation:
+		make -C implementation
+
+libverse: implementation
+	if [ ! -d libverse/.git ]; then \
+		rm -rf libverse; \
+		git clone ${GIT_REPO_HTTP}; \
+	fi
+	cp -rv $(wildcard implementation/c/libverse/*) libverse
+
+
+## Cleaning action.
+clean: subdirs-clean
 	make -C implementation clean
 	if [ -d libverse ]; then \
 		make -C libverse clean; \
 	fi
 
-# This command only tests whether the generated c codes compiles. No
-# other interesting tests are present in the libverse library.
+subdirs-clean:
+	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean;)
 
-compile-test: gitrepos
+# Tests by compiling the c code in libverse.
+test: libverse
 	make -C libverse
-
-update-libverse: implementation gitrepos
-	cp -rv $(wildcard implementation/c/libverse/*) libverse
-
-gitrepos: implementation
-	if [ ! -d libverse/.git ]; then \
-		rm -rf libverse; \
-		git clone ${GIT_REPO_HTTP}; \
-	fi
