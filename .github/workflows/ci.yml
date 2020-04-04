@@ -10,7 +10,9 @@ jobs:
     container: coqorg/coq:${{ matrix.coq }}
     steps:
       - name: Setup
-        run: sudo apt-get install texlive-full -y
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install texlive-full -y
 
       - name: Information
         run: coqtop --version
