@@ -5,6 +5,9 @@
 *.v.d
 coq-*
 Makefile.coq
+.Makefile.coq.d
+.coqdeps.d
+all.pdf
 *.aux
 *.bak
 *.conf
