@@ -24,7 +24,6 @@ src/Verse/TypeSystem.v
 ## CryptoLib: Actual implementations  ##
 ########################################
 
-# src/Verse/CryptoLib/Names.v
 src/Verse/CryptoLib/blake2.v
 src/Verse/CryptoLib/blake2/c/portable.v
 src/Verse/CryptoLib/blake2b/c/portable.v
@@ -42,22 +41,13 @@ src/Verse/CryptoLib/sha512/c/portable.v
 # src/Verse/Word.v
 # src/Verse/CoLoR_VecUtil.v
 # src/Verse/Tutorial.v
-# src/Verse/Arch.v
-# src/Verse/Arch/C.v
-# src/Verse/Compile.v
 # src/Verse/Language.v
 # src/Verse/Language/Operators.v
 # src/Verse/Language/Utils.v
-# src/Verse/Syntax.v
-# src/Verse/Types.v
-# src/Verse/Types/Internal.v
 # src/Verse/Word.v
 # src/Verse/WordFacts.v
 # src/Verse/NFacts.v
 # src/Verse/WordRing.v
-
-# src/Verse/TestCode/TestCode.v
-# src/Verse/TestCode/TestIteratorCode.v
 # src/Verse/DecFacts.v
 # src/Verse/Semantics/Store.v
 # src/Verse/Semantics.v
