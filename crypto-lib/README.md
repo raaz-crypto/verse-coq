@@ -16,8 +16,8 @@ All you need is a simple make. This will
 ## Workflow for releasing.
 
 If you intend to release it would be better to start of by cloning
-libverse from github using the ssh repo. Just typing the `make
-setup-release` should do. This needs to be done only once
+libverse from github using the ssh repo. This needs to be done only
+once
 
 On adding new cryptographic primitives, or some change in the code
 generation module, the files generated in the `libverse` subdirectory
