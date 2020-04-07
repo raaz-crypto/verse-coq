@@ -10,6 +10,7 @@ src/Verse/Language/Macros/Loops.v
 src/Verse/Language/Macros/Cache.v
 src/Verse/Language/Pretty.v
 src/Verse/Language/Types.v
+src/Verse/Monoid.v
 src/Verse/Nibble.v
 src/Verse/Print.v
 src/Verse/Scope.v
