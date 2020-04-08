@@ -1,10 +1,14 @@
 .DEFAULT_GOAL=build
 SUBDIRS=test crypto-lib
 
-.PHONY: all build clean ${SUBDIR} subdirs-clean
+.PHONY: all build clean ${SUBDIR} subdirs-clean html
 
 ## The targets that are defined here.
 all: build crypto-lib
+
+html: Makefile.coq
+	$(MAKE) -f Makefile.coq html
+
 build: Makefile.coq
 	$(MAKE) -f Makefile.coq
 
