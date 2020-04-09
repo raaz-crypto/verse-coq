@@ -12,8 +12,11 @@ jobs:
 
       - name: Get the Repository
         run: |
-          sudo git clone https://github.com/"$GITHUB_REPOSITORY"
-          sudo git checkout "$GITHUB_SHA"
+          echo repository = "$GITHUB_REPOSITORY"
+          echo sha = $GITHUB_SHA
+
+          # sudo git clone https://github.com/"$GITHUB_REPOSITORY"
+          # sudo git checkout "$GITHUB_SHA"
 
       - name: Setup
         run: |
