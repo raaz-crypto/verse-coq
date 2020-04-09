@@ -22,14 +22,10 @@ jobs:
       - name: Opam Setup
         run: |
           opam --version
-          opam init -y --disable-sandboxing
-          (opam repo list | grep coq-released) ||
-                 opam repo add coq-released https://coq.inria.fr/opam/released -y
-          opam update -y
+          opam init -y
 
       - name: Coq Installation
         run: |
-          opam install coq."$COQVER" -y --verbose
           opam pin add coq "$COQVER" -y
 
       - name: Build
