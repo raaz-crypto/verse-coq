@@ -6,43 +6,32 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ '8.11.0', '8.10.2', '8.9.1', '8.8.0', '8.7.2', '8.6.1']
-    env:
-      COQVER:  ${{ matrix.coq }}
+        coq: [ '8.11', '8.10', '8.9', '8.8', '8.7', '8.6']
+    container: coqorg/coq:${{ matrix.coq }}
     steps:
-      - name: Get the Repository
-        uses: actions/checkout@v2
-
       - name: Setup
         run: |
-          sudo apt-get update
-          sudo apt-get install ocaml m4 -y
-          sudo add-apt-repository ppa:avsm/ppa -y
           sudo apt-get update -y
-          sudo apt-get install opam indent texlive texlive-latex-extra -y
-
-      - name: Opam Setup
+          sudo apt-get install coq make m4 -y
+      - name: Information
         run: |
-          opam --version
-          opam init -y
-
-      - name: Coq Installation
-        run: |
-          opam pin add coq "$COQVER" -y
-
-      - name: Build
-        run: |
-          eval $(opam config env)
+          uname -a
           coqtop --version
-          make all
-      - name: Test
-        run: |
-          eval $(opam config env)
-          coqtop --version
-          make test
-      - name: Documentation
-        run: |
-          eval $(opam config env)
-          coqtop --version
-          make html
-          make all.pdf
+
+
+      # - name: Build
+      #   run: |
+      #     eval $(opam config env)
+      #     coqtop --version
+      #     make all
+      # - name: Test
+      #   run: |
+      #     eval $(opam config env)
+      #     coqtop --version
+      #     make test
+      # - name: Documentation
+      #   run: |
+      #     eval $(opam config env)
+      #     coqtop --version
+      #     make html
+      #     make all.pdf
