@@ -1,4 +1,5 @@
 Require Import Verse.Language.Types.
+Require Import Verse.Monoid.Semantics.
 Require Import Verse.TypeSystem.
 Require Import Verse.Target.
 Require Import Verse.Target.C.Ast.
@@ -10,54 +11,7 @@ Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
 
-Module Config <: CONFIG.
-
-  Definition statement   := C.Ast.statement.
-  Definition programLine := Ast.line.
-
-  Definition typeS     := c_type_system.
-
-  Definition variables := cvar.
-
-  Definition typeCompiler : TypeSystem.compiler verse_type_system c_type_system
-    :=
-      let targetTs := TypeSystem.result typeS in
-      let trType (ty : Types.type direct) : typeOf targetTs direct
-           := let couldNotError := error (CouldNotTranslate ty)
-              in match ty with
-                 | Word8  => {- uint8_t  -}
-                 | Word16 => {- uint16_t -}
-                 | Word32 => {- uint32_t -}
-                 | Word64 => {- uint64_t -}
-                 | _ => couldNotError
-                 end in
-      let trConst (ty : Types.type direct)
-          : Types.const ty -> constOf targetTs (trType ty)
-          := match ty with
-             | word n =>
-               match n as n0
-                     return Types.const (word n0)
-                            -> constOf targetTs (trType (word n0))
-               with
-               | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
-               | _ => fun x : _ => error (CouldNotTranslate x)
-               end
-             | multiword _ _  => fun x => error (CouldNotTranslate x)
-             end in
-      verseTranslation trType trConst.
-
-  Definition pointerType (memty : Types.type memory) good
-             (_ : Types.compile typeCompiler memty = {- good -})
-    : typeOf c_type_system memory
-    := match good with
-       | array b ty0 => ptrToArray b ty0
-       | _           => good
-       end.
-
-  Definition counterType := uint64_t.
-  Definition dereference : forall memty good (pf : Types.compile typeCompiler memty = {- good -}),
-      variables memory (pointerType memty good pf) -> variables memory good :=
-   fun _ _ _ x => Expr.ptrDeref x.
+Module Internals.
 
   Import Verse.Target.C.Ast.Expr.
 
@@ -126,27 +80,79 @@ Module Config <: CONFIG.
       end.
 
   Definition trStatement (s : Ast.statement cvar) :=
+    let single x := cons x nil in
     match s with
-    | existT _ ty inst => trInst ty inst
+    | existT _ ty inst => single <$> trInst ty inst
     end.
 
+End Internals.
 
-  Definition compileCode : Language.Ast.code variables -> list statement + {TranslationError}
-    := fun cs => pullOutList (List.map trStatement cs).
+Module Config <: CONFIG.
+
+  Definition statement   := C.Ast.statement.
+  Definition programLine := Ast.line.
+
+  Instance target_semantics : semantics (list C.Ast.statement + {TranslationError})
+    := {| types :=  c_type_system;
+          variables := cvar;
+          denote   := Internals.trStatement
+       |}.
+
+  Definition typeCompiler : TypeSystem.compiler verse_type_system c_type_system
+    :=
+      let targetTs := TypeSystem.result types in
+      let trType (ty : Types.type direct) : typeOf targetTs direct
+           := let couldNotError := error (CouldNotTranslate ty)
+              in match ty with
+                 | Word8  => {- uint8_t  -}
+                 | Word16 => {- uint16_t -}
+                 | Word32 => {- uint32_t -}
+                 | Word64 => {- uint64_t -}
+                 | _ => couldNotError
+                 end in
+      let trConst (ty : Types.type direct)
+          : Types.const ty -> constOf targetTs (trType ty)
+          := match ty with
+             | word n =>
+               match n as n0
+                     return Types.const (word n0)
+                            -> constOf targetTs (trType (word n0))
+               with
+               | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
+               | _ => fun x : _ => error (CouldNotTranslate x)
+               end
+             | multiword _ _  => fun x => error (CouldNotTranslate x)
+             end in
+      verseTranslation trType trConst.
+
+  Definition pointerType (memty : Types.type memory) good
+             (_ : Types.compile typeCompiler memty = {- good -})
+    : typeOf c_type_system memory
+    := match good with
+       | array b ty0 => ptrToArray b ty0
+       | _           => good
+       end.
+
+  Definition counterType := uint64_t.
+  Definition dereference : forall memty good (pf : Types.compile typeCompiler memty = {- good -}),
+      variables memory (pointerType memty good pf) -> variables memory good :=
+   fun _ _ _ x => Expr.ptrDeref x.
+
+
 
   Definition mapOverBlocks mem ty
              (blockPtrVar : variables memory mem)
              (ctrVar : variables direct ty)
              (body : list statement)
              : list statement
-    := [ whileLoop (gt_zero ctrVar)
+    := [ whileLoop (Expr.gt_zero ctrVar)
                    (Braces
                       (body ++ [ increment blockPtrVar ; decrement ctrVar ]
                    ))
        ]%list.
 
 
-  Fixpoint allocToList {n} (st : Scope.type typeS n)
+  Fixpoint allocToList {n} (st : Scope.type types n)
     :  Scope.allocation variables st -> list declaration :=
     match st as st0 return Scope.allocation variables st0 -> list declaration
     with
@@ -158,7 +164,7 @@ Module Config <: CONFIG.
 
   Arguments allocToList [n st].
 
-  Definition makeFunction (name : Set) (fname : name)(fsig : funSig typeS variables)
+  Definition makeFunction (name : Set) (fname : name)(fsig : funSig types variables)
              (body : list statement)
     := let ps := params (allocToList (Target.parameters fsig)) in
        let ls := List.map declareStmt (allocToList (Target.locals fsig)) in

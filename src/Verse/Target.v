@@ -5,7 +5,8 @@ Require Import Verse.Language.Ast.
 Require Import Verse.Language.Types.
 Require Import Verse.Error.
 Require Import Verse.Target.C.Ast.
-
+Require Import Verse.Monoid.
+Require Import Verse.Monoid.Semantics.
 Require Verse.Scope.
 Require Import Vector.
 Import Vector.VectorNotations.
@@ -60,56 +61,59 @@ generator.
 
 Module Type CONFIG.
 
-
-  (** The statements of the target language. *)
+  (** A statement of the target language *)
   Parameter statement : Type.
-
-  Parameter programLine  : Type.
-
-  (** The type system on the target side. *)
-  Parameter typeS : TypeSystem.typeSystem.
-
-  (** The conversion from verse types to the target type system. *)
-  Parameter typeCompiler : TypeSystem.compiler verse_type_system typeS.
-
-  (** The variables used on the target side. For actual machines these
-   are often machine registers or indirections via machine registers
-   *)
-  Parameter variables    : Variables.U typeS.
 
   (** ** Two phase code generation.
 
-     The compilation of verse code to the target languages happens in
-     two phases. In the first stage, only a type transformation is
-     done using the [typeCompiler]. The errors that are generated in
-     this phase are only type checking errors, which occurs when we
-     use a variable or a constant in verse that does not have its
+     Every target that is supported comes with a type system.  Code
+     generation for a given target is given by two piece of
+     information.
+
+     - A monoidal semantics where the underlying monoid is essentially
+       a list of target language statements (+ errors) and the [types]
+       is the target language types.
+
+     - A type compiler from [verse_type_system] to the target type
+       system.
+   *)
+
+  Declare Instance
+          target_semantics : semantics (list statement + {TranslationError}).
+
+  Parameter typeCompiler : TypeSystem.compiler verse_type_system types.
+
+  (**
+     The compilation of verse code to the target languages then
+     happens in two phases. In the first phase, a type transformation
+     is done keeping the code the same. The errors that are generated
+     in this phase are type checking errors, which occurs when we use
+     a variable or a constant in verse that does not have its
      corresponding type in the target. One can see this phase as a
-     type erasure from the richly typed verse language to the weakly
-     typed target language. This phase is completely taken care of by
-     the structural compilers available in [Code.compile] and
+     type relaxation from the richly typed verse language to the
+     weakly typed target language. This phase is completely taken care
+     of by the structural compilers available in [Code.compile] and
      [Iterator.compile] which makes use of the type compiler
-     [typeCompiler]. So the nothing other than the [typeCompiler] is
+     [typeCompiler]. So the nothing other than a [typeCompiler] is
      required to perform this phase.
 
      On successful completion of the first phase, we get the same
      structural code as the source but with the underlying type system
      being that of the target type system. We then need to convert
-     this code into actual target specific instructions which is what
-     the [compileCode] function does. This phase is target specific
-     and needs to be defined in this config module. One can think of
-     this as the instruction selection phase of the "compiler" and
-     unsupported instructions lead to translation errors. To make this
-     compilation phase predictable, a property that is critical in
-     ensuring that hidden side channel leaks do not happen during
-     compilation, it should be the case that verse code should more or
-     less be translated verbatim and anything which is more
-     complicated than the instruction set of the target should result
-     in a translation error.
+     this code into actual target specific instructions which is taken
+     care of by the monoidal semantics. One can think of this as the
+     instruction selection phase of the "compiler" and unsupported
+     instructions lead to translation errors. To make this compilation
+     phase predictable, a property that is critical in ensuring that
+     hidden side channel leaks do not happen during compilation, it
+     should be the case that verse code should more or less be
+     translated verbatim and anything which is more complicated than
+     the instruction set of the target should result in a translation
+     error.
 
    *)
 
-  Parameter compileCode   : code variables -> list statement + {TranslationError}.
+
 
   (** *** Compiling Iterators.
 
@@ -129,10 +133,10 @@ Module Type CONFIG.
 
   Parameter pointerType  : forall (memty : Types.type memory) good,
       Types.compile typeCompiler memty = {- good -}
-      -> typeOf typeS memory.
+      -> typeOf types memory.
 
   (** Type used to count the number of blocks *)
-  Parameter counterType    : typeOf typeS direct.
+  Parameter counterType    : typeOf types direct.
 
   (** We need a way to dereference the current block so that the
      [process] fragment of the iterator can work on it.
@@ -153,10 +157,11 @@ Module Type CONFIG.
       list statement       -> (** Things to do on a single block *)
       list statement.
 
+  Parameter programLine  : Type.
   Parameter makeFunction
     : forall name : Set,
       name
-      -> funSig typeS variables
+      -> funSig types variables
       -> list statement -> programLine.
 
 End CONFIG.
@@ -171,8 +176,8 @@ End CONFIG.
 
 Module CodeGen (T : CONFIG).
 
-  Definition variables := T.variables.
-  Arguments variables [k].
+  Import T.
+
   (** The code generation function only needs three things to
       complete its code generation, the allocations (in the target
       variable) to hold the parameters, local variables, and the
@@ -270,13 +275,13 @@ Module CodeGen (T : CONFIG).
 
      *)
 
-    Variable blockType       : typeOf T.typeS memory.
+    Variable blockType       : typeOf types memory.
     Variable blockTypeCompat : Types.compile T.typeCompiler memty = {- blockType -}.
 
     Definition blockPtrType := T.pointerType memty blockType blockTypeCompat.
-    Variable blockPtrVar : T.variables memory blockPtrType.
+    Variable blockPtrVar : variables memory blockPtrType.
 
-    Variable counterVar  : T.variables direct T.counterType.
+    Variable counterVar  : variables direct T.counterType.
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -290,9 +295,9 @@ Module CodeGen (T : CONFIG).
         The allocation types for parameters, locals, and registers
         on the target side.
      *)
-    Variable pts  : Scope.type T.typeS p.
-    Variable lts  : Scope.type T.typeS l.
-    Variable rts  : Scope.type T.typeS r.
+    Variable pts  : Scope.type types p.
+    Variable lts  : Scope.type types l.
+    Variable rts  : Scope.type types r.
 
     (**
        Proofs of compatibility of the allocation types on the verse
@@ -310,9 +315,9 @@ Module CodeGen (T : CONFIG).
        used to hold the parameters, locals and register variables on
        the target side.  *)
 
-    Variable params : Scope.allocation T.variables pts.
-    Variable locals : Scope.allocation T.variables lts.
-    Variable regs   : Scope.allocation T.variables rts.
+    Variable params : Scope.allocation variables pts.
+    Variable locals : Scope.allocation variables lts.
+    Variable regs   : Scope.allocation variables rts.
 
 
     (**
@@ -331,7 +336,7 @@ Module CodeGen (T : CONFIG).
       : T.programLine + { TranslationError }
       := let body := Scope.fill verse_regs (Scope.fill verse_locals (Scope.fill verse_params (func _)))
          in btc <- typeCheckedTransform body ;
-              btarget <- T.compileCode btc;
+              btarget <- codeDenote btc;
               let fsig := FunSig params locals regs
               in {- T.makeFunction name fname fsig btarget -}.
 
@@ -369,7 +374,7 @@ Module CodeGen (T : CONFIG).
     Definition fullpts := existT _ _ blockPtrType :: existT _ _ T.counterType :: pts.
 
     (** Given an allocation for the parameters, this generates *)
-    Definition fullParams : Scope.allocation T.variables fullpts
+    Definition fullParams : Scope.allocation variables fullpts
       := (blockPtrVar , (counterVar, params)).
 
     Definition iterativeFunction
@@ -380,9 +385,9 @@ Module CodeGen (T : CONFIG).
                                                (Scope.fill verse_params (iFunc _))) in
          iterComp <- Iterator.compile T.typeCompiler iter blockTypeCompat blockVar;
            let fsig := FunSig fullParams locals regs in
-           pre  <- T.compileCode (Iterator.preamble iterComp);
-             middle <- T.compileCode (Iterator.loopBody iterComp);
-             post <- T.compileCode (Iterator.finalisation iterComp);
+           pre  <- codeDenote (Iterator.preamble iterComp);
+             middle <- codeDenote (Iterator.loopBody iterComp);
+             post <- codeDenote (Iterator.finalisation iterComp);
              let lp := T.mapOverBlocks _ _ blockPtrVar counterVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
@@ -415,14 +420,14 @@ Module CodeGen (T : CONFIG).
 
   Notation Iterator name memty pvsf lvsf rvsf bPtrVar ctrVar
     := (
-        let memtyTgt : typeOf T.typeS memory
+        let memtyTgt : typeOf types memory
             := recover (Types.compile T.typeCompiler memty) in
         let pvs := Verse.infer pvsf in
         let lvs := Verse.infer lvsf in
         let rvs := Verse.infer rvsf in
-        let pvt : Scope.type T.typeS _ := recover (targetTypes pvs) in
-        let lvt : Scope.type T.typeS _ := recover (targetTypes lvs) in
-        let rvt : Scope.type T.typeS _ := recover (targetTypes rvs) in
+        let pvt : Scope.type types _ := recover (targetTypes pvs) in
+        let lvt : Scope.type types _ := recover (targetTypes lvs) in
+        let rvt : Scope.type types _ := recover (targetTypes rvs) in
         iterativeFunction name memty
                           pvs lvs rvs
                           memtyTgt eq_refl
