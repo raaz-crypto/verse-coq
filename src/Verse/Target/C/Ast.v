@@ -2,14 +2,6 @@ Require Import Verse.TypeSystem.
 Require Import Verse.Nibble.
 Require Verse.Error.
 
-(** * Naming stuff
-
-This type is used for naming functions. We can create function names
-by assuming names.
-
- *)
-
-
 (** * The type of C
 
 We now capture the type system for C. Only types that arise in
@@ -144,7 +136,7 @@ Inductive line :=
 Inductive program :=
 | Program : list line -> program.
 
-
+(* begin hide *)
 Arguments update _ [n].
 
 Arguments cvar [k].
@@ -153,11 +145,13 @@ Arguments declare [k ty].
 Arguments function [FN].
 Arguments include [FileName].
 
-(* Generates a complete verse C file with necessary includes *)
 Inductive headers := stdint_h | verse_h.
 
 Notation "'stdint.h'" := (stdint_h) (only printing).
 Notation "'verse.h'"  := (verse_h)  (only printing).
 
 Import List.ListNotations.
+
+(* end hide *)
+(** Generates a complete verse C file with necessary includes *)
 Definition verseC l := Program ([ include stdint_h ; include verse_h ; defineXOR ] ++ l)%list.
