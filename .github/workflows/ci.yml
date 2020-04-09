@@ -1,4 +1,4 @@
-name: Building and testing
+name: CI
 on: [push, pull_request]
 jobs:
   linux:
