@@ -83,9 +83,6 @@ SPDX-License-Identifier: Apache-2.0
 
 [emailgroups]: <https://groups.google.com/forum/#!forum/hraaz> "Raaz on Google groups"
 
-[travis-status]: <https://secure.travis-ci.org/raaz-crypto/verse-coq.png> "Build status"
-
-[travis-verse]: <https://travis-ci.org/raaz-crypto/verse-coq/>
 [libverse]: <https://github.com/raaz-crypto/libverse>
 [shields-license]: <https://img.shields.io/badge/License-Apache--2.0-informational.svg>
 [apache-2]: <http://www.apache.org/licenses/LICENSE-2.0> "Apache-2.0 license"
