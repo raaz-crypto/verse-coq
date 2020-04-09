@@ -2,7 +2,7 @@ Verse
 =====
 
 [![License: Apache-2.0][shields-license]][apache-2]
-[![Build Staus][travis-status]][travis-verse]
+[![][ci-badge]][github-actions]
 
 A domain specific language in coq used to write low-level
 cryptographic primitives.
@@ -89,3 +89,6 @@ SPDX-License-Identifier: Apache-2.0
 [libverse]: <https://github.com/raaz-crypto/libverse>
 [shields-license]: <https://img.shields.io/badge/License-Apache--2.0-informational.svg>
 [apache-2]: <http://www.apache.org/licenses/LICENSE-2.0> "Apache-2.0 license"
+
+[ci-badge]: <https://github.com/raaz-crypto/verse-coq/workflows/CI/badge.svg> "Building source"
+[github-actions]: <https://github.com/raaz-crypto/verse-coq/actions> "Github actions"
