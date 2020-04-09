@@ -17,7 +17,7 @@ jobs:
         run: |
           sudo add-apt-repository ppa:avsm/ppa -y
           sudo apt-get update -y
-          sudo apt-get install opam indent texlive-full -y
+          sudo apt-get install opam indent texlive texlive-latex-extra -y
 
       - name: Opam Setup
         run: |
