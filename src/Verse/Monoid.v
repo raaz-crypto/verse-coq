@@ -82,6 +82,8 @@ elements in the monoid and multiplies them to get the results
 Definition mconcat {t}`{mon: Monoid t} : list t -> t
   := List.fold_right oper unit.
 
+Definition mapMconcat {A}{t}`{mon : Monoid t} (f : A -> t) (xs : list A) : t
+  := mconcat (List.map f xs).
 
 (**  * Monoid instance A + {E}.
 
