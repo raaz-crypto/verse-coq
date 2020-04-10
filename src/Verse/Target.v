@@ -119,31 +119,20 @@ Module Type CONFIG.
 
       Iterators process a stream of blocks each of which is
       transformed by the code available through the [process] field of
-      the [iterator] record. On the target side we have a pointer
-      variable that iterates over the blocks one at a time and
-      transforming it using the [process] component. We needs some
-      additional configuration to make this work out. Firstly, given
-      an iterator that processes blocks each of which is of a given
-      type [ty] in the verse world, we need to have a type [pty] in
-      the target world that corresponds to pointers to the verse
-      type. Note that this pointer type might not be representable in
-      verse.
+      the [iterator] record. The [streamOf] type captures the type in
+      the target world that corresponds to stream of type [ty] in the
+      verse world. Of course we need to make sure that [ty] can be
+      translated to the target world.
 
    *)
 
-  Parameter pointerType  : forall (memty : Types.type memory) good,
-      Types.compile typeCompiler memty = {- good -}
-      -> typeOf types memory.
+  Parameter streamOf  : typeOf types memory -> typeOf types memory.
 
-  (** Type used to count the number of blocks *)
-  Parameter counterType    : typeOf types direct.
-
-  (** We need a way to dereference the current block so that the
-     [process] fragment of the iterator can work on it.
-
+  (** We need a way to index the current block so that the [process]
+     fragment of the iterator can work on it.
   *)
-  Parameter dereference  : forall memty good (pf : Types.compile typeCompiler memty = {- good -}),
-      variables memory (pointerType memty good pf) -> variables memory good.
+  Parameter dereference  : forall {block : typeOf types memory},
+      variables memory (streamOf block) -> variables memory block.
 
   (** Finally, we need a way to iterate over all the blocks. This is
       used to compile the loop that uses the [process] field of the
@@ -151,9 +140,9 @@ Module Type CONFIG.
 
    *)
 
-  Parameter mapOverBlocks : forall mem ty,
-      variables memory mem -> (**  Block pointer variable *)
-      variables direct ty  -> (** Counter variable       *)
+  Parameter mapOverBlocks :
+    forall {block : typeOf types memory},
+      variables memory (streamOf block) -> (** Stream variable *)
       list statement       -> (** Things to do on a single block *)
       list statement.
 
@@ -235,14 +224,13 @@ Module CodeGen (T : CONFIG).
         generated. *)
     Variable fname : name.
 
-    (** The iterator function iterates over blocks and the type [memty]
-        is the type of a single block. Straight line functions do no
-        need this parameter.
-    *)
-    Variable memty       : typeOf verse_type_system memory.
+    (** The iterator function iterates over blocks of this type.
+        Straight line functions do no need this parameter.  *)
+
+    Variable block  : typeOf verse_type_system memory.
 
     (** Now comes the scope type of parameter, locals, and register
-       variables of the iterator/function.
+        variables of the iterator/function.
 
      *)
     Variable p l r : nat.
@@ -266,22 +254,16 @@ Module CodeGen (T : CONFIG).
         The variables of the verse program when translated to the
         target code needs allocations over target variables. We have
         allocations for parameters, locals, and register variables for
-        the function and in addition for iterators we have two
-        additional parameter, namely [blockPtrVar] and
-        [counterVar]. The iterator is expected to be called by setting
-        the [blockPtrVar] to point to the first block in the sequence
-        and setting the [counterVar] to the number of blocks to be
-        processed.
+        the function. In addition, we need a variable for the stream.
 
      *)
 
-    Variable blockType       : typeOf types memory.
-    Variable blockTypeCompat : Types.compile T.typeCompiler memty = {- blockType -}.
+    Variable streamElem: typeOf types memory.
+    Variable streamElemCompat
+      : Types.compile T.typeCompiler block = {- streamElem -}.
 
-    Definition blockPtrType := T.pointerType memty blockType blockTypeCompat.
-    Variable blockPtrVar : variables memory blockPtrType.
-
-    Variable counterVar  : variables direct T.counterType.
+    Definition streamType := T.streamOf streamElem.
+    Variable   streamVar  : variables memory streamType.
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -364,39 +346,38 @@ Module CodeGen (T : CONFIG).
 
      *)
 
-    Definition  blockVar := T.dereference memty blockType blockTypeCompat blockPtrVar.
+    Definition elemVar := T.dereference streamVar.
 
     (** The full parameter declaration for the iterator. Note that we
         need to add two additional variables one for the block pointer
         and other for the counter
      *)
 
-    Definition fullpts := existT _ _ blockPtrType :: existT _ _ T.counterType :: pts.
+    Definition fullpts := existT _ _ streamType :: pts.
+
 
     (** Given an allocation for the parameters, this generates *)
     Definition fullParams : Scope.allocation variables fullpts
-      := (blockPtrVar , (counterVar, params)).
+      := (streamVar, params).
 
     Definition iterativeFunction
-               (iFunc       : forall v, abstracted v (iterator v memty))
+               (iFunc       : forall v, abstracted v (iterator v block))
       : T.programLine + {TranslationError}
       := let iter    := Scope.fill verse_regs
                                    (Scope.fill verse_locals
                                                (Scope.fill verse_params (iFunc _))) in
-         iterComp <- Iterator.compile T.typeCompiler iter blockTypeCompat blockVar;
+         iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals regs in
            pre  <- codeDenote (Iterator.preamble iterComp);
              middle <- codeDenote (Iterator.loopBody iterComp);
              post <- codeDenote (Iterator.finalisation iterComp);
-             let lp := T.mapOverBlocks _ _ blockPtrVar counterVar middle in
+             let lp := T.mapOverBlocks streamVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
 
   Arguments function [name] _
             [p l r].
-  Arguments iterativeFunction [name] _ _ [p l r] pvs lvs rvs blockType blockTypeCompat
-            blockPtrVar.
-
+  Arguments iterativeFunction [name] _ _ [p l r].
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
@@ -418,7 +399,7 @@ Module CodeGen (T : CONFIG).
        )
          (only parsing).
 
-  Notation Iterator name memty pvsf lvsf rvsf bPtrVar ctrVar
+  Notation Iterator name memty pvsf lvsf rvsf streamVar
     := (
         let memtyTgt : typeOf types memory
             := recover (Types.compile T.typeCompiler memty) in
@@ -431,7 +412,7 @@ Module CodeGen (T : CONFIG).
         iterativeFunction name memty
                           pvs lvs rvs
                           memtyTgt eq_refl
-                          bPtrVar ctrVar
+                          streamVar
                           pvt lvt rvt
                           eq_refl eq_refl eq_refl
        )
