@@ -121,8 +121,7 @@ Definition sha256iter
                       SHA256.parameters
                       SHA256.locals
                       SHA256.registers
-                      blockPtr
-                      nBlocks
+                      (blockPtr, nBlocks)
                       params
                       locals
                       registers

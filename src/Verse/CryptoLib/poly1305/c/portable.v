@@ -800,8 +800,7 @@ Definition incremental :=
                    Internal.paramsIncremental
                    []
                    Internal.register
-                   blockPtr
-                   nBlocks
+                   (blockPtr, nBlocks)
                    (- AArray , RArray -)
                    (--)
                    registers
@@ -814,8 +813,7 @@ Definition blockmac :=
                    Internal.paramsBlockMac
                    []
                    Internal.register
-                   blockPtr
-                   nBlocks
+                   (blockPtr, nBlocks)
                    (- AArray , RArray, SArray -)
                    (--)
                    registers
@@ -838,8 +836,7 @@ Definition clamp :=
                    []
                    []
                    Internal.regClamp
-                   blockPtr
-                   nBlocks
+                   (blockPtr, nBlocks)
                    (--)
                    (--)
                    (- Temp -)

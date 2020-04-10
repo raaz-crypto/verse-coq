@@ -347,8 +347,7 @@ Definition chacha20_iter :=
                    Internal.parameters
                    Internal.stack
                    Internal.registers
-                   blockPtr
-                   nBlocks
+                   (blockPtr, nBlocks)
                    params
                    locals
                    registers
@@ -371,8 +370,7 @@ Definition csprg_iter :=
                    Internal.parameters
                    Internal.stack
                    Internal.csprgRegisters
-                   blockPtr
-                   nBlocks
+                   ( blockPtr, nBlocks)
                    params
                    locals
                    csprgRegs

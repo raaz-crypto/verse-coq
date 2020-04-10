@@ -91,8 +91,7 @@ Definition blake2sIter
                       Blake2s.paramIterator
                       Blake2s.stack
                       Blake2s.regIterator
-                      blockPtr
-                      nBlocks
+                      (blockPtr,nBlocks)
                       params
                       locals
                       registers

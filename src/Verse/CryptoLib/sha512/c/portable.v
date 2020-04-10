@@ -136,8 +136,7 @@ Definition sha512iter
                       SHA512.parameters
                       SHA512.locals
                       SHA512.registers
-                      blockPtr
-                      nBlocks
+                      ( blockPtr, nBlocks)
                       params
                       locals
                       registers
