@@ -15,7 +15,65 @@ Module Internals.
 
   Import Verse.Target.C.Ast.Expr.
 
-  Fixpoint trExpr {ty} (e : Ast.expr cvar ty) : expr :=
+  (*
+     CVars are the real variables however for streams we need a tuple
+     of vars. We define the vars type for this
+
+   *)
+
+  Definition vars k (ty : C.Ast.type k)
+    := match k with
+       | direct => cvar ty
+       | _      => match ty with
+                  | ptrToArray n ty0 => (cvar ty * cvar uint64_t)%type
+                  | _                => cvar ty
+                  end
+     end.
+
+  (** Convert an expression to its corresponding variable *)
+  Definition toVar {k} (t : type k)(e : Expr.expr)
+    := match t as t0 return vars _ t0 with
+       | ptrToArray _ _ => (e,e)
+       | _              => e
+       end.
+  (** dereference a stream variables variable *)
+
+  Definition deref {ty : type memory}
+    : vars memory ty -> Expr.expr
+    := match ty with
+       | ptrToArray b t =>
+         fun x : vars _ (ptrToArray _ _) => let (bptr, _) := x in (ptrDeref bptr)
+       | array b t  => fun x : vars _ (array _ _) => ptrDeref x
+       end.
+
+
+  (** Get the stream pointer variable out of it *)
+  Definition streamPtr {ty : type memory}
+    : vars memory ty -> Expr.expr
+    :=  match ty with
+       | ptrToArray b t =>
+         fun x : vars _ (ptrToArray _ _) => let (bptr, _) := x in bptr
+       | array b t  => fun x : vars _ (array _ _) => x
+       end.
+
+  Definition counterVar {ty0 : type memory}{ty1 : type direct}
+    : vars memory ty0 -> vars direct ty1
+    := match ty0 with
+       | ptrToArray _ _ =>
+         fun x : vars _ (ptrToArray _ _) => let (_ , cVar) := x in toVar ty1 cVar
+       | array b t  => fun x : vars _ (array _ _) => toVar ty1 x
+       end.
+
+
+  Fixpoint decl {k}{ty} : vars k ty ->  list declaration
+   := match ty with
+   | ptrToArray n t =>
+       fun u : (expr * expr) %type =>
+       let (bptr, ctr) := u in [ @declare k ty bptr; @declare direct uint64_t ctr]%list
+   | _ => fun (u : expr) => [ @declare k ty u]%list
+   end.
+
+  Fixpoint trExpr {ty} (e : Ast.expr vars ty) : expr :=
     match e with
     | Ast.cval   c     => verse_const _ c
     | Ast.valueOf le   => match le with
@@ -39,7 +97,7 @@ Module Internals.
         end args
     end.
 
-  Definition trAssign {ty} (le : Ast.lexpr cvar ty) (ex : Ast.expr cvar ty) :=
+  Definition trAssign {ty} (le : Ast.lexpr vars ty) (ex : Ast.expr vars ty) :=
     let endianConversion endn cex :=
         match endn, cex with
         | hostE, _                            => cex
@@ -53,7 +111,7 @@ Module Internals.
     end.
 
   (** This definition is giving some warning in terms of implicits please check *)
-  Definition trInst ty (inst : Ast.instruction cvar ty) : statement + {TranslationError}
+  Definition trInst ty (inst : Ast.instruction vars ty) : statement + {TranslationError}
     := let getCOP n (o : Ast.op n)
            := match o with
               | Ast.cop co => {- co -}
@@ -79,7 +137,7 @@ Module Internals.
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 
-  Definition trStatement (s : Ast.statement cvar) :=
+  Definition trStatement (s : Ast.statement vars) :=
     let single x := cons x nil in
     match s with
     | existT _ ty inst => single <$> trInst ty inst
@@ -94,7 +152,7 @@ Module Config <: CONFIG.
 
   Instance target_semantics : semantics (list C.Ast.statement + {TranslationError})
     := {| types :=  c_type_system;
-          variables := cvar;
+          variables := Internals.vars;
           denote   := Internals.trStatement
        |}.
 
@@ -125,29 +183,51 @@ Module Config <: CONFIG.
              end in
       verseTranslation trType trConst.
 
-  Definition pointerType (memty : Types.type memory) good
-             (_ : Types.compile typeCompiler memty = {- good -})
-    : typeOf c_type_system memory
-    := match good with
-       | array b ty0 => ptrToArray b ty0
-       | _           => good
+
+  Definition ptrOf {k} (block : typeOf c_type_system k)
+
+    := match block in type k0
+             return  match k0 with
+                     | direct => IDProp
+                     | memory => type memory
+                     end with
+       | array b ty0  | ptrToArray b ty0 => ptrToArray b ty0
+       | _            => idProp
        end.
+(*
+  Definition deref  {k} {block : typeOf c_type_system k}
+             (v : variables k block)
+    := match block as block0 in type k0
+             return  match k0 with
+                     | direct => IDProp
+                     | memory => variables memory (@ptrOf memory block0)
+                     end with
+       | array b ty0  | ptrToArray b ty0 => ptrToArray b ty0
+       | _            => idProp
+       end.
+ *)
+  Definition streamOf (block : typeOf c_type_system memory)
+    : typeOf c_type_system memory
+    := ptrOf block.
 
-  Definition counterType := uint64_t.
-  Definition dereference : forall memty good (pf : Types.compile typeCompiler memty = {- good -}),
-      variables memory (pointerType memty good pf) -> variables memory good :=
-   fun _ _ _ x => Expr.ptrDeref x.
+  (*
+  Definition deref {k} (ty : type k)
+             variables k ty).
+    := match ty with
+   *)
+  Definition dereference {block : type memory}
+    : variables memory (streamOf block) -> variables memory block
+    := fun x => Internals.toVar block (Internals.deref x ).
 
-
-
-  Definition mapOverBlocks mem ty
-             (blockPtrVar : variables memory mem)
-             (ctrVar : variables direct ty)
+  Definition mapOverBlocks {block}
+             (streamVar : variables memory (streamOf block))
              (body : list statement)
              : list statement
-    := [ whileLoop (Expr.gt_zero ctrVar)
+    := let blockVar := Internals.streamPtr streamVar in
+       let counter : variables direct uint64_t := Internals.counterVar streamVar  in
+       [ whileLoop (Expr.gt_zero counter)
                    (Braces
-                      (body ++ [ increment blockPtrVar ; decrement ctrVar ]
+                      (body ++ [ increment blockVar ; decrement counter ]
                    ))
        ]%list.
 
@@ -159,7 +239,8 @@ Module Config <: CONFIG.
     | []       => fun _ => []%list
     | (existT _ k ty :: xs) =>
       fun arg => let (u, ap) := arg in
-              (@declare k ty u :: allocToList xs ap)%list
+              let ds := Internals.decl u in
+              (ds ++ allocToList xs ap)%list
     end.
 
   Arguments allocToList [n st].
