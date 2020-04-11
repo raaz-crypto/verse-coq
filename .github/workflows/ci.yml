@@ -12,6 +12,11 @@ jobs:
 
       - name: Get the Repository
         run: |
+          git --version
+          echo -n current directory =
+          pwd
+          echo workspace  = "$GITHUB_WORKSPACE"
+
           echo repository = "$GITHUB_REPOSITORY"
           echo sha = $GITHUB_SHA
 
