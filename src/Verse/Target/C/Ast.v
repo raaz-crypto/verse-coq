@@ -62,13 +62,13 @@ Essentially, C expressions are Verse operators applied to
 subexpressions. However, there are some additional constructors which
 we now explain.
 
-* The constructors [rotateL] and [rotateR] for calls to C functions
+- The constructors [rotateL] and [rotateR] for calls to C functions
   that implement the rotate instructions. For some strange reason C
   does not have rotate instructions.
 
-* [convert_to] and [convert_from] for endian conversion functions.
+- [convert_to] and [convert_from] for endian conversion functions.
 
-* [verse_u8, verse_u16, verse_u32, verse_u64] for constant creation.
+- [verse_u8, verse_u16, verse_u32, verse_u64] for constant creation.
   The limitation of the notation system to combine nibbles without
   interleaving spaces meant we need a hack to get this working.
 
