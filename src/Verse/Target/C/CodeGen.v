@@ -1,3 +1,4 @@
+(* begin hide *)
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
 Require Import Verse.TypeSystem.
@@ -11,17 +12,37 @@ Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
 
+(* end hide *)
+
+(** * Target configuration for Portable C.
+
+This module exposes a target configuration module for the C language
+for use in generating portable C code. We start with definition some
+helper functions and types and wrap it inside an Internal module so
+that it is not available outside.
+
+*)
+
 Module Internals.
 
   Import Verse.Target.C.Ast.Expr.
 
-  (*
-     CVars are the real variables however for streams we need a tuple
-     of vars. We define the vars type for this
+  (** ** Target variables are not [cvar].
+
+    We finally want the code to be pretty printed and hence the
+    variable used in the final C code should be of type
+    [cvar]. However, a stream in C is represented by a pointer and a
+    counter and hence require two [cvars]. Thus we will be using the
+    following variable in the target configuration for C.
+
+    The inner match is sufficient to make coq's type checker happy but
+    the advantage of this outer match is that it clearly says that the
+    variable for a [direct] type is just a [cvar].  This makes writing
+    the instruction translations easier.
 
    *)
 
-  Definition vars k (ty : C.Ast.type k)
+  Definition variables k (ty : C.Ast.type k)
     := match k with
        | direct => cvar ty
        | _      => match ty with
@@ -29,51 +50,24 @@ Module Internals.
                   | _                => cvar ty
                   end
      end.
+  Definition blockPtr : expr * expr -> expr := fst.
+  Definition counter  :  expr * expr -> expr := snd.
 
-  (** Convert an expression to its corresponding variable *)
-  Definition toVar {k} (t : type k)(e : Expr.expr)
-    := match t as t0 return vars _ t0 with
-       | ptrToArray _ _ => (e,e)
-       | _              => e
-       end.
-  (** dereference a stream variables variable *)
+  (** Generates a list of declarations variables. For stream types it
+     generates declaration for the associated pointer and the counter
+     variables *)
 
-  Definition deref {ty : type memory}
-    : vars memory ty -> Expr.expr
-    := match ty with
-       | ptrToArray b t =>
-         fun x : vars _ (ptrToArray _ _) => let (bptr, _) := x in (ptrDeref bptr)
-       | array b t  => fun x : vars _ (array _ _) => ptrDeref x
-       end.
-
-
-  (** Get the stream pointer variable out of it *)
-  Definition streamPtr {ty : type memory}
-    : vars memory ty -> Expr.expr
-    :=  match ty with
-       | ptrToArray b t =>
-         fun x : vars _ (ptrToArray _ _) => let (bptr, _) := x in bptr
-       | array b t  => fun x : vars _ (array _ _) => x
-       end.
-
-  Definition counterVar {ty0 : type memory}{ty1 : type direct}
-    : vars memory ty0 -> vars direct ty1
-    := match ty0 with
-       | ptrToArray _ _ =>
-         fun x : vars _ (ptrToArray _ _) => let (_ , cVar) := x in toVar ty1 cVar
-       | array b t  => fun x : vars _ (array _ _) => toVar ty1 x
-       end.
-
-
-  Fixpoint decl {k}{ty} : vars k ty ->  list declaration
+  Fixpoint decl {k}{ty} : variables k ty ->  list declaration
    := match ty with
-   | ptrToArray n t =>
-       fun u : (expr * expr) %type =>
-       let (bptr, ctr) := u in [ @declare k ty bptr; @declare direct uint64_t ctr]%list
-   | _ => fun (u : expr) => [ @declare k ty u]%list
-   end.
+      | ptrToArray _ _
+        => fun u => [ declare (ty:=ty)       (blockPtr u);
+                      declare (ty:=uint64_t) (counter u)
+                    ]
+      | _ => fun u =>  [ declare (ty:=ty) u]
+      end%list.
 
-  Fixpoint trExpr {ty} (e : Ast.expr vars ty) : expr :=
+  (* begin hide *)
+  Fixpoint trExpr {ty} (e : Ast.expr variables ty) : expr :=
     match e with
     | Ast.cval   c     => verse_const _ c
     | Ast.valueOf le   => match le with
@@ -97,7 +91,7 @@ Module Internals.
         end args
     end.
 
-  Definition trAssign {ty} (le : Ast.lexpr vars ty) (ex : Ast.expr vars ty) :=
+  Definition trAssign {ty} (le : Ast.lexpr variables ty) (ex : Ast.expr variables ty) :=
     let endianConversion endn cex :=
         match endn, cex with
         | hostE, _                            => cex
@@ -111,7 +105,7 @@ Module Internals.
     end.
 
   (** This definition is giving some warning in terms of implicits please check *)
-  Definition trInst ty (inst : Ast.instruction vars ty) : statement + {TranslationError}
+  Definition trInst ty (inst : Ast.instruction variables ty) : statement + {TranslationError}
     := let getCOP n (o : Ast.op n)
            := match o with
               | Ast.cop co => {- co -}
@@ -137,7 +131,9 @@ Module Internals.
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 
-  Definition trStatement (s : Ast.statement vars) :=
+
+  (* end hide *)
+  Definition trStatement (s : Ast.statement variables) :=
     let single x := cons x nil in
     match s with
     | existT _ ty inst => single <$> trInst ty inst
@@ -152,7 +148,7 @@ Module Config <: CONFIG.
 
   Instance target_semantics : semantics (list C.Ast.statement + {TranslationError})
     := {| types :=  c_type_system;
-          variables := Internals.vars;
+          variables := Internals.variables;
           denote   := Internals.trStatement
        |}.
 
@@ -183,64 +179,47 @@ Module Config <: CONFIG.
              end in
       verseTranslation trType trConst.
 
-
-  Definition ptrOf {k} (block : typeOf c_type_system k)
-
-    := match block in type k0
-             return  match k0 with
-                     | direct => IDProp
-                     | memory => type memory
-                     end with
-       | array b ty0  | ptrToArray b ty0 => ptrToArray b ty0
-       | _            => idProp
-       end.
-(*
-  Definition deref  {k} {block : typeOf c_type_system k}
-             (v : variables k block)
-    := match block as block0 in type k0
-             return  match k0 with
-                     | direct => IDProp
-                     | memory => variables memory (@ptrOf memory block0)
-                     end with
-       | array b ty0  | ptrToArray b ty0 => ptrToArray b ty0
-       | _            => idProp
-       end.
- *)
-  Definition streamOf (block : typeOf c_type_system memory)
+  Definition streamOf {k}(block : type k)
     : typeOf c_type_system memory
-    := ptrOf block.
+    := let sz := match block with
+                 | array b _ | ptrToArray b _ => b
+                 | _ => 1
+                 end in
+       let ty0 := match block in type k0 return type direct with
+                  | array _ t | ptrToArray _ t => t
+                  | t => t
+                  end in
+       ptrToArray sz ty0.
 
-  (*
-  Definition deref {k} (ty : type k)
-             variables k ty).
-    := match ty with
-   *)
-  Definition dereference {block : type memory}
-    : variables memory (streamOf block) -> variables memory block
-    := fun x => Internals.toVar block (Internals.deref x ).
+  Definition dereference {k}{ty : type k}
+    : variables  memory (streamOf ty) -> variables k ty
+    :=  match ty with
+       | ptrToArray b t => fun x => x (* this branch is not really used *)
+       | _ => fun x => Expr.ptrDeref (Internals.blockPtr x)
+       end.
 
-  Definition mapOverBlocks {block}
-             (streamVar : variables memory (streamOf block))
+  Definition mapOverBlocks {block : type memory}
+             (stream : variables memory (streamOf block))
              (body : list statement)
              : list statement
-    := let blockVar := Internals.streamPtr streamVar in
-       let counter : variables direct uint64_t := Internals.counterVar streamVar  in
-       [ whileLoop (Expr.gt_zero counter)
-                   (Braces
-                      (body ++ [ increment blockVar ; decrement counter ]
-                   ))
-       ]%list.
+    := (let cond := Expr.gt_zero (Internals.counter stream) in
+        let actualBody :=  body ++
+                                [ increment (Internals.blockPtr stream);
+                                  decrement (Internals.counter stream)]
+
+        in [ whileLoop cond (Braces actualBody) ]
+       )%list.
 
 
   Fixpoint allocToList {n} (st : Scope.type types n)
     :  Scope.allocation variables st -> list declaration :=
     match st as st0 return Scope.allocation variables st0 -> list declaration
     with
-    | []       => fun _ => []%list
-    | (existT _ k ty :: xs) =>
-      fun arg => let (u, ap) := arg in
-              let ds := Internals.decl u in
-              (ds ++ allocToList xs ap)%list
+    | []      => fun _   => nil
+    | _ :: xs => fun arg =>
+                   let this := Internals.decl (fst arg) in
+                   let rest := allocToList xs (snd arg) in
+                   (this ++ rest)%list
     end.
 
   Arguments allocToList [n st].
