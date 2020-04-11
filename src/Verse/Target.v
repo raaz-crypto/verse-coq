@@ -120,32 +120,34 @@ Module Type CONFIG.
       Iterators process a stream of blocks each of which is
       transformed by the code available through the [process] field of
       the [iterator] record. The [streamOf] type captures the type in
-      the target world that corresponds to stream of type [ty] in the
-      verse world. Of course we need to make sure that [ty] can be
-      translated to the target world.
+      the target world that corresponds to stream of type [blocks].
 
    *)
 
   Parameter streamOf  : typeOf types memory -> typeOf types memory.
 
-  (** We need a way to index the current block so that the [process]
-     fragment of the iterator can work on it.
-  *)
+  (** The [dereference] function allows us to index the current block
+      that is being acted on by the [process] fragment of the iterator
+   *)
   Parameter dereference  : forall {block : typeOf types memory},
       variables memory (streamOf block) -> variables memory block.
 
-  (** Finally, we need a way to iterate over all the blocks. This is
-      used to compile the loop that uses the [process] field of the
-      iterator to
-
+  (** The [mapOverBlocks] applies a set of instructions on a single
+      block and iterates it over all the blocks in the stream. It
+      starts at a point in the stream, runs the given list of statements
+      and advances the stream to the next element of the stream.
    *)
 
   Parameter mapOverBlocks :
     forall {block : typeOf types memory},
-      variables memory (streamOf block) -> (** Stream variable *)
-      list statement       -> (** Things to do on a single block *)
+      variables memory (streamOf block) ->
+      list statement       ->
       list statement.
 
+  (**
+     Finally we need to package a function in the target language given its
+     signature and its body of statements.
+   *)
   Parameter programLine  : Type.
   Parameter makeFunction
     : forall name : Set,
@@ -155,13 +157,14 @@ Module Type CONFIG.
 
 End CONFIG.
 
-(**
-    This is the code generation module that takes as parameters a
-    target configuration module and generates the actual function that
-    corresponds to the verse code. There are two variants, code
-    generator for straight line programs as well as code generator for
-    iterators.
-*)
+(** * Code generation
+
+    Using a target configuration module captured by the module
+    signature [CONFIG], we now give the code generation module that
+    compiles straight line function and iterators written in verse to
+    the target language function.
+
+ *)
 
 Module CodeGen (T : CONFIG).
 
@@ -188,7 +191,7 @@ Module CodeGen (T : CONFIG).
 
       - We then need to convert these type checked and transformed
         code into the target specific ast for which we make use of the
-        functions from the config module T.
+        functions from the config module [T].
 
    *)
 
@@ -302,10 +305,8 @@ Module CodeGen (T : CONFIG).
     Variable regs   : Scope.allocation variables rts.
 
 
-    (**
-        Using the Variables.coCompile we can convert into variables on
-        the verse type system.
-     *)
+    (** Let us first convert the allocations that we have on the target variables
+        to variables in the verse world. *)
     Definition verse_params := toVerseAllocation pCompat params.
     Definition verse_locals := toVerseAllocation lCompat locals.
     Definition verse_regs   := toVerseAllocation rCompat regs.
@@ -381,11 +382,21 @@ Module CodeGen (T : CONFIG).
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
-  (** These notations are only for making our life easy when writing
-      these functions with an incredibly many arguments. We do not
-      really care about their use in pretty printing and hence they
-      are marked as (only parsing). This also suppress some warnings
-      from Coq *)
+  (** ** Notations to simplify usage.
+
+      Although the code generation is rather simple, the arguments it
+      need is large in number. Making the programmer supply all these
+      is not pretty. These notations simplify some of the this
+      process.
+   *)
+
+  (* Note to developer ----------------
+
+     We do not really care about their use in pretty printing and
+     hence they are marked as (only parsing). This also suppress some
+     warnings from Coq.
+
+   *)
 
   Notation Function name pvsf lvsf rvsf
     := ( let pvs := Verse.infer pvsf in
