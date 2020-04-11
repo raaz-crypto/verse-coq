@@ -124,13 +124,13 @@ Module Type CONFIG.
 
    *)
 
-  Parameter streamOf  : typeOf types memory -> typeOf types memory.
+  Parameter streamOf  : forall {k}, typeOf types k -> typeOf types memory.
 
   (** The [dereference] function allows us to index the current block
       that is being acted on by the [process] fragment of the iterator
    *)
-  Parameter dereference  : forall {block : typeOf types memory},
-      variables memory (streamOf block) -> variables memory block.
+  Parameter dereference  : forall {k}{block : typeOf types k},
+      variables memory (streamOf block) -> variables k block.
 
   (** The [mapOverBlocks] applies a set of instructions on a single
       block and iterates it over all the blocks in the stream. It
