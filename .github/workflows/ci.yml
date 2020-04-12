@@ -38,7 +38,7 @@ jobs:
           echo "::set-env name=DOCKER_ID::$CID"
       - name: Information
         run:
-              sudo docker exec -ti "$DOCKER_ID" sh -c "uname -a"
+              sudo docker exec -i "$DOCKER_ID" sh -c "uname -a"
 
       #     uname -a
       #     coqtop --version
