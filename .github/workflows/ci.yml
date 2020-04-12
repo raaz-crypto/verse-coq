@@ -23,7 +23,7 @@ jobs:
           # sudo git clone https://github.com/"$GITHUB_REPOSITORY"
           # sudo git checkout "$GITHUB_SHA"
 
-      - name: Install docker command
+      - name: Dockers APT repository
         run: |
           sudo apt-get update -y
           sudo apt-get install gnupg -y
@@ -31,10 +31,10 @@ jobs:
           curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
           sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
           sudo apt-get update -y
-      - name: Run apt cache
-        run: |
-          sudo apt-cache search docker-ce
 
+      - name: Docker CLI installation
+        run: |
+          sudo apt-get install docker-ce-cli -y
 
       # - name: Information
       #   run: |
