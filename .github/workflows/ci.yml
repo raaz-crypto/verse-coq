@@ -37,8 +37,7 @@ jobs:
           CID=`sudo docker ps --all --filter status=running --format "{{.ID}}"`
           echo "::set-env name=DOCKER_ID::$CID"
       - name: Information
-        run:
-              sudo docker exec -i "$DOCKER_ID" sh -c "uname -a"
+        run: sudo docker exec -i "$DOCKER_ID" sh -c "coqtop --version"
 
       #     uname -a
       #     coqtop --version
