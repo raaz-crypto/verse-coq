@@ -34,7 +34,7 @@ jobs:
 
       - name: Set Container ID
         run: |
-          CID=`sudo docker ps --all --filter status=running --format "{{.ID}}`
+          CID=`sudo docker ps --all --filter status=running --format "{{.ID}}"`
           echo "::set-env name=DOCKER_ID::$CID"
       - name: Information
         run:
