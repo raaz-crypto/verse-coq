@@ -10,21 +10,22 @@ jobs:
     container: coqorg/coq:${{ matrix.coq }}
     steps:
 
-      - name: Get the Repository
-        run: |
-          git --version
-          echo -n current directory =
-          pwd
-          echo workspace  = "$GITHUB_WORKSPACE"
+      # - name: Get the Repository
+      #   run: |
+      #     git --version
+      #     echo -n current directory =
+      #     pwd
+      #     echo workspace  = "$GITHUB_WORKSPACE"
 
-          echo repository = "$GITHUB_REPOSITORY"
-          echo sha = $GITHUB_SHA
+      #     echo repository = "$GITHUB_REPOSITORY"
+      #     echo sha = $GITHUB_SHA
 
           # sudo git clone https://github.com/"$GITHUB_REPOSITORY"
           # sudo git checkout "$GITHUB_SHA"
 
       - name: Setup
         run: |
+          uname -a
           sudo apt-get update -y
           sudo apt-get install coq make m4 -y
 
