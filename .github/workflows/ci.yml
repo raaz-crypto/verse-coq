@@ -25,14 +25,12 @@ jobs:
 
       - name: Setup
         run: |
-          uname -a
-          sudo apt-get update -y
-          sudo apt-get install coq make m4 -y
+          /usr/bin/docker ps --all
 
-      - name: Information
-        run: |
-          uname -a
-          coqtop --version
+      # - name: Information
+      #   run: |
+      #     uname -a
+      #     coqtop --version
 
 
       # - name: Build
