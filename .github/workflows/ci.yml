@@ -25,7 +25,8 @@ jobs:
 
       - name: Setup
         run: |
-          /usr/bin/docker ps --all
+          apt get install docker -y
+          docker ps --all
 
       # - name: Information
       #   run: |
