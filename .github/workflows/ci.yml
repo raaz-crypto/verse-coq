@@ -35,7 +35,7 @@ jobs:
       - name: Docker CLI installation
         run: |
           sudo apt-get install docker-ce-cli -y
-
+          sudo docker ps --all
       # - name: Information
       #   run: |
       #     uname -a
