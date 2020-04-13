@@ -22,8 +22,6 @@ Definition carrayType n (e : endian) t := array n t.
 
 Definition const (ty : type direct) := list Nibble.
 
-Canonical Structure c_type_system :=
-    TypeSystem  type carrayType const.
 
 (** * The expression language.
 
@@ -55,6 +53,9 @@ Inductive op : nat -> Set :=
 | shiftL  : nat -> op 1
 | shiftR  : nat -> op 1
 .
+
+Definition c_type_system :=
+    TypeSystem  type carrayType const (fun t => op).
 
 (** * Explanation for the constructors.
 
