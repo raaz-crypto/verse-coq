@@ -32,27 +32,10 @@ us considerably.
 
  *)
 
-(* ** Operators.
+Require Verse.Language.Types.
 
-We now capture the arithmetic and bit-wise operators for the C
-language.
-
- *)
-
-
-Inductive op : nat -> Set :=
-| plus    : op 2
-| minus   : op 2
-| mul     : op 2
-| quot    : op 2
-| rem     : op 2
-| bitOr   : op 2
-| bitAnd  : op 2
-| bitXor  : op 2
-| bitComp : op 1
-| shiftL  : nat -> op 1
-| shiftR  : nat -> op 1
-.
+(** The operators of C are the operators of the verse source language *)
+Definition op := Types.op.
 
 Definition c_type_system :=
     TypeSystem  type carrayType const (fun t => op).

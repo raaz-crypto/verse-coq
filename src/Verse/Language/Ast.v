@@ -33,49 +33,11 @@ We begin by defining the types for the language.
 
 (* begin hide *)
 Require Import Verse.Language.Types.
-Require        Verse.Target.C.Ast.
+
 Require Import Verse.TypeSystem.
 
 Import EqNotations.
 (* end hide *)
-
-
-(** * Operators of Verse language.
-
-We define the arithmetic and bitwise operators that the verse language
-supports. Target languages have support for these. The nat parameter
-captures the arity of the operator. The shifts and rotate instructions
-are arity one here because they only support constant
-offsets. Cryptographic implementations only need this and infact it is
-better to restrict to such shifts/rotates --- argument dependent
-shifts and rotates can become side channel leaking instructions.
-
-We define the verse language operators as C operators with the
-additional rotation operation (for some inexplicable reasons C still
-does not have rotation instructions in the standards).
-
- *)
-
-Inductive op : nat -> Set :=
-| cop     : forall n, C.Ast.op n -> op n
-| rotL    : nat -> op 1
-| rotR    : nat -> op 1
-.
-
-Arguments cop [n].
-
-(** We now define the Verse version of the C operators *)
-Definition plus     := cop Ast.plus.
-Definition minus    := cop Ast.minus.
-Definition mul      := cop Ast.mul.
-Definition quot     := cop Ast.quot.
-Definition rem      := cop Ast.rem.
-Definition bitOr    := cop Ast.bitOr.
-Definition bitAnd   := cop Ast.bitAnd.
-Definition bitXor   := cop Ast.bitXor.
-Definition bitComp  := cop Ast.bitComp.
-Definition shiftL m := cop (Ast.shiftL m).
-Definition shiftR m := cop (Ast.shiftR m).
 
 (**
     The verse language ast is defined for a generic type system
