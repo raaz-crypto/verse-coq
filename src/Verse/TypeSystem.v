@@ -22,6 +22,7 @@ Structure typeSystem :=
   TypeSystem { typeOf       : kind -> Type;
                arrayType    : nat -> endian -> typeOf direct -> typeOf memory;
                constOf      : typeOf direct -> Type;
+               operator     : typeOf direct -> nat -> Type
              }.
 (** A type existentially quantified by its kind. Such existentlly quantified types
     makes it possible to store types of different kind in a list or a vector
@@ -46,6 +47,8 @@ Structure translator (ts0 ts1 : typeSystem)
          typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
          constTrans  : forall ty : typeOf ts0 direct,
              constOf ts0 ty -> constOf ts1 (typeTrans direct ty);
+         opTrans     : forall (ty : typeOf ts0 direct) n,
+             operator ts0 ty n -> operator ts1 (typeTrans direct ty) n;
          arrayCompatibility : forall b e ty,
              typeTrans memory (arrayType ts0 b e ty) = arrayType ts1 b e (typeTrans direct ty)
        }.
@@ -68,8 +71,12 @@ Definition result tgt :=
       | {- tyC -} => constOf tgt tyC
       | _         => Empty_set + {TranslationError}
       end in
-
-  TypeSystem (resultType tgt) (resultArray tgt) (resultConst tgt).
+  let resultOp tgt (ty : resultType tgt direct) n :=
+      match ty with
+      | {- tyC -} => operator tgt tyC n
+      | _         =>  Empty_set + {TranslationError}
+      end in
+  TypeSystem (resultType tgt) (resultArray tgt) (resultConst tgt) (resultOp tgt).
 
 Definition compiler src tgt := translator src (result tgt).
 
@@ -83,6 +90,7 @@ just injects the type into the result type system.
 Definition injector ts : compiler ts ts :=
   {| typeTrans := fun k ty => (fun t : typeOf (result ts) k => t) {- ty -};
      constTrans := fun _ c => c ;
+     opTrans    := fun _ _ o => o;
      arrayCompatibility := fun _ _ _ => eq_refl
   |}.
 
