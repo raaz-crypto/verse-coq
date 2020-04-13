@@ -90,7 +90,7 @@ Section VerseCode.
 
 
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : typeOf ts TypeSystem.direct -> Set :=
+  Inductive lexpr : typeOf ts TypeSystem.direct -> Type :=
   | var   :  forall {ty}, v ty -> lexpr ty
   | deref :  forall {ty b e}, v (arrayType ts b e ty)-> {i | i < b} -> lexpr ty.
 

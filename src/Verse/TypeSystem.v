@@ -19,7 +19,7 @@ Inductive kind   : Set := direct | memory.
 Inductive endian : Set := bigE | littleE | hostE.
 
 Structure typeSystem :=
-  TypeSystem { typeOf       : kind -> Set;
+  TypeSystem { typeOf       : kind -> Type;
                arrayType    : nat -> endian -> typeOf direct -> typeOf memory;
                constOf      : typeOf direct -> Type;
              }.
@@ -225,7 +225,7 @@ Import EqNotations.
 Module Variables.
 
   (** The universe of variables (of a given type system) *)
-  Definition U ts := forall k, typeOf ts k -> Set.
+  Definition U ts := forall k, typeOf ts k -> Type.
 
   Module Universe.
 
