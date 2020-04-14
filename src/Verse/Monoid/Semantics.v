@@ -15,15 +15,13 @@ statement.
 
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
-Require Verse.Language.Ast.
+Require Verse.Ast.
 
 Class semantics (Sem : Type) `{Monoid Sem}
   := { types     : typeSystem;
        variables : Variables.U types;
        denote    : Ast.statement variables -> Sem
      }.
-
-Require Verse.Language.Ast.
 
 Definition codeDenote {Sem} `{semantics Sem} : Ast.code variables -> Sem
   := mapMconcat denote.
