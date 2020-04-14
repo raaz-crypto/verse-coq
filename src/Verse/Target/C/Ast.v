@@ -65,8 +65,6 @@ Import Vector.VectorNotations.
 
 Module Expr.
 
-  Inductive voidparams : Set.
-
   Inductive expr :=
   | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
@@ -93,7 +91,7 @@ the pretty printed form, this is not really a problem.
  *)
 
 
-Definition cvar k (ty : type k) := Expr.expr.
+Definition cvar : Variables.U c_type_system := fun k (ty : type k) => Expr.expr.
 
 Inductive declaration :=
 | declare_variable : forall k (ty : type k), cvar k ty -> declaration.
