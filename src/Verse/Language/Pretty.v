@@ -16,7 +16,7 @@ syntax of these code values palatable to the user.
 
 Require Import NArith.
 Require Import Nat.
-Require Import Verse.Language.Ast.
+Require Import Verse.Ast.
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
 Require        Vector.
