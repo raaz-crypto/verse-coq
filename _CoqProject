@@ -1,10 +1,10 @@
 -R src Verse
 src/Verse.v
+src/Verse/Ast.v
 src/Verse/Error.v
 src/Verse/FFI/Raaz.v
 src/Verse/FFI/Raaz/Target/C.v
 src/Verse/Language.v
-src/Verse/Language/Ast.v
 src/Verse/Language/Macros.v
 src/Verse/Language/Macros/Loops.v
 src/Verse/Language/Macros/Cache.v
