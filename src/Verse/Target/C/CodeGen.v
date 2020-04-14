@@ -11,6 +11,8 @@ Require Import List.
 Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
+Require Import Verse.Ast.
+
 
 (* end hide *)
 
@@ -42,16 +44,17 @@ Module Internals.
 
    *)
 
-  Definition variables k (ty : C.Ast.type k)
-    := match k with
-       | direct => cvar ty
-       | _      => match ty with
-                  | ptrToArray n ty0 => (cvar ty * cvar uint64_t)%type
-                  | _                => cvar ty
-                  end
-     end.
+  Definition variables : Variables.U c_type_system
+    := fun k (ty : C.Ast.type k) =>
+         match k with
+         | direct => cvar ty
+         | _      => match ty with
+                    | ptrToArray n ty0 => (cvar ty * cvar uint64_t)%type
+                    | _                => cvar ty
+                    end
+         end.
   Definition blockPtr : expr * expr -> expr := fst.
-  Definition counter  :  expr * expr -> expr := snd.
+  Definition counter  : expr * expr -> expr := snd.
 
   (** Generates a list of declarations variables. For stream types it
      generates declaration for the associated pointer and the counter
@@ -69,7 +72,7 @@ Module Internals.
   (* begin hide *)
   Fixpoint trExpr {ty} (e : Ast.expr variables ty) : expr :=
     match e with
-    | Ast.cval   c     => verse_const _ c
+    | Ast.cval   c     => verse_const ty c
     | Ast.valueOf le   => match le with
                          | Ast.var v => v
                          | @Ast.deref _ _ _ b endn arr (exist _ i _) =>
@@ -84,10 +87,12 @@ Module Internals.
                          end
     | @Ast.app _ _ _  _ o v
       => let args := Vector.map trExpr v in
-        match o with
-        | Ast.cop co => app co
-        | Ast.rotL n => fun cve => rotateL ty (Vector.hd cve, n)
-        | Ast.rotR n => fun cve => rotateR ty (Vector.hd cve, n)
+        match o in Types.op n0
+              return Vector.t expr n0 -> expr
+        with
+        | rotL n => fun cve => rotateL ty (Vector.hd cve, n)
+        | rotR n => fun cve => rotateR ty (Vector.hd cve, n)
+        | x      => app x
         end args
     end.
 
@@ -99,19 +104,19 @@ Module Internals.
         end in
 
     match le with
-    | Ast.var v => assign v (trExpr ex)
+    | Ast.var v => C.Ast.assign v (trExpr ex)
     | @Ast.deref _ _ _ _ endn arr (exist _ i _)
-      => assign (index arr i) (endianConversion endn (trExpr ex))
+      => C.Ast.assign (index arr i) (endianConversion endn (trExpr ex))
     end.
 
   (** This definition is giving some warning in terms of implicits please check *)
-  Definition trInst ty (inst : Ast.instruction variables ty) : statement + {TranslationError}
+  Definition trInst ty (inst : Ast.instruction variables ty) : C.Ast.statement + {TranslationError}
     := let getCOP n (o : Ast.op n)
            := match o with
-              | Ast.cop co => {- co -}
-              | _          => error (CouldNotTranslateBecause inst UpdatesNotForRotatesInC)
+              | rotL _ | rotR _ => error (CouldNotTranslateBecause inst UpdatesNotForRotatesInC)
+              | o => {- o -}
               end in
-       let handleUpdate le (func : expr -> statement) :=
+       let handleUpdate le (func : expr -> C.Ast.statement) :=
            match le with
            | Ast.var v => {- func v -}
            | @Ast.deref _ _ _ _ endn arr (exist _ i _)
@@ -122,18 +127,19 @@ Module Internals.
            end
        in
        match inst with
-       | Ast.assign le ex     => {- trAssign le ex -}
-       | @Ast.update _ _ _ le n o vex  => co <- getCOP (S n) o;
-                                  handleUpdate le (fun lhs => update lhs co (Vector.map trExpr vex))
-       | Ast.increment le     => handleUpdate le increment
-       | Ast.decrement le     => handleUpdate le decrement
+       | assign le ex     => {- trAssign le ex -}
+       (*| @Ast.update _ _ _ le n o vex  => co <- getCOP (S n) o; *)
+       | @update _ _ _ le n o vex  => co <- getCOP (S n) o;
+                                       handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr vex))
+       | increment le     => handleUpdate le C.Ast.increment
+       | decrement le     => handleUpdate le C.Ast.decrement
        | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 
 
   (* end hide *)
-  Definition trStatement (s : Ast.statement variables) :=
+  Definition trStatement (s : statement variables) :=
     let single x := cons x nil in
     match s with
     | existT _ ty inst => single <$> trInst ty inst
@@ -152,32 +158,43 @@ Module Config <: CONFIG.
           denote   := Internals.trStatement
        |}.
 
-  Definition typeCompiler : TypeSystem.compiler verse_type_system c_type_system
-    :=
-      let targetTs := TypeSystem.result types in
-      let trType (ty : Types.type direct) : typeOf targetTs direct
-           := let couldNotError := error (CouldNotTranslate ty)
-              in match ty with
-                 | Word8  => {- uint8_t  -}
-                 | Word16 => {- uint16_t -}
-                 | Word32 => {- uint32_t -}
-                 | Word64 => {- uint64_t -}
-                 | _ => couldNotError
-                 end in
-      let trConst (ty : Types.type direct)
-          : Types.const ty -> constOf targetTs (trType ty)
-          := match ty with
-             | word n =>
-               match n as n0
-                     return Types.const (word n0)
-                            -> constOf targetTs (trType (word n0))
-               with
-               | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
-               | _ => fun x : _ => error (CouldNotTranslate x)
-               end
-             | multiword _ _  => fun x => error (CouldNotTranslate x)
-             end in
-      verseTranslation trType trConst.
+  Definition targetTs := TypeSystem.result types.
+  Definition trType (ty : Types.type direct) : typeOf targetTs direct
+    := let couldNotError := error (CouldNotTranslate ty)
+       in match ty with
+          | Word8  => {- uint8_t  -}
+          | Word16 => {- uint16_t -}
+          | Word32 => {- uint32_t -}
+          | Word64 => {- uint64_t -}
+          | _ => couldNotError
+          end.
+
+  Definition trConst (ty : Types.type direct)
+    : Types.const ty -> constOf targetTs (trType ty)
+    := match ty with
+       | word n =>
+         match n as n0
+               return Types.const (word n0)
+                      -> constOf targetTs (trType (word n0))
+         with
+         | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
+         | _ => fun x : _ => error (CouldNotTranslate x)
+         end
+       | multiword _ _  => fun x => error (CouldNotTranslate x)
+       end.
+
+  Definition trOp (ty : Types.type direct) n
+             : operator verse_type_system ty n ->
+               operator targetTs (trType ty) n
+    := fun op : Types.op n =>
+          match trType ty as ty0
+                return if ty0 then Types.op n else Empty_set + {TranslationError} with
+          | error e => error e
+          | _       => op
+          end.
+
+  Definition typeCompiler : TypeSystem.compiler verse_type_system types
+    := verseTranslation trType trConst trOp.
 
   Definition streamOf {k}(block : type k)
     : typeOf c_type_system memory
@@ -204,8 +221,8 @@ Module Config <: CONFIG.
              : list statement
     := (let cond := Expr.gt_zero (Internals.counter stream) in
         let actualBody :=  body ++
-                                [ increment (Internals.blockPtr stream);
-                                  decrement (Internals.counter stream)]
+                                [ C.Ast.increment (Internals.blockPtr stream);
+                                  C.Ast.decrement (Internals.counter stream)]
 
         in [ whileLoop cond (Braces actualBody) ]
        )%list.

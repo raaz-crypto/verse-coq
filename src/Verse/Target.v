@@ -1,7 +1,7 @@
 (* begin hide *)
 Require Verse.
 Require Import Verse.TypeSystem.
-Require Import Verse.Language.Ast.
+Require Import Verse.Ast.
 Require Import Verse.Language.Types.
 Require Import Verse.Error.
 Require Import Verse.Target.C.Ast.

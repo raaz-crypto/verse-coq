@@ -41,20 +41,21 @@ instance.
 Require Import Basics.
 (* end hide *)
 
-Notation "f >> g" := (compose g f) (left associativity, at level 40).
+Notation "f >-> g" := (compose g f) (left associativity, at level 40).
+
 
 (** Now for the laws of monoid *)
 
 Module LawsTransition.
-  Definition left_identity_compose : forall A (f : A -> A),  (@id A) >> f = f.
+  Definition left_identity_compose : forall A (f : A -> A),  (@id A) >-> f = f.
     trivial.
   Qed.
 
-  Definition right_identity_compose : forall A (f : A -> A),  f >> (@id A)  = f.
+  Definition right_identity_compose : forall A (f : A -> A),  f >-> (@id A)  = f.
     trivial.
   Qed.
 
-  Definition assoc_compose : forall A (f g h : A -> A), f >> (g >> h) = (f >> g) >> h.
+  Definition assoc_compose : forall A (f g h : A -> A), f >-> (g >-> h) = (f >-> g) >-> h.
     trivial.
   Qed.
 
@@ -65,7 +66,7 @@ Import LawsTransition.
 
 Instance transition_monoid (A : Type) : Monoid (A -> A)
   := {| unit := @id A;
-        oper f g := f >> g;
+        oper f g := f >-> g;
         left_identity := left_identity_compose A;
         right_identity := right_identity_compose A;
         associativity   := assoc_compose A

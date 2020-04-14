@@ -38,6 +38,34 @@ Definition natToConst (ty : type direct) (num : nat) : const ty
          | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
      end.
 
+(** * Operators of Verse language.
+
+We define the arithmetic and bitwise operators that the verse language
+supports. Target languages have support for these. The nat parameter
+captures the arity of the operator. The shifts and rotate instructions
+are arity one here because they only support constant
+offsets. Cryptographic implementations only need this and infact it is
+better to restrict to such shifts/rotates --- argument dependent
+shifts and rotates can become side channel leaking instructions.
+
+ *)
+
+Inductive op : nat -> Set :=
+| plus    : op 2
+| minus   : op 2
+| mul     : op 2
+| quot    : op 2
+| rem     : op 2
+| bitOr   : op 2
+| bitAnd  : op 2
+| bitXor  : op 2
+| bitComp : op 1
+| shiftL  : nat -> op 1
+| shiftR  : nat -> op 1
+| rotL    : nat -> op 1
+| rotR    : nat -> op 1
+.
+
 (** Standard word types/scalars *)
 Notation Byte   := (word 0).
 Notation Word8  := (word 0).
@@ -63,7 +91,7 @@ Definition size (ty : type direct) : nat := 2 ^ logSize ty.
 Definition Array  := array.
 Definition Ref (ty : type direct) : type memory := array 1 hostE ty.
 
-Canonical Structure verse_type_system := TypeSystem type array const.
+Canonical Structure verse_type_system := TypeSystem type array const (fun t => op).
 
 Definition VariableT := Variables.U verse_type_system.
 
@@ -77,9 +105,10 @@ of verse types.
 
 Section VerseTranslation.
 
-  Variable ts : typeSystem.
-  Variable tf : type direct -> typeOf ts direct.
-  Variable cf : forall ty, const ty -> constOf ts (tf ty).
+  Variable ts  : typeSystem.
+  Variable tf  : type direct -> typeOf ts direct.
+  Variable cf  : forall ty, const ty -> constOf ts (tf ty).
+  Variable opf : forall ty n, op n ->  operator ts (tf ty) n.
 
   Definition extend : forall k, type k -> typeOf ts k :=
     fun k => match k as k0 return type k0 -> typeOf ts k0 with
@@ -96,7 +125,7 @@ Section VerseTranslation.
     intros; trivial.
   Defined.
 
-  Definition verseTranslation := TypeTranslation extend cf extends_to_array.
+  Definition verseTranslation := TypeTranslation extend cf opf extends_to_array.
 
 End VerseTranslation.
 

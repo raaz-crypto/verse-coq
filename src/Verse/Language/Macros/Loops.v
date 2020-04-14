@@ -1,6 +1,4 @@
 (* begin hide *)
-Require Verse.Language.Ast.
-Require Import Verse.Language.Ast.
 Require Import List.
 Require Import Omega.
 Import ListNotations.

@@ -22,8 +22,6 @@ Definition carrayType n (e : endian) t := array n t.
 
 Definition const (ty : type direct) := list Nibble.
 
-Canonical Structure c_type_system :=
-    TypeSystem  type carrayType const.
 
 (** * The expression language.
 
@@ -34,27 +32,13 @@ us considerably.
 
  *)
 
-(* ** Operators.
+Require Verse.Language.Types.
 
-We now capture the arithmetic and bit-wise operators for the C
-language.
+(** The operators of C are the operators of the verse source language *)
+Definition op := Types.op.
 
- *)
-
-
-Inductive op : nat -> Set :=
-| plus    : op 2
-| minus   : op 2
-| mul     : op 2
-| quot    : op 2
-| rem     : op 2
-| bitOr   : op 2
-| bitAnd  : op 2
-| bitXor  : op 2
-| bitComp : op 1
-| shiftL  : nat -> op 1
-| shiftR  : nat -> op 1
-.
+Definition c_type_system :=
+    TypeSystem  type carrayType const (fun t => op).
 
 (** * Explanation for the constructors.
 
@@ -80,8 +64,6 @@ Require Import Verse.Nibble.
 Import Vector.VectorNotations.
 
 Module Expr.
-
-  Inductive voidparams : Set.
 
   Inductive expr :=
   | app            : forall n, op n -> Vector.t expr n -> expr
@@ -109,7 +91,7 @@ the pretty printed form, this is not really a problem.
  *)
 
 
-Definition cvar k (ty : type k) := Expr.expr.
+Definition cvar : Variables.U c_type_system := fun k (ty : type k) => Expr.expr.
 
 Inductive declaration :=
 | declare_variable : forall k (ty : type k), cvar k ty -> declaration.
