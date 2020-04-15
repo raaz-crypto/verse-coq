@@ -390,7 +390,7 @@ Module CodeGen (T : CONFIG).
       process.
    *)
 
-  (* Note to developer ----------------
+  (* Note to developer
 
      We do not really care about their use in pretty printing and
      hence they are marked as (only parsing). This also suppress some
