@@ -61,7 +61,7 @@ Section VerseCode.
   Inductive expr : typeOf ts TypeSystem.direct -> Type :=
   | cval     : forall {ty}, constOf ts ty -> expr ty
   | valueOf  : forall {ty}, lexpr ty -> expr ty
-  | app      : forall {ty} {arity : nat}, op arity -> Vector.t (expr ty) arity -> expr ty
+  | app      : forall {ty} {arity : nat}, operator ts ty arity -> Vector.t (expr ty) arity -> expr ty
   .
 
   (** ** Instructions
@@ -94,7 +94,7 @@ Section VerseCode.
 
   Inductive instruction ty : Type :=
   | assign    : lexpr ty -> expr ty  -> instruction ty
-  | update    : lexpr ty -> forall n, op (S n) -> Vector.t (expr ty)  n -> instruction ty
+  | update    : lexpr ty -> forall n, operator ts ty (S n) -> Vector.t (expr ty)  n -> instruction ty
   | increment : lexpr ty -> instruction ty
   | decrement : lexpr ty -> instruction ty
   | moveTo    : lexpr ty -> v ty  -> instruction ty
@@ -210,7 +210,7 @@ Module Expr.
          | valueOf x   => valueOf (LExpr.translate tr x)
          | app op args =>
            let argsT := Vector.map (translate _ _ _ _ _) args
-           in app op argsT
+           in app (opTrans tr op) argsT
          end.
 
 
@@ -228,14 +228,13 @@ Module Expr.
   Fixpoint extract tgt
            (v : Variables.U tgt)
            ty (e : expr (Variables.Universe.inject v) ty)
-    : result v ty
-    := match e with
-       (* The match annotation is not required once return type is
-          made explicit.  Does not work with the match annotation but
-          without the return type! *)
+           : result v ty
+    := match e in expr _ ty0 return result v ty0
+       with
        | @cval _ _ {- good -} c        => @cval _ _ good c
        | @valueOf _ _ {- good -} x     => valueOf (LExpr.extract x)
-       | @app _ _ {- good -} _ op args => app op (Vector.map (extract _ _ _) args)
+       | @app _ _ {- good -} _ op args
+         => (fun o : operator tgt good _ => app o (Vector.map (extract _ _ _) args)) op
        | @cval _ _ (error err) _       => error (CouldNotTranslateBecause e err)
        | @valueOf _ _ (error err) x    => error (CouldNotTranslateBecause e err)
        | @app _ _ (error err) _ _ _    => error (CouldNotTranslateBecause e err)
@@ -261,7 +260,7 @@ Module Instruction.
     | assign x e => assign (LExpr.translate tr x) (Expr.translate tr e)
     | update x o args =>
       let argsT := Vector.map (Expr.translate tr (v:=v)(ty:=ty)) args in
-      update (LExpr.translate tr x) o argsT
+      update (LExpr.translate tr x) (opTrans tr o) argsT
     | increment x => increment (LExpr.translate tr x)
     | decrement x => decrement (LExpr.translate tr x)
     | moveTo x y  => (fun yp : v direct (Types.translate tr ty) => moveTo (LExpr.translate tr x) yp) y

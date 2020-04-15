@@ -58,6 +58,7 @@ Arguments TypeTranslation [ts0 ts1].
 Arguments typeTrans [ts0 ts1] _ [k].
 Arguments constTrans [ts0 ts1] _ [ty].
 Arguments arrayCompatibility [ts0 ts1].
+Arguments opTrans [ts0 ts1] _ [ty n].
 Require Import Verse.Error.
 
 (* end hide *)

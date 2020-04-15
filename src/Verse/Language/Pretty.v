@@ -85,8 +85,8 @@ Section Embedding.
       work with instances of [EXPR].  *)
   Section Operators.
 
-    Variable bop    : op 2.
-    Variable uop    : op 1.
+    Variable bop : operator verse_type_system ty 2.
+    Variable uop : operator verse_type_system ty 1.
 
     Variable t      : Type.
     Variable lhs    : t.
