@@ -128,12 +128,10 @@ Module Internals.
        in
        match inst with
        | assign le ex     => {- trAssign le ex -}
-       (*| @Ast.update _ _ _ le n o vex  => co <- getCOP (S n) o; *)
-       | @update _ _ _ le n o vex  => co <- getCOP (S n) o;
-                                       handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr vex))
-       | increment le     => handleUpdate le C.Ast.increment
-       | decrement le     => handleUpdate le C.Ast.decrement
-       | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
+       | @update _ _ _ le n o vex
+         => co <- getCOP (S n) o;
+             handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr vex))
+        | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 

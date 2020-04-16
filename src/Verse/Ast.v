@@ -95,8 +95,6 @@ Section VerseCode.
   Inductive instruction ty : Type :=
   | assign    : lexpr ty -> expr ty  -> instruction ty
   | update    : lexpr ty -> forall n, operator ts ty (S n) -> Vector.t (expr ty)  n -> instruction ty
-  | increment : lexpr ty -> instruction ty
-  | decrement : lexpr ty -> instruction ty
   | moveTo    : lexpr ty -> v ty  -> instruction ty
   | clobber   : v ty -> instruction ty.
 
@@ -142,8 +140,6 @@ Arguments app [ts v ty arity].
 Arguments clobber [ts v ty].
 Arguments moveTo [ts v ty].
 Arguments update [ts v ty] le [ n ].
-Arguments increment [ts v ty].
-Arguments decrement [ts v ty].
 
 (** ** Ast under type level transations. *)
 
@@ -261,8 +257,6 @@ Module Instruction.
     | update x o args =>
       let argsT := Vector.map (Expr.translate tr (v:=v)(ty:=ty)) args in
       update (LExpr.translate tr x) (opTrans tr o) argsT
-    | increment x => increment (LExpr.translate tr x)
-    | decrement x => decrement (LExpr.translate tr x)
     | moveTo x y  => (fun yp : v direct (Types.translate tr ty) => moveTo (LExpr.translate tr x) yp) y
     | clobber x   => (fun xp : v direct (Types.translate tr ty) => clobber xp) x
     end.
@@ -294,8 +288,6 @@ Module Instruction.
                 | update x o args
                   => let argsT := Vector.map (Expr.extract (tgt := tgt)(v:=v) (ty:={-good-})) args
                      in update (LExpr.extract x) o argsT
-                | increment x => increment (LExpr.extract x)
-                | decrement x => decrement (LExpr.extract x)
                 | moveTo x y  => moveTo (LExpr.extract x) y
                 | clobber x   => clobber x
                 end
