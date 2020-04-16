@@ -229,12 +229,12 @@ Module Internal.
 
     Definition Encrypt blk
       := (TransformState ++ foreach (indices blk) (XorBlock blk)
-                        ++ [ ++ ctr ])%list.
+                        ++ [ ctr ::=+ 1 ])%list.
 
 
     Definition CSPRGStream blk
       := (TransformState ++ foreach (indices blk) (EmitStream blk)
-                         ++ [ ++ ctr ])%list.
+                         ++ [ ctr ::=+ 1 ])%list.
 
     (* ** The HChacha20 hash and XChacha20.
 
