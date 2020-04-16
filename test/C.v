@@ -1,7 +1,7 @@
 (* Testing of C pretty printing *)
 Require Import Verse.Language.Types.
 Require Import Verse.Target.C.Ast.
-Require Verse.Language.Ast.
+Require Verse.Ast.
 Require List.
 Import List.ListNotations.
 Import Ast.Expr.
