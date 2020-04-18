@@ -53,8 +53,8 @@ We build the monoidal semantics of this abstract state machine
 machines. We start with the type system.
 
 *)
+
 Require Import Verse.TypeSystem.
-Require Import Verse.Monoid.Semantics.
 
 Definition abstract_type_system : typeSystem
   := {| typeOf    := fun k => Type;
@@ -123,5 +123,26 @@ Module Internals.
       := let rhs := Ast.app o (Ast.valueOf l :: args) in
          assign l rhs st.
 
+    Definition move {T}(l : lexpr T)(r : register typ direct T) :=
+      assign l (Ast.valueOf (Ast.var r)).
+
+    Definition denoteInst {T}(inst : Ast.instruction (register typ)  T) : instruction typ
+      := match inst with
+         | Ast.assign l e => assign l e
+         | Ast.moveTo l r => move   l r
+         | Ast.update l o e => update l o e
+         | Ast.clobber _     => fun x => x
+         end.
+    Definition denoteStmt (stmt : Ast.statement (register typ)) : instruction typ
+      := denoteInst (projT2 stmt).
   End MachineType.
+
+
 End Internals.
+
+Require Import Verse.Monoid.Semantics.
+Definition machine_semantics (typ : type) : semantics (instruction typ)
+  := {| types     := abstract_type_system;
+        variables := register typ;
+        denote    := Internals.denoteStmt typ
+      |}.
