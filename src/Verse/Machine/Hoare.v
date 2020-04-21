@@ -21,7 +21,6 @@ Section Hoare.
     forall st : state cxt, P st -> Q (prog st).
 
   Notation "{{ P }} prog {{ Q }}" := (triple P prog Q) (at level 90).
-  Notation "⦃ P ⦄ prog ⦃ Q ⦄" := (triple P prog Q) (only printing, at level 90).
 
 End Hoare.
 Arguments triple [cxt].
