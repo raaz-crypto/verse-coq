@@ -140,7 +140,7 @@ Module Internals.
 End Internals.
 
 Require Import Verse.Monoid.Semantics.
-Definition machine_semantics (cxt : context) : semantics (instruction cxt)
+Instance machine_semantics (cxt : context) : semantics (instruction cxt)
   := {| types     := abstract_type_system;
         variables := register cxt;
         denote    := Internals.denoteStmt cxt
