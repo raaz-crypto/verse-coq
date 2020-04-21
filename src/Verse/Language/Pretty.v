@@ -85,8 +85,8 @@ Section Embedding.
       work with instances of [EXPR].  *)
   Section Operators.
 
-    Variable bop    : op 2.
-    Variable uop    : op 1.
+    Variable bop : operator verse_type_system ty 2.
+    Variable uop : operator verse_type_system ty 1.
 
     Variable t      : Type.
     Variable lhs    : t.
@@ -101,12 +101,6 @@ Section Embedding.
 
     Definition assignStmt : statement v
       := existT _  _ (assign  (toLexpr lhs)  (toExpr e1)).
-
-    Definition incrementStmt : statement v
-      := existT _ _ (increment (toLexpr lhs)).
-
-    Definition decrementStmt : statement v
-      := existT _ _ (decrement (toLexpr lhs)).
 
      Definition moveStmt (x : v ty) : statement v
       := existT _ _ (Ast.moveTo (toLexpr lhs) x).
@@ -139,8 +133,6 @@ End Embedding.
 
 
 Arguments assignStmt [v ty t] lhs [class t1] e1 [class1].
-Arguments incrementStmt [v ty t] lhs [class].
-Arguments decrementStmt [v ty t] lhs [class].
 Arguments moveStmt [v ty t] lhs [class] x.
 Arguments binOpApp [v ty] bop  [t1 t2] e1 e2  [class1 class2].
 Arguments binOpUpdate [v ty] bop [t] lhs [class] [t1] e1 [class1] .
@@ -219,9 +211,6 @@ Infix "::=|"  := (binOpUpdate bitOr ) (at level 70).
 Infix "::=&"  := (binOpUpdate bitAnd) (at level 70).
 Infix "::=x"  := (binOpUpdate bitXor) (at level 70, only parsing).
 Infix "::=⊕"  := (binOpUpdate bitXor) (at level 70).
-
-Notation "++ A"        := (incrementStmt A)      (at level 70).
-Notation "-- A"        := (decrementStmt A)      (at level 70).
 
 Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70).
 Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70).

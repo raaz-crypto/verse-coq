@@ -394,7 +394,7 @@ Module Internal.
      Defined.
 
     Definition AddFullBlock (blk : progvar Block) : code progvar
-      := (Add128 blk ++ [ ++ a4 ])%list.
+      := (Add128 blk ++ [ a4 ::=+ 1 ])%list.
 
     (** ** Computing [A := A * R]
 

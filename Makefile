@@ -22,7 +22,7 @@ crypto-lib: build
 ## Cleaning.
 clean: subdirs-clean
 	$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq
+	rm -f Makefile.coq Makefile.coq.conf
 
 subdirs-clean:
 	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean; )

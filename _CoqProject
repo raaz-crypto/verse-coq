@@ -10,6 +10,8 @@ src/Verse/Language/Macros/Loops.v
 src/Verse/Language/Macros/Cache.v
 src/Verse/Language/Pretty.v
 src/Verse/Language/Types.v
+src/Verse/Machine.v
+src/Verse/Machine/Hoare.v
 src/Verse/Monoid.v
 src/Verse/Monoid/Semantics.v
 src/Verse/Nibble.v
