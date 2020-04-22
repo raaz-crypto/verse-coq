@@ -61,7 +61,8 @@ Section VerseCode.
   Inductive expr : typeOf ts TypeSystem.direct -> Type :=
   | cval     : forall {ty}, constOf ts ty -> expr ty
   | valueOf  : forall {ty}, lexpr ty -> expr ty
-  | app      : forall {ty} {arity : nat}, operator ts ty arity -> Vector.t (expr ty) arity -> expr ty
+  | uniOp    : forall {ty}, operator ts ty 1 -> expr ty -> expr ty
+  | binOp    : forall {ty}, operator ts ty 2 -> expr ty -> expr ty -> expr ty
   .
 
   (** ** Instructions
@@ -93,8 +94,9 @@ Section VerseCode.
    *)
 
   Inductive instruction ty : Type :=
-  | assign    : lexpr ty -> expr ty  -> instruction ty
-  | update    : lexpr ty -> forall n, operator ts ty (S n) -> Vector.t (expr ty)  n -> instruction ty
+  | assign      : lexpr ty -> expr ty  -> instruction ty
+  | binopUpdate : lexpr ty -> operator ts ty 2 -> expr ty -> instruction ty
+  | uniopUpdate : lexpr ty -> operator ts ty 1 -> instruction ty
   | moveTo    : lexpr ty -> v ty  -> instruction ty
   | clobber   : v ty -> instruction ty.
 
@@ -136,10 +138,12 @@ Arguments deref [ts v ty b e].
 Arguments assign [ts v ty].
 Arguments cval [ts v ty].
 Arguments valueOf [ts v ty].
-Arguments app [ts v ty arity].
+Arguments binOp [ts v ty].
+Arguments uniOp [ts v ty].
 Arguments clobber [ts v ty].
 Arguments moveTo [ts v ty].
-Arguments update [ts v ty] le [ n ].
+Arguments binopUpdate [ts v ty].
+Arguments uniopUpdate [ts v ty].
 
 (** ** Ast under type level transations. *)
 
@@ -197,19 +201,18 @@ End LExpr.
 
 Module Expr.
 
-  Fixpoint translate src tgt
+  Fixpoint translate {src tgt}
            (tr : TypeSystem.translator src tgt)
-           (v       : Variables.U tgt)
-           ty
+           {v       : Variables.U tgt}
+           {ty}
            (e : expr (Variables.Universe.coTranslate tr v) ty)
   : expr v (Types.translate tr ty)
     := match e with
-         | cval c      => cval (constTrans tr c)
-         | valueOf x   => valueOf (LExpr.translate tr x)
-         | app op args =>
-           let argsT := Vector.map (translate _ _ _ _ _) args
-           in app (opTrans tr op) argsT
-         end.
+         | cval c        => cval (constTrans tr c)
+         | valueOf x     => valueOf (LExpr.translate tr x)
+         | uniOp o e0    => uniOp (opTrans tr o) (translate tr e0)
+         | binOp o e0 e1 => binOp (opTrans tr o) (translate tr e0) (translate tr e1)
+       end.
 
 
   Arguments translate [src tgt] tr [v ty].
@@ -223,20 +226,23 @@ Module Expr.
   Arguments result [tgt].
 
 
-  Fixpoint extract tgt
-           (v : Variables.U tgt)
-           ty (e : expr (Variables.Universe.inject v) ty)
+  Fixpoint extract {tgt}
+           {v : Variables.U tgt}
+           {ty} (e : expr (Variables.Universe.inject v) ty)
            : result v ty
     := match e in expr _ ty0 return result v ty0
        with
        | @cval _ _ {- good -} c        => @cval _ _ good c
        | @valueOf _ _ {- good -} x     => valueOf (LExpr.extract x)
-       | @app _ _ {- good -} _ op args
-         => (fun o : operator tgt good _ => app o (Vector.map (extract _ _ _) args)) op
-       | @cval _ _ (error err) _       => error (CouldNotTranslateBecause e err)
-       | @valueOf _ _ (error err) x    => error (CouldNotTranslateBecause e err)
-       | @app _ _ (error err) _ _ _    => error (CouldNotTranslateBecause e err)
+       | @binOp _ _ {- good -} o e0 e1 => binOp (ty:=good) o (extract e0) (extract e1)
+       | @uniOp _ _ {- good -} o e0    => uniOp (ty:=good) o (extract e0)
+       | @cval _ _ (error err) _
+       | @valueOf _ _ (error err) _
+       | @binOp _ _ (error err) _ _ _
+       | @uniOp _ _ (error err) _ _
+         => error (CouldNotTranslateBecause e err)
        end.
+
   Arguments extract [tgt v ty].
   Fixpoint compile src tgt
            (cr : TypeSystem.compiler src tgt)
@@ -256,9 +262,8 @@ Module Instruction.
   : instruction v (Types.translate tr ty) :=
     match i with
     | assign x e => assign (LExpr.translate tr x) (Expr.translate tr e)
-    | update x o args =>
-      let argsT := Vector.map (Expr.translate tr (v:=v)(ty:=ty)) args in
-      update (LExpr.translate tr x) (opTrans tr o) argsT
+    | binopUpdate x o e0 => binopUpdate (LExpr.translate tr x) (opTrans tr o) (Expr.translate tr e0)
+    | uniopUpdate x o    => uniopUpdate (LExpr.translate tr x) (opTrans tr o)
     | moveTo x y  => (fun yp : v direct (Types.translate tr ty) => moveTo (LExpr.translate tr x) yp) y
     | clobber x   => (fun xp : v direct (Types.translate tr ty) => clobber xp) x
     end.
@@ -277,23 +282,21 @@ Module Instruction.
   Definition extract tgt
              (v : Variables.U tgt)
              (ty : Types.result tgt direct)
-
     : instruction (Variables.Universe.inject v) ty -> result v ty
-      (* Type signature added above just for clarity *)
-    := match ty
-         with
-         | {- good -}
-           => fun i =>
-                match i with
-                | assign x e
-                  => assign (LExpr.extract  x) (Expr.extract e)
-                | update x o args
-                  => let argsT := Vector.map (Expr.extract (tgt := tgt)(v:=v) (ty:={-good-})) args
-                     in update (LExpr.extract x) o argsT
-                | moveTo x y  => moveTo (LExpr.extract x) y
-                | clobber x   => clobber x
-                end
-         | error err =>  fun i => error (CouldNotTranslateBecause i err)
+    := match ty with
+       | error err =>  fun i => error (CouldNotTranslateBecause i err)
+       | {- good -} =>
+           let lext := LExpr.extract (ty:={- good -}) in
+           let ext  := Expr.extract (ty:={- good -}) in
+           fun i =>
+               match i with
+               | assign x e => assign (lext x) (ext e)
+               | binopUpdate x o e0 => binopUpdate (lext x) o (ext e0)
+               | uniopUpdate x o  => uniopUpdate (lext x) o
+               | moveTo x y  => moveTo (lext x) y
+               | clobber x   => clobber x
+               end
+
          end.
 
   Arguments extract [tgt v ty].
