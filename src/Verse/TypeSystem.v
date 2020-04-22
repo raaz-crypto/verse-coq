@@ -281,7 +281,15 @@ Module Variables.
     : v k (Types.translate tr ty) -> Universe.coTranslate tr v k ty
     := fun x => x.
 
+  Definition translate src tgt
+             (tr : translator src tgt)
+             (v : U tgt) (k : kind)
+             (ty : typeOf src k)
+    : Universe.coTranslate tr v k ty -> v k (Types.translate tr ty)
+    := fun x => x.
+
   Arguments coTranslate [src tgt] tr [v k ty].
+  Arguments translate [src tgt] tr [v k ty].
 
   Definition coInject ts : forall (v : U (result ts)) k (ty : typeOf ts k),
       v k (Types.inject ty) -> Universe.coInject v k ty
