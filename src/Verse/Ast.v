@@ -151,12 +151,14 @@ Module LExpr.
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt) (ty : typeOf src direct)
              (le : lexpr (Variables.Universe.coTranslate tr v) ty)
-  : lexpr v (Types.translate tr ty).
-    refine (match le with
-            | @var _ _ ty x => var (ty := Types.translate tr ty) x
-            | @deref _ _ ty b e a i => @deref tgt v (Types.translate tr ty) b e _ i
-            end). rewrite <- (arrayCompatibility tr). exact a.
-    Defined.
+  : lexpr v (Types.translate tr ty)
+    := match le with
+       | @var _ _ ty x => var (ty := Types.translate tr ty) x
+       | @deref _ _ ty b e a i =>
+         let compatPf := arrayCompatibility tr b e ty in
+         let ap  := Variables.translate tr a in
+         deref (rew compatPf in ap) i
+       end.
 
   Arguments translate [src tgt] tr [v ty].
 
