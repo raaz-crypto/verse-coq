@@ -211,5 +211,6 @@ End ConversionToString.
 
 (* end hide *)
 
-Definition Ox s := let t := ConversionToString.trim_separators s
-                   in recover (ConversionToString.fromString (String.length t) t).
+Definition Ox s := let t := ConversionToString.trim_separators s in
+                   recover (nibs <- ConversionToString.fromString (String.length t) t;
+                              {- toBv nibs -}).
