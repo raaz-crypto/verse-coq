@@ -7,9 +7,9 @@ Import Vector.VectorNotations.
 
 Module Config <: CONFIG.
 
-  Definition WORD_LOG_SIZE := 2.
-  Definition ROUNDS        := 10.
-  Definition IVVec          :=
+  Definition Word   := Word32.
+  Definition ROUNDS := 10.
+  Definition IVVec  :=
     [
      Ox "6a09e667";
      Ox "bb67ae85";

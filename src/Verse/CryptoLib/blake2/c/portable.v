@@ -1,7 +1,9 @@
 Require Import Verse.
 Require Import Verse.CryptoLib.blake2.
 Require Import PeanoNat.
-
+Require Import Bvector.
+Require Import BinNat.
+Require Import NArith.
 
 (** * Blake2 implementation in C
 
@@ -16,7 +18,6 @@ Module Blake2 (C : CONFIG).
 
   Import C.
 
-  Definition Word : type direct  := word WORD_LOG_SIZE.
   Definition Hash  := Array HASH_SIZE  hostE Word.
   Definition Block := Array BLOCK_SIZE littleE Word.
   Definition IV i (pf : i < 8) := Vector.nth_order IVVec pf.
@@ -230,16 +231,6 @@ Module Blake2 (C : CONFIG).
       Qed.
       Hint Resolve zeroLtPower2.
 
-      (** This constant used to mask out the top most bit for
-          computing the carry
-       *)
-      Definition mask : constant Word.
-        refine (let allones := Vector.const OxF (2*2^WORD_LOG_SIZE) in
-                @Vector.replace_order _ _ allones 0 _ Ox7); simpl.
-        eauto.
-      Defined.
-
-
       (* To make the update count work uniformly both for the iterator
          as well as the last block compressor, we need to parameterise
          over both the upper and lower arguments and also the size
@@ -257,12 +248,12 @@ Module Blake2 (C : CONFIG).
            *)
 
           LMSB ::= l;
-          LMSB ::=>> (8 * size(Word) - 1); (* get he msb to the lsb *)
+          selectShiftRAndUpdate 1 LMSB; (* get he msb to the lsb *)
 
           (* Now get the carry that flows into MSB from the previous bits *)
-          C  ::= l AND mask; (* select every bit except msb *)
-          C  ::=+ byteCount; (* carry at the msb position   *)
-          C  ::=>> (8 * size(Word) - 1); (* move it to the lsb *)
+          C  ::= clearUpper 1 l; (* select every bit except msb *)
+          C  ::=+ byteCount;     (* carry at the msb position   *)
+          selectShiftRAndUpdate 1 C; (* move it to the lsb *)
 
           C  ::=+ LMSB; (* the second now has the carry of the addition    *)
           C  ::=>> 1;   (* move it to the lsb so that it can be added to u *)
@@ -279,9 +270,9 @@ Module Blake2 (C : CONFIG).
 
     (** The update count function as defined for the iterator and the
         last block compressor respectively *)
-    Definition UPDATE_COUNTER_ITER :=
-      let bsize : constant Word := fromNat (BLOCK_SIZE * size Word)
-      in UPDATE_COUNTER bsize U L.
+
+    Definition BSIZE : nat := (BLOCK_SIZE * size Word).
+    Definition UPDATE_COUNTER_ITER := UPDATE_COUNTER BSIZE U L.
 
     Definition UPDATE_COUNTER_LAST := UPDATE_COUNTER NBytes Upper Lower.
 
