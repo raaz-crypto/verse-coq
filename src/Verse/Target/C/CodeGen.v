@@ -85,15 +85,13 @@ Module Internals.
                            | _     => convert_from endn ty arrI
                            end
                          end
-    | @Ast.app _ _ _  _ o v
-      => let args := Vector.map trExpr v in
-        match o in Types.op n0
-              return Vector.t expr n0 -> expr
-        with
-        | rotL n => fun cve => rotateL ty (Vector.hd cve, n)
-        | rotR n => fun cve => rotateR ty (Vector.hd cve, n)
-        | x      => app x
-        end args
+    | Ast.binOp o e0 e1 => app o [trExpr e0; trExpr e1]
+    | Ast.uniOp o e0 =>
+      match o with
+      | rotL n => rotateL ty (trExpr e0 , n)
+      | rotR n => rotateR ty (trExpr e0, n)
+      | x      => app x [trExpr e0]
+      end
     end.
 
   Definition trAssign {ty} (le : Ast.lexpr variables ty) (ex : Ast.expr variables ty) :=
@@ -128,10 +126,13 @@ Module Internals.
        in
        match inst with
        | assign le ex     => {- trAssign le ex -}
-       | @update _ _ _ le n o vex
-         => co <- getCOP (S n) o;
-             handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr vex))
-        | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
+       | binopUpdate le o vex
+         => co <- getCOP 2 o;
+             handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr [vex]))
+       | uniopUpdate le o
+         =>  co <- getCOP 1 o;
+              handleUpdate le (fun lhs => C.Ast.update lhs co [])
+       | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 
