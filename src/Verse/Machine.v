@@ -55,11 +55,17 @@ machines. We start with the type system.
 
 Require Import Verse.TypeSystem.
 
+Fixpoint nOp T n :=
+  match n with
+  | 0   => T
+  | S m => T -> nOp T m
+  end.
+
 Definition abstract_type_system : typeSystem
   := {| typeOf    := fun k => Type;
         arrayType := fun n _ ty =>  Vector.t  ty n;
         constOf   := fun ty => ty;
-        operator  := fun ty n => Vector.t ty n -> ty
+        operator  := nOp
      |}.
 
 
@@ -97,7 +103,7 @@ Module Internals.
 
     Definition leval {T} (l : lexpr T) (st : state cxt) : T
       := match l with
-         | Ast.var reg => lookup st reg
+         | Ast.var reg      => lookup st reg
          | Ast.deref v idx  => Vector.nth_order (lookup st v) (proj2_sig idx)
          end.
 
@@ -105,7 +111,8 @@ Module Internals.
       := match e with
          | Ast.cval c => c
          | Ast.valueOf lv => leval lv st
-         | Ast.app o args => o (Vector.map (eval st) args)
+         | Ast.binOp o e0 e1 => o (eval st e0) (eval st e1)
+         | Ast.uniOp o e0    => o (eval st e0)
          end.
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : state cxt) : state cxt
@@ -116,11 +123,20 @@ Module Internals.
                                    updateReg a (arrp) st
          end (eval st e).
 
-    Definition update {T} (l : lexpr T){arity}
-               (o : operator abstract_type_system T (S arity))
-               (args : Vector.t (expr T) arity)(st : state cxt) : state cxt
-      := let rhs := Ast.app o (Ast.valueOf l :: args) in
-         assign l rhs st.
+    Definition binopUpdate {T}
+               (l : lexpr T)
+               (o : operator abstract_type_system T 2)
+               (e : expr T)
+      : state cxt -> state cxt
+      := let rhs := Ast.binOp o (Ast.valueOf l) e in
+         assign l rhs.
+
+    Definition uniopUpdate {T}
+               (l : lexpr T)
+               (o : operator abstract_type_system T 1)
+      : state cxt -> state cxt
+      := let rhs := Ast.uniOp o (Ast.valueOf l) in
+         assign l rhs.
 
     Definition move {T}(l : lexpr T)(r : register cxt direct T) :=
       assign l (Ast.valueOf (Ast.var r)).
@@ -129,7 +145,8 @@ Module Internals.
       := match inst with
          | Ast.assign l e => assign l e
          | Ast.moveTo l r => move   l r
-         | Ast.update l o e => update l o e
+         | Ast.binopUpdate l o e => binopUpdate l o e
+         | Ast.uniopUpdate l o   => uniopUpdate l o
          | Ast.clobber _     => fun x => x
          end.
     Definition denoteStmt (stmt : Ast.statement (register cxt)) : instruction cxt
@@ -224,7 +241,7 @@ Section WordTypeDenote.
 
   Variable wordOfSize : nat -> Type.
   Variable const      : forall n, constOf verse_type_system (word n) -> wordOfSize n.
-  Variable oper       : forall n arity, op arity -> Vector.t (wordOfSize n) arity -> wordOfSize n.
+  Variable oper       : forall n arity, op arity -> nOp (wordOfSize n) arity.
 
   Fixpoint typeConv k (ty : type k)  : typeOf abstract_type_system k :=
     match ty with
@@ -248,6 +265,7 @@ Section WordTypeDenote.
       | array _ _ _ => idProp
       end.
 
+(*
 
   Fixpoint transpose
            {m n : nat}
@@ -259,20 +277,27 @@ Section WordTypeDenote.
        | (u::us)  => Vector.map2 (fun x xs => x :: xs) u (transpose us)
        end.
 
-  Definition opConvGen  k (ty : type k) arity (o : op arity)
-    (* : Vector.t (typeConv k ty) arity -> typeConv k  ty *)
-    := match ty as ty0 in type k0
-                 return match k0 with
-                        | direct => Vector.t (typeConv k0 ty0) arity -> typeConv k0 ty0
-                        | memory => IDProp
-                        end
-           with
-           | word n =>  oper n arity o
-           | multiword m n => fun mws => Vector.map (oper n arity o) (transpose mws)
-           | array b _ _ => idProp
-           end.
+ *)
 
-  Definition opConv := opConvGen direct.
+  Definition vectorApp {A B}{n}(fvec : Vector.t (A -> B) n) (vec : Vector.t A n) : Vector.t B n
+    := Vector.map2 (fun f x => f x) fvec vec.
+  Fixpoint appN {T} {m} arity : Vector.t (nOp T arity) m ->  nOp (Vector.t T m) arity
+    := match arity with
+       | 0 => fun x => x
+       | S r => fun fvec vec => appN r (vectorApp fvec vec)
+       end.
+
+  Fixpoint opConvGen {k} (ty : type k) arity (o : op arity)
+    : nOp (typeConv k ty) arity
+    := match ty as ty0 in type k0
+             return  nOp (typeConv k0 ty0) arity
+       with
+       | word n =>  oper n arity o
+       | multiword m n =>
+         appN  arity (Vector.const (oper n arity o) (2^m))
+       | array b e ty0 => appN arity (Vector.const (opConvGen ty0 arity o) b)
+       end.
+  Definition opConv := @opConvGen direct.
 
   Definition fromWordDenote :  typeDenote verse_type_system :=
     {| typeTrans  := typeConv;

@@ -27,16 +27,14 @@ Definition const (t : type direct) :=
   end.
 
 Definition NToConst (ty : type direct) (num : N) : const ty
-  := match ty in type direct return const ty with
-     | word n => Nibble.fromN num
-     | multiword m n => Vector.const (Nibble.fromN num) (2^m)
+  := let numtrunc n := @Nibble.fromN (2 * 2^n) num in
+     match ty in type direct return const ty with
+     | word n => numtrunc n
+     | multiword m n => Vector.const (numtrunc n) (2^m)
      end.
 
 Definition natToConst (ty : type direct) (num : nat) : const ty
-  := match ty in type direct return const ty with
-         | word n => Nibble.fromNat num
-         | multiword m n => Vector.const (Nibble.fromNat num) (2^m)
-     end.
+  :=  NToConst ty (N.of_nat num).
 
 (** * Operators of Verse language.
 

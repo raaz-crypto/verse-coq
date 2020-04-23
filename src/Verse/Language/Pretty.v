@@ -108,24 +108,24 @@ Section Embedding.
     (** Applies the binary operator [o] to two values [e1] and [e2]
         both of which are convertable to expressions.  *)
     Definition binOpApp
-      := app bop [toExpr e1 ; toExpr e2].
+      := binOp bop (toExpr e1) (toExpr e2).
 
     (** Update instruction which uses an input binary operator to
         update the l-expression [x].  *)
 
     Definition binOpUpdate : statement v
-      := existT _ _ (update (toLexpr lhs) bop [toExpr e1]).
+      := existT _ _ (binopUpdate (toLexpr lhs) bop (toExpr e1)).
 
 
     (** Applies the unary operator [o] to the value [e] that is
         convertible to expression. *)
     Definition uniOpApp
-    :=  app uop [toExpr e1].
+    :=  uniOp uop (toExpr e1).
 
     (** Update a given lexpression using the given unary operator
         [o]. *)
     Definition uniOpUpdate : statement v
-      := existT _ _ (update (toLexpr lhs) uop []).
+      := existT _ _ (uniopUpdate (toLexpr lhs) uop).
 
     End Operators.
 End Embedding.

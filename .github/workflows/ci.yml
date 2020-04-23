@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ '8.11.0', '8.10.2', '8.9.1', '8.8.0', '8.7.2', '8.6.1']
+        coq: [ '8.11.0', '8.10.2', '8.9.1']
     env:
       COQVER:  ${{ matrix.coq }}
     steps:
