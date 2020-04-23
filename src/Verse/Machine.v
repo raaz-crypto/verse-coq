@@ -241,13 +241,13 @@ Section WordTypeDenote.
   *)
 
   Variable wordOfSize : nat -> Type.
-  Variable const      : forall n, constOf verse_type_system (word n) -> wordOfSize n.
-  Variable oper       : forall n arity, op arity -> nary (wordOfSize n) arity.
+  Variable const      : forall sz, constOf verse_type_system (word sz) -> wordOfSize sz.
+  Variable oper       : forall sz arity, op arity -> nary (wordOfSize sz) arity.
 
   Fixpoint typeConv k (ty : type k)  : typeOf abstract_type_system k :=
     match ty with
-    | word n => wordOfSize n
-    | multiword m n => Vector.t (wordOfSize n) (2^m)
+    | word sz => wordOfSize sz
+    | multiword m sz => Vector.t (wordOfSize sz) (2^m)
     | array b e ty  => Vector.t (typeConv direct ty) b
     end.
 
@@ -279,9 +279,9 @@ Section WordTypeDenote.
     := match ty as ty0 in type k0
              return  nary (typeConv k0 ty0) arity
        with
-       | word n =>  oper n arity o
-       | multiword m n =>
-         appN  arity (Vector.const (oper n arity o) (2^m))
+       | word sz =>  oper sz arity o
+       | multiword m sz  =>
+         appN  arity (Vector.const (oper sz arity o) (2^m))
        | array b e ty0 => appN arity (Vector.const (opConvGen ty0 arity o) b)
        end.
   Definition opConv := @opConvGen direct.
