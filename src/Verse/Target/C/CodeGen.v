@@ -176,7 +176,7 @@ Module Config <: CONFIG.
                return Types.const (word n0)
                       -> constOf targetTs (trType (word n0))
          with
-         | 0 | 1 | 2 | 3  => fun x => Vector.to_list x
+         | 0 | 1 | 2 | 3  => fun x => Vector.to_list (Nibble.fromBv x)
          | _ => fun x : _ => error (CouldNotTranslate x)
          end
        | multiword _ _  => fun x => error (CouldNotTranslate x)

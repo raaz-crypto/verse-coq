@@ -3,6 +3,8 @@ Require Verse.Nibble.
 Require Import Verse.TypeSystem.
 Require Import Arith.
 Require Import NArith.
+Require Import Bvector.
+Require Import BinNat.
 (* end hide *)
 
 (** ** The type system for Verse.
@@ -20,17 +22,23 @@ Inductive type       : kind -> Type :=
 | multiword          : nat -> nat    -> type direct
 | array              : nat -> endian -> type direct -> type memory.
 
+(** Size of a word in bits *)
+Definition bitSize sz := 4 * (2 * 2^sz).
+
+(** This is what a word of size means as a bit vector *)
+Definition BWord sz := Bvector (bitSize sz).
+
 Definition const (t : type direct) :=
   match t with
-  | word n => Nibble.bytes (2^n)
-  | multiword m n => Vector.t (Nibble.bytes (2^n))  (2 ^ m)
+  | word sz => BWord sz
+  | multiword m sz => Vector.t (BWord sz)  (2 ^ m)
   end.
 
 Definition NToConst (ty : type direct) (num : N) : const ty
-  := let numtrunc n := @Nibble.fromN (2 * 2^n) num in
+  := let numtrunc sz : BWord sz := N2Bv_sized _ num in
      match ty in type direct return const ty with
-     | word n => numtrunc n
-     | multiword m n => Vector.const (numtrunc n) (2^m)
+     | word sz => numtrunc sz
+     | multiword m sz => Vector.const (numtrunc sz) (2^m)
      end.
 
 Definition natToConst (ty : type direct) (num : nat) : const ty

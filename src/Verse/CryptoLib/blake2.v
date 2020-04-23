@@ -2,14 +2,16 @@ Require Import Verse.
 
 Module Type CONFIG.
 
-  (** The word size for the hash *)
-  Parameter WORD_LOG_SIZE : nat.
+  (** The basic word of the hash. For blake2b it is [Word64] where as
+      for blake2s it is [Word32]
+   *)
+  Parameter Word : type direct.
 
   (** The number of rounds that is involved in hashing. *)
   Parameters ROUNDS : nat.
 
   (** The round constants for the hash *)
-  Parameter IVVec : Vector.t (constant (word WORD_LOG_SIZE)) 8.
+  Parameter IVVec : Vector.t (constant Word) 8.
 
   (** The rotation constants used by the G function *)
   Parameter R0 R1 R2 R3 : nat.

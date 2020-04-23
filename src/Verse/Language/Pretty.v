@@ -130,6 +130,10 @@ Section Embedding.
     End Operators.
 End Embedding.
 
+Instance bvec_to_expr v sz : EXPR v (word sz) (BWord sz)
+  := { toExpr := fun v : const (word sz) => cval v }.
+Instance nibbles_to_exp v sz  : EXPR v (word sz) (Nibble.bytes (2^sz))
+  := { toExpr := fun nibs => toExpr (toBv nibs) }.
 
 
 Arguments assignStmt [v ty t] lhs [class t1] e1 [class1].
