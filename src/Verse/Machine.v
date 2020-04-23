@@ -55,17 +55,18 @@ machines. We start with the type system.
 
 Require Import Verse.TypeSystem.
 
-Fixpoint nOp T n :=
+(** The universe of  n-ary operator on a type T *)
+Fixpoint nary T (n : nat):=
   match n with
   | 0   => T
-  | S m => T -> nOp T m
+  | S m => T -> nary T m
   end.
 
 Definition abstract_type_system : typeSystem
   := {| typeOf    := fun k => Type;
         arrayType := fun n _ ty =>  Vector.t  ty n;
         constOf   := fun ty => ty;
-        operator  := nOp
+        operator  := nary
      |}.
 
 
@@ -241,7 +242,7 @@ Section WordTypeDenote.
 
   Variable wordOfSize : nat -> Type.
   Variable const      : forall n, constOf verse_type_system (word n) -> wordOfSize n.
-  Variable oper       : forall n arity, op arity -> nOp (wordOfSize n) arity.
+  Variable oper       : forall n arity, op arity -> nary (wordOfSize n) arity.
 
   Fixpoint typeConv k (ty : type k)  : typeOf abstract_type_system k :=
     match ty with
@@ -265,32 +266,18 @@ Section WordTypeDenote.
       | array _ _ _ => idProp
       end.
 
-(*
-
-  Fixpoint transpose
-           {m n : nat}
-           {A : Type}
-           (vs : Vector.t (Vector.t A n) m)
-    : Vector.t (Vector.t A m) n
-    := match vs with
-       | []      => Vector.const [] n
-       | (u::us)  => Vector.map2 (fun x xs => x :: xs) u (transpose us)
-       end.
-
- *)
-
   Definition vectorApp {A B}{n}(fvec : Vector.t (A -> B) n) (vec : Vector.t A n) : Vector.t B n
     := Vector.map2 (fun f x => f x) fvec vec.
-  Fixpoint appN {T} {m} arity : Vector.t (nOp T arity) m ->  nOp (Vector.t T m) arity
+  Fixpoint appN {T} {m} arity : Vector.t (nary T arity) m ->  nary (Vector.t T m) arity
     := match arity with
        | 0 => fun x => x
        | S r => fun fvec vec => appN r (vectorApp fvec vec)
        end.
 
   Fixpoint opConvGen {k} (ty : type k) arity (o : op arity)
-    : nOp (typeConv k ty) arity
+    : nary (typeConv k ty) arity
     := match ty as ty0 in type k0
-             return  nOp (typeConv k0 ty0) arity
+             return  nary (typeConv k0 ty0) arity
        with
        | word n =>  oper n arity o
        | multiword m n =>
