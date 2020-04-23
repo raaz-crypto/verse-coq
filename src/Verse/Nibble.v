@@ -106,7 +106,7 @@ Definition toBv {n} (vec : Vector.t Nibble n) : Bvector (4 * n)
   := N2Bv_sized (4 * n) (toN vec).
 
 Definition fromBv {n} (bvec : Bvector (4 * n)) : Vector.t Nibble n
-  := fromN n (Bv2N bvec).
+  := fromN n (@Bv2N _ bvec).
 
 Arguments toBv [n].
 Arguments fromBv [n].
