@@ -5,7 +5,6 @@ semantics.
 
  *)
 Require Export Bvector.
-Export BvectorNotations.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
