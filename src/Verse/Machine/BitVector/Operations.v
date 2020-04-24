@@ -11,7 +11,8 @@ Require Import NArith.
 Require Import Nat.
 
 (** computes 2^m *)
-Definition twopower m := N.shiftl_nat 1 m.
+Definition twopower m : N
+  := iter m N.double 1%N.
 
 Definition arithm (func : N -> N -> N) sz : Bvector sz -> Bvector sz -> Bvector sz
   := fun x y => N2Bv_sized sz (func (@Bv2N _ x) (@Bv2N _ y)).
