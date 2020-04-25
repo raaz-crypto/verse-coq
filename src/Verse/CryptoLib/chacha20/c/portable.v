@@ -306,75 +306,33 @@ End Internal.
 
 Require Import Verse.Target.C.
 
-Module Allocation.
-  Definition cword := uint32_t.
-  Axiom blockPtr : cvar (ptrToArray BLOCK_SIZE cword).
-  Axiom nBlocks  : cvar uint64_t.
-  Axiom key      : cvar (array KEY_SIZE cword).
-  Axiom iv       : cvar (array IV_SIZE cword).
-  Axiom hiv0 hiv1 hiv2 hiv3 : cvar cword.
-
-
-  Axiom ctrRef : cvar (array 1 cword).
-
-
-  Axiom x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 : cvar cword.
-  Axiom ctr    : cvar cword.
-  Axiom Temp   : cvar cword.
-
-End Allocation.
-
 Inductive name := verse_chacha20_c_portable
                 | verse_chacha20csprg_c_portable
                 | verse_hchacha20_c_portable.
 
-Export Allocation.
-
-Definition params    := (- key , iv , ctrRef -).
-Definition hparams   := (- key , hiv0, hiv1, hiv2, hiv3 -).
-Definition locals    := (--).
-Definition hregisters := (- x0 , x1 , x2 , x3 ,
-                            x4 , x5 , x6 , x7 ,
-                            x8 , x9 , x10, x11,
-                            x12, x13, x14, x15
-                                           -).
-Definition csprgRegs  := ( ctr, hregisters).
-Definition registers  := ( Temp, csprgRegs).
-
 Definition chacha20_iter :=
-  Compile.Iterator verse_chacha20_c_portable
-                   (common.Block littleE)
-                   Internal.parameters
-                   Internal.stack
-                   Internal.registers
-                   (blockPtr, nBlocks)
-                   params
-                   locals
-                   registers
-                   Internal.EncryptIterator.
+  CIterator verse_chacha20_c_portable
+            (common.Block littleE)
+            Internal.parameters
+            Internal.stack
+            Internal.registers
+            Internal.EncryptIterator.
 
 Definition hchacha20_fun :=
-  Compile.Function verse_hchacha20_c_portable
-                   Internal.hparameters
-                   Internal.stack
-                   Internal.hregisters
-                   hparams
-                   locals
-                   hregisters
-                   Internal.HChaCha20.
+  CFunction verse_hchacha20_c_portable
+            Internal.hparameters
+            Internal.stack
+            Internal.hregisters
+            Internal.HChaCha20.
 
 
 Definition csprg_iter :=
-  Compile.Iterator verse_chacha20csprg_c_portable
-                   (common.Block hostE)
-                   Internal.parameters
-                   Internal.stack
-                   Internal.csprgRegisters
-                   ( blockPtr, nBlocks)
-                   params
-                   locals
-                   csprgRegs
-                   Internal.CSPRGIterator.
+  CIterator verse_chacha20csprg_c_portable
+            (common.Block hostE)
+            Internal.parameters
+            Internal.stack
+            Internal.csprgRegisters
+            Internal.CSPRGIterator.
 
 
 Require Import Verse.Error.

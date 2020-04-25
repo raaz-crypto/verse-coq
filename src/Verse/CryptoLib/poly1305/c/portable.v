@@ -765,82 +765,40 @@ Inductive name := verse_poly1305_c_portable_incremental
                 | verse_poly1305_c_portable_clamp.
 
 Require Import Verse.Target.C.
-
-Module Allocation.
-
-
-  Definition cword := uint64_t.
-  Axiom blockPtr : cvar (ptrToArray BLOCK_SIZE cword).
-  Axiom nBlocks  : cvar uint64_t.
-  Axiom LastBlock : cvar (array BLOCK_SIZE cword).
-
-  Axiom AArray : cvar (array Internal.ELEM_SIZE cword).
-  Axiom RArray SArray : cvar (array 2 cword).
-
-  Axiom a0 a1 a2 a3 a4 : cvar cword.
-  Axiom r0 r1 r2 r3    : cvar cword.
-  Axiom p1 p2 p3 p4    : cvar cword.
-  Axiom Temp T0 T1     : cvar cword.
-End Allocation.
-
-Export Allocation.
-
-
-Definition registers := (- a0 , a1 , a2 , a3 , a4,
-                           r0 , r1 , r2 , r3 ,
-                           p1 , p2 , p3 , p4 ,
-                           T0 , T1
-                        -).
-
 Require Import Verse.Error.
 
 Definition incremental :=
-  Compile.Iterator verse_poly1305_c_portable_incremental
-                   Block
-                   Internal.paramsIncremental
-                   []
-                   Internal.register
-                   (blockPtr, nBlocks)
-                   (- AArray , RArray -)
-                   (--)
-                   registers
-                   Internal.poly1305Iter.
+  CIterator verse_poly1305_c_portable_incremental
+            Block
+            Internal.paramsIncremental
+            []
+            Internal.register
+            Internal.poly1305Iter.
 
 
 Definition blockmac :=
-  Compile.Iterator verse_poly1305_c_portable_blockmac
-                   Block
-                   Internal.paramsBlockMac
-                   []
-                   Internal.register
-                   (blockPtr, nBlocks)
-                   (- AArray , RArray, SArray -)
-                   (--)
-                   registers
-                   Internal.poly1305IterMAC.
+  CIterator verse_poly1305_c_portable_blockmac
+            Block
+            Internal.paramsBlockMac
+            []
+            Internal.register
+            Internal.poly1305IterMAC.
 
 Definition partial :=
-  Compile.Function verse_poly1305_c_portable_partialmac
-                   Internal.paramsPartialMac
-                   []
-                   Internal.register
-                   (- LastBlock, AArray , RArray, SArray -)
-                   (--)
-                   registers
-                   Internal.poly1305PartialMAC.
+  CFunction verse_poly1305_c_portable_partialmac
+            Internal.paramsPartialMac
+            []
+            Internal.register
+            Internal.poly1305PartialMAC.
 
 
 Definition clamp :=
-  Compile.Iterator verse_poly1305_c_portable_clamp
-                   Internal.Array128
-                   []
-                   []
-                   Internal.regClamp
-                   (blockPtr, nBlocks)
-                   (--)
-                   (--)
-                   (- Temp -)
-                   Internal.clampIter.
+  CIterator verse_poly1305_c_portable_clamp
+            Internal.Array128
+            []
+            []
+            Internal.regClamp
+            Internal.clampIter.
 
 
 Definition clampI       : Compile.programLine := recover clamp.
