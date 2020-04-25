@@ -168,6 +168,7 @@ End CONFIG.
 
 Module CodeGen (T : CONFIG).
 
+  Module Config := T.
   Import T.
 
   (** The code generation function only needs three things to
@@ -430,4 +431,5 @@ Module CodeGen (T : CONFIG).
          (only parsing).
 
   Definition programLine := T.programLine.
+  Definition variables   := Semantics.variables.
 End CodeGen.
