@@ -47,10 +47,10 @@ Module Internals.
   Definition variables : Variables.U c_type_system
     := fun k (ty : C.Ast.type k) =>
          match k with
-         | direct => cvar ty
+         | direct => expr
          | _      => match ty with
-                    | ptrToArray n ty0 => (cvar ty * cvar uint64_t)%type
-                    | _                => cvar ty
+                    | ptrToArray n ty0 => (expr * expr)%type
+                    | _                => expr
                     end
          end.
   Definition blockPtr : expr * expr -> expr := fst.

@@ -98,34 +98,13 @@ Inductive name := verse_sha256_c_portable.
 
 Require Verse.CryptoLib.sha2.
 
-Module Allocation.
-
-  Axiom blockPtr : cvar (ptrToArray sha2.BLOCK_SIZE uint32_t).
-  Axiom nBlocks  : cvar uint64_t.
-  Axiom hash     : cvar (ptrToArray sha2.HASH_SIZE uint32_t).
-  Axiom w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : cvar uint32_t.
-  Axiom a b c d e f g h : cvar uint32_t.
-  Axiom t               : cvar uint32_t.
-
-End Allocation.
-
-Export Allocation.
-
-Definition params    := (- hash -).
-Definition locals    := (- w0 , w1 , w2 , w3 , w4 , w5 , w6 , w7 , w8 , w9 , w10 , w11 , w12 , w13,  w14 ,  w15 -).
-Definition registers := (- a, b, c, d, e, f, g, h, t -).
-
 Definition sha256iter
-  := Compile.Iterator verse_sha256_c_portable
-                      SHA256.Block
-                      SHA256.parameters
-                      SHA256.locals
-                      SHA256.registers
-                      (blockPtr, nBlocks)
-                      params
-                      locals
-                      registers
-                      SHA256.sha2.
+  := CIterator verse_sha256_c_portable
+               SHA256.Block
+               SHA256.parameters
+               SHA256.locals
+               SHA256.registers
+               SHA256.sha2.
 
 
 Require Import Verse.Error.
