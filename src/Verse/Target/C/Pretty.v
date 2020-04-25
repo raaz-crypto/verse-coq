@@ -2,6 +2,26 @@ Require Import Verse.Target.C.Ast.
 Require Import Verse.TypeSystem.
 Import Verse.Target.C.Ast.Expr.
 
+(**  * Pretty printing variables
+
+We now have pretty printing notations for cvars.
+
+*)
+
+Notation "'bPtr'"
+  := (bPtr _)
+       (at level 1, only printing) : c_scope.
+
+Notation "'v' N"
+  := (cVar _ N)
+       (at level 1, only printing, format "'v' N") : c_scope.
+
+Notation "'v' N"
+  := (cVar _ N)
+       (at level 1, only printing, format "'v' N") : c_scope.
+
+(** * Declarations *)
+
 Notation "T X"
   := (declare_variable T X)
        (at level 29, only printing) : c_scope.
@@ -45,6 +65,9 @@ Notation "'f'" := OxF (only printing) : c_scope.
 Require Vector.
 Require Import Verse.Language.Types.
 Import Vector.VectorNotations.
+
+Notation "X"  := (cvar2exp  _ _ X) (at level 0, only printing) : c_scope.
+
 Notation "/**/~ X"  := (app bitComp [ X ])
                          (at level 30, right associativity, only printing) : c_scope.
 Notation "* X"      := (ptrDeref X) (at level 29,
