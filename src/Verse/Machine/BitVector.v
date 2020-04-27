@@ -8,7 +8,7 @@ words as bitvectors.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Machine.
-Require Import Verse.Machine.BitVector.Operations.
+Require Import Verse.BitVector.
 
 Definition wordOfSize : nat -> Type := Types.BWord.
 Definition const : forall sz : nat, constOf verse_type_system (word sz) -> wordOfSize sz
