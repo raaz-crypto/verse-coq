@@ -16,19 +16,19 @@ Definition const : forall sz : nat, constOf verse_type_system (word sz) -> wordO
 
 Definition oper (sz arity : nat) (o : op arity)
   := match o in op arity0 return nary (wordOfSize sz) arity0 with
-     | plus      => BVplus    _
-     | minus     => BVminus   _
-     | mul       => BVmul     _
-     | quot      => BVquot    _
-     | rem       => BVrem     _
-     | bitOr     => BVor      _
-     | bitAnd    => BVand     _
-     | bitXor    => BVxor     _
-     | bitComp   => BVComp    _
-     | shiftL  n => BVshiftL  _ n
-     | shiftR  n => BVshiftR  _ n
-     | rotL    n => BVrotL    _ n
-     | rotR    n => BVrotR    _ n
+     | plus      => @BVplus    _
+     | minus     => @BVminus   _
+     | mul       => @BVmul     _
+     | quot      => @BVquot    _
+     | rem       => @BVrem     _
+     | bitOr     => @BVor      _
+     | bitAnd    => @BVand     _
+     | bitXor    => @BVxor     _
+     | bitComp   => @BVComp    _
+     | shiftL  n => @BVshiftL  _ n
+     | shiftR  n => @BVshiftR  _ n
+     | rotL    n => @BVrotL    _ n
+     | rotR    n => @BVrotR    _ n
      end.
 
 Definition bvDenote : typeDenote verse_type_system := fromWordDenote wordOfSize const oper.
