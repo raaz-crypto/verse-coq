@@ -11,14 +11,14 @@ Require Import Verse.Language.Types.
 Module Internals.
 
   Definition selL (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := lower_ones (bitSize sz) n in
+    := let mask sz : const (word sz) := lower_ones n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
   Definition selU (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := upper_ones (bitSize sz) n in
+    := let mask sz : const (word sz) := upper_ones n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
@@ -27,7 +27,7 @@ Module Internals.
 
   Definition clearL (ty : type direct) n : const ty
     := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in upper_ones bsz (bsz - n)
+           let bsz := bitSize sz in upper_ones (bsz - n)
        in
        match ty with
        | word sz         => mask sz
@@ -37,7 +37,7 @@ Module Internals.
 
   Definition clearU (ty : type direct) n : const ty
     := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in lower_ones bsz (bsz - n)
+           let bsz := bitSize sz in lower_ones (bsz - n)
        in
        match ty with
        | word sz         => mask sz
