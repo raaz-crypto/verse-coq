@@ -1,4 +1,4 @@
-Require Import Bvector.
+Require Import Verse.BitVector.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
@@ -10,41 +10,35 @@ Require Import Verse.Language.Types.
 
 Module Internals.
 
+  Definition selL (ty : type direct) n : const ty
+    := let mask sz : const (word sz) := lower_ones (bitSize sz) n in
+       match ty with
+       | word sz         => mask sz
+       | multiword m sz  => Vector.const (mask sz) (2^m)
+       end.
 
-  Definition selL (n : nat) {m} : Bvector m
-    := N2Bv_sized m (2^(N.of_nat n) -1).
-
-  Definition clearU n {m} := @selL (m - n) m.
-
-  Definition selU n   {m} := Bneg m (clearU n).
-  Definition clearL n {m} := Bneg m (selL n).
-
-
-  Definition selLC (ty : type direct) n : const ty
-  := let mask sz : const (word sz) := selL n in
-     match ty with
-     | word sz         => mask sz
-     | multiword m sz  => Vector.const (mask sz) (2^m)
-     end.
-
-  Definition selUC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := selU n in
+  Definition selU (ty : type direct) n : const ty
+    := let mask sz : const (word sz) := upper_ones (bitSize sz) n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
 
-  Definition clearLC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := clearL n in
+  Definition clearL (ty : type direct) n : const ty
+    := let mask sz : const (word sz) :=
+           let bsz := bitSize sz in upper_ones bsz (bsz - n)
+       in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
 
-  Definition clearUC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := clearU n in
+  Definition clearU (ty : type direct) n : const ty
+    := let mask sz : const (word sz) :=
+           let bsz := bitSize sz in lower_ones bsz (bsz - n)
+       in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
@@ -74,16 +68,16 @@ selects or clears n bits from each of the component of the multiword.
 *)
 
 Definition selectLower (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.selLC ty n).
+  := e AND (Internals.selL ty n).
 
 Definition selectUpper (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.selUC ty n).
+  := e AND (Internals.selU ty n).
 
 Definition clearLower (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.clearLC ty n).
+  := e AND (Internals.clearL ty n).
 
 Definition clearUpper (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.clearUC ty n).
+  := e AND (Internals.clearU ty n).
 
 (**
     This function selects the upper [n] bits and then shifts the lower n-m bits out. As numbers
