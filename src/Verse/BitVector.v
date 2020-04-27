@@ -54,4 +54,11 @@ Definition BVrotR sz n
 Definition BVrotL sz n
   := let r := n mod sz in iter (sz - n) (rotOnce sz).
 
-Definition ones := Vector.const true.
+(** Generates a bit vector with n-lsb bits set *)
+
+Definition lower_ones sz n : Bvector sz
+  := N2Bv_sized sz (N.ones (N.of_nat n)).
+
+(** Generate a bit vector with n-msb bits set *)
+Definition upper_ones sz n : Bvector sz
+  := BVComp sz (lower_ones sz (sz - n)).
