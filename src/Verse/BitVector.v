@@ -53,3 +53,5 @@ Definition BVrotR sz n
 
 Definition BVrotL sz n
   := let r := n mod sz in iter (sz - n) (rotOnce sz).
+
+Definition ones := Vector.const true.
