@@ -62,3 +62,23 @@ Definition lower_ones sz n : Bvector sz
 (** Generate a bit vector with n-msb bits set *)
 Definition upper_ones sz n : Bvector sz
   := BVComp sz (lower_ones sz (sz - n)).
+
+(* begin hide *)
+Arguments BVplus   [sz].
+Arguments BVminus  [sz].
+Arguments BVminus  [sz].
+Arguments BVmul    [sz].
+Arguments BVquot   [sz].
+Arguments BVrem    [sz].
+Arguments BVand    [_].
+Arguments BVor     [_].
+Arguments BVxor    [_].
+Arguments BVComp   [_].
+Arguments BVshiftL [sz].
+Arguments BVshiftR [sz].
+Arguments BVrotR   [sz].
+Arguments BVrotL   [sz].
+
+Arguments lower_ones [sz].
+Arguments upper_ones [sz].
+(* end hide *)
