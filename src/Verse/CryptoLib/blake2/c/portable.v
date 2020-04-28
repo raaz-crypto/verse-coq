@@ -248,12 +248,12 @@ Module Blake2 (C : CONFIG).
            *)
 
           LMSB ::= l;
-          selectShiftRAndUpdate 1 LMSB; (* get he msb to the lsb *)
+          toTopBitsUpdate 1 LMSB; (* get the msb to the lsb *)
 
           (* Now get the carry that flows into MSB from the previous bits *)
-          C  ::= clearUpper 1 l; (* select every bit except msb *)
-          C  ::=+ byteCount;     (* carry at the msb position   *)
-          selectShiftRAndUpdate 1 C; (* move it to the lsb *)
+          C  ::= clearOnlyUpper 1 l; (* select every bit except msb *)
+          C  ::=+ byteCount;         (* carry at the msb position   *)
+          toTopBitsUpdate 1 C;         (* move it to the lsb *)
 
           C  ::=+ LMSB; (* the second now has the carry of the addition    *)
           C  ::=>> 1;   (* move it to the lsb so that it can be added to u *)
