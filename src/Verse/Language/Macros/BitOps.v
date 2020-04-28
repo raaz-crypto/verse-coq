@@ -1,4 +1,5 @@
-Require Import Bvector.
+(* begin hide *)
+Require Import Verse.BitVector.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
@@ -10,41 +11,35 @@ Require Import Verse.Language.Types.
 
 Module Internals.
 
+  Definition selL (ty : type direct) n : const ty
+    := let mask sz : const (word sz) := lower_ones n in
+       match ty with
+       | word sz         => mask sz
+       | multiword m sz  => Vector.const (mask sz) (2^m)
+       end.
 
-  Definition selL (n : nat) {m} : Bvector m
-    := N2Bv_sized m (2^(N.of_nat n) -1).
-
-  Definition clearU n {m} := @selL (m - n) m.
-
-  Definition selU n   {m} := Bneg m (clearU n).
-  Definition clearL n {m} := Bneg m (selL n).
-
-
-  Definition selLC (ty : type direct) n : const ty
-  := let mask sz : const (word sz) := selL n in
-     match ty with
-     | word sz         => mask sz
-     | multiword m sz  => Vector.const (mask sz) (2^m)
-     end.
-
-  Definition selUC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := selU n in
+  Definition selU (ty : type direct) n : const ty
+    := let mask sz : const (word sz) := upper_ones n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
 
-  Definition clearLC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := clearL n in
+  Definition clearL (ty : type direct) n : const ty
+    := let mask sz : const (word sz) :=
+           let bsz := bitSize sz in upper_ones (bsz - n)
+       in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
 
-  Definition clearUC (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := clearU n in
+  Definition clearU (ty : type direct) n : const ty
+    := let mask sz : const (word sz) :=
+           let bsz := bitSize sz in lower_ones (bsz - n)
+       in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
@@ -52,47 +47,117 @@ Module Internals.
 
   Definition selShiftR (ty : type direct) n : nat
     := match ty with
-       | word sz => bitSize sz - n
-       | multiword _ sz => bitSize sz - n
+       | word sz | multiword _ sz => bitSize sz - n
        end.
 End Internals.
 
-(**  Expression that selects the n most significant bits of a constant *)
-
-
-
 Require Import Verse.Language.Pretty.
+(* end hide *)
 
-(** * Select or clear bits
 
-The [selectLower n] ([selectUpper n]) selects the lower (respectively
-upper) bits of the given constant expression.  Similarly [clearLower
-n] ([clearUpper n]) clears the lower (respectively upper) bits.  If
-the expression is of type multiword, then the select/clear functions
-selects or clears n bits from each of the component of the multiword.
 
-*)
+(** * Keep and clear bits
 
-Definition selectLower (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.selLC ty n).
+The [keepOnlyLower n] ([keepOnlyUpper n]) keeps the lower
+(respectively upper) bits of the given expression and clears all the
+other bits.  Similarly [clearOnlyLower n] ([clearOnlyUpper n]) clears
+the lower (respectively upper) bits while keeping the rest of the bits
+intact.  If the expression is of type multiword, then the
+keepOnly/clearOnly functions keeps or clears n bits from each of the
+component of the multiword.
 
-Definition selectUpper (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.selUC ty n).
+When selecting the top bits, there is also an additional option. We
+shift out the bottom bits. We call this function the topBits function.
+The difference is illustrated in the picture below.
 
-Definition clearLower (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.clearLC ty n).
+ *)
 
-Definition clearUpper (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e AND (Internals.clearUC ty n).
+(*
 
-(**
-    This function selects the upper [n] bits and then shifts the lower n-m bits out. As numbers
-    this corresponds to taking remainder with
+<<
+     |---- top n-bits ---|--- lower bits---|
+                         |
+                      keepOnlyUpper
+                         |
+                         V
+     |---- top n-bits ---|00000000000000000|
 
-*)
-Definition selectAndShiftR  (n : nat) {v : VariableT}{ty : type direct }{E}{inst : EXPR v ty E} (e: E)
-  := e >> (Internals.selShiftR ty n).
 
-Definition selectShiftRAndUpdate  (n : nat)
-           {v : VariableT}{ty : type direct }{L}{inst : LEXPR v ty L} (l: L)
-  := l ::=>> (Internals.selShiftR ty n).
+
+     |---- top n-bits ---|--- lower bits---|
+                         |
+                      toTopBits
+                         |
+                         V
+     |00000000000000000|---- top n-bits ---|
+
+
+>>
+
+
+ *)
+
+(** There is also the update version of these functions that updates a
+    given l-expr with the above mentioned operations.  *)
+
+Section ForAll.
+  Variable v : VariableT.
+  Variable ty : type direct.
+  Variable E  : Type.
+  Variable E_is_Expr : EXPR v ty E.
+  Variable L  : Type.
+  Variable L_is_Lexpr : LEXPR v ty L.
+
+  Definition keepOnlyLower       n (e:E) := e AND Internals.selL ty n.
+  Definition keepOnlyLowerUpdate n (l:L) := l ::=& Internals.selL ty n.
+
+  Definition clearOnlyLower       n (e:E) := e AND Internals.clearL ty n.
+  Definition clearOnlyLowerUpdate n (l:L) := l ::=& (Internals.clearL ty n).
+
+
+  Definition keepOnlyUpper       n (e:E) := e AND Internals.selU ty n.
+  Definition keepOnlyUpperUpdate n (l:L) := l ::=& Internals.selU ty n.
+  Definition toTopBits           n (e:E) := e >>  Internals.selShiftR ty n.
+  Definition toTopBitsUpdate     n (l:L) := l ::=>> (Internals.selShiftR ty n).
+
+  Definition clearOnlyUpper       n (e:E) := e AND (Internals.clearU ty n).
+  Definition clearOnlyUpperUpdate n(l: L) := l ::=& (Internals.clearU ty n).
+
+
+
+(* ** Efficient division modulo 2^n.
+
+We can give efficient division algorithms when the divisor is a power of 2.
+
+ *)
+
+
+  Definition div2power_nat          n (e:E) := e >> n.
+  Definition div2powerUpdate_nat    n (l:L) := l ::=>> n.
+  Definition modulo2power_nat       := keepOnlyLower.
+  Definition modulo2powerUpdate_nat := keepOnlyLowerUpdate.
+
+
+End ForAll.
+
+(* begin hide *)
+Arguments keepOnlyLower [v ty E E_is_Expr].
+Arguments keepOnlyLowerUpdate [v ty L L_is_Lexpr].
+
+Arguments clearOnlyLower       [v ty E E_is_Expr].
+Arguments clearOnlyLowerUpdate [v ty L L_is_Lexpr].
+
+
+Arguments keepOnlyUpper       [v ty E E_is_Expr].
+Arguments keepOnlyUpperUpdate [v ty L L_is_Lexpr].
+Arguments toTopBits           [v ty E E_is_Expr].
+Arguments toTopBitsUpdate     [v ty L L_is_Lexpr].
+
+Arguments clearOnlyUpper       [v ty E E_is_Expr].
+Arguments clearOnlyUpperUpdate [v ty L L_is_Lexpr].
+
+Arguments div2power_nat        [v ty E E_is_Expr].
+Arguments div2powerUpdate_nat  [v ty L L_is_Lexpr].
+Arguments modulo2power_nat     [v ty E E_is_Expr].
+Arguments modulo2powerUpdate_nat [v ty L L_is_Lexpr].
+(* end hide *)
