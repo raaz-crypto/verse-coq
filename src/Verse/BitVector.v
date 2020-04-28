@@ -55,7 +55,6 @@ Definition BVrotL sz n
   := let r := n mod sz in iter (sz - n) (rotOnce sz).
 
 (** Generates a bit vector with n-lsb bits set *)
-
 Definition lower_ones sz n : Bvector sz
   := N2Bv_sized sz (N.ones (N.of_nat n)).
 
@@ -82,3 +81,22 @@ Arguments BVrotL   [sz].
 Arguments lower_ones [sz].
 Arguments upper_ones [sz].
 (* end hide *)
+
+(** * Bitwise functions
+
+This function essentially give the semantics of some of the bitwise
+macros that we have in the library. Facts about them will help dealing
+with semantics.
+
+*)
+Definition selectLower {sz} n (vec : Bvector sz) := BVand vec (lower_ones n).
+Definition selectUpper {sz} n (vec : Bvector sz) := BVand vec (upper_ones n).
+Definition clearUpper {sz}  n  := @selectLower sz (sz -n).
+Definition clearLower {sz}  n  := @selectUpper sz (sz - n).
+
+(** Some efficient arithmetic functions using bitwise operations. **)
+
+
+Definition div2power_nat    {sz} n := @BVshiftR sz n.
+Definition modulo2power_nat {sz} n := @selectLower sz n.
+Definition Bv2Nat {sz} (vec : Bvector sz) := N.to_nat (@Bv2N _ vec).
