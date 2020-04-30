@@ -30,17 +30,23 @@ Check BVxor. (* Comes directly from Bvector *)
 
 Definition BVComp   := Bneg. (* renaming for better naming convention *)
 
-Definition BVshiftL sz (n : nat) : Bvector sz -> Bvector sz :=
+Definition BVshiftL1 sz : Bvector sz -> Bvector sz :=
   match sz with
-  | 0%nat   => fun vec => vec
-  | S sz0 => fun vec => BshiftL_iter sz0 vec n
+  | 0 => @id (Bvector 0)
+  | S sz0 => fun vec => BshiftL sz0 vec false
   end.
 
-Definition BVshiftR sz (n : nat) : Bvector sz -> Bvector sz :=
+Definition BVshiftL sz (n : nat) : Bvector sz -> Bvector sz
+  := Nat.iter n (BVshiftL1 sz).
+
+Definition BVshiftR1 sz : Bvector sz -> Bvector sz :=
   match sz with
-  | 0%nat   => fun vec => vec
-  | S sz0 => fun vec => BshiftRl_iter sz0 vec n
+  | 0 => @id (Bvector 0)
+  | S sz0 => fun vec => BshiftRl sz0 vec false
   end.
+
+Definition BVshiftR sz (n : nat) : Bvector sz -> Bvector sz
+  := Nat.iter n (BVshiftR1 sz).
 
 Definition rotOnce sz (vec : Bvector sz) :=
   match vec with
@@ -49,10 +55,10 @@ Definition rotOnce sz (vec : Bvector sz) :=
   end.
 
 Definition BVrotR sz n
-  := let r := n mod sz in iter n (rotOnce sz).
+  := let r := n mod sz in Nat.iter n (rotOnce sz).
 
 Definition BVrotL sz n
-  := let r := n mod sz in iter (sz - n) (rotOnce sz).
+  := let r := n mod sz in Nat.iter (sz - n) (rotOnce sz).
 
 (** Generates a bit vector with n-lsb bits set *)
 Definition lower_ones sz n : Bvector sz
@@ -74,7 +80,9 @@ Arguments BVor     [_].
 Arguments BVxor    [_].
 Arguments BVComp   [_].
 Arguments BVshiftL [sz].
+Arguments BVshiftL1 [sz].
 Arguments BVshiftR [sz].
+Arguments BVshiftR1 [sz].
 Arguments BVrotR   [sz].
 Arguments BVrotL   [sz].
 
