@@ -2,50 +2,45 @@ Require Import BinNat.
 Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
-Require Import Omega.
+
+Hint Unfold BVshiftR BVshiftL : bitvector.
 
 
-Hint Rewrite Nat.add_1_r        : bitvector.
-Hint Rewrite Nat.add_0_r        : bitvector.
-Hint Rewrite Nat.double_twice   : bitvector.
+Ltac crush := repeat (simpl; eauto with bitvector).
+Ltac induct_on n :=
+  let m := fresh "m" in
+  let IHm := fresh "IHm" in
+  induction n as [|m IHm]; crush; rewrite IHm; crush.
 
-Hint Rewrite Nat.double_twice : NatN.
-Hint Rewrite Nat2N.inj_double Nat2N.inj_succ_double
-     Nat2N.inj_succ Nat2N.inj_add Nat2N.inj_mul Nat2N.inj_sub
-     Nat2N.inj_pred Nat2N.inj_div2 Nat2N.inj_max Nat2N.inj_min
-     Nat2N.id
-  : NatN.
 
-Ltac crush := repeat (simpl; trivial;
-                      match goal with
-                      | [ |- ?b : bool ] => destruct b
-                      | [ |- N.to_nat _ = _ ] => autorewrite with Nnat
-                      | [ |- N.of_nat _ = _ ] => autorewrite with NatN
-                      | _ => autorewrite with bitvector;  eauto; idtac
-                      end).
+Lemma BVshiftR_add_m_n : forall sz (vec : Bvector sz) n m,
+    BVshiftR n (BVshiftR m vec) = BVshiftR (n + m) vec.
 
-Ltac induct_crush n :=
-  induction n as [|n IHn]; crush; rewrite IHn; crush.
-
-Lemma twopower_nat_spec : forall n, twopower_nat n = 2^n.
-  intro n; induction n; crush.
+  intros sz vec n m.
+  induct_on n.
 Qed.
 
-Lemma twopower_to_nat : forall n, N.to_nat (twopower n) = twopower_nat n.
-  intro n;unfold twopower; unfold twopower_nat.
-  induction n; crush.
+Lemma BVshiftL_add_m_n : forall sz (vec : Bvector sz) n m,
+    BVshiftL n (BVshiftL m vec) = BVshiftL (n + m) vec.
+
+  intros sz vec n m.
+  induct_on n.
 Qed.
 
-Lemma twopower_spec : forall n : nat, N.to_nat (twopower n) = 2^n.
-  intro n; rewrite twopower_to_nat; rewrite twopower_nat_spec; trivial.
+Hint Rewrite BVshiftL_add_m_n  BVshiftR_add_m_n : bitvector.
+
+
+Lemma BVshiftR_commute : forall sz  (vec : Bvector sz) m n,
+    BVshiftR m (BVshiftR n vec) = BVshiftR n (BVshiftR m vec).
+  intros. autorewrite with bitvector.
+  rewrite Nat.add_comm; trivial.
 Qed.
 
-Lemma twopower_of_nat : forall n, N.of_nat (twopower_nat n) = twopower n.
-  intro n.
-  induct_crush n.
+Lemma BVshiftL_commute : forall sz  (vec : Bvector sz) m n,
+    BVshiftL m (BVshiftL n vec) = BVshiftL n (BVshiftL m vec).
+  intros. autorewrite with bitvector.
+  rewrite Nat.add_comm; trivial.
 Qed.
 
-Lemma N2Nat_inj_if : forall (b : bool) (x y : N),
-    N.to_nat (if b then x else y) = (if b then N.to_nat x else N.to_nat y).
-  intros b x y; destruct b; trivial.
-Qed.
+Hint Resolve BVshiftR_add_m_n : bitvector.
+Hint Resolve BVshiftR_commute : bitvector.
