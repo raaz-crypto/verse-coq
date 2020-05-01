@@ -23,6 +23,11 @@ Definition BVmul       := arithm N.mul.
 Definition BVquot      := arithm N.div.
 Definition BVrem       := arithm N.modulo.
 
+Definition BVones : forall sz, Bvector sz
+  := fun sz => Vector.const true sz.
+Definition BVzeros : forall sz, Bvector sz
+  := fun sz => Vector.const false sz.
+
 
 Check BVand. (* Comes directly from Bvector *)
 Check BVor.  (* Comes directly from Bvector *)
@@ -88,6 +93,9 @@ Arguments BVrotL   [sz].
 
 Arguments lower_ones [sz].
 Arguments upper_ones [sz].
+
+Arguments BVzeros [sz].
+Arguments BVones  [sz].
 (* end hide *)
 
 (** * Bitwise functions
