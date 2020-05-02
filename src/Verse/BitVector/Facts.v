@@ -201,9 +201,42 @@ Proof.
   apply iter_add.
 Qed.
 
-Lemma shiftin_popout : forall sz x (xs : Bvector sz),
+Lemma popout_shiftin : forall sz x (xs : Bvector sz),
     popout (Vector.shiftin x xs) = (xs,x).
 Proof.
-  intros.
+  intros sz x xs.
   induct_on_vec xs.
+Qed.
+
+
+Lemma rotMSB_S_n : forall n v, rotTowardsMSB (S n) v = let (xs,x) := popout v in (x :: xs).
+Proof.
+  intros.
+  crush.
+Qed.
+
+Lemma rotMSB_LSB_inv : forall sz (v : Bvector sz),
+    rotTowardsMSB sz (rotTowardsLSB sz v) = v.
+Proof.
+  Hint Rewrite rotMSB_S_n popout_shiftin :bitvector.
+  Hint Unfold rotTowardsLSB : bitvector.
+  intros sz v.
+  destruct v; crush.
+Qed.
+
+Lemma BVrotL1 : forall sz n (v : Bvector sz), BVrotL 1 (BVrotR (S n) v) = BVrotR n v.
+  intros. simpl.
+  rewrite rotMSB_LSB_inv.
+  trivial.
+Qed.
+
+Lemma BVrotRL_inv : forall sz n (v : Bvector sz), BVrotL n (BVrotR n v) = v.
+Proof.
+  intros sz n v.
+  induction n; trivial.
+  rewrite <- Nat.add_1_r.
+  rewrite <- BVrotL_add.
+  rewrite Nat.add_1_r.
+  rewrite BVrotL1.
+  assumption.
 Qed.
