@@ -3,13 +3,16 @@ Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
 
+Hint Rewrite Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod : bitvector.
 Hint Unfold BVshiftR BVshiftL : bitvector.
+Hint Unfold Bv2Nat :bitvector.
 
 Lemma vector_0_nil : forall A (vec : Vector.t A 0), vec = [].
   intro A.
   exact (Vector.case0 (fun v => v = []) eq_refl).
 Qed.
-Ltac crush := repeat (simpl; eauto with bitvector;
+
+Ltac crush := repeat (simpl; eauto with bitvector; try autorewrite with bitvector;
                       match goal with
                       | [ |- bool -> _ ] => intro
                       | [b : bool |- _ ] => destruct b
@@ -40,7 +43,22 @@ Ltac crush := repeat (simpl; eauto with bitvector;
 Ltac induct_on n :=
   let m := fresh "m" in
   let IHm := fresh "IHm" in
-  induction n as [|m IHm]; crush; rewrite IHm; crush.
+  (induction n as [|m IHm]; crush; rewrite IHm; crush).
+
+(** The vector variant of the induction *)
+Ltac induct_on_vec v :=
+  let b := fresh "b" in
+  let sz := fresh "sz" in
+  let vec := fresh "vec" in
+  let IHvec := fresh "IHvec" in
+  (induction v as [|b sz vec IHvec]; crush; rewrite IHvec; crush).
+
+Lemma iter_add : forall A (f : A -> A) m n a0, Nat.iter m f (Nat.iter n f a0) = Nat.iter (m+n) f a0.
+Proof.
+  intros A f m n a0.
+  induct_on m.
+Qed.
+
 
 Lemma BVshiftL_0 : forall sz (vec : Bvector sz),
     BVshiftL 0 vec = vec.
