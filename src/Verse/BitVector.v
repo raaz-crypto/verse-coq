@@ -53,17 +53,31 @@ Definition BVshiftR1 sz : Bvector sz -> Bvector sz :=
 Definition BVshiftR sz (n : nat) : Bvector sz -> Bvector sz
   := Nat.iter n (BVshiftR1 sz).
 
-Definition rotOnce sz (vec : Bvector sz) :=
+Definition rotTowardsLSB sz (vec : Bvector sz) :=
   match vec with
   | [] => []
   | (x :: xs) => Vector.shiftin x xs
   end.
 
+(** This is what shiftout should have been not sure why it was not defined this way *)
+Definition popout {A} : forall n, Vector.t A (S n) -> (Vector.t A n * A) :=
+  @Vector.rectS _ (fun n _ => (Vector.t A n * A)%type)
+           (fun a => ([], a))
+           (fun h _ _ H => let (xs, x) := H in (h :: xs, x)).
+
+Arguments popout [A n].
+
+Definition rotTowardsMSB sz (vec : Bvector sz) :=
+  match vec with
+  | [] => []
+  | xs => let (xsp, x) := popout xs in (x :: xsp)
+  end.
+
 Definition BVrotR sz n
-  := let r := n mod sz in Nat.iter n (rotOnce sz).
+  := Nat.iter n (rotTowardsLSB sz).
 
 Definition BVrotL sz n
-  := let r := n mod sz in Nat.iter (sz - n) (rotOnce sz).
+  := Nat.iter n (rotTowardsMSB sz).
 
 (** Generates a bit vector with n-lsb bits set *)
 Definition lower_ones sz n : Bvector sz
@@ -94,8 +108,8 @@ Arguments BVrotL   [sz].
 Arguments lower_ones [sz].
 Arguments upper_ones [sz].
 
-Arguments BVzeros [sz].
-Arguments BVones  [sz].
+Arguments BVzeros {sz}.
+Arguments BVones  {sz}.
 (* end hide *)
 
 (** * Bitwise functions
