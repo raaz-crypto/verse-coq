@@ -3,6 +3,8 @@ Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
 
+Hint Rewrite andb_true_r  orb_false_r : bitvector.
+Hint Resolve andb_comm andb_assoc orb_comm orb_assoc : bitvector.
 Hint Rewrite Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod : bitvector.
 Hint Unfold BVshiftR BVshiftL : bitvector.
 Hint Unfold Bv2Nat :bitvector.
@@ -12,19 +14,24 @@ Lemma vector_0_nil : forall A (vec : Vector.t A 0), vec = [].
   exact (Vector.case0 (fun v => v = []) eq_refl).
 Qed.
 
+Lemma vector_cons_equation {A} {a1 a2 : A} {n} {v1 v2 : Vector.t A n}:
+  a1 = a2 -> v1 = v2 -> a1 :: v1 = a2 :: v2.
+Proof.
+  intros H1 H2.
+  rewrite H1. rewrite H2.
+  trivial.
+Qed.
+
 Ltac crush := repeat (simpl; eauto with bitvector; try autorewrite with bitvector;
                       match goal with
-                      | [ |- bool -> _ ] => intro
-                      | [b : bool |- _ ] => destruct b
                       | [ v : Bvector 0     |- _ ] => rewrite (vector_0_nil _ v)
+                      | [ |- _ :: _ = _ :: _ ] => apply vector_cons_equation
                       | [ v : Bvector (S _) |- _ ]
                         => rewrite (Vector.eta v);
                           let h := fresh "h" in
                           let t := fresh "t" in
                           (generalize (Vector.hd v) as h;
                            generalize (Vector.tl v) as tl; intros h t)
-
-                      | [ v : _ |- context[Vector.hd ?v] ] => generalize (Vector.hd v)
                       | _ => idtac
                       end).
 
