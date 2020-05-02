@@ -164,3 +164,39 @@ Lemma BVor_assoc : forall sz (v1 v2 v3 : Bvector sz), BVor v1 (BVor v2 v3) = BVo
   intros sz v1 v2 v3.
   induct_on sz.
 Qed.
+
+
+Lemma BVrotR_0 : forall sz (vec : Bvector sz),
+    BVrotR 0 vec = vec.
+Proof.
+  crush.
+Qed.
+
+Lemma BVrotR_add : forall sz m n (vec : Bvector sz),
+    BVrotR m (BVrotR n vec) = BVrotR (m + n) vec.
+Proof.
+  intros.
+  unfold BVrotR.
+  apply iter_add.
+Qed.
+
+Lemma BVrotL_0 : forall sz (vec : Bvector sz),
+    BVrotL 0 vec = vec.
+Proof.
+  trivial.
+Qed.
+
+Lemma BVrotL_add : forall sz m n (vec : Bvector sz),
+    BVrotL m (BVrotL n vec) = BVrotL (m + n) vec.
+Proof.
+  intros.
+  unfold BVrotL.
+  apply iter_add.
+Qed.
+
+Lemma shiftin_popout : forall sz x (xs : Bvector sz),
+    popout (Vector.shiftin x xs) = (xs,x).
+Proof.
+  intros.
+  induct_on_vec xs.
+Qed.
