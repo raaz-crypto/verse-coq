@@ -42,6 +42,17 @@ Ltac induct_on n :=
   let IHm := fresh "IHm" in
   induction n as [|m IHm]; crush; rewrite IHm; crush.
 
+Lemma BVshiftL_0 : forall sz (vec : Bvector sz),
+    BVshiftL 0 vec = vec.
+Proof.
+  trivial.
+Qed.
+
+Lemma BVshiftR_0 : forall sz (vec : Bvector sz),
+    BVshiftR 0 vec = vec.
+Proof.
+  trivial.
+Qed.
 
 Lemma BVshiftR_add_m_n : forall sz (vec : Bvector sz) n m,
     BVshiftR n (BVshiftR m vec) = BVshiftR (n + m) vec.
