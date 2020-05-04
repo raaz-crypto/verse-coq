@@ -5,7 +5,6 @@ Module Compile := Target.CodeGen (C.CodeGen.Config).
 Definition variables := Compile.variables.
 
 
-
 (** * Auto allocation.
 
 Since C can be seen as a machine with infinitely many registers, we
@@ -50,14 +49,17 @@ Module Internals.
          end.
 
 End Internals.
+Require Import Verse.
 Require Import Verse.Error.
 
 (* end hide *)
 
+Require Import Verse.
+Import Scope.
 Notation CFunction name pvsf lvsf rvsf
-    := ( let pvs := Verse.infer pvsf in
-         let lvs := Verse.infer lvsf in
-         let rvs := Verse.infer rvsf in
+    := ( let pvs := infer pvsf in
+         let lvs := infer lvsf in
+         let rvs := infer rvsf in
          let pvt := recover (Compile.targetTypes pvs) in
          let lvt := recover (Compile.targetTypes lvs) in
          let rvt := recover (Compile.targetTypes rvs) in
@@ -76,9 +78,9 @@ Notation CFunction name pvsf lvsf rvsf
     := (
         let memtyTgt : TypeSystem.typeOf c_type_system TypeSystem.memory
             := recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty) in
-        let pvs := Verse.infer pvsf in
-        let lvs := Verse.infer lvsf in
-        let rvs := Verse.infer rvsf in
+        let pvs := infer pvsf in
+        let lvs := infer lvsf in
+        let rvs := infer rvsf in
         let pvt := recover (Compile.targetTypes pvs) in
         let lvt := recover (Compile.targetTypes lvs) in
         let rvt := recover (Compile.targetTypes rvs) in

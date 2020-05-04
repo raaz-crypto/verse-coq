@@ -4,13 +4,13 @@ Require Import Verse.TypeSystem.
 Require Import Verse.Ast.
 Require Import Verse.Language.Types.
 Require Import Verse.Error.
-Require Import Verse.Target.C.Ast.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
 Require Verse.Scope.
 Require Import Vector.
 Import Vector.VectorNotations.
 (* end hide *)
+
 
 (** * Function signature.
 
@@ -400,9 +400,9 @@ Module CodeGen (T : CONFIG).
    *)
 
   Notation Function name pvsf lvsf rvsf
-    := ( let pvs := Verse.infer pvsf in
-         let lvs := Verse.infer lvsf in
-         let rvs := Verse.infer rvsf in
+    := ( let pvs := Scope.infer pvsf in
+         let lvs := Scope.infer lvsf in
+         let rvs := Scope.infer rvsf in
          function name pvs lvs rvs
                   (recover (targetTypes pvs))
                   (recover (targetTypes lvs))
@@ -415,9 +415,9 @@ Module CodeGen (T : CONFIG).
     := (
         let memtyTgt : typeOf types memory
             := recover (Types.compile T.typeCompiler memty) in
-        let pvs := Verse.infer pvsf in
-        let lvs := Verse.infer lvsf in
-        let rvs := Verse.infer rvsf in
+        let pvs := Scope.infer pvsf in
+        let lvs := Scope.infer lvsf in
+        let rvs := Scope.infer rvsf in
         let pvt : Scope.type types _ := recover (targetTypes pvs) in
         let lvt : Scope.type types _ := recover (targetTypes lvs) in
         let rvt : Scope.type types _ := recover (targetTypes rvs) in
