@@ -136,12 +136,12 @@ Instance nibbles_to_exp v sz  : EXPR v (word sz) (Nibble.bytes (2^sz))
   := { toExpr := fun nibs => toExpr (toBv nibs) }.
 
 
-Arguments assignStmt [v ty t] lhs [class t1] e1 [class1].
+Arguments assignStmt [v ty t] lhs [class t1] e1 {class1}.
 Arguments moveStmt [v ty t] lhs [class] x.
-Arguments binOpApp [v ty] bop  [t1 t2] e1 e2  [class1 class2].
-Arguments binOpUpdate [v ty] bop [t] lhs [class] [t1] e1 [class1] .
-Arguments uniOpApp [v ty] uop  [t1] e1 [class1].
-Arguments uniOpUpdate [v ty] uop [t] lhs [class].
+Arguments binOpApp [v ty] bop  [t1 t2] e1 e2  {class1 class2}.
+Arguments binOpUpdate [v ty] bop [t] lhs [class] [t1] e1 {class1} .
+Arguments uniOpApp [v ty] uop  [t1] e1 {class1}.
+Arguments uniOpUpdate [v ty] uop [t] lhs {class}.
 
 
 (** * Indexing types.
