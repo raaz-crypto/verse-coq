@@ -27,7 +27,7 @@ Definition Declaration n := Verse.Scope.type verse_type_system n.
 Definition Var (v : VariableT) k ty : v k ty -> some (typeOf verse_type_system)
   := fun _ => existT _ k ty.
 
-Arguments Declaration [n].
+Arguments Declaration {n}.
 Arguments Var [v k ty].
 
 
