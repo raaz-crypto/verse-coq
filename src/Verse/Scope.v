@@ -235,3 +235,50 @@ Definition compile src tgt
 
 Arguments translate [src tgt] tr [v n ss CODE].
 Arguments compile   [src tgt] cr [v n ss st] pfCompat [CODE].
+
+(** ** Infering the scope type.
+
+In verse scoped code is defined using the sectioning mechanism of
+Coq. Often we would like to recover the scope type from the scoped
+object. This we do by the following type class.
+
+
+*)
+
+Require Verse.Language.Types.
+Class Infer t := { nesting : nat;
+                   infer : t -> type Types.verse_type_system nesting
+                 }.
+
+(**
+
+We now define a "cookedup" variable that helps us in getting hold of
+the type for one level deep nesting.
+
+*)
+
+Module Internal.
+  Inductive ivar : Variables.U Types.verse_type_system :=
+  | cookup : forall k (ty : Types.type k), ivar k ty.
+End Internal.
+
+
+Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
+  : Infer (Internal.ivar k ty -> t)
+  := {| nesting := S nesting;
+        infer := fun f => (existT _ _ ty :: infer (f (Internal.cookup k ty)))%vector
+     |}.
+
+Instance infer_existential t (sub : Infer (t Internal.ivar)) : Infer (forall v, t v)
+  := {| nesting := nesting;
+        infer := fun f => infer (f Internal.ivar)
+     |}.
+
+(** Helper type for delimiting scopes. *)
+Inductive delimit A := body : A -> delimit A.
+Arguments body [A].
+
+Instance infer_for_body A : Infer (delimit A)
+  := {| nesting := 0;
+        infer   := fun _ => []
+     |}.
