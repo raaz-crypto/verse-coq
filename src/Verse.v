@@ -33,3 +33,4 @@ Arguments Var [v k ty].
 Notation "(--)"             := (tt).
 Notation "(- x -)"          := (pair x tt).
 Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
+Notation "'do' B 'end'"     := (Scope.body B).
