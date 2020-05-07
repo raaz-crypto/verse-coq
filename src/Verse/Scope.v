@@ -263,6 +263,14 @@ Module Internal.
 End Internal.
 
 
+Fixpoint cookupAllocation {n : nat}(sty : type verse_type_system n)
+  : allocation Internal.ivar sty
+  := match sty as sty0 return allocation Internal.ivar sty0 with
+     | []                     => tt
+     | (x :: xs) => ( Internal.cookup (projT1 x) (projT2 x) , cookupAllocation xs)
+     end.
+
+
 Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
   : Infer (Internal.ivar k ty -> t)
   := {| nesting := S nesting;
@@ -282,3 +290,8 @@ Instance infer_for_body A : Infer (delimit A)
   := {| nesting := 0;
         infer   := fun _ => []
      |}.
+
+
+Definition inferAndAlloc {T}{inst : Infer T} (t : T) :=
+  let sty := infer t in
+  (sty, cookupAllocation sty).
