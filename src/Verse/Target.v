@@ -25,27 +25,21 @@ Record funSig ts (v : Variables.U ts) :=
   FunSig {
       nParameters : nat;
       nLocals     : nat;
-      nRegisters  : nat;
       paramTypes  : Scope.type ts nParameters;
       localTypes  : Scope.type ts nLocals;
-      registerTypes : Scope.type ts nRegisters;
       parameters : Scope.allocation v paramTypes;
       locals     : Scope.allocation v localTypes;
-      registers  : Scope.allocation v registerTypes
     }.
 
-Arguments FunSig [_ _ _ _ _ _ _ _].
+Arguments FunSig [ts v nParameters nLocals paramTypes localTypes].
 (* begin hide *)
 
 Arguments nParameters [ts v].
 Arguments nLocals     [ts v].
-Arguments nRegisters  [ts v].
 Arguments paramTypes  [ts v].
 Arguments localTypes  [ts v].
-Arguments registerTypes [ts v].
 Arguments parameters [ts v].
 Arguments locals     [ts v].
-Arguments registers  [ts v].
 
 (* end hide *)
 
@@ -237,10 +231,9 @@ Module CodeGen (T : CONFIG).
         variables of the iterator/function.
 
      *)
-    Variable p l r : nat.
+    Variable p l : nat.
     Variable pvs  : Scope.type verse_type_system p.
     Variable lvs  : Scope.type verse_type_system l.
-    Variable rvs  : Scope.type verse_type_system r.
 
     (**
        The abstracted form of function/iterator is just a nested
@@ -249,9 +242,8 @@ Module CodeGen (T : CONFIG).
      *)
 
     Definition abstracted v CODE
-      := Scope.scoped v pvs (
-                        Scope.scoped v lvs (
-                                       Scope.scoped v rvs CODE)).
+      := Scope.scoped v pvs (Scope.scoped v lvs CODE).
+
 
     (** ** Allocating target variables.
 
@@ -283,7 +275,6 @@ Module CodeGen (T : CONFIG).
      *)
     Variable pts  : Scope.type types p.
     Variable lts  : Scope.type types l.
-    Variable rts  : Scope.type types r.
 
     (**
        Proofs of compatibility of the allocation types on the verse
@@ -293,7 +284,6 @@ Module CodeGen (T : CONFIG).
 
     Variable pCompat : compatible pts pvs.
     Variable lCompat : compatible lts lvs.
-    Variable rCompat : compatible rts rvs.
 
 
     (** Having captured all the above types we now get to the three
@@ -303,14 +293,11 @@ Module CodeGen (T : CONFIG).
 
     Variable params : Scope.allocation variables pts.
     Variable locals : Scope.allocation variables lts.
-    Variable regs   : Scope.allocation variables rts.
-
 
     (** Let us first convert the allocations that we have on the target variables
         to variables in the verse world. *)
     Definition verse_params := toVerseAllocation pCompat params.
     Definition verse_locals := toVerseAllocation lCompat locals.
-    Definition verse_regs   := toVerseAllocation rCompat regs.
 
     (** We now give the code generator for the straight line functions
         which has as body an [abstracted] verse code block
@@ -318,10 +305,10 @@ Module CodeGen (T : CONFIG).
     Definition function
                (func   : forall v, abstracted v (code v))
       : T.programLine + { TranslationError }
-      := let body := Scope.fill verse_regs (Scope.fill verse_locals (Scope.fill verse_params (func _)))
+      := let body := Scope.fill verse_locals (Scope.fill verse_params (func _))
          in btc <- typeCheckedTransform body ;
               btarget <- codeDenote btc;
-              let fsig := FunSig params locals regs
+              let fsig := FunSig params locals
               in {- T.makeFunction name fname fsig btarget -}.
 
 
@@ -365,11 +352,10 @@ Module CodeGen (T : CONFIG).
     Definition iterativeFunction
                (iFunc       : forall v, abstracted v (iterator v block))
       : T.programLine + {TranslationError}
-      := let iter    := Scope.fill verse_regs
-                                   (Scope.fill verse_locals
-                                               (Scope.fill verse_params (iFunc _))) in
+      := let iter    := Scope.fill verse_locals
+                                   (Scope.fill verse_params (iFunc _)) in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
-           let fsig := FunSig fullParams locals regs in
+           let fsig := FunSig fullParams locals in
            pre  <- codeDenote (Iterator.preamble iterComp);
              middle <- codeDenote (Iterator.loopBody iterComp);
              post <- codeDenote (Iterator.finalisation iterComp);
@@ -378,8 +364,8 @@ Module CodeGen (T : CONFIG).
   End Shenanigans.
 
   Arguments function [name] _
-            [p l r].
-  Arguments iterativeFunction [name] _ _ [p l r].
+            [p l].
+  Arguments iterativeFunction [name] _ _ [p l].
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
