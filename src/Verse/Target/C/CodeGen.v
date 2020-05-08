@@ -244,7 +244,6 @@ Module Config <: CONFIG.
              (body : list statement)
     := let ps := params (allocToList (Target.parameters fsig)) in
        let ls := List.map declareStmt (allocToList (Target.locals fsig)) in
-       let rs := List.map declareStmt (allocToList (Target.registers fsig)) in
-       function fname ps (Braces (ls ++ rs ++ body))%list.
+       function fname ps (Braces (ls ++ body))%list.
 
 End Config.
