@@ -257,41 +257,45 @@ the type for one level deep nesting.
 
 *)
 
-Module Internal.
-  Inductive ivar : Variables.U Types.verse_type_system :=
-  | cookup : forall k (ty : Types.type k), ivar k ty.
-End Internal.
+Module Cookup.
+  Inductive var : Variables.U Types.verse_type_system :=
+  | cookup : forall k (ty : Types.type k), var k ty.
 
+  Definition specialise {t : Variables.U verse_type_system -> Type}
+           (func : forall v, t v) :
+           (t var)
+  := func var.
 
-Fixpoint cookupAllocation {n : nat}(sty : type verse_type_system n)
-  : allocation Internal.ivar sty
-  := match sty as sty0 return allocation Internal.ivar sty0 with
+  Fixpoint alloc {n : nat}(sty : type verse_type_system n)
+  : allocation var sty
+  := match sty as sty0 return allocation var sty0 with
      | []                     => tt
-     | (x :: xs) => ( Internal.cookup (projT1 x) (projT2 x) , cookupAllocation xs)
+     | (x :: xs) => (cookup (projT1 x) (projT2 x) , alloc xs)
      end.
+End Cookup.
+
+
 
 
 Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
-  : Infer (Internal.ivar k ty -> t)
+  : Infer (Cookup.var k ty -> t)
   := {| nesting := S nesting;
-        infer := fun f => (existT _ _ ty :: infer (f (Internal.cookup k ty)))%vector
-     |}.
-
-Instance infer_existential t (sub : Infer (t Internal.ivar)) : Infer (forall v, t v)
-  := {| nesting := nesting;
-        infer := fun f => infer (f Internal.ivar)
+        infer := fun f => (existT _ _ ty :: infer (f (Cookup.cookup k ty)))%vector
      |}.
 
 (** Helper type for delimiting scopes. *)
 Inductive delimit A := body : A -> delimit A.
 Arguments body [A].
 
-Instance infer_for_body A : Infer (delimit A)
+Instance infer_for_delimited A : Infer (delimit A)
   := {| nesting := 0;
         infer   := fun _ => []
      |}.
 
 
-Definition inferAndAlloc {T}{inst : Infer T} (t : T) :=
-  let sty := infer t in
-  (sty, cookupAllocation sty).
+Notation unNestDelimited dfunc :=
+  ( let sty  := infer dfunc in
+    let ckup := Cookup.alloc sty in
+    match fill ckup dfunc with
+    | body x => (sty, x)
+    end) (only parsing).
