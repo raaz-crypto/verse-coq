@@ -56,47 +56,43 @@ Require Import Verse.Error.
 
 Require Import Verse.
 Import Scope.
-Notation CFunction name pvsf lvsf rvsf
-    := ( let pvs := infer pvsf in
-         let lvs := infer lvsf in
-         let rvs := infer rvsf in
-         let pvt := recover (Compile.targetTypes pvs) in
-         let lvt := recover (Compile.targetTypes lvs) in
-         let rvt := recover (Compile.targetTypes rvs) in
-         let (pA,n0) := Internals.calloc 0 pvt in
-         let (lA,n1) := Internals.calloc n0 lvt in
-         let (rA,_) := Internals.calloc n1 rvt in
-         Compile.function name pvs lvs rvs
-                               pvt     lvt     rvt
-                               eq_refl eq_refl eq_refl
-                               pA      lA      rA
-       )
-         (only parsing).
+
+Notation Function name func
+  := ( let level0 := Scope.Cookup.specialise func in
+       let (pvs, level1) := unNestDelimited level0 in
+       let lvs := infer level1 in
+       let pvt := recover (Compile.targetTypes pvs) in
+       let lvt := recover (Compile.targetTypes lvs) in
+       let (pA,n0) := Internals.calloc 0 pvt in
+       let (lA,_) := Internals.calloc n0 lvt in
+       Compile.function name pvs lvs
+                        pvt     lvt
+                        eq_refl eq_refl
+                        pA      lA
+     )
+       (only parsing).
 
 
-  Notation CIterator name memty pvsf lvsf rvsf
-    := (
-        let memtyTgt : TypeSystem.typeOf c_type_system TypeSystem.memory
-            := recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty) in
-        let pvs := infer pvsf in
-        let lvs := infer lvsf in
-        let rvs := infer rvsf in
-        let pvt := recover (Compile.targetTypes pvs) in
-        let lvt := recover (Compile.targetTypes lvs) in
-        let rvt := recover (Compile.targetTypes rvs) in
-        let (pA,n0) := Internals.calloc 0 pvt in
-        let (lA,n1) := Internals.calloc n0 lvt in
-        let (rA,n2)  := Internals.calloc n1 rvt in
-        let streamVar := Internals.mkVar n2 (Compile.Config.streamOf memtyTgt) in
-        Compile.iterativeFunction name memty
-                          pvs lvs rvs
-                          memtyTgt eq_refl
-                          streamVar
-                          pvt     lvt     rvt
-                          eq_refl eq_refl eq_refl
-                          pA      lA      rA
-       )
-         (only parsing).
+Notation Iterator name memty ifunc
+  := ( let memtyTgt : TypeSystem.typeOf c_type_system TypeSystem.memory
+           := recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty) in
+       let level0 := Cookup.specialise ifunc in
+       let (pvs, level1) := unNestDelimited level0 in
+       let lvs := infer level1 in
+       let pvt := recover (Compile.targetTypes pvs) in
+       let lvt := recover (Compile.targetTypes lvs) in
+       let (pA,n0) := Internals.calloc 0 pvt in
+       let (lA,n1) := Internals.calloc n0 lvt in
+       let streamVar := Internals.mkVar n1 (Compile.Config.streamOf memtyTgt) in
+       Compile.iterativeFunction name memty
+                                 pvs lvs
+                                 memtyTgt eq_refl
+                                 streamVar
+                                 pvt     lvt
+                                 eq_refl eq_refl
+                                 pA      lA
+     )
+       (only parsing).
 
 Require Export Verse.Target.C.Ast.
 Require Export Verse.Target.C.Pretty.
