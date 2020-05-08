@@ -383,53 +383,6 @@ Module CodeGen (T : CONFIG).
   Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
-  (** ** Notations to simplify usage.
-
-      Although the code generation is rather simple, the arguments it
-      need is large in number. Making the programmer supply all these
-      is not pretty. These notations simplify some of the this
-      process.
-   *)
-
-  (* Note to developer
-
-     We do not really care about their use in pretty printing and
-     hence they are marked as (only parsing). This also suppress some
-     warnings from Coq.
-
-   *)
-
-  Notation Function name pvsf lvsf rvsf
-    := ( let pvs := Scope.infer pvsf in
-         let lvs := Scope.infer lvsf in
-         let rvs := Scope.infer rvsf in
-         function name pvs lvs rvs
-                  (recover (targetTypes pvs))
-                  (recover (targetTypes lvs))
-                  (recover (targetTypes rvs))
-                  eq_refl eq_refl eq_refl
-       )
-         (only parsing).
-
-  Notation Iterator name memty pvsf lvsf rvsf streamVar
-    := (
-        let memtyTgt : typeOf types memory
-            := recover (Types.compile T.typeCompiler memty) in
-        let pvs := Scope.infer pvsf in
-        let lvs := Scope.infer lvsf in
-        let rvs := Scope.infer rvsf in
-        let pvt : Scope.type types _ := recover (targetTypes pvs) in
-        let lvt : Scope.type types _ := recover (targetTypes lvs) in
-        let rvt : Scope.type types _ := recover (targetTypes rvs) in
-        iterativeFunction name memty
-                          pvs lvs rvs
-                          memtyTgt eq_refl
-                          streamVar
-                          pvt lvt rvt
-                          eq_refl eq_refl eq_refl
-       )
-         (only parsing).
-
   Definition programLine := T.programLine.
   Definition variables   := Semantics.variables.
 End CodeGen.
