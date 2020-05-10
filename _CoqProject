@@ -50,7 +50,6 @@ src/Verse/CryptoLib/sha512/c/portable.v
 # src/Verse/Word.v
 # src/Verse/CoLoR_VecUtil.v
 # src/Verse/Tutorial.v
-# src/Verse/Language.v
 # src/Verse/Language/Operators.v
 # src/Verse/Language/Utils.v
 # src/Verse/Word.v
