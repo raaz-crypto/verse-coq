@@ -33,7 +33,7 @@ Check BVand. (* Comes directly from Bvector *)
 Check BVor.  (* Comes directly from Bvector *)
 Check BVxor. (* Comes directly from Bvector *)
 
-Definition BVComp   := Bneg. (* renaming for better naming convention *)
+Definition BVcomp   := Bneg. (* renaming for better naming convention *)
 
 Definition BVshiftL1 sz : Bvector sz -> Bvector sz :=
   match sz with
@@ -85,7 +85,7 @@ Definition lower_ones sz n : Bvector sz
 
 (** Generate a bit vector with n-msb bits set *)
 Definition upper_ones sz n : Bvector sz
-  := BVComp sz (lower_ones sz (sz - n)).
+  := BVcomp sz (lower_ones sz (sz - n)).
 
 (* begin hide *)
 Arguments BVplus   [sz].
@@ -97,7 +97,7 @@ Arguments BVrem    [sz].
 Arguments BVand    [_].
 Arguments BVor     [_].
 Arguments BVxor    [_].
-Arguments BVComp   [_].
+Arguments BVcomp   [_].
 Arguments BVshiftL [sz].
 Arguments BVshiftL1 [sz].
 Arguments BVshiftR [sz].
@@ -144,7 +144,7 @@ Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
 Notation "A ❘ B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
 Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
 Notation "~ A"
-  := (BVComp A)
+  := (BVcomp A)
        (only printing, at level 75, right associativity) : bitvector_scope.
 Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.

@@ -24,7 +24,7 @@ Definition oper (sz arity : nat) (o : op arity)
      | bitOr     => @BVor      _
      | bitAnd    => @BVand     _
      | bitXor    => @BVxor     _
-     | bitComp   => @BVComp    _
+     | bitComp   => @BVcomp    _
      | shiftL  n => @BVshiftL  _ n
      | shiftR  n => @BVshiftR  _ n
      | rotL    n => @BVrotL    _ n
