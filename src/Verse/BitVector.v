@@ -130,3 +130,27 @@ Definition clearLower {sz}  n  := @selectUpper sz (sz - n).
 Definition div2power_nat    {sz} n := @BVshiftR sz n.
 Definition modulo2power_nat {sz} n := @selectLower sz n.
 Definition Bv2Nat {sz} (vec : Bvector sz) := N.to_nat (@Bv2N _ vec).
+
+
+(** * Notations for bitvector operations
+
+These pretty printing only notations are used primarily so that the
+proof obligations turn out to be beautiful. They are not meant for
+input.
+
+*)
+
+Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
+Notation "A ❘ B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
+Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
+Notation "~ A"
+  := (BVComp A)
+       (only printing, at level 75, right associativity) : bitvector_scope.
+Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
+Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.
+Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_scope.
+Notation "A ⋙ m" := (BVrotR m A) (only printing, at level 100) : bitvector_scope.
+Infix "+" := (BVplus)  (only printing) : bitvector_scope.
+Infix "*" := (BVmul)   (only printing) : bitvector_scope.
+Infix "-" := (BVminus) (only printing) : bitvector_scope.
+Infix "/" := (BVquot)  (only printing) : bitvector_scope.
