@@ -90,7 +90,6 @@ Definition upper_ones sz n : Bvector sz
 (* begin hide *)
 Arguments BVplus   [sz].
 Arguments BVminus  [sz].
-Arguments BVminus  [sz].
 Arguments BVmul    [sz].
 Arguments BVquot   [sz].
 Arguments BVrem    [sz].
