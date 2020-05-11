@@ -137,18 +137,26 @@ These pretty printing only notations are used primarily so that the
 proof obligations turn out to be beautiful. They are not meant for
 input.
 
+TODO: Note that we have hidden the notation that uses unicode so that
+coqdoc's pdf generation does not get stuck.
+
 *)
 
+
 Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
-Notation "A ❘ B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
-Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
+Notation "A | B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
 Notation "~ A"
   := (BVcomp A)
        (only printing, at level 75, right associativity) : bitvector_scope.
+
+(* begin hide *)
+Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
 Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ⋙ m" := (BVrotR m A) (only printing, at level 100) : bitvector_scope.
+(* end hide *)
+
 Infix "+" := (BVplus)  (only printing) : bitvector_scope.
 Infix "*" := (BVmul)   (only printing) : bitvector_scope.
 Infix "-" := (BVminus) (only printing) : bitvector_scope.
