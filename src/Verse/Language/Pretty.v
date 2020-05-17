@@ -41,11 +41,11 @@ that [expr v ty] type captures expressions in verse. We would like to
 consider other types like, [nat] constants, program variables [x : v ty]
 etc, to be considered as verse expressions. We do this in two stages.
 
-* We have the class [EXPR] that declares instances which can be
+- We have the class [EXPR] that declares instances which can be
   converted to [expr]. Some of the instances of this class are [v ty],
   [nat]'s and [expr]'s themselves.
 
-* We use infix operators like [+] etc to combine instances of [EXPR]
+- We use infix operators like [+] etc to combine instances of [EXPR]
   to get new expressions. Thus we can embed many of the common types
   as expressions.
 
