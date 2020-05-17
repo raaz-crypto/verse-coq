@@ -96,3 +96,20 @@ Lemma Bv2Nat_shiftR : forall sz n (vec : Bvector sz), Bv2Nat (BVshiftR n vec) = 
   rewrite inj_shiftR.
   apply Nat.shiftr_div_pow2.
 Qed.
+
+(* TODO: These proofs are required for the correctness of sha512
+
+Search (_ ^ _ <> 0).
+Hint Resolve Nat.pow_nonzero : bitvector.
+Lemma selectLower_cons : forall sz n h (vec : Bvector sz),
+    selectLower (S n) (h :: vec) = h :: (selectLower n vec).
+Proof.
+  intros.
+  unfold selectLower.
+  unfold lower_ones.
+Lemma Bv2Nat_and_1 : forall sz n (vec : Bvector sz),
+    n <= sz -> Bv2Nat (selectLower n vec) = Bv2Nat vec mod 2^n.
+intros.
+induction vec. inversion H; eauto.
+
+*)
