@@ -447,39 +447,37 @@ Module Internal.
     Definition MulR : code progvar
       :=
         [
-          (** Summing up terms of the kind [ai * rj * Two32ij] for [i+j < 4] *)
+          (** *** Coefficients of [Two32ij] for [i+j < 4] *)
 
 
-          (** *** [p3 = a0 r3 + a1 r2 + a2 r1 + a3 r0] *)
+          (** - [p3 = a0 r3 + a1 r2 + a2 r1 + a3 r0] *)
 
           p3 ::= a0 * r3;
           T0 ::= a1 * r2; p3 ::=+ T0;
           T0 ::= a2 * r1; p3 ::=+ T0;
           T0 ::= a3 * r0; p3 ::=+ T0;
 
-          (** *** [p2 = a0 r2 + a1 r1 + a2 r0] *)
+          (** - [p2 = a0 r2 + a1 r1 + a2 r0] *)
           p2 ::= a0 * r2;
           T0 ::= a1 * r1; p2 ::=+ T0;
           T0 ::= a2 * r0; p2 ::=+ T0;
 
-          (** *** [p1 = a0 r1 + a1 r0] *)
+          (** - [p1 = a0 r1 + a1 r0] *)
           p1 ::= a0 * r1;
           T0 ::= a1 * r0; p1 ::=+ T0;
 
-          (** *** [p0 = a0 * r0 ; a0 := p0] *)
+          (** - [p0 = a0 * r0 ; a0 := p0] *)
 
           a0 ::=* r0;
 
-          (** Summing up terms of the kind [ai * rj * Two32ij] for
-              [i+j >= 4].
-           *)
+          (** *** Coefficients of [Two32ij] for [i+j >= 4]. *)
 
-          (** *** Terms of the kind [ai * r3 * Two32ij].
+          (** - Terms [ai * r3]
 
-              At this point the product component [p0] is already in
-              [a0]. Also we do not need [a1] after the contribution of
-              [r3] to [a0] has been computed. So we update [a1]
-              directly and the product component [p1] is now in [a1].
+            At this point the product component [p0] is already in
+            [a0]. Also we do not need [a1] after the contribution of
+            [r3] to [a0] has been computed. So we update [a1] directly
+            and the product component [p1] is now in [a1].
 
            *)
           T0 ::= r3 >> 2; T0 ::=+ r3;
@@ -488,11 +486,11 @@ Module Internal.
           T1 ::= a3 * T0; p2 ::=+ T1;
           T1 ::= a4 * T0; p3 ::=+ T1;
 
-          (** *** Terms of the kind [ai * r2 * Two32ij]
+          (** - Terms of the kind [ai * r2 * Two32ij]
 
-              At this point the product components [p0] and [p1] are
-              already in [a0] and [a1]. As before we will free up [a2]
-              hence update [a2] directly.
+          At this point the product components [p0] and [p1] are
+          already in [a0] and [a1]. As before we will free up [a2]
+          hence update [a2] directly.
 
            *)
           T0 ::= r2 >> 2; T0 ::=+ r2 ;
@@ -500,13 +498,13 @@ Module Internal.
           T1 ::= a3 * T0; a1 ::=+ T1;
           T1 ::= a4 * T0; a2 ::= p2 + T1;
 
-         (** *** Terms of the kind [ai * r1 * Two32ij].  *)
+         (** - Terms of the kind [ai * r1 * Two32ij].  *)
           T0 ::= r1 >> 2; T0 ::=+ r1;
           T1 ::= a3 * T0; a0 ::=+ T1;
           T1 ::= a4 * T0; a1 ::=+ T1;
 
 
-          (** *** Terms of the kind [ai * r0 * Two32ij]  *)
+          (** - Terms of the kind [ai * r0 * Two32ij]  *)
           T0 ::= r0 >> 2; T0 ::=* 5;
           T1 ::= a4 * T0; a0 ::=+ T1;
 
