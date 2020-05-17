@@ -5,8 +5,8 @@ Require Import Verse.BitVector.
 
 Hint Rewrite andb_true_r  orb_false_r : bitvector.
 Hint Resolve
-     andb_comm andb_assoc
-     orb_comm orb_assoc
+     andb_comm andb_assoc andb_orb_distrib_r
+     orb_comm orb_assoc orb_andb_distrib_r
      xorb_comm xorb_assoc
   : bitvector.
 Hint Rewrite Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod : bitvector.
@@ -131,6 +131,7 @@ Qed.
 Hint Resolve BVshiftR_add_m_n : bitvector.
 Hint Resolve BVshiftR_commute : bitvector.
 
+(** * And and Or *)
 Lemma BVand_0_r : forall sz (v  : Bvector sz), BVand v BVones = v.
 Proof.
   intros sz v.
@@ -179,6 +180,25 @@ Proof.
   induct_on sz.
 Qed.
 
+(* ** Distributivity *)
+
+Lemma BVor_and_distrib :
+  forall sz (v1 v2 v3 : Bvector sz),
+    BVor v1 (BVand v2 v3) = BVand (BVor v1 v2) (BVor v1 v3).
+Proof.
+  intros sz v1 v2 v3.
+  induct_on sz.
+Qed.
+
+Lemma BVand_or_distrib :
+  forall sz (v1 v2 v3 : Bvector sz),
+    BVand v1 (BVor v2 v3) = BVor (BVand v1 v2) (BVand v1 v3).
+Proof.
+  intros sz v1 v2 v3.
+  induct_on sz.
+Qed.
+
+(** * Lemma on xor *)
 Lemma BVxor_comm : forall sz (v1 v2 : Bvector sz), BVxor v1 v2 = BVxor v2 v1.
 Proof.
   intros sz v1 v2.
