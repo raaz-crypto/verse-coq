@@ -72,6 +72,7 @@ Proof.
   induct_on m.
 Qed.
 
+(** * Lemmas on shifts *)
 
 Lemma BVshiftL_0 : forall sz (vec : Bvector sz),
     BVshiftL 0 vec = vec.
@@ -212,6 +213,7 @@ Proof.
   induct_on sz.
 Qed.
 
+(** * Rotation lemma *)
 Lemma BVrotR_0 : forall sz (vec : Bvector sz),
     BVrotR 0 vec = vec.
 Proof.
