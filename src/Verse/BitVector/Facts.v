@@ -4,7 +4,11 @@ Require Import Arith.
 Require Import Verse.BitVector.
 
 Hint Rewrite andb_true_r  orb_false_r : bitvector.
-Hint Resolve andb_comm andb_assoc orb_comm orb_assoc xorb_comm: bitvector.
+Hint Resolve
+     andb_comm andb_assoc
+     orb_comm orb_assoc
+     xorb_comm xorb_assoc
+  : bitvector.
 Hint Rewrite Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod : bitvector.
 Hint Unfold BVshiftR BVshiftL : bitvector.
 Hint Unfold Bv2Nat :bitvector.
@@ -178,6 +182,13 @@ Qed.
 Lemma BVxor_comm : forall sz (v1 v2 : Bvector sz), BVxor v1 v2 = BVxor v2 v1.
 Proof.
   intros sz v1 v2.
+  induct_on sz.
+Qed.
+
+
+Lemma BVxor_assoc : forall sz (v1 v2 v3 : Bvector sz), BVxor v1 (BVxor v2 v3) = BVxor (BVxor v1 v2) v3.
+Proof.
+  intros sz v1 v2 v3.
   induct_on sz.
 Qed.
 
