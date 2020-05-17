@@ -4,7 +4,7 @@ Require Import Arith.
 Require Import Verse.BitVector.
 
 Hint Rewrite andb_true_r  orb_false_r : bitvector.
-Hint Resolve andb_comm andb_assoc orb_comm orb_assoc : bitvector.
+Hint Resolve andb_comm andb_assoc orb_comm orb_assoc xorb_comm: bitvector.
 Hint Rewrite Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod : bitvector.
 Hint Unfold BVshiftR BVshiftL : bitvector.
 Hint Unfold Bv2Nat :bitvector.
@@ -32,6 +32,8 @@ Ltac crush := repeat (simpl; eauto with bitvector; try autorewrite with bitvecto
                           let t := fresh "t" in
                           (generalize (Vector.hd v) as h;
                            generalize (Vector.tl v) as tl; intros h t)
+                      | [ |- Vector.map2 _ _ _ = Vector.map2 _ _ _ ]
+                        => rewrite <- Vector.eq_nth_iff
                       | _ => idtac
                       end).
 
@@ -137,7 +139,7 @@ Proof.
   induct_on sz.
 Qed.
 
-Lemma BVand_commute : forall sz (v1 v2 : Bvector sz), BVand v1 v2 = BVand v2 v1.
+Lemma BVand_comm : forall sz (v1 v2 : Bvector sz), BVand v1 v2 = BVand v2 v1.
 Proof.
   intros sz v1 v2.
   induct_on sz.
@@ -161,17 +163,23 @@ Proof.
 Qed.
 
 
-Lemma BVor_commute : forall sz (v1 v2 : Bvector sz), BVor v1 v2 = BVor v2 v1.
+Lemma BVor_comm : forall sz (v1 v2 : Bvector sz), BVor v1 v2 = BVor v2 v1.
 Proof.
   intros sz v1 v2.
   induct_on sz.
 Qed.
 
 Lemma BVor_assoc : forall sz (v1 v2 v3 : Bvector sz), BVor v1 (BVor v2 v3) = BVor (BVor v1 v2) v3.
+Proof.
   intros sz v1 v2 v3.
   induct_on sz.
 Qed.
 
+Lemma BVxor_comm : forall sz (v1 v2 : Bvector sz), BVxor v1 v2 = BVxor v2 v1.
+Proof.
+  intros sz v1 v2.
+  induct_on sz.
+Qed.
 
 Lemma BVrotR_0 : forall sz (vec : Bvector sz),
     BVrotR 0 vec = vec.
