@@ -1,5 +1,11 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    # Daily build.
+    - cron: '0 8 * * *'
+
 jobs:
   linux:
     name: 'Linux'
