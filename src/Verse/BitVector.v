@@ -24,9 +24,9 @@ Definition BVquot      := arithm N.div.
 Definition BVrem       := arithm N.modulo.
 
 Definition BVones : forall sz, Bvector sz
-  := fun sz => Vector.const true sz.
+  := Bvect_true.
 Definition BVzeros : forall sz, Bvector sz
-  := fun sz => Vector.const false sz.
+  := Bvect_false.
 
 
 Check BVand. (* Comes directly from Bvector *)
