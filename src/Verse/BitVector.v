@@ -129,7 +129,10 @@ Definition clearLower {sz}  n  := @selectUpper sz (sz - n).
 Definition div2power_nat    {sz} n := @BVshiftR sz n.
 Definition modulo2power_nat {sz} n := @selectLower sz n.
 Definition Bv2Nat {sz} (vec : Bvector sz) := N.to_nat (@Bv2N _ vec).
-
+Definition of_N {sz}   : N -> Bvector sz := N2Bv_sized sz.
+Definition to_N {sz}   : Bvector sz -> N := Bv2N.
+Definition of_nat {sz} : nat -> Bvector sz :=  fun n => N2Bv_sized sz (N.of_nat n).
+Definition to_nat {sz} : Bvector sz -> nat := fun vec => N.to_nat (to_N vec).
 
 (** * Notations for bitvector operations
 
