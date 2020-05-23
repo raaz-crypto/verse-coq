@@ -17,6 +17,9 @@ Definition twopower_N   (m:N) : N := N.iter m N.double 1%N.
 Definition arithm (func : N -> N -> N) sz : Bvector sz -> Bvector sz -> Bvector sz
   := fun x y => N2Bv_sized sz (func (@Bv2N _ x) (@Bv2N _ y)).
 
+Definition BVN_size {sz} (vec : Bvector sz) := N.size (Bv2N vec).
+Definition BVN_size_nat {sz} (vec : Bvector sz) := N.size_nat (Bv2N vec).
+
 Definition BVplus      := arithm N.add.
 Definition BVminus sz  := arithm (fun x y => x + (twopower sz - y))%N sz.
 Definition BVmul       := arithm N.mul.
