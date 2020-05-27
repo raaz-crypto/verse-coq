@@ -183,9 +183,6 @@ Module ShiftInternal.
     intros. induct_on sz.
   Qed.
 
-  Definition foo : Fin.t 2 := Fin.L_R 1 Fin.F1.
-  Compute foo.
-
   Lemma shiftin_false : forall sz (vec : Bvector sz),
       @Bv2N _ (Vector.shiftin false vec) = @Bv2N _ vec.
   Proof.
@@ -248,7 +245,6 @@ Module BinOpInternals.
     Variable op1 op2 : A -> A -> A.
     Variable op1_comm : forall (x y : A), op1 x y = op1 y x.
     Variable op1_assoc : forall x y z : A, op1 x (op1 y z) = op1 (op1 x y) z.
-    Check andb_orb_distrib_r.
     Variable op1_op2_distr_r : forall a1 a2 a3, op1 a1 (op2 a2 a3) = op2 (op1 a1 a2)  (op1 a1 a3).
 
 
