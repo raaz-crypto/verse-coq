@@ -1,9 +1,24 @@
+(** * Facts about bitvector operations
+
+Cryptographic implementations often make use bitwise operations
+liberally. This module collects a bunch of facts that can be used to
+prove the correctness of such algorithms.
+
+- Commutativity, Associativity and distributive properties of bitwise
+  and, or and xor operations.
+
+- Arithmetic facts like [BV2N_shiftR_mod].
+
+
+*)
+
+(* begin hide *)
 Require Import BinNat.
 Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
 Require Import Verse.NFacts.
-(* begin hide *)
+
 Hint Resolve
      andb_comm andb_assoc andb_orb_distrib_r
      orb_comm orb_assoc orb_andb_distrib_r
@@ -60,8 +75,6 @@ End Internal.
 
 Import Internal.
 
-(* end hide *)
-
 Ltac crush := repeat (
                   unfold arithm;
                   try autorewrite with Nrewrites bitvector;
@@ -111,29 +124,53 @@ let vec := fresh "vec" in
 let IHvec := fresh "IHvec" in
 (induction v as [|b sz vec IHvec]; crush; rewrite IHvec; crush).
 
-(** * Facts about shifts *)
+(* end hide *)
 
-(** ** Left shifts *)
+(** * Shifts are homomorphisms.
 
-Lemma BVshiftL_0 : forall sz (vec : Bvector sz),
+
+The facts [BVshiftL_indentity], [BVshiftL_composition],
+[BVshiftR_identity] and [BVshiftR_composition] shows that functions
+[BVshiftL] as well as [BVshiftR] are homomorphisms from the monoid of
+additive natural numbers to the monoid of functions on bitvectors
+under compositions. The commutativity and associativity properties are
+the corresponding properties in the image of these homomorphisms.
+
+*)
+
+Lemma BVshiftL_identity : forall sz (vec : Bvector sz),
   BVshiftL 0 vec = vec.
 Proof.
   trivial.
 Qed.
 
-Lemma BVshiftL_add_m_n : forall sz (vec : Bvector sz) n m,
-  BVshiftL n (BVshiftL m vec) = BVshiftL (n + m) vec.
+Lemma BVshiftL_composition : forall sz (vec : Bvector sz) n m,
+    BVshiftL (n + m) vec = BVshiftL n (BVshiftL m vec).
 Proof.
   intros sz vec n m.
   induct_on n.
 Qed.
 
 
+Lemma BVshiftR_identity : forall sz (vec : Bvector sz),
+  BVshiftR 0 vec = vec.
+Proof.
+  trivial.
+Qed.
+
+
+Lemma BVshiftR_composition : forall sz (vec : Bvector sz) n m,
+  BVshiftR (n + m) vec =  BVshiftR n (BVshiftR m vec).
+Proof.
+  intros sz vec n m.
+  induct_on n.
+Qed.
+
 Lemma BVshiftL_commute : forall sz  (vec : Bvector sz) m n,
   BVshiftL m (BVshiftL n vec) = BVshiftL n (BVshiftL m vec).
 Proof.
-  intros;
-  repeat rewrite BVshiftL_add_m_n.
+  intros.
+    repeat rewrite <- BVshiftL_composition.
   rewrite Nat.add_comm; trivial.
 Qed.
 
@@ -143,25 +180,11 @@ Proof.
   intros; crush.
 Qed.
 
-(** ** Right shifts *)
-
-Lemma BVshiftR_0 : forall sz (vec : Bvector sz),
-  BVshiftR 0 vec = vec.
-Proof.
-  trivial.
-Qed.
-
-Lemma BVshiftR_add_m_n : forall sz (vec : Bvector sz) n m,
-  BVshiftR n (BVshiftR m vec) = BVshiftR (n + m) vec.
-Proof.
-  intros sz vec n m.
-  induct_on n.
-Qed.
 
 Lemma BVshiftR_commute : forall sz  (vec : Bvector sz) m n,
   BVshiftR m (BVshiftR n vec) = BVshiftR n (BVshiftR m vec).
 Proof.
-  intros;repeat rewrite BVshiftR_add_m_n;
+  intros; repeat rewrite <- BVshiftR_composition.
   rewrite Nat.add_comm; trivial.
 Qed.
 
@@ -171,63 +194,7 @@ Proof.
   intros; crush.
 Qed.
 
-
 (* begin hide *)
-Module ShiftInternal.
-  (**
-      Internal lemma that might not be of interest outside this module.
-   *)
-  Lemma shiftin_cons : forall sz b0 b1 (vec : Bvector sz),
-    Vector.tl (Vector.shiftin b0 (b1 :: vec)) = Vector.shiftin b0 vec.
-  Proof.
-    intros. induct_on sz.
-  Qed.
-
-  Lemma shiftin_false : forall sz (vec : Bvector sz),
-      @Bv2N _ (Vector.shiftin false vec) = @Bv2N _ vec.
-  Proof.
-    intros sz vec. induct_on sz.
-  Qed.
-
-  Hint Rewrite shiftin_false : bitvector.
-
-
-  Lemma Bv2N_shiftR_1 : forall sz b (vec : Bvector sz),
-      Bv2N (BVshiftR1 (b :: vec)) = Bv2N vec.
-  Proof.
-    intros sz b vec.
-    induct_on vec.
-  Qed.
-
-  Hint Rewrite Bv2N_shiftR_1 : bitvector.
-
-
-  Lemma Bv2N_shiftR_1_div : forall sz (vec : Bvector sz), Bv2N (BVshiftR1 vec) = N.div2 (Bv2N vec).
-  Proof.
-    intros sz vec.
-    Hint Rewrite shiftin_cons shiftin_false N.div2_double Ndouble_twice : bitvector.
-    unfold BVshiftR1.
-    unfold BshiftRl; unfold Bhigh;
-      induction vec; crush.
-  Qed.
-
-  Hint Rewrite Bv2N_shiftR_1_div : bitvector.
-
-  Lemma inj_shiftR : forall sz n (vec : Bvector sz),
-      Bv2N (BVshiftR n vec) = N.shiftr (Bv2N vec) (N.of_nat n).
-  Proof.
-    intros sz n vec.
-    unfold BVshiftR.
-    Hint Rewrite N.shiftr_succ_r : bitvector.
-    induction n; crush.
-    NFacts.crush.
-  Qed.
-
-End ShiftInternal.
-
-Import ShiftInternal.
-
-
 Module BinOpInternals.
 
   Ltac map2_crush := try intros;
@@ -271,32 +238,37 @@ Module BinOpInternals.
 
   End BinOp.
 
+
+  Lemma BVzeros_nth : forall sz (p : Fin.t sz), BVzeros [@p] = false.
+  Proof.
+    unfold BVzeros.
+    unfold Bvect_false.
+    intros; now rewrite Vector.const_nth.
+  Qed.
+
+  Lemma BVones_nth : forall sz (p : Fin.t sz), BVones [@p] = true.
+  Proof.
+    unfold BVones.
+    unfold Bvect_true.
+    intros; now rewrite Vector.const_nth.
+  Qed.
+
 End BinOpInternals.
 
 
 Import BinOpInternals.
 Hint Resolve map2_comm map2_assoc map2_distr : bitvector.
-
-Lemma BVzeros_nth : forall sz (p : Fin.t sz), BVzeros [@p] = false.
-Proof.
-  unfold BVzeros.
-  unfold Bvect_false.
-  intros; now rewrite Vector.const_nth.
-Qed.
-
-
-
-
-Lemma BVones_nth : forall sz (p : Fin.t sz), BVones [@p] = true.
-Proof.
-  unfold BVones.
-  unfold Bvect_true.
-  intros; now rewrite Vector.const_nth.
-Qed.
-
 Hint Rewrite BVzeros_nth BVones_nth : bitvector.
 
-(** * And and Or *)
+(* end hide *)
+
+(** ** Properties of bitwise and ,or and xor
+
+The commutativity, associativity properties and existence of identity
+for and, or and xor are proved as well as the distributivity of and
+over or and vice-versa.
+
+*)
 Lemma BVand_0_r : forall sz (v  : Bvector sz), BVand v BVones = v.
 Proof.
   unfold BVand; map2_crush.
@@ -390,8 +362,6 @@ Proof.
   map2_crush.
 Qed.
 
-
-(** * Lemma on xor *)
 Lemma BVxor_comm : forall sz (v1 v2 : Bvector sz), BVxor v1 v2 = BVxor v2 v1.
 Proof.
   unfold BVxor.
@@ -406,7 +376,12 @@ Proof.
 Qed.
 
 
-(** * Rotation lemma *)
+(** ** Properties of rotation.
+
+TODO: Some obvious properties are not yet proved.
+
+*)
+
 Lemma BVrotR_0 : forall sz (vec : Bvector sz),
     BVrotR 0 vec = vec.
 Proof.
@@ -476,8 +451,7 @@ Proof.
   assumption.
 Qed.
 
-(** * Bitvector arithmetic proofs *)
-
+(* begin hide *)
 (** injectivity of Bv2N function *)
 
 Lemma inj : forall sz (v0 v1 : Bvector sz),  Bv2N v0 = Bv2N v1 -> v0 = v1.
@@ -489,7 +463,56 @@ Proof.
   trivial.
 Qed.
 
+
 Module ArithmInternals.
+  (**
+      ShiftR and division.
+   *)
+  Lemma shiftin_cons : forall sz b0 b1 (vec : Bvector sz),
+    Vector.tl (Vector.shiftin b0 (b1 :: vec)) = Vector.shiftin b0 vec.
+  Proof.
+    intros. induct_on sz.
+  Qed.
+
+  Lemma shiftin_false : forall sz (vec : Bvector sz),
+      @Bv2N _ (Vector.shiftin false vec) = @Bv2N _ vec.
+  Proof.
+    intros sz vec. induct_on sz.
+  Qed.
+
+  Hint Rewrite shiftin_false : bitvector.
+
+
+  Lemma Bv2N_shiftR_1 : forall sz b (vec : Bvector sz),
+      Bv2N (BVshiftR1 (b :: vec)) = Bv2N vec.
+  Proof.
+    intros sz b vec.
+    induct_on vec.
+  Qed.
+
+  Hint Rewrite Bv2N_shiftR_1 : bitvector.
+
+
+  Lemma Bv2N_shiftR_1_div : forall sz (vec : Bvector sz), Bv2N (BVshiftR1 vec) = N.div2 (Bv2N vec).
+  Proof.
+    intros sz vec.
+    Hint Rewrite shiftin_cons shiftin_false N.div2_double Ndouble_twice : bitvector.
+    unfold BVshiftR1.
+    unfold BshiftRl; unfold Bhigh;
+      induction vec; crush.
+  Qed.
+
+  Hint Rewrite Bv2N_shiftR_1_div : bitvector.
+
+  Lemma inj_shiftR : forall sz n (vec : Bvector sz),
+      Bv2N (BVshiftR n vec) = N.shiftr (Bv2N vec) (N.of_nat n).
+  Proof.
+    intros sz n vec.
+    unfold BVshiftR.
+    Hint Rewrite N.shiftr_succ_r : bitvector.
+    induction n; crush.
+    NFacts.crush.
+  Qed.
 
   Lemma N2Bv_sized_0 : forall x, N2Bv_sized 0 x = [].
   Proof.
@@ -513,8 +536,6 @@ Module ArithmInternals.
     destruct (Bv2N vec); trivial.
     destruct (Bv2N vec); trivial.
   Qed.
-
-
 
   Lemma Bv2N_false : forall m, Bv2N (Bvect_false m) = 0%N.
   Proof.
@@ -591,12 +612,25 @@ Module ArithmInternals.
     crush.
   Qed.
 
-
-
 End ArithmInternals.
 Import ArithmInternals.
 Hint Resolve Bv2N_N2Bv_sized_mod : bitvector.
 
+(* end hide *)
+
+(* ** Arithmetic facts.
+
+The connection between bitwise operation and the corresponding
+arithmetic operations are proved here. The facts [Bv2N_shiftR] and
+[Bv2N_selectLower] takes care of division and reminder. We also show
+that addition and multiplications are equivalent to their modulo
+[2^sz] counterparts.
+
+To prove claims about overflow free computation, we have lemmas that
+prove the correctness of addition when the number of bits is less than
+the bitvector size.
+
+*)
 
 Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz), Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
 Proof.
@@ -628,7 +662,6 @@ Proof.
   unfold arithm.
   eauto with bitvector.
 Qed.
-
 
 Lemma Bv2N_mul_mod : forall sz (v0 v1 : Bvector sz),
     (Bv2N (BVmul v0 v1) = (Bv2N v0 * Bv2N v1) mod 2^(N.of_nat sz))%N.
