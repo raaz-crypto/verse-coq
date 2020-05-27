@@ -153,21 +153,24 @@ coqdoc's pdf generation does not get stuck.
 *)
 
 
+(* begin hide *)
+
+
 Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
 Notation "A | B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
 Notation "~ A"
   := (BVcomp A)
        (only printing, at level 75, right associativity) : bitvector_scope.
-
-(* begin hide *)
 Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
 Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ⋙ m" := (BVrotR m A) (only printing, at level 100) : bitvector_scope.
-(* end hide *)
+Notation "⟦ A ⟧"  := (@Bv2N _ A)    (only printing) : bitvector_scope.
 
 Infix "+" := (BVplus)  (only printing) : bitvector_scope.
 Infix "*" := (BVmul)   (only printing) : bitvector_scope.
 Infix "-" := (BVminus) (only printing) : bitvector_scope.
 Infix "/" := (BVquot)  (only printing) : bitvector_scope.
+
+(* end hide *)
