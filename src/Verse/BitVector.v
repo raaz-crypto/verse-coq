@@ -10,12 +10,18 @@ Require Import Arith.
 Require Import NArith.
 Require Import Nat.
 
+
+Arguments Bv2N [n].
+
 (** computes 2^m *)
 Definition twopower m : N := Nat.iter m N.double 1%N.
 Definition twopower_nat (m:nat) : nat := Nat.iter m Nat.double 1.
 Definition twopower_N   (m:N) : N := N.iter m N.double 1%N.
 Definition arithm (func : N -> N -> N) sz : Bvector sz -> Bvector sz -> Bvector sz
   := fun x y => N2Bv_sized sz (func (@Bv2N _ x) (@Bv2N _ y)).
+
+Definition BVN_size {sz} (vec : Bvector sz) := N.size (Bv2N vec).
+Definition BVN_size_nat {sz} (vec : Bvector sz) := N.size_nat (Bv2N vec).
 
 Definition BVplus      := arithm N.add.
 Definition BVminus sz  := arithm (fun x y => x + (twopower sz - y))%N sz.
@@ -24,9 +30,9 @@ Definition BVquot      := arithm N.div.
 Definition BVrem       := arithm N.modulo.
 
 Definition BVones : forall sz, Bvector sz
-  := fun sz => Vector.const true sz.
+  := Bvect_true.
 Definition BVzeros : forall sz, Bvector sz
-  := fun sz => Vector.const false sz.
+  := Bvect_false.
 
 
 Check BVand. (* Comes directly from Bvector *)
@@ -128,8 +134,12 @@ Definition clearLower {sz}  n  := @selectUpper sz (sz - n).
 
 Definition div2power_nat    {sz} n := @BVshiftR sz n.
 Definition modulo2power_nat {sz} n := @selectLower sz n.
-Definition Bv2Nat {sz} (vec : Bvector sz) := N.to_nat (@Bv2N _ vec).
-
+Definition of_N {sz}   : N -> Bvector sz := N2Bv_sized sz.
+Definition to_N {sz}   : Bvector sz -> N := @Bv2N sz.
+(*
+Definition of_nat {sz} : nat -> Bvector sz :=  fun n => N2Bv_sized sz (N.of_nat n).
+Definition to_nat {sz} : Bvector sz -> nat := fun vec => N.to_nat (to_N vec).
+ *)
 
 (** * Notations for bitvector operations
 

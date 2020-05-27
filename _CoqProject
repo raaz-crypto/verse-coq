@@ -15,10 +15,10 @@ src/Verse/Machine.v
 src/Verse/Machine/BitVector.v
 src/Verse/BitVector.v
 src/Verse/BitVector/Facts.v
-src/Verse/BitVector/Bv2Nat.v
 src/Verse/Machine/Hoare.v
 src/Verse/Monoid.v
 src/Verse/Monoid/Semantics.v
+src/Verse/NFacts.v
 src/Verse/Nibble.v
 src/Verse/Print.v
 src/Verse/Scope.v
