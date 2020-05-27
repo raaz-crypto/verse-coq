@@ -28,7 +28,8 @@ opam update
 ```
 
 You will now need to get a version of coq. Select one of the coq
-versions using which verse [is tested on our CI system][travis-verse].
+versions using which verse [is tested on our CI
+system][github-actions].
 
 ```
 opam install coq."$COQ_VER"
