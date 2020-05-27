@@ -10,6 +10,9 @@ Require Import Arith.
 Require Import NArith.
 Require Import Nat.
 
+
+Arguments Bv2N [n].
+
 (** computes 2^m *)
 Definition twopower m : N := Nat.iter m N.double 1%N.
 Definition twopower_nat (m:nat) : nat := Nat.iter m Nat.double 1.
@@ -132,9 +135,7 @@ Definition clearLower {sz}  n  := @selectUpper sz (sz - n).
 Definition div2power_nat    {sz} n := @BVshiftR sz n.
 Definition modulo2power_nat {sz} n := @selectLower sz n.
 Definition of_N {sz}   : N -> Bvector sz := N2Bv_sized sz.
-Definition to_N {sz}   : Bvector sz -> N := Bv2N.
-
-Arguments Bv2N [n].
+Definition to_N {sz}   : Bvector sz -> N := @Bv2N sz.
 (*
 Definition of_nat {sz} : nat -> Bvector sz :=  fun n => N2Bv_sized sz (N.of_nat n).
 Definition to_nat {sz} : Bvector sz -> nat := fun vec => N.to_nat (to_N vec).
