@@ -10,9 +10,8 @@ cryptographic primitives.
 Configuring and installing
 --------------------------
 
-We recommend the use of opam2 for working with coq. For the exact
-versions that are supported please see the current [build
-status][travis-verse].
+We recommend the use of opam2 for working with coq. To know which
+versions are supported refer to the [CI status page][github-actions].
 
 
 ## Setting up the coq environment.
