@@ -2,38 +2,24 @@ Require Import BinNat.
 Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
+Require Import Verse.NBounds.
 (* begin hide *)
-Hint Rewrite andb_true_r  orb_false_r : bitvector.
-Hint Rewrite
-     Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod
-     Nat.double_twice Nat.div2_succ_double Nat.div2_double
-     Nat.add_1_r Nat.add_0_r
-  : bitvector.
-
-Hint Rewrite
-     N.sub_0_r N.sub_diag N.mod_0_l N.mod_mod
-     N.div2_succ_double N.div2_double
-     N.add_1_r N.add_0_r
-  : bitvector.
-
-Hint Rewrite
-     Nat2N.inj_double Nat2N.inj_succ Nat2N.inj_succ_double
-     Nat2N.inj_succ Nat2N.inj_add Nat2N.inj_mul Nat2N.inj_sub
-     Nat2N.inj_pred Nat2N.inj_div2 Nat2N.inj_max Nat2N.inj_min
-     Nat2N.id
-     : bitvector.
-
-Hint Rewrite N2Nat.inj_double N2Nat.inj_succ N2Nat.inj_succ_double
-     N2Nat.inj_succ N2Nat.inj_add N2Nat.inj_mul N2Nat.inj_sub
-     N2Nat.inj_pred N2Nat.inj_div2 N2Nat.inj_max N2Nat.inj_min
-     N2Nat.id
-     : bitvector.
-
 Hint Resolve
      andb_comm andb_assoc andb_orb_distrib_r
      orb_comm orb_assoc orb_andb_distrib_r
      xorb_comm xorb_assoc
 : bitvector.
+
+Hint Rewrite andb_true_r  orb_false_r  xorb_true_r xorb_false_r xorb_true_l xorb_false_l : bitvector.
+
+Hint Rewrite
+     Nat.sub_0_r Nat.sub_diag Nat.mod_0_l Nat.mod_mod
+     Nat.double_twice Nat.div2_succ_double Nat.div2_double
+     Nat.add_1_r Nat.add_0_r Nat.add_0_l
+  : bitvector.
+
+
+
 
 Hint Unfold BVshiftR BVshiftL : bitvector.
 
@@ -78,19 +64,24 @@ Import Internal.
 
 Ltac crush := repeat (
                   unfold arithm;
-                  try autorewrite with bitvector; simpl; try eauto with bitvector;
-                    match goal with
-                    | [ v : Bvector 0     |- _ ] => rewrite (vector_0_nil _ v)
-                    | [ |- _ :: _ = _ :: _ ] => apply vector_cons_equation
-                    | [ v : Bvector (S _) |- _ ]
-                      => rewrite (Vector.eta v);
-                        let h := fresh "h" in
-                        let t := fresh "t" in
-                        (generalize (Vector.hd v) as h;
-                         generalize (Vector.tl v) as tl; intros h t)
-                    | [ b : bool |- _ ] => destruct b
-                    | _ => idtac
-                    end).
+                  try autorewrite with Nrewrites bitvector;
+                  try eauto with Nfacts bitvector;
+                  try simpl;
+                  match goal with
+                  | [ v : Bvector 0     |- _ ] => rewrite (vector_0_nil _ v)
+                  | [ |- _ :: _ = _ :: _ ] => apply vector_cons_equation
+                  | [ v : Bvector (S _) |- _ ]
+                    => rewrite (Vector.eta v);
+                      let h := fresh "h" in
+                      let t := fresh "t" in
+                      (generalize (Vector.hd v) as h;
+                       generalize (Vector.tl v) as tl; intros h t)
+                  | [ b : bool |- _ ] => destruct b
+                  | _ => idtac
+                  end
+                ).
+
+
 
 
 
@@ -110,6 +101,7 @@ Ltac induct_on n :=
 let m := fresh "m" in
 let IHm := fresh "IHm" in
 (induction n as [|m IHm]; crush; rewrite IHm; crush).
+
 
 (** The vector variant of the induction *)
 Ltac induct_on_vec v :=
@@ -140,7 +132,7 @@ Qed.
 Lemma BVshiftL_commute : forall sz  (vec : Bvector sz) m n,
   BVshiftL m (BVshiftL n vec) = BVshiftL n (BVshiftL m vec).
 Proof.
-  intros. autorewrite with bitvector.
+  intros;
   repeat rewrite BVshiftL_add_m_n.
   rewrite Nat.add_comm; trivial.
 Qed.
@@ -169,8 +161,7 @@ Qed.
 Lemma BVshiftR_commute : forall sz  (vec : Bvector sz) m n,
   BVshiftR m (BVshiftR n vec) = BVshiftR n (BVshiftR m vec).
 Proof.
-  intros; autorewrite with bitvector.
-  repeat rewrite BVshiftR_add_m_n.
+  intros;repeat rewrite BVshiftR_add_m_n;
   rewrite Nat.add_comm; trivial.
 Qed.
 
@@ -192,6 +183,8 @@ Module ShiftInternal.
     intros. induct_on sz.
   Qed.
 
+  Definition foo : Fin.t 2 := Fin.L_R 1 Fin.F1.
+  Compute foo.
 
   Lemma shiftin_false : forall sz (vec : Bvector sz),
       @Bv2N _ (Vector.shiftin false vec) = @Bv2N _ vec.
@@ -215,10 +208,10 @@ Module ShiftInternal.
   Lemma Bv2N_shiftR_1_div : forall sz (vec : Bvector sz), Bv2N (BVshiftR1 vec) = N.div2 (Bv2N vec).
   Proof.
     intros sz vec.
-    Hint Rewrite shiftin_cons shiftin_false : bitvector.
-    induction vec. crush.
-    simpl. unfold BshiftRl; unfold Bhigh.
-    crush.
+    Hint Rewrite shiftin_cons shiftin_false N.div2_double Ndouble_twice : bitvector.
+    unfold BVshiftR1.
+    unfold BshiftRl; unfold Bhigh;
+      induction vec; crush.
   Qed.
 
   Hint Rewrite Bv2N_shiftR_1_div : bitvector.
@@ -229,7 +222,8 @@ Module ShiftInternal.
     intros sz n vec.
     unfold BVshiftR.
     Hint Rewrite N.shiftr_succ_r : bitvector.
-    induct_on n.
+    induction n; crush.
+    NBounds.crush.
   Qed.
 
 End ShiftInternal.
@@ -237,62 +231,120 @@ End ShiftInternal.
 Import ShiftInternal.
 
 
-Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz), Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
-  intros sz n vec.
-  rewrite inj_shiftR.
-  apply N.shiftr_div_pow2.
+Module BinOpInternals.
+
+  Ltac map2_crush := try intros;
+    rewrite <- Vector.eq_nth_iff;
+    let p1 := fresh "p" in
+    let p2 := fresh "p" in
+    let eqHyp := fresh "eqHyp" in
+    intros p1 p2 eqHyp; rewrite eqHyp;
+    repeat rewrite (Vector.nth_map2 _ _ _ p2 p2 p2);
+    repeat rewrite (Vector.nth_map _ _ p2 p2);
+    autorewrite with bitvector; eauto with bitvector.
+
+  Section BinOp.
+    Variable A : Type.
+    Variable op1 op2 : A -> A -> A.
+    Variable op1_comm : forall (x y : A), op1 x y = op1 y x.
+    Variable op1_assoc : forall x y z : A, op1 x (op1 y z) = op1 (op1 x y) z.
+    Check andb_orb_distrib_r.
+    Variable op1_op2_distr_r : forall a1 a2 a3, op1 a1 (op2 a2 a3) = op2 (op1 a1 a2)  (op1 a1 a3).
+
+
+
+    Lemma map2_comm : forall sz (v1 v2 : Vector.t A sz),
+        Vector.map2 op1 v1 v2 = Vector.map2 op1 v2 v1.
+    Proof.
+      map2_crush.
+    Qed.
+
+    Lemma map2_assoc : forall sz (u v w : Vector.t A sz),
+        Vector.map2 op1 u (Vector.map2 op1 v w) =
+        Vector.map2 op1 (Vector.map2 op1 u v) w.
+    Proof.
+      map2_crush.
+    Qed.
+
+    Lemma map2_distr : forall sz (u v w : Vector.t A sz),
+        Vector.map2 op1 u (Vector.map2 op2 v w) =
+        Vector.map2 op2 (Vector.map2 op1 u v) (Vector.map2 op1 u w).
+    Proof.
+      map2_crush.
+    Qed.
+
+  End BinOp.
+
+End BinOpInternals.
+
+
+Import BinOpInternals.
+Hint Resolve map2_comm map2_assoc map2_distr : bitvector.
+
+Lemma BVzeros_nth : forall sz (p : Fin.t sz), BVzeros [@p] = false.
+Proof.
+  unfold BVzeros.
+  unfold Bvect_false.
+  intros; now rewrite Vector.const_nth.
 Qed.
 
 
+
+
+Lemma BVones_nth : forall sz (p : Fin.t sz), BVones [@p] = true.
+Proof.
+  unfold BVones.
+  unfold Bvect_true.
+  intros; now rewrite Vector.const_nth.
+Qed.
+
+Hint Rewrite BVzeros_nth BVones_nth : bitvector.
 
 (** * And and Or *)
 Lemma BVand_0_r : forall sz (v  : Bvector sz), BVand v BVones = v.
 Proof.
-intros sz v.
-induct_on sz.
+  unfold BVand; map2_crush.
 Qed.
+
 
 Lemma BVand_0_l : forall sz (v  : Bvector sz), BVand BVones v = v.
 Proof.
-intros sz v.
-induct_on sz.
+  unfold BVand; map2_crush.
 Qed.
 
 Lemma BVand_comm : forall sz (v1 v2 : Bvector sz), BVand v1 v2 = BVand v2 v1.
 Proof.
-  intros sz v1 v2.
-  induct_on sz.
+  unfold BVand.
+  eauto with bitvector.
 Qed.
 
 Lemma BVand_assoc : forall sz (v1 v2 v3 : Bvector sz), BVand v1 (BVand v2 v3) = BVand (BVand v1 v2) v3.
 Proof.
-  intros sz v1 v2 v3.
-  induct_on sz.
+  unfold BVand.
+  eauto with bitvector.
 Qed.
 
 Lemma BVor_0_r : forall sz (v  : Bvector sz), BVor v BVzeros = v.
 Proof.
-  intros sz v.
-  induct_on sz.
+  unfold BVor; map2_crush.
 Qed.
 
 Lemma BVor_0_l : forall sz (v  : Bvector sz), BVor BVzeros v = v.
 Proof.
-  intros sz v.
-  induct_on sz.
+  unfold BVor; map2_crush.
 Qed.
 
 
 Lemma BVor_comm : forall sz (v1 v2 : Bvector sz), BVor v1 v2 = BVor v2 v1.
 Proof.
-  intros sz v1 v2.
-  induct_on sz.
+  unfold BVor.
+  eauto with bitvector.
 Qed.
 
 Lemma BVor_assoc : forall sz (v1 v2 v3 : Bvector sz), BVor v1 (BVor v2 v3) = BVor (BVor v1 v2) v3.
 Proof.
-  intros sz v1 v2 v3.
-  induct_on sz.
+  unfold BVor.
+  eauto with bitvector.
 Qed.
 
 (* ** Distributivity *)
@@ -301,30 +353,60 @@ Lemma BVor_and_distrib :
   forall sz (v1 v2 v3 : Bvector sz),
     BVor v1 (BVand v2 v3) = BVand (BVor v1 v2) (BVor v1 v3).
 Proof.
-  intros sz v1 v2 v3.
-  induct_on sz.
+  (*  intros sz v1 v2 v3. *)
+  unfold BVor. unfold BVand.
+  eauto with bitvector.
 Qed.
 
 Lemma BVand_or_distrib :
   forall sz (v1 v2 v3 : Bvector sz),
     BVand v1 (BVor v2 v3) = BVor (BVand v1 v2) (BVand v1 v3).
 Proof.
-  intros sz v1 v2 v3.
-  induct_on sz.
+  unfold BVor. unfold BVand.
+  eauto with bitvector.
 Qed.
+
+Lemma BVxor_0_r : forall sz (v : Bvector sz), BVxor v BVzeros = v.
+Proof.
+  unfold BVxor.
+  map2_crush.
+Qed.
+
+Lemma BVxor_0_l : forall sz (v : Bvector sz), BVxor BVzeros v = v.
+Proof.
+  unfold BVxor.
+  map2_crush.
+Qed.
+
+Lemma BVxor_1_l : forall sz (v : Bvector sz), BVxor BVones v = BVcomp v.
+Proof.
+  unfold BVxor.
+  unfold BVcomp.
+  unfold Bneg.
+  map2_crush.
+Qed.
+
+Lemma BVxor_1_r : forall sz (v : Bvector sz), BVxor v BVones = BVcomp v.
+Proof.
+  unfold BVxor.
+  unfold BVcomp.
+  unfold Bneg.
+  map2_crush.
+Qed.
+
 
 (** * Lemma on xor *)
 Lemma BVxor_comm : forall sz (v1 v2 : Bvector sz), BVxor v1 v2 = BVxor v2 v1.
 Proof.
-  intros sz v1 v2.
-  induct_on sz.
+  unfold BVxor.
+  eauto with bitvector.
 Qed.
 
 
 Lemma BVxor_assoc : forall sz (v1 v2 v3 : Bvector sz), BVxor v1 (BVxor v2 v3) = BVxor (BVxor v1 v2) v3.
 Proof.
-  intros sz v1 v2 v3.
-  induct_on sz.
+  unfold BVxor.
+  eauto with bitvector.
 Qed.
 
 
@@ -436,19 +518,7 @@ Module ArithmInternals.
     destruct (Bv2N vec); trivial.
   Qed.
 
-  Lemma pow_2_nonzero : forall x, (2^x <> 0)%N.
-  Proof.
-    intro.
-    apply N.pow_nonzero.
-    intro twoEq0; inversion twoEq0.
-  Qed.
 
-
-
-  Lemma nonzero_2 : (2 <> 0)%N.
-    intro Hyp; inversion Hyp.
-  Qed.
-  Hint Resolve pow_2_nonzero nonzero_2 : bitvector.
 
   Lemma Bv2N_false : forall m, Bv2N (Bvect_false m) = 0%N.
   Proof.
@@ -471,27 +541,133 @@ Module ArithmInternals.
          N.mod_1_r Bv2N_cons
          N.div2_div
          N.pow_succ_r
-         N.mod_mul_r : bitvector.
+         N.mod_mul_r
+         Nat2N.inj_succ
+    : bitvector.
 
     Hint Resolve Nb2n_mod N.le_0_l : bitvector.
     intro sz.
     induction sz as [|n IHsz]. intro x; crush.
-    intro x; autorewrite with bitvector; eauto with bitvector.
-    rewrite IHsz;
-      rewrite N.add_cancel_r;
-    crush.
+    intro x; autorewrite with bitvector; try (rewrite IHsz; rewrite N.add_cancel_r); crush.
 
   Qed.
 
-End ArithmInternals.
+  Lemma Bv2N_N2Bv_sized  : forall sz x, N.size_nat x <= sz -> Bv2N (N2Bv_sized sz x) = x.
+  Proof.
+    intros.
+    Hint Resolve Nsize_nat_pow_2 : bitvector.
+    Hint Rewrite N.mod_small     : bitvector.
+    Hint Rewrite Bv2N_N2Bv_sized_mod : bitvector.
+    crush.
+  Qed.
 
+
+  Lemma Bv2N_true : forall m : nat, Bv2N (Bvect_true m) = N.ones (N.of_nat m).
+  Proof.
+    intro m.
+    unfold Bvect_true.
+    induction m; trivial.
+    simpl Vector.const.
+    simpl Bv2N.
+    rewrite IHm.
+    rewrite Nat2N.inj_succ.
+    rewrite <- N.add_1_l.
+    rewrite N.ones_add.
+    rewrite N.pow_1_r.
+    rewrite N.succ_double_spec.
+    assert (nones:N.ones 1 = 1%N) by (compute; trivial).
+    rewrite nones; trivial.
+  Qed.
+
+
+  Lemma N_ones_size : forall n, N.size_nat (N.ones (N.of_nat n)) <= n.
+    intro.
+    rewrite <- Bv2N_true.
+    apply Bv2N_Nsize.
+  Qed.
+
+
+  Lemma N_ones_size_gen : forall sz n, n <= sz -> N.size_nat (N.ones (N.of_nat n)) <= sz.
+  Proof.
+    Hint Resolve Nat.le_trans : bitvector.
+    Hint Resolve N_ones_size : bitvector.
+    intros sz n pfSzLeN.
+    crush.
+  Qed.
+
+
+
+End ArithmInternals.
 Import ArithmInternals.
 Hint Resolve Bv2N_N2Bv_sized_mod : bitvector.
 
-Lemma Bv2N_plus : forall sz (v0 v1 : Bvector sz),
+
+Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz), Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
+Proof.
+  Hint Rewrite inj_shiftR : bitvector.
+  Hint Resolve N.shiftr_div_pow2 : bitvector.
+  intros sz n vec.
+  crush.
+Qed.
+
+
+Lemma Bv2N_selectLower : forall sz n (vec : Bvector sz),
+    n <= sz -> Bv2N (selectLower n vec) = (Bv2N vec mod 2^(N.of_nat n))%N.
+Proof.
+  intros.
+  unfold selectLower.
+  unfold lower_ones.
+  rewrite Nand_BVand.
+
+  Hint Resolve N_ones_size_gen N.land_ones : bitvector.
+  rewrite Bv2N_N2Bv_sized; eauto with bitvector.
+Qed.
+
+
+Lemma Bv2N_plus_mod : forall sz (v0 v1 : Bvector sz),
     (Bv2N (BVplus v0 v1) = (Bv2N v0 + Bv2N v1) mod 2^(N.of_nat sz))%N.
 Proof.
   unfold BVplus.
   intros.
-  crush.
+  unfold arithm.
+  eauto with bitvector.
+Qed.
+
+
+Lemma Bv2N_mul_mod : forall sz (v0 v1 : Bvector sz),
+    (Bv2N (BVmul v0 v1) = (Bv2N v0 * Bv2N v1) mod 2^(N.of_nat sz))%N.
+Proof.
+  unfold BVmul.
+  intros.
+  unfold arithm.
+  eauto with bitvector.
+Qed.
+
+
+
+
+Lemma Bv2N_plus : forall sz n (v0 v1 : Bvector sz),
+    BVN_size_nat v0 <= n -> BVN_size_nat v1 <= n -> n < sz ->
+    (Bv2N (BVplus v0 v1) = Bv2N v0 + Bv2N v1)%N.
+Proof.
+  Hint Resolve Nadd_bound_nat_gen : bitvector.
+  intros.
+  rewrite Bv2N_plus_mod;
+  rewrite N.mod_small; trivial.
+  eauto with bitvector.
+Qed.
+
+
+Lemma Bv2N_mul : forall sz n0 n1 (v0 v1 : Bvector sz),
+     BVN_size_nat v0 <= n0 -> BVN_size_nat v1 <= n1 -> n0 + n1 <= sz ->
+    (Bv2N (BVmul v0 v1) = Bv2N v0 * Bv2N v1)%N.
+Proof.
+  unfold BVN_size_nat.
+  intros.
+  rewrite Bv2N_mul_mod.
+
+  rewrite N.mod_small; trivial.
+  assert (Bv2N v0 * Bv2N v1 < 2^(N.of_nat (n0 + n1)))%N
+    by now apply Nmul_bound_nat.
+  eauto with Nfacts.
 Qed.
