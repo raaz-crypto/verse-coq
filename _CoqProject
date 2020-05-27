@@ -18,7 +18,7 @@ src/Verse/BitVector/Facts.v
 src/Verse/Machine/Hoare.v
 src/Verse/Monoid.v
 src/Verse/Monoid/Semantics.v
-src/Verse/NBounds.v
+src/Verse/NFacts.v
 src/Verse/Nibble.v
 src/Verse/Print.v
 src/Verse/Scope.v

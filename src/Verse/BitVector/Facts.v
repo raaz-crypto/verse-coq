@@ -2,7 +2,7 @@ Require Import BinNat.
 Require Import NArith.
 Require Import Arith.
 Require Import Verse.BitVector.
-Require Import Verse.NBounds.
+Require Import Verse.NFacts.
 (* begin hide *)
 Hint Resolve
      andb_comm andb_assoc andb_orb_distrib_r
@@ -223,7 +223,7 @@ Module ShiftInternal.
     unfold BVshiftR.
     Hint Rewrite N.shiftr_succ_r : bitvector.
     induction n; crush.
-    NBounds.crush.
+    NFacts.crush.
   Qed.
 
 End ShiftInternal.
