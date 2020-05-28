@@ -36,14 +36,17 @@ Require Verse.Scope.
 Definition function {Name} (name : Name)
            {T}{ifr : Scope.Infer T} (params : T)
   : Raaz.line
-  := let ps := Scope.infer params in ccall name (args (fromDecl ps)).
+  := let (ps, _) := Scope.inferNesting params in ccall name (args (fromDecl ps)).
 
 (** Generate the Haskell FFI stub for an iterator *)
+
 Definition iterator
            {Name} (name : Name)
            (memty : typeOf verse_type_system memory)
-           {T}{ifr : Scope.Infer T} (params : T)
+           {t : Variables.U verse_type_system -> Type}
+           (func : forall v : Variables.U verse_type_system, t v)
+           {_ : Scope.Infer (t Scope.Cookup.var)}
   : Raaz.line :=
-  let ps    := fromDecl (Scope.infer params) in
+  let ps    := (fst (Scope.inferNesting (Scope.Cookup.specialise func))) in
   let block := translate memty in
-  ccall name (args (block :: counterType :: ps))%list.
+  ccall name (args (block :: counterType :: (fromDecl ps)))%list.
