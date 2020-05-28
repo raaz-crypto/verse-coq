@@ -242,7 +242,7 @@ Module CodeGen (T : CONFIG).
      *)
 
     Definition abstracted v CODE
-      := Scope.scoped v pvs (Scope.scoped v lvs CODE).
+      := Scope.scoped v pvs (Scope.delimit (Scope.scoped v lvs CODE)).
 
 
     (** ** Allocating target variables.
@@ -305,7 +305,8 @@ Module CodeGen (T : CONFIG).
     Definition function
                (func   : forall v, abstracted v (code v))
       : T.programLine + { TranslationError }
-      := let body := Scope.fill verse_locals (Scope.fill verse_params (func _))
+      := let 'Scope.body pbody := Scope.fill verse_params (func _) in
+         let body := Scope.fill verse_locals pbody
          in btc <- typeCheckedTransform body ;
               btarget <- codeDenote btc;
               let fsig := FunSig params locals
@@ -352,8 +353,9 @@ Module CodeGen (T : CONFIG).
     Definition iterativeFunction
                (iFunc       : forall v, abstracted v (iterator v block))
       : T.programLine + {TranslationError}
-      := let iter    := Scope.fill verse_locals
-                                   (Scope.fill verse_params (iFunc _)) in
+      := let 'Scope.body piter := Scope.fill verse_params (iFunc _) in
+         let iter    := Scope.fill verse_locals piter
+         in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals in
            pre  <- codeDenote (Iterator.preamble iterComp);
