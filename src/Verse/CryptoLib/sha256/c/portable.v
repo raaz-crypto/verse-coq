@@ -98,14 +98,11 @@ Inductive name := verse_sha256_c_portable.
 
 Require Verse.CryptoLib.sha2.
 
-Definition sha256iter
-  := CIterator verse_sha256_c_portable
-               SHA256.Block
-               SHA256.parameters
-               SHA256.locals
-               SHA256.registers
-               SHA256.sha2.
-
+Definition sha256iter : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_sha256_c_portable
+           SHA256.Block
+           SHA256.Sha2.
+Defined.
 
 Require Import Verse.Error.
 Definition iterator : Compile.programLine := recover sha256iter.
@@ -117,7 +114,7 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_sha256_c_portable
                                SHA256.Block
-                               SHA256.parameters
+                               SHA256.Sha2
                     ].
 
 

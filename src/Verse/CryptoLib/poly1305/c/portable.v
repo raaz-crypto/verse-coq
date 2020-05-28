@@ -204,21 +204,23 @@ Module Internal.
     Variable progvar : VariableT.
     Arguments progvar [k] _.
 
-    (** We define type aliases for some of the types that are relevant
+    Section Params.
+
+      (** We define type aliases for some of the types that are relevant
         for poly1305. See the arithmetic section on the rationale for
         these choices. The arrays are packed representations where as
         their indices are split up into 32-bit chunks.
-     *)
+      *)
 
-    Definition ELEM_SIZE := 3.
-    Definition ElemArray := Array ELEM_SIZE hostE Limb.
-    Definition Array128  := Array 2 hostE Limb.
+      Definition ELEM_SIZE := 3.
+      Definition ElemArray := Array ELEM_SIZE hostE Limb.
+      Definition Array128  := Array 2 hostE Limb.
 
-    Definition ElemIndex := VarIndex progvar 5 Limb.
-    Definition RIndex    := VarIndex progvar 4 Limb.
+      Definition ElemIndex := VarIndex progvar 5 Limb.
+      Definition RIndex    := VarIndex progvar 4 Limb.
 
 
-    (** ** Parameters.
+      (** ** Parameters.
 
        We have three functions exposed from this module.
 
@@ -254,22 +256,15 @@ Module Internal.
         They have slightly different parameters and hence we have
         different names for the list.
 
-     *)
+       *)
 
-    Variable LastBlock : progvar Block.
-    Variable AArray    : progvar ElemArray.
-    Variable RArray    : progvar Array128.
-    Variable SArray    : progvar Array128.
+      Variable LastBlock : progvar Block.
+      Variable AArray    : progvar ElemArray.
+      Variable RArray    : progvar Array128.
+      Variable SArray    : progvar Array128.
 
-    Definition paramsIncremental : Declaration
-      := [Var AArray; Var RArray].
-    Definition paramsBlockMac    : Declaration
-      := [Var AArray; Var RArray; Var SArray].
-    Definition paramsPartialMac   : Declaration
-      := [Var LastBlock; Var AArray; Var RArray; Var SArray].
-    Definition paramsClamp       : Declaration := [].
-
-    (** ** Registers.
+      Section Locals.
+        (** ** Registers.
 
         Except for the clamping function all the other functions have
         similar register usage. We keep a working copy of the
@@ -283,77 +278,68 @@ Module Internal.
         The clamping function only needs the temporary variable [T0]
         as its register
 
-     *)
+         *)
 
-    Variables a0 a1 a2 a3 a4 : progvar Limb.
-    Variables r0 r1 r2 r3    : progvar Limb.
-    (** The limbs that capture the result of product *)
-    Variable p1 p2 p3 p4 : progvar Limb.
+        Variables a0 a1 a2 a3 a4 : progvar Limb.
+        Variables r0 r1 r2 r3    : progvar Limb.
+        (** The limbs that capture the result of product *)
+        Variable p1 p2 p3 p4 : progvar Limb.
 
-    (** Temporary variables that is used often *)
-    Variable T0 T1 : progvar Limb.
+        (** Temporary variables that is used often *)
+        Variable T0 T1 : progvar Limb.
 
-    Definition register : Declaration
-      := Vector.map (fun x => Var x)
-                    [ a0; a1; a2; a3; a4;
-                      r0; r1; r2; r3;
-                      p1; p2; p3; p4;
-                      T0; T1
-                    ].
+        Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
+        Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
 
+        Section LoadStore64.
+          Variable bound : nat.
+          Variable e     : endian.
+          Variable Arr   : progvar (Array bound e Limb).
+          Variable i     : nat.
+          Variable x0 x1 : progvar Limb.
+          Variable bpf   : i < bound.
+          Definition Load64 : code progvar.
+            verse [ x1 ::=  Arr [- i -];
+                    x0 ::=  x1 AND Select32;
+                    x1 ::=>> 32
+                  ].
+          Defined.
+          Definition Mov64 : code progvar.
+            verse [ x1 ::=<< 32;
+                    x1 ::=| x0;
+                    MOVE x1 TO Arr[- i -]
+                  ].
+          Defined.
+        End LoadStore64.
+        Arguments Load64 [bound e].
+        Arguments Mov64 [bound e].
 
-    Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
-    Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
+        Definition LoadA : code progvar.
+          verse (
+              Load64 AArray 0 a0 a1 _
+                     ++ Load64 AArray 1 a2 a3 _
+                     ++ [ a4 ::= AArray[- 2 -] ]
+            )%list.
+        Defined.
 
-    Section LoadStore64.
-      Variable bound : nat.
-      Variable e     : endian.
-      Variable Arr   : progvar (Array bound e Limb).
-      Variable i     : nat.
-      Variable x0 x1 : progvar Limb.
-      Variable bpf   : i < bound.
-      Definition Load64 : code progvar.
-        verse [ x1 ::=  Arr [- i -];
-                x0 ::=  x1 AND Select32;
-                x1 ::=>> 32
-              ].
-      Defined.
-      Definition Mov64 : code progvar.
-        verse [ x1 ::=<< 32;
-                x1 ::=| x0;
-                MOVE x1 TO Arr[- i -]
-              ].
-      Defined.
-    End LoadStore64.
-    Arguments Load64 [bound e].
-    Arguments Mov64 [bound e].
+        Definition LoadR : code progvar.
+          verse (
+              Load64 RArray 0 r0 r1 _
+                     ++ Load64 RArray 1 r2 r3 _
+            )%list.
+        Defined.
 
-    Definition LoadA : code progvar.
-      verse (
-          Load64 AArray 0 a0 a1 _
-                 ++ Load64 AArray 1 a2 a3 _
-                 ++ [ a4 ::= AArray[- 2 -] ]
-        )%list.
-    Defined.
-
-    Definition LoadR : code progvar.
-      verse (
-          Load64 RArray 0 r0 r1 _
-                 ++ Load64 RArray 1 r2 r3 _
-        )%list.
-    Defined.
-
-    Definition MovA  : code progvar.
-      verse (
-          Mov64 AArray 0 a0 a1 _
-                ++ Mov64 AArray 1 a2 a3 _
-                ++ [ MOVE a4 TO AArray[- 2 -] ]
-        )%list.
-    Defined.
+        Definition MovA  : code progvar.
+          verse (
+              Mov64 AArray 0 a0 a1 _
+                    ++ Mov64 AArray 1 a2 a3 _
+                    ++ [ MOVE a4 TO AArray[- 2 -] ]
+            )%list.
+        Defined.
 
 
 
-    (** * The Horner's step as subroutines.
+        (** * The Horner's step as subroutines.
 
         The main step in the poly1305 computation is the update of the
         accumulator using the [A := (A + C) * R] step where [C] is the
@@ -366,9 +352,9 @@ Module Internal.
 
         - Propagating carry and reduction mod [2¹³⁰ - 5].
 
-     *)
+         *)
 
-    (** ** Adding 128-bit to accumulator.
+        (** ** Adding 128-bit to accumulator.
 
        There are two variants of this function. The first variant just
        adds the block as 128-bit element of the field [GF]. The next
@@ -377,26 +363,26 @@ Module Internal.
        the latter is used for complete blocks. No carry propagation is
        done by these code.
 
-     *)
+         *)
 
 
-    Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
-      verse (
-          Load64 blk 0 T0 T1 _
-                 ++ [ a0 ::=+  T0;
-                      a1 ::=+  T1
-                    ]
-                 ++ Load64 blk 1 T0 T1 _
-                 ++ [ a2 ::=+ T0;
-                      a3 ::=+ T1
-                    ]
-        )%list.
-     Defined.
+        Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
+          verse (
+              Load64 blk 0 T0 T1 _
+                     ++ [ a0 ::=+  T0;
+                          a1 ::=+  T1
+                        ]
+                     ++ Load64 blk 1 T0 T1 _
+                     ++ [ a2 ::=+ T0;
+                          a3 ::=+ T1
+                        ]
+            )%list.
+        Defined.
 
-    Definition AddFullBlock (blk : progvar Block) : code progvar
-      := (Add128 blk ++ [ a4 ::=+ 1 ])%list.
+        Definition AddFullBlock (blk : progvar Block) : code progvar
+          := (Add128 blk ++ [ a4 ::=+ 1 ])%list.
 
-    (** ** Computing [A := A * R]
+        (** ** Computing [A := A * R]
 
         We need to multiply the quantities
 
@@ -443,6 +429,7 @@ Module Internal.
         computed in a0 directly because we can arrange the operations
         such that a0 is no more used when we want to compute p0.
 
+
      *)
     Definition MulR : code progvar
       :=
@@ -468,16 +455,17 @@ Module Internal.
 
           (** - [p0 = a0 * r0 ; a0 := p0] *)
 
-          a0 ::=* r0;
+              a0 ::=* r0;
+
 
           (** *** Coefficients of [Two32ij] for [i+j >= 4]. *)
 
           (** - Terms [ai * r3]
 
-            At this point the product component [p0] is already in
-            [a0]. Also we do not need [a1] after the contribution of
-            [r3] to [a0] has been computed. So we update [a1] directly
-            and the product component [p1] is now in [a1].
+          At this point the product component [p0] is already in
+          [a0]. Also we do not need [a1] after the contribution of
+          [r3] to [a0] has been computed. So we update [a1] directly
+          and the product component [p1] is now in [a1].
 
            *)
           T0 ::= r3 >> 2; T0 ::=+ r3;
@@ -498,11 +486,10 @@ Module Internal.
           T1 ::= a3 * T0; a1 ::=+ T1;
           T1 ::= a4 * T0; a2 ::= p2 + T1;
 
-         (** - Terms of the kind [ai * r1 * Two32ij].  *)
+          (** - Terms of the kind [ai * r1 * Two32ij].  *)
           T0 ::= r1 >> 2; T0 ::=+ r1;
           T1 ::= a3 * T0; a0 ::=+ T1;
           T1 ::= a4 * T0; a1 ::=+ T1;
-
 
           (** - Terms of the kind [ai * r0 * Two32ij]  *)
           T0 ::= r0 >> 2; T0 ::=* 5;
@@ -519,19 +506,19 @@ Module Internal.
 
 
 
-    (** * Controlling overflows.
+        (** * Controlling overflows.
 
-    The sizes of the registers and the constants have been so chosen
-    that a single Horner step does not lead to any overflows. As
-    described in above, we can successfully compute the next step if
-    and only if maintain the invariant that the registers [a0..a3]
-    have 32-bits each and [a4] has 3 bits. This we maintain by
-    performing carry propagation and reduction modulo [2¹³⁰ - 5].
+        The sizes of the registers and the constants have been so chosen
+        that a single Horner step does not lead to any overflows. As
+        described in above, we can successfully compute the next step if
+        and only if maintain the invariant that the registers [a0..a3]
+        have 32-bits each and [a4] has 3 bits. This we maintain by
+        performing carry propagation and reduction modulo [2¹³⁰ - 5].
 
-     *)
+        *)
 
 
-    (** ** Propagating carries and Reductions.
+        (** ** Propagating carries and Reductions.
 
         An element of [GF] can be stored with 32-bits each in
         registers [a0..a3] and the remaining 2 bits in [a4]. After
@@ -542,20 +529,20 @@ Module Internal.
         "carry" to [a0] with a multiplicative factor of 5. We first
         give helper functions to perform these propagation.
 
-     *)
+        *)
 
-    Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
-      verse [ T0              ::= A [- i -] >> 32;
-              A [- i -]       ::=& Select32;
-              A [- 1 + i -]   ::=+ T0
-            ].
-    Defined.
+        Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
+          verse [ T0              ::= A [- i -] >> 32;
+                                      A [- i -]       ::=& Select32;
+                                      A [- 1 + i -]   ::=+ T0
+                ].
+        Defined.
 
-    Definition Propagate : code progvar := iterate PropagateIth.
-    Definition Wrap : code progvar :=
-      [ T0 ::= a4 >> 2; a4 ::=& Select2; T0 ::=* 5 ; a0 ::=+ T0].
+        Definition Propagate : code progvar := iterate PropagateIth.
+        Definition Wrap : code progvar :=
+          [ T0 ::= a4 >> 2; a4 ::=& Select2; T0 ::=* 5 ; a0 ::=+ T0].
 
-    (** ** Adjusting [a0,..,a4] to maintain the invariant.
+        (** ** Adjusting [a0,..,a4] to maintain the invariant.
 
         After multiplication of [R] to the accumulator using the
         routine [MulR] the number of bits in all the registers
@@ -571,17 +558,17 @@ Module Internal.
         all the [a0..a3] will have 32-bits each and [a4] 3-bits (one
         more than the ideal 2-bits).
 
-     *)
+         *)
 
-    Definition AdjustBits : code progvar.
-      verse  (PropagateIth 3 _
-                           ++ Wrap
-                           ++ Propagate
-             )%list.
-    Defined.
+        Definition AdjustBits : code progvar.
+          verse  (PropagateIth 3 _
+                               ++ Wrap
+                               ++ Propagate
+                 )%list.
+        Defined.
 
 
-    (** ** Final modular reduction.
+        (** ** Final modular reduction.
 
         Let [p] be the prime [2¹³⁰ - 5], and let [α] be such
         that [0 <= α < 2p].  We would need to subtract at most a
@@ -605,21 +592,21 @@ Module Internal.
 
      The function below computes the desired reduction amount [u].
 
-     *)
-     Definition  ReductionAmount : code progvar :=
-       [ T0 ::= a0 + 5;
-         T0 ::=>> 32;
-         T0 ::=+ a1;
-         T0 ::=>> 32;
-         T0 ::=+ a2;
-         T0 ::=>> 32;
-         T0 ::=+ a3;
-         T0 ::=>> 32;
-         T0 ::=+ a4;
-         T0 ::=>> 2
-       ].
+         *)
+        Definition  ReductionAmount : code progvar :=
+          [ T0 ::= a0 + 5;
+                     T0 ::=>> 32;
+                     T0 ::=+ a1;
+                     T0 ::=>> 32;
+                     T0 ::=+ a2;
+                     T0 ::=>> 32;
+                     T0 ::=+ a3;
+                     T0 ::=>> 32;
+                     T0 ::=+ a4;
+                     T0 ::=>> 2
+          ].
 
-     (** Consider the number stored in the accumulator registers
+        (** Consider the number stored in the accumulator registers
          [a0..a4]. We assume that the value that we have is the value
          available at the end of an update. As a result the value
          [α] inside the accumulator can at best be upper bounded
@@ -628,49 +615,49 @@ Module Internal.
          We can then do the full reduction as described above. We can
          optimise out the carry propagation after the [Wrap] step and
          differ it till the additional [u*5] is added (if required).
-      *)
+         *)
 
-     Definition FullReduction : code progvar :=
-       (Wrap ++ ReductionAmount
-            ++ [ T0 ::= T0 * 5; a0 ::=+ T0]
-            ++ Propagate)%list.
+        Definition FullReduction : code progvar :=
+          (Wrap ++ ReductionAmount
+                ++ [ T0 ::= T0 * 5; a0 ::=+ T0]
+                ++ Propagate)%list.
 
-     (** ** Computing the hash.
+        (** ** Computing the hash.
 
          The final message has is computed using the algorithm [A + S
          mod 2¹²⁸]. The elem
 
-      *)
+         *)
 
-     Definition ComputeMAC := (FullReduction ++ Add128 SArray ++ Propagate ++ MovA)%list.
+        Definition ComputeMAC := (FullReduction ++ Add128 SArray ++ Propagate ++ MovA)%list.
 
 
-     (** * Handling input.
+        (** * Handling input.
 
       When computing the poly1305 MAC, we need to take each successive
       block of data, convert it into the appropriate coefficient of
       the message polynomial and add it to the accumulator for the
       Horner's method. We have two variants depending on whether the
       block is full or partial.
-      *)
+         *)
 
-    Definition ProcessBlock (AddC : progvar Block -> code progvar)(blk : progvar Block)
-      : code progvar
-      := (AddC blk ++ MulR ++ AdjustBits)%list.
+        Definition ProcessBlock (AddC : progvar Block -> code progvar)(blk : progvar Block)
+          : code progvar
+          := (AddC blk ++ MulR ++ AdjustBits)%list.
 
-    Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
-    Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
+        Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
+        Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
 
-    (** * The exported functions and iterators.
+        (** * The exported functions and iterators.
 
         We are now ready to define all the relevant functions that a
         poly1305 implementation needs. Recall that we have two
         variants of poly1305 iterator, a partial block handling
         function and a clamping function.
 
-     *)
+         *)
 
-    (** ** Incremental processing.
+        (** ** Incremental processing.
 
         This iterator is used to process complete blocks which forms
         the intermediate blocks of the message. Consider computing the
@@ -678,17 +665,17 @@ Module Internal.
         few full blocks and more data is expected. We can use this
         iterator to process such data.
 
-     *)
+         *)
 
-    Definition poly1305Iter : iterator progvar Block.
-      verse {| setup    := LoadA  ++ LoadR;
-               process  := ProcessFullBlock;
-               finalise := MovA
-            |}%list.
-    Defined.
+        Definition poly1305Iter : iterator progvar Block.
+          verse {| setup    := LoadA  ++ LoadR;
+                   process  := ProcessFullBlock;
+                   finalise := MovA
+                |}%list.
+        Defined.
 
 
-    (** ** MAC for complete blocks.
+        (** ** MAC for complete blocks.
 
         This iterator updates the accumulator with the message
         hash. The use case of this iterator is the following
@@ -696,30 +683,30 @@ Module Internal.
         [poly1305Iter] and we are left with a message that is a
         multiple of the block length.
 
-     *)
+         *)
 
-    Definition poly1305IterMAC :=
-      {| setup    := setup poly1305Iter;
-         process  := process poly1305Iter;
-         finalise := ComputeMAC
-      |}.
+        Definition poly1305IterMAC :=
+          {| setup    := setup poly1305Iter;
+             process  := process poly1305Iter;
+             finalise := ComputeMAC
+          |}.
 
 
-    (** ** Processing partial block.
+        (** ** Processing partial block.
 
         This function updates the accumulator with the message hash
         when the message is smaller than the block size but is padded
         appropriately. The use case of this function is to handle the
         last partial block.
-     *)
+         *)
 
-    Definition poly1305PartialMAC : code progvar
-      := (setup poly1305IterMAC
-               ++ ProcessLastBlock LastBlock
-               ++ finalise poly1305IterMAC)%list.
+        Definition poly1305PartialMAC : code progvar
+          := (setup poly1305IterMAC
+                    ++ ProcessLastBlock LastBlock
+                    ++ finalise poly1305IterMAC)%list.
 
 
-    (** ** Clamping [r].
+        (** ** Clamping [r].
 
         The parameter [r] used in Poly1305 has certain 22-bits set to
         zero. Converting an arbitrary 128-bit word to such a form is
@@ -730,27 +717,34 @@ Module Internal.
         - Among the other 3 32-bits, the top 4 and the bottom 2-bits
           are cleared.
 
-   *)
+         *)
 
-    Definition clamp (blk : progvar Array128) : code progvar.
-      verse [
-          T0 ::= blk[- 0 -];
-          T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
-          MOVE T0 TO blk[- 0 -];
+        Definition clamp (blk : progvar Array128) : code progvar.
+          verse [
+              T0 ::= blk[- 0 -];
+                     T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
+                     MOVE T0 TO blk[- 0 -];
 
-          T0 ::= blk[- 1 -];
-          T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
-          MOVE T0 TO blk[- 1 -]
-        ].
-    Defined.
-    Definition regClamp : Declaration := [Var T0]%vector.
-    Definition clampIter : iterator progvar Array128
-      := {| setup    := [];
-            process  := clamp;
-            finalise := []
-         |}%list.
+                     T0 ::= blk[- 1 -];
+                            T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
+                            MOVE T0 TO blk[- 1 -]
+            ].
+        Defined.
 
+        Definition clampIter : iterator progvar Array128
+          := {| setup    := [];
+                process  := clamp;
+                finalise := []
+             |}%list.
 
+      End Locals.
+
+      Definition Poly1305Iter := do poly1305Iter end.
+      Definition Poly1305IterMAC := do poly1305IterMAC end.
+      Definition Poly1305PartialMAC := do poly1305PartialMAC end.
+      Definition ClampIter := do clampIter end.
+
+    End Params.
 
   End Poly1305.
 
@@ -765,39 +759,28 @@ Inductive name := verse_poly1305_c_portable_incremental
 Require Import Verse.Target.C.
 Require Import Verse.Error.
 
-Definition incremental :=
-  CIterator verse_poly1305_c_portable_incremental
-            Block
-            Internal.paramsIncremental
-            []
-            Internal.register
-            Internal.poly1305Iter.
+Definition incremental : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_poly1305_c_portable_incremental
+           Block
+           Internal.Poly1305Iter.
+Defined.
 
+Definition blockmac : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_poly1305_c_portable_blockmac
+           Block
+           Internal.Poly1305IterMAC.
+Defined.
 
-Definition blockmac :=
-  CIterator verse_poly1305_c_portable_blockmac
-            Block
-            Internal.paramsBlockMac
-            []
-            Internal.register
-            Internal.poly1305IterMAC.
+Definition partial  : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_poly1305_c_portable_partialmac
+           Internal.Poly1305PartialMAC.
+Defined.
 
-Definition partial :=
-  CFunction verse_poly1305_c_portable_partialmac
-            Internal.paramsPartialMac
-            []
-            Internal.register
-            Internal.poly1305PartialMAC.
-
-
-Definition clamp :=
-  CIterator verse_poly1305_c_portable_clamp
-            Internal.Array128
-            []
-            []
-            Internal.regClamp
-            Internal.clampIter.
-
+Definition clamp  : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_poly1305_c_portable_clamp
+           Internal.Array128
+           Internal.ClampIter.
+Defined.
 
 Definition clampI       : Compile.programLine := recover clamp.
 Definition incrementalI : Compile.programLine := recover incremental.
@@ -817,15 +800,15 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_poly1305_c_portable_incremental
                                Block
-                               Internal.paramsIncremental;
+                               Internal.Poly1305Iter;
                       iterator verse_poly1305_c_portable_blockmac
                                Block
-                               Internal.paramsBlockMac;
+                               Internal.Poly1305IterMAC;
                       iterator verse_poly1305_c_portable_clamp
                                Internal.Array128
-                               [];
+                               Internal.ClampIter;
                       function verse_poly1305_c_portable_partialmac
-                               Internal.paramsPartialMac
+                               Internal.Poly1305PartialMAC
                     ].
 
 

@@ -71,44 +71,42 @@ Module Blake2 (C : CONFIG).
     Variable progvar : VariableT.
     Arguments progvar [k] _.
 
-    (** *** Parameters.
+    Section Params.
+      (** *** Parameters.
 
-      The difference in the parameter list comes due to the following
-      reasons.
+          The difference in the parameter list comes due to the
+          following reasons.
 
-      - The iterator does not need to mention its message and the
-        count as these are implicitly supplied during the code
-        generation of an iterator, where as for the last block
-        compressor needs to define these explicitly.
+          - The iterator does not need to mention its message and the
+            count as these are implicitly supplied during the code
+            generation of an iterator, where as for the last block
+            compressor needs to define these explicitly.
 
-      - The iterator is not done with the message yet, so it has a
-        responsibility to update the total count of bytes processed.
-        On the other hand the last block compressor only needs the
-        count of the bytes processed while compressing the last
-        block. Since there are no more blocks of message, it need not
-        update the count value. Due to the above difference, the
-        count, kept track of using two words, is passed as a reference
-        variable in iterator as opposed to normal variables in the
-        last block compressor.
+          - The iterator is not done with the message yet, so it has a
+            responsibility to update the total count of bytes
+            processed.  On the other hand the last block compressor
+            only needs the count of the bytes processed while
+            compressing the last block. Since there are no more blocks
+            of message, it need not update the count value. Due to the
+            above difference, the count, kept track of using two
+            words, is passed as a reference variable in iterator as
+            opposed to normal variables in the last block compressor.
 
-      - Finally the last block compressor needs finalisation constants
-        that need to be passed around which clearly the iterator does
-        not need
+          - Finally the last block compressor needs finalisation
+            constants that need to be passed around which clearly the
+            iterator does not need
 
+          To summarise we have the following
 
-      To summarise we have the following
+          - The reference variables [UpperRef], and [LowerRef] that is
+            unique to to the iterator,
 
-       - The reference variables [UpperRef], and [LowerRef] that is
-         unique to to the iterator,
+          - The variables [LastBlock], [NBytes], [Upper] [Lower], [f0]
+            and [f1] unique to the last block iterator, and
 
-       - The variables [LastBlock], [NBytes], [Upper] [Lower], [f0]
-         and [f1] unique to the last block iterator, and
+          - The variable [hash] which is common to both.
 
-       - The variable [hash] which is common to both.
-
-     *)
-
-
+       *)
 
     Variable UpperRef LowerRef : progvar (Ref Word).
 
@@ -120,32 +118,21 @@ Module Blake2 (C : CONFIG).
     Variable hash : progvar Hash.
 
 
-    Definition paramIterator  : Declaration
-      := [Var UpperRef; Var LowerRef; Var hash].
-    Definition paramLastBlock : Declaration
-      := [Var LastBlock; Var NBytes; Var Upper; Var Lower; Var f0; Var f1; Var hash].
+    Section Locals.
 
-    (** *** The stack variables.
+      (** *** The local variables
 
         The iterator also keeps a copy of the hash in local variables
         to speed up access. On register rich machines this could
         potentially end up on actual registers and hence could become
         fast.
 
-     *)
-    Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar Word.
-    Definition stack : Declaration := Vector.map (fun x => Var x) [h0 ;h1 ;h2; h3; h4; h5; h6; h7].
-    Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
-
-    (** *** The register variables.
-
-        We start with a register cache for the message block.
-
-     *)
-    Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : progvar Word.
-
-    Definition message_variables
-      := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15].
+       *)
+      Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar Word.
+      Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
+      Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : progvar Word.
+      Definition message_variables
+        := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15].
 
 
 
@@ -156,53 +143,47 @@ Module Blake2 (C : CONFIG).
         applied to either the rows or the diagonals of this matrix.
 
      *)
-    Variable v0 v4 v8  v12
-             v1 v5 v9  v13
-             v2 v6 v10 v14
-             v3 v7 v11 v15 : progvar Word.
+      Variable v0 v4 v8  v12
+               v1 v5 v9  v13
+               v2 v6 v10 v14
+               v3 v7 v11 v15 : progvar Word.
 
-    Definition state := [ v0 ; v4 ; v8  ; v12;
-                          v1 ; v5 ; v9  ; v13;
-                          v2 ; v6 ; v10 ; v14;
-                          v3 ; v7 ; v11 ; v15
-                        ].
+      Definition state := [ v0 ; v4 ; v8  ; v12;
+                            v1 ; v5 ; v9  ; v13;
+                            v2 ; v6 ; v10 ; v14;
+                            v3 ; v7 ; v11 ; v15
+                          ].
 
-    (** *** Registers to manage byte count.
+      (** *** Variables to maintain byte count
 
-        Recall that each of the blake2 blocks is compressed using a
-        compression function that makes use of the length of the
-        message as auxiliary input. The message length is kept track
-        of as a set of two words and hence we need to explicitly do
-        arithmetic in twice the precision. In the iterator this byte
-        count is kept in the reference variables [UpperRef] and
-        [LowerRef] where as in the last block compressor it is merely
-        passed as parameters [Upper] and [Lower]. As a result these
-        functions have the following additional register variables.
+          Recall that each of the blake2 blocks is compressed using a
+          compression function that makes use of the length of the
+          message as auxiliary input. The message length is kept track
+          of as a set of two words and hence we need to explicitly do
+          arithmetic in twice the precision. In the iterator this byte
+          count is kept in the reference variables [UpperRef] and
+          [LowerRef] where as in the last block compressor it is
+          merely passed as parameters [Upper] and [Lower]. As a result
+          these functions have the following additional register
+          variables.
 
-        - The [C] and the [LMSB] registers used to perform the count
-          update with twice the precision. The variable [C] is used to
-          compute the carry generated when the lower words are added
-          and the [LMSB] is used as an intermediate register to hold
-          the most significant bit of the lower portion of the count.
+          - The [C] and the [LMSB] registers used to perform the count
+            update with twice the precision. The variable [C] is used
+            to compute the carry generated when the lower words are
+            added and the [LMSB] is used as an intermediate register
+            to hold the most significant bit of the lower portion of
+            the count.
 
-        - The iterator also define two variables [U] and [V] that is
-          to be used instead of the reference variables [UpperRef] and
-          [LowerRef].
+          - The iterator also define two variables [U] and [V] that is
+            to be used instead of the reference variables [UpperRef] and
+            [LowerRef].
 
+       *)
 
-     *)
+      Variable C LMSB : progvar Word.
+      Variable U L    : progvar Word.
 
-    Variable C LMSB : progvar Word.
-    Variable U L    : progvar Word.
-
-    Definition regLastBlock
-      := Vector.map (fun x => Var x) (Vector.append (Vector.append message_variables state) [C ; LMSB]).
-
-    Definition regIterator : Declaration
-      := Vector.append regLastBlock  ([ Var U ; Var L])%vector.
-
-
-    (** ** Updating the count.
+      (** ** Updating the count.
 
         The main idea is to compute the carry arising while adding the
         lower word.
@@ -219,17 +200,17 @@ Module Blake2 (C : CONFIG).
 
         - Shift it right once more to obtain the actual carry.
 
-     *)
+       *)
 
-    Section UpdateCount.
+      Section UpdateCount.
 
-      Hint Resolve Nat.add_pos_pos.
-      Hint Resolve Nat.add_pos_nonneg.
-      Hint Constructors le.
-      Lemma zeroLtPower2 : forall n, 0 < 2 ^ n.
-        intros; induction n; simpl; eauto.
-      Qed.
-      Hint Resolve zeroLtPower2.
+        Hint Resolve Nat.add_pos_pos.
+        Hint Resolve Nat.add_pos_nonneg.
+        Hint Constructors le.
+        Lemma zeroLtPower2 : forall n, 0 < 2 ^ n.
+          intros; induction n; simpl; eauto.
+        Qed.
+        Hint Resolve zeroLtPower2.
 
       (* To make the update count work uniformly both for the iterator
          as well as the last block compressor, we need to parameterise
@@ -474,19 +455,26 @@ Module Blake2 (C : CONFIG).
                      ++ ALL_ROUNDS
                      ++ UPDATE_HASH)%list.
 
+
     (** ** The BLAKE2 iterator and the last block compressor.  *)
-    Definition Iterator : iterator progvar Block :=
+    Definition compress : iterator progvar Block :=
       {| setup   := SETUP;
          process := fun blk => UPDATE_COUNTER_ITER ++ INIT_STATE ++ PROCESS_BLOCK blk;
          finalise := FINALISE
       |}%list.
 
-    Definition LastBlockCompress :=
+    Definition lastBlock :=
       (loadCache hash H
-                ++ UPDATE_COUNTER_LAST
-                ++ INIT_STATE_LAST
-                ++ PROCESS_BLOCK  LastBlock
-                ++ moveBackCache hash H)%list.
-    End Program.
+                 ++ UPDATE_COUNTER_LAST
+                 ++ INIT_STATE_LAST
+                 ++ PROCESS_BLOCK  LastBlock
+                 ++ moveBackCache hash H)%list.
+
+    End Locals.
+    Definition Compressor := do compress end.
+    Definition LastBlockCompressor := do lastBlock end.
+
+    End Params.
+  End Program.
 
 End Blake2.

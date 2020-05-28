@@ -36,22 +36,53 @@ Require Import Verse.Target.C.
 Inductive name := verse_blake2b_c_portable_iter |verse_blake2b_c_portable_last.
 Require Verse.CryptoLib.blake2.
 
+Require Scope.
+
+(*
 Definition blake2bIter
-  := CIterator verse_blake2b_c_portable_iter
-               Blake2b.Block
-               Blake2b.paramIterator
-               Blake2b.stack
-               Blake2b.regIterator
-               Blake2b.Iterator.
+  := Iterator verse_blake2b_c_portable_iter
+              Blake2b.Block
+              Blake2b.Compressor.
+*)
 
 
+Require Verse.Error.
 
-Definition blake2bLast
-  := CFunction verse_blake2b_c_portable_last
-               Blake2b.paramLastBlock
-               Blake2b.stack
-               Blake2b.regLastBlock
-               Blake2b.LastBlockCompress.
+(*
+Definition  level0 := Scope.Cookup.specialise Blake2b.LastBlockCompressor.
+
+Definition pvt : Scope.type _ _ :=
+  let foo := Scope.unNestDelimited level0 in
+  let pvs := fst foo  in
+  Error.recover (Compile.targetTypes pvs).
+
+
+Definition lvt : Scope.type _ _ := Error.recover (Compile.targetTypes lvs).
+
+Definition paramsAndBody := Scope.unNestDelimited level0.
+Definition pvs := fst paramsAndBody.
+Definition level1 := snd paramsAndBody.
+Definition lvs := Scope.infer level1.
+
+
+       let (pA,n0) := Internals.calloc 0 pvt in
+       let (lA,_) := Internals.calloc n0 lvt in
+       Compile.function name pvs lvs
+                        pvt     lvt
+                        eq_refl eq_refl
+                        pA      lA
+     )
+       (only parsing).
+*)
+
+Definition blake2bIter : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_blake2b_c_portable_iter Blake2b.Block Blake2b.Compressor.
+Defined.
+
+Definition blake2bLast : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_blake2b_c_portable_last
+           Blake2b.LastBlockCompressor.
+Defined.
 
 Require Import Verse.Error.
 Definition iterator   : Compile.programLine := recover (blake2bIter).
@@ -63,10 +94,10 @@ Require Import Verse.FFI.Raaz.Target.C.
 
 Definition raazFFI {Name}(name : Name)
   := mkProgram name [ iterator verse_blake2b_c_portable_iter
-                               Blake2b.Block
-                               Blake2b.paramIterator;
+                                Blake2b.Block
+                                Blake2b.Compressor;
                       function verse_blake2b_c_portable_last
-                               Blake2b.paramLastBlock
+                                Blake2b.LastBlockCompressor
                     ].
 Arguments raazFFI [Name].
 
