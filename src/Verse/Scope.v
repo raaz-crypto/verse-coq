@@ -247,7 +247,8 @@ object. This we do by the following type class.
 
 Require Verse.Language.Types.
 Class Infer t := { nesting : nat;
-                   infer : t -> type Types.verse_type_system nesting
+                   innerType : Type;
+                   inferNesting : t -> type Types.verse_type_system nesting * innerType
                  }.
 
 (**
@@ -275,27 +276,25 @@ Module Cookup.
 End Cookup.
 
 
-
-
-Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
-  : Infer (Cookup.var k ty -> t)
-  := {| nesting := S nesting;
-        infer := fun f => (existT _ _ ty :: infer (f (Cookup.cookup k ty)))%vector
-     |}.
-
 (** Helper type for delimiting scopes. *)
 Inductive delimit A := body : A -> delimit A.
 Arguments body [A].
 
-Instance infer_for_delimited A : Infer (delimit A)
+Instance infer_delimited A : Infer (delimit A) | 0
   := {| nesting := 0;
-        infer   := fun _ => []
+        innerType := A;
+        inferNesting := fun d => let 'body i := d in ([], i)
      |}.
 
+Instance infer_undelimited A : Infer A | 1
+  := {| nesting := 0;
+        innerType := A;
+        inferNesting := fun d => ([], d)
+     |}.
 
-Notation unNestDelimited dfunc :=
-  ( let sty  := infer dfunc in
-    let ckup := Cookup.alloc sty in
-    match fill ckup dfunc with
-    | body x => (sty, x)
-    end) (only parsing).
+Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
+  : Infer (Cookup.var k ty -> t)
+  := {| nesting := S nesting;
+        inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup k ty)) in
+                                 (existT _ k ty :: sc, i)
+     |}.
