@@ -48,33 +48,6 @@ Definition blake2bIter
 
 Require Verse.Error.
 
-(*
-Definition  level0 := Scope.Cookup.specialise Blake2b.LastBlockCompressor.
-
-Definition pvt : Scope.type _ _ :=
-  let foo := Scope.unNestDelimited level0 in
-  let pvs := fst foo  in
-  Error.recover (Compile.targetTypes pvs).
-
-
-Definition lvt : Scope.type _ _ := Error.recover (Compile.targetTypes lvs).
-
-Definition paramsAndBody := Scope.unNestDelimited level0.
-Definition pvs := fst paramsAndBody.
-Definition level1 := snd paramsAndBody.
-Definition lvs := Scope.infer level1.
-
-
-       let (pA,n0) := Internals.calloc 0 pvt in
-       let (lA,_) := Internals.calloc n0 lvt in
-       Compile.function name pvs lvs
-                        pvt     lvt
-                        eq_refl eq_refl
-                        pA      lA
-     )
-       (only parsing).
-*)
-
 Definition blake2bIter : CodeGen.Config.programLine + {Error.TranslationError}.
   Iterator verse_blake2b_c_portable_iter Blake2b.Block Blake2b.Compressor.
 Defined.
