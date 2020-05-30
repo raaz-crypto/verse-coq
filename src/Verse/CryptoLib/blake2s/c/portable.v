@@ -39,20 +39,14 @@ Inductive name := verse_blake2s_c_portable_iter | verse_blake2s_c_portable_last.
 
 Require Verse.CryptoLib.blake2.
 
-Definition blake2sIter
-  := CIterator verse_blake2s_c_portable_iter
-                      Blake2s.Block
-                      Blake2s.paramIterator
-                      Blake2s.stack
-                      Blake2s.regIterator
-                      Blake2s.Iterator.
+Definition blake2sIter : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_blake2s_c_portable_iter Blake2s.Block Blake2s.Compressor.
+Defined.
 
-Definition blake2sLast
-  := CFunction verse_blake2s_c_portable_last
-                      Blake2s.paramLastBlock
-                      Blake2s.stack
-                      Blake2s.regLastBlock
-                      Blake2s.LastBlockCompress.
+Definition blake2sLast : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_blake2s_c_portable_last
+           Blake2s.LastBlockCompressor.
+Defined.
 
 Require Import Verse.Error.
 Definition iterator   : Compile.programLine := recover (blake2sIter).
@@ -65,9 +59,9 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_blake2s_c_portable_iter
                                Blake2s.Block
-                               Blake2s.paramIterator;
+                               Blake2s.Compressor;
                       function verse_blake2s_c_portable_last
-                               Blake2s.paramLastBlock
+                               Blake2s.LastBlockCompressor
                     ].
 
 Arguments raazFFI [Name].

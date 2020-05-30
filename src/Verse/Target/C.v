@@ -5,7 +5,6 @@ Module Compile := Target.CodeGen (C.CodeGen.Config).
 Definition variables := Compile.variables.
 
 
-
 (** * Auto allocation.
 
 Since C can be seen as a machine with infinitely many registers, we
@@ -50,51 +49,58 @@ Module Internals.
          end.
 
 End Internals.
+Require Import Verse.
 Require Import Verse.Error.
 
 (* end hide *)
 
-Notation CFunction name pvsf lvsf rvsf
-    := ( let pvs := Verse.infer pvsf in
-         let lvs := Verse.infer lvsf in
-         let rvs := Verse.infer rvsf in
-         let pvt := recover (Compile.targetTypes pvs) in
-         let lvt := recover (Compile.targetTypes lvs) in
-         let rvt := recover (Compile.targetTypes rvs) in
-         let (pA,n0) := Internals.calloc 0 pvt in
-         let (lA,n1) := Internals.calloc n0 lvt in
-         let (rA,_) := Internals.calloc n1 rvt in
-         Compile.function name pvs lvs rvs
-                               pvt     lvt     rvt
-                               eq_refl eq_refl eq_refl
-                               pA      lA      rA
-       )
-         (only parsing).
+Require Import Verse.
+Import Scope.
+
+Ltac Function name func
+  := ( let level0 := constr:(Scope.Cookup.specialise func) in
+       let level0break := (eval hnf in (inferNesting level0)) in
+       let pvs := constr:(fst level0break) in
+       let level1 := constr:(snd level0break) in
+       let lvs := (eval hnf in (fst (inferNesting level1))) in
+       let cpvs := (eval hnf in (recover (Compile.targetTypes pvs))) in
+       let clvs := (eval hnf in (recover (Compile.targetTypes lvs))) in
+       exact ((fun pfpvt pflvt =>
+                 let (pA,n0) := Internals.calloc 0 cpvs in
+                 let (lA,_) := Internals.calloc n0 clvs in
+                 (Compile.function name pvs lvs
+                                   cpvs clvs
+                                   pfpvt pflvt
+                                   pA lA func)
+              ) (*(recover (Compile.targetTypes pvs))
+                (recover (Compile.targetTypes lvs))*)
+                eq_refl eq_refl)
+     ).
 
 
-  Notation CIterator name memty pvsf lvsf rvsf
-    := (
-        let memtyTgt : TypeSystem.typeOf c_type_system TypeSystem.memory
-            := recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty) in
-        let pvs := Verse.infer pvsf in
-        let lvs := Verse.infer lvsf in
-        let rvs := Verse.infer rvsf in
-        let pvt := recover (Compile.targetTypes pvs) in
-        let lvt := recover (Compile.targetTypes lvs) in
-        let rvt := recover (Compile.targetTypes rvs) in
-        let (pA,n0) := Internals.calloc 0 pvt in
-        let (lA,n1) := Internals.calloc n0 lvt in
-        let (rA,n2)  := Internals.calloc n1 rvt in
-        let streamVar := Internals.mkVar n2 (Compile.Config.streamOf memtyTgt) in
-        Compile.iterativeFunction name memty
-                          pvs lvs rvs
-                          memtyTgt eq_refl
-                          streamVar
-                          pvt     lvt     rvt
-                          eq_refl eq_refl eq_refl
-                          pA      lA      rA
-       )
-         (only parsing).
+Ltac Iterator name memty ifunc
+  := ( let memtyTgt
+           := constr:(recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty)) in
+       let level0       := constr:(Cookup.specialise ifunc) in
+       let level0break  := (eval hnf in (inferNesting level0)) in
+       let pvs          := constr:(fst level0break) in
+       let level1       := constr:(snd level0break) in
+       let lvs := (eval hnf in (fst (inferNesting level1))) in
+       let pvt := constr:(recover (Compile.targetTypes pvs)) in
+       let lvt := constr:(recover (Compile.targetTypes lvs)) in
+       exact ((fun pfpvt pflvt =>
+                 let (pA,n0) := Internals.calloc 0 pvt in
+                 let (lA,n1) := Internals.calloc n0 lvt in
+                 let streamVar := Internals.mkVar n1 (Compile.Config.streamOf memtyTgt) in
+                 Compile.iterativeFunction name memty
+                                           pvs lvs
+                                           memtyTgt eq_refl
+                                           streamVar
+                                           pvt     lvt
+                                           pfpvt   pflvt
+                                           pA      lA
+             ) eq_refl eq_refl ifunc
+     )).
 
 Require Export Verse.Target.C.Ast.
 Require Export Verse.Target.C.Pretty.

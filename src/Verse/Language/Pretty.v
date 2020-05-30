@@ -183,7 +183,6 @@ precedence in Coq.
 *)
 
 
-
 Notation "'neg' E"  := (uniOpApp bitComp E)      (at level 30, right associativity).
 
 Infix "*"           := (binOpApp mul)            (at level 40, left associativity).

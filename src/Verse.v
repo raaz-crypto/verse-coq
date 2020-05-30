@@ -30,42 +30,7 @@ Definition Var (v : VariableT) k ty : v k ty -> some (typeOf verse_type_system)
 Arguments Declaration {n}.
 Arguments Var [v k ty].
 
-
-(* Code for inferring the type *)
-
-Module Internal.
-  Inductive ivar : VariableT :=
-  | cookup : forall k (ty : typeOf verse_type_system k), ivar k ty.
-End Internal.
-
-
-Class Infer t := { knd   : nat;
-                   infer : t -> @Declaration knd
-                 }.
-
-Instance infer_decl n : Infer (@Declaration n)
-  := {| knd := n ; infer := fun x => x |}.
-
-Instance infer_arrow k (ty : typeOf verse_type_system k) t (sub : Infer t) : Infer  (Internal.ivar k ty -> t)
-  := {| knd := knd;
-        infer := fun f => infer (f (Internal.cookup k ty))
-     |}.
-
-Instance infer_existential t (sub : Infer (t Internal.ivar)) : Infer  (forall v, t v)
-  := {| knd := knd;
-        infer := fun f => infer (f Internal.ivar)
-     |}.
-
 Notation "(--)"             := (tt).
 Notation "(- x -)"          := (pair x tt).
 Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
-
-(* Require Export Verse.Types. *)
-(* Require Export Verse.Types.Internal. *)
-(* Require Export Verse.Word. *)
-(* Require Export Verse.Error. *)
-(* Require Export Verse.Syntax. *)
-(* Require Export Verse.PrettyPrint. *)
-
-
-(* Require Export Nat. *)
+Notation "'do' B 'end'"     := (Scope.body B).

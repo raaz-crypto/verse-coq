@@ -16,7 +16,7 @@ Fixpoint translate {k} (ty : typeOf verse_type_system k) : Raaz.type
        => match n with
          | 0 | 1 | 2 | 3 => Tuple (2^m) (Word (2^n * 8))
          | _             => let mp := m + n - 3 in
-                           Tuple (2^mp) (Word 64)
+                           Tuple (2^mp)%nat (Word 64)
          end
      | Types.array b e ty
        => match b with
@@ -34,16 +34,22 @@ Require Verse.
 Require Verse.Scope.
 (** Generate the Haskell FFI stub for a straight line function *)
 Definition function {Name} (name : Name)
-           {T}{ifr : Infer T} (params : T)
+           {t : Variables.U verse_type_system -> Type}
+           {_ : Scope.Infer (t Scope.Cookup.var)}
+           (func : forall v : Variables.U verse_type_system, t v)
   : Raaz.line
-  := let ps := Verse.infer params in ccall name (args (fromDecl ps)).
+  := let (ps, _) := Scope.inferNesting (Scope.Cookup.specialise func) in
+     ccall name (args (fromDecl ps)).
 
 (** Generate the Haskell FFI stub for an iterator *)
+
 Definition iterator
            {Name} (name : Name)
            (memty : typeOf verse_type_system memory)
-           {T}{ifr : Infer T} (params : T)
+           {t : Variables.U verse_type_system -> Type}
+           (func : forall v : Variables.U verse_type_system, t v)
+           {_ : Scope.Infer (t Scope.Cookup.var)}
   : Raaz.line :=
-  let ps    := fromDecl (Verse.infer params) in
+  let ps    := (fst (Scope.inferNesting (Scope.Cookup.specialise func))) in
   let block := translate memty in
-  ccall name (args (block :: counterType :: ps))%list.
+  ccall name (args (block :: counterType :: (fromDecl ps)))%list.

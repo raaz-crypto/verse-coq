@@ -235,3 +235,66 @@ Definition compile src tgt
 
 Arguments translate [src tgt] tr [v n ss CODE].
 Arguments compile   [src tgt] cr [v n ss st] pfCompat [CODE].
+
+(** ** Infering the scope type.
+
+In verse scoped code is defined using the sectioning mechanism of
+Coq. Often we would like to recover the scope type from the scoped
+object. This we do by the following type class.
+
+
+*)
+
+Require Verse.Language.Types.
+Class Infer t := { nesting : nat;
+                   innerType : Type;
+                   inferNesting : t -> type Types.verse_type_system nesting * innerType
+                 }.
+
+(**
+
+We now define a "cookedup" variable that helps us in getting hold of
+the type for one level deep nesting.
+
+*)
+
+Module Cookup.
+  Inductive var : Variables.U Types.verse_type_system :=
+  | cookup : forall k (ty : Types.type k), var k ty.
+
+  Definition specialise {t : Variables.U verse_type_system -> Type}
+           (func : forall v, t v) :
+           (t var)
+  := func var.
+
+  Fixpoint alloc {n : nat}(sty : type verse_type_system n)
+  : allocation var sty
+  := match sty as sty0 return allocation var sty0 with
+     | []                     => tt
+     | (x :: xs) => (cookup (projT1 x) (projT2 x) , alloc xs)
+     end.
+End Cookup.
+
+
+(** Helper type for delimiting scopes. *)
+Inductive delimit A := body : A -> delimit A.
+Arguments body [A].
+
+Instance infer_delimited A : Infer (delimit A) | 0
+  := {| nesting := 0;
+        innerType := A;
+        inferNesting := fun d => let 'body i := d in ([], i)
+     |}.
+
+Instance infer_undelimited A : Infer A | 1
+  := {| nesting := 0;
+        innerType := A;
+        inferNesting := fun d => ([], d)
+     |}.
+
+Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
+  : Infer (Cookup.var k ty -> t)
+  := {| nesting := S nesting;
+        inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup k ty)) in
+                                 (existT _ k ty :: sc, i)
+     |}.

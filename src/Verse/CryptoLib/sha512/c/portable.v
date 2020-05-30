@@ -113,14 +113,11 @@ Inductive name := verse_sha512_c_portable.
 
 Require Verse.CryptoLib.sha2.
 
-Definition sha512iter
-  := CIterator verse_sha512_c_portable
-                      SHA512.Block
-                      SHA512.parameters
-                      SHA512.locals
-                      SHA512.registers
-                      SHA512.sha2.
-
+Definition sha512iter : CodeGen.Config.programLine + {Error.TranslationError}.
+  Iterator verse_sha512_c_portable
+           SHA512.Block
+           SHA512.Sha2.
+Defined.
 
 Require Import Verse.Error.
 Definition iterator : Compile.programLine := recover (sha512iter).
@@ -133,7 +130,7 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_sha512_c_portable
                                SHA512.Block
-                               SHA512.parameters
+                               SHA512.Sha2
                     ].
 
 (*
