@@ -34,9 +34,12 @@ Require Verse.
 Require Verse.Scope.
 (** Generate the Haskell FFI stub for a straight line function *)
 Definition function {Name} (name : Name)
-           {T}{ifr : Scope.Infer T} (params : T)
+           {t : Variables.U verse_type_system -> Type}
+           {_ : Scope.Infer (t Scope.Cookup.var)}
+           (func : forall v : Variables.U verse_type_system, t v)
   : Raaz.line
-  := let (ps, _) := Scope.inferNesting params in ccall name (args (fromDecl ps)).
+  := let (ps, _) := Scope.inferNesting (Scope.Cookup.specialise func) in
+     ccall name (args (fromDecl ps)).
 
 (** Generate the Haskell FFI stub for an iterator *)
 
