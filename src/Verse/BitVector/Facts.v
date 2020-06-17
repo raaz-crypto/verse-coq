@@ -451,7 +451,7 @@ Proof.
   assumption.
 Qed.
 
-(* begin hide *)
+
 (** injectivity of Bv2N function *)
 
 Lemma inj : forall sz (v0 v1 : Bvector sz),  Bv2N v0 = Bv2N v1 -> v0 = v1.
@@ -463,6 +463,7 @@ Proof.
   trivial.
 Qed.
 
+(* begin hide *)
 
 Module ArithmInternals.
   (**
@@ -578,16 +579,6 @@ Module ArithmInternals.
     crush.
   Qed.
 
-  (*
-
-We cannot prove this lemma for empty bitvector.
-
-  Lemma Bv2N_ones_max : forall sz (v : Bvector sz), (Bv2N v <= @Bv2N sz BVones)%N.
-    intros sz v.
-    induction v. simpl. crush.
-    destruct h.
-    simpl Bv2N. repeat (rewrite N.succ_double_spec).
-   *)
 
   Lemma Bv2N_lt_pow_2_size : forall sz (v : Bvector sz), (Bv2N v < 2^(N.of_nat sz))%N.
   Proof.
@@ -726,116 +717,3 @@ Proof.
     by now apply Nmul_bound_nat.
   eauto with Nfacts.
 Qed.
-
-Module Arithm.
-
-  Definition one {sz} := N2Bv_sized sz 1.
-
-
-  Hint Resolve Bv2N_lt_pow_2_size Bv2N_mod_2_size : bitvector_arithm.
-
-  (* These rewrites will take care of expressing the bitwise addition
-     multiplications in terms of its modulo definitions.
-   *)
-
-  Hint Rewrite Bv2N_plus_mod Bv2N_mul_mod Bv2N_N2Bv_sized_mod
-    : bitvector_arithm.
-
-  (* This rewrites will take care of pushing the modulo outwards *)
-  Hint Rewrite
-       N.add_mod_idemp_r N.add_mod_idemp_l
-       N.mul_mod_idemp_l N.mul_mod_idemp_r
-    : bitvector_arithm.
-
-  Ltac arithm_crush :=
-    intros;
-    try (apply (inj _ _ _)); (* convert v1 = v2 to Bv2N v1 = Bv2N v2 *)
-    autorewrite with bitvector_arithm;  (* Simplify to modulo equation *)
-    repeat match goal with
-           | [ |- (_ mod _ = _ mod _)%N ] => f_equal
-           | [ |- context [ (1 * ?V)%N ]] => ring_simplify (1 * ?V)
-           | _ => eauto with Nfacts bitvector_arithm; idtac
-    end; try ring.
-  (*
-    try (unfold BVzeros); try (unfold one); (* expand zero and one *)
-    try (rewrite Bv2N_false);
-
-    *)
-
-  Lemma Bv2N_zero : forall sz, Bv2N (@BVzeros sz) = 0%N.
-  Proof.
-    Hint Rewrite Bv2N_false : bitvector_arithm.
-    unfold BVzeros; arithm_crush.
-  Qed.
-
-  Hint Rewrite Bv2N_zero : bitvector_arithm.
-
-
-  Lemma BVadd_0_l : forall sz (v : Bvector sz), BVplus BVzeros v = v.
-  Proof.
-    arithm_crush. autorewrite with Nrewrites. arithm_crush.
-  Qed.
-
-
-  Lemma BVadd_comm : forall sz (v1 v2 : Bvector sz), BVplus v1 v2 = BVplus v2 v1.
-  Proof.
-    arithm_crush.
-  Qed.
-
-  Lemma BVadd_assoc : forall sz (v1 v2 v3 : Bvector sz),
-      BVplus v1 (BVplus v2 v3) = BVplus (BVplus v1 v2) v3.
-  Proof.
-    arithm_crush.
-  Qed.
-
-  Lemma BVmul_1_l : forall sz (v : Bvector (S sz)), BVmul one v = v.
-    unfold one.
-    arithm_crush.
-    ring_simplify (1 * Bv2N v)%N.
-    arithm_crush.
-  Qed.
-
-  Lemma BVmul_comm : forall sz (v1 v2 : Bvector sz), BVmul v1 v2 = BVmul v2 v1.
-  Proof.
-    arithm_crush.
-  Qed.
-
-  Lemma BVmul_assoc : forall sz (v1 v2 v3 : Bvector sz),
-      BVmul v1 (BVmul v2 v3) = BVmul (BVmul v1 v2) v3.
-  Proof.
-    arithm_crush.
-  Qed.
-
-  Lemma BVdistr_l : forall sz (v1 v2 v3 : Bvector sz),
-      BVmul (BVplus v1 v2) v3 = BVplus (BVmul v1 v3)  (BVmul v2 v3).
-  Proof.
-    arithm_crush.
-  Qed.
-
-  Lemma BVsub_def : forall sz (v1 v2 : Bvector sz), BVminus v1 v2 = BVplus v1 (BVnegative v2).
-  Proof.
-    unfold BVnegative.
-    Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
-    Hint Resolve Bv2N_lt_pow_2_size : bitvector_arithm.
-    unfold BVminus.
-    unfold arithm.
-    arithm_crush;
-      try (rewrite N.add_sub_assoc);  try apply N.lt_le_incl;
-        arithm_crush.
-  Qed.
-
-
-  Lemma BVopp_def : forall sz (v : Bvector sz), BVplus v (BVnegative v) = BVzeros.
-  Proof.
-    unfold BVnegative.
-    Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
-    arithm_crush.
-    try (rewrite N.add_sub_assoc); try apply N.lt_le_incl;
-    try (rewrite N.add_sub_swap);
-    try (rewrite N.add_mod);
-    try (rewrite N.mod_same);
-    try autorewrite with bitvector_arithm Nfacts ;
-    trivial; arithm_crush.
-  Qed.
-
-End Arithm.
