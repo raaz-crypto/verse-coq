@@ -186,7 +186,7 @@ Module LExpr.
          => fun l => error (CouldNotTranslateBecause l err)
        end.
   Arguments extract [tgt v ty].
-
+(*
   Definition compile src tgt
              (cr : TypeSystem.compiler src tgt)
              (v  : Variables.U tgt)
@@ -196,7 +196,7 @@ Module LExpr.
     := extract (translate cr le).
 
   Arguments compile [src tgt] cr [v ty].
-
+*)
 End LExpr.
 
 Module Expr.
@@ -244,6 +244,7 @@ Module Expr.
        end.
 
   Arguments extract [tgt v ty].
+  (*
   Fixpoint compile src tgt
            (cr : TypeSystem.compiler src tgt)
            (v  : Variables.U tgt)
@@ -251,6 +252,7 @@ Module Expr.
            (e : expr (Variables.Universe.coCompile cr v) ty)
     := extract (translate cr e).
   Arguments compile [src tgt] cr [v ty].
+   *)
 End Expr.
 
 Module Instruction.
@@ -300,6 +302,7 @@ Module Instruction.
          end.
 
   Arguments extract [tgt v ty].
+
   Definition compile
              src tgt
              (cr : TypeSystem.compiler src tgt)
@@ -308,6 +311,7 @@ Module Instruction.
     := extract (translate cr i).
 
   Arguments compile [src tgt] cr [v ty].
+
 End Instruction.
 
 Module Statement.
@@ -366,6 +370,7 @@ Module Code.
   Definition result tgt (v : Variables.U tgt) := code v + {TranslationError}.
 
   Arguments result [tgt].
+
   Definition compile src tgt
              (cr : TypeSystem.compiler src tgt)
              (v : Variables.U tgt)
@@ -373,6 +378,7 @@ Module Code.
     :=  let compile := fun s => liftErr (Statement.compile cr s) in
         pullOutList (List.map compile c).
   Arguments compile [src tgt] cr [v].
+
 End Code.
 
 
@@ -430,12 +436,13 @@ Module Iterator.
              (pf : Types.compile cr memty = {- good -})
              (x  : v memory good)
     : compiled tgt v + {TranslationError}
-    := stup <- Code.compile cr (setup itr);
-         fnls <- Code.compile cr (finalise itr);
-         prcs <- Code.compile cr (process itr (Variables.coCompile cr x pf));
-         inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
+    := (stup <- Code.compile cr (setup itr);
+        fnls <- Code.compile cr (finalise itr);
+        prcs <- Code.compile cr (process itr (rew <- pf in Variables.inject x));
+        inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}).
 
   Arguments compile [src tgt] cr [v memty] itr [good].
+
   Arguments compiled [tgt].
   Arguments preamble [tgt v].
   Arguments loopBody [tgt v].
