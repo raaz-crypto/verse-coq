@@ -309,24 +309,10 @@ Module Variables.
   Qed.
 
   Definition result tgt (v : U tgt)
-             (k : kind)
-             (good : typeOf tgt k)
-             (x  : v k good)
-             (ty : Types.result tgt k)
-    := ty = {- good -} -> Universe.inject v k ty.
+             k (ty : Types.result tgt k)
+    := forall {good}, ty = {- good -} -> v k good.
 
-  Arguments result [tgt v k good].
-
-  Definition coCompile src tgt
-             (cr : compiler src tgt)
-             (v : U tgt) (k : kind)
-             (good : typeOf tgt k)
-             (x : v k good)
-             (ty : typeOf src k)
-    : result x (Types.compile cr ty)
-    := fun pf : Types.compile cr ty = {- good -} => rew <- pf in x.
-
-  Arguments coCompile [src tgt] cr [v k good] x [ty] pf.
+  Arguments result [tgt] v [k] ty.
 
 End Variables.
 
