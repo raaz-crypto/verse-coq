@@ -151,10 +151,14 @@ Module Config <: CONFIG.
   Definition statement   := C.Ast.statement.
   Definition programLine := Ast.line.
 
-  Instance target_semantics : semantics (list C.Ast.statement + {TranslationError})
+  Instance target_specs : Specs (list C.Ast.statement + {TranslationError})
     := {| types :=  c_type_system;
-          variables := Internals.variables;
-          denote   := Internals.trStatement
+          variables := Internals.variables
+       |}.
+
+  Instance target_semantics : Semantics (list C.Ast.statement + {TranslationError})
+    := {|
+        denote   := Internals.trStatement
        |}.
 
   Definition targetTs := TypeSystem.result types.

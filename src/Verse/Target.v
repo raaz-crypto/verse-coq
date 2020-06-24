@@ -72,8 +72,10 @@ Module Type CONFIG.
        system.
    *)
 
+  Declare Instance target_specs : Specs (list statement + {TranslationError}).
+
   Declare Instance
-          target_semantics : semantics (list statement + {TranslationError}).
+          target_semantics : Semantics (list statement + {TranslationError}).
 
   Parameter typeCompiler : TypeSystem.compiler verse_type_system types.
 

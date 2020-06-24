@@ -158,11 +158,16 @@ Module Internals.
 End Internals.
 
 Require Import Verse.Monoid.Semantics.
-Instance machine_semantics (cxt : context) : semantics (instruction cxt)
-  := {| types     := abstract_type_system;
-        variables := register cxt;
-        denote    := Internals.denoteStmt cxt
-      |}.
+
+Set Typeclasses Debug.
+
+Instance machine_specs (cxt : context) : Specs (instruction cxt)
+  := {| types := abstract_type_system;
+        variables := register cxt
+     |}.
+
+Instance machine_semantics (cxt : context) : Semantics (instruction cxt)
+:= (Build_Semantics (instruction cxt) _ _ _ (Internals.denoteStmt cxt)).
 
 (* begin hide *)
 Require Import Verse.Ast.
@@ -203,10 +208,16 @@ Section ForAllCxt.
   Variable ts  : typeSystem.
   Variable tyD : typeDenote ts.
 
-  Definition var : Variables.U ts := Variables.Universe.coTranslate tyD (register cxt).
+  Definition var : Variables.U ts
+    := Variables.Universe.coTranslate tyD (register cxt).
 
+  Print Instances Specs.
   Definition interpret (prog : code var) : program cxt
-    := codeDenote (Code.translate tyD prog).
+    := codeDenote (Sem := program cxt) (Code.translate tyD prog).
+  (* The type seems to be necessary for any unification involving
+  Setoid because a Setoid instance of any type exists, and thus the
+  unification problem for the typeclass can proceed without using
+  other information from the context *)
 
 End ForAllCxt.
 
