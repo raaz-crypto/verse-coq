@@ -151,17 +151,20 @@ Module Config <: CONFIG.
   Definition statement   := C.Ast.statement.
   Definition programLine := Ast.line.
 
-  Instance target_specs : Specs (list C.Ast.statement + {TranslationError})
+  Definition target_specs : Specs (list C.Ast.statement + {TranslationError})
     := {| types :=  c_type_system;
           variables := Internals.variables
        |}.
 
-  Instance target_semantics : Semantics (list C.Ast.statement + {TranslationError})
-    := {|
-        denote   := Internals.trStatement
-       |}.
+  Notation typs := (types target_specs).
+  Notation vars := (variables target_specs).
 
-  Definition targetTs := TypeSystem.result types.
+  Definition target_semantics : Semantics target_specs
+    := Build_Semantics (list C.Ast.statement + {TranslationError})
+                       _ _ target_specs
+                       Internals.trStatement.
+
+  Definition targetTs := TypeSystem.result typs.
   Definition trType (ty : Types.type direct) : typeOf targetTs direct
     := let couldNotError := error (CouldNotTranslate ty)
        in match ty with
@@ -196,7 +199,7 @@ Module Config <: CONFIG.
           | _       => op
           end.
 
-  Definition typeCompiler : TypeSystem.compiler verse_type_system types
+  Definition typeCompiler : TypeSystem.compiler verse_type_system typs
     := verseTranslation trType trConst trOp.
 
   Definition streamOf {k}(block : type k)
@@ -212,14 +215,14 @@ Module Config <: CONFIG.
        ptrToArray sz ty0.
 
   Definition dereference {k}{ty : type k}
-    : variables  memory (streamOf ty) -> variables k ty
+    : vars  memory (streamOf ty) -> vars k ty
     :=  match ty with
        | ptrToArray b t => fun x => x (* this branch is not really used *)
        | _ => fun x => Expr.ptrDeref (Internals.blockPtr x)
        end.
 
   Definition mapOverBlocks {block : type memory}
-             (stream : variables memory (streamOf block))
+             (stream : vars memory (streamOf block))
              (body : list statement)
              : list statement
     := (let cond := Expr.gt_zero (Internals.counter stream) in
@@ -231,9 +234,9 @@ Module Config <: CONFIG.
        )%list.
 
 
-  Fixpoint allocToList {n} (st : Scope.type types n)
-    :  Scope.allocation variables st -> list declaration :=
-    match st as st0 return Scope.allocation variables st0 -> list declaration
+  Fixpoint allocToList {n} (st : Scope.type typs n)
+    :  Scope.allocation vars st -> list declaration :=
+    match st as st0 return Scope.allocation vars st0 -> list declaration
     with
     | []      => fun _   => nil
     | _ :: xs => fun arg =>
@@ -244,7 +247,7 @@ Module Config <: CONFIG.
 
   Arguments allocToList [n st].
 
-  Definition makeFunction (name : Set) (fname : name)(fsig : funSig types variables)
+  Definition makeFunction (name : Set) (fname : name)(fsig : funSig typs vars)
              (body : list statement)
     := let ps := params (allocToList (Target.parameters fsig)) in
        let ls := List.map declareStmt (allocToList (Target.locals fsig)) in
