@@ -159,7 +159,7 @@ End Internals.
 
 Require Import Verse.Monoid.Semantics.
 
-Set Typeclasses Debug.
+(* Set Typeclasses Debug. *)
 
 Definition machine_specs (cxt : context) : Specs (instruction cxt)
   := {| types := abstract_type_system;
