@@ -15,13 +15,41 @@ statement.
 
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
+Require Import Verse.Language.Types.
+Require Import Verse.Error.
 Require Verse.Ast.
 
-Class semantics (Sem : Type) `{Monoid Sem}
-  := { types     : typeSystem;
-       variables : Variables.U types;
-       denote    : Ast.statement variables -> Sem
+Record Specs (line : Type) `{Monoid line}
+  := {
+       types        : typeSystem;
+       variables    : Variables.U types
      }.
 
-Definition codeDenote {Sem} `{semantics Sem} : Ast.code variables -> Sem
-  := mapMconcat denote.
+Arguments variables {_ _ _}.
+Arguments types {_ _ _}.
+
+Record Semantics {line : Type} `{Monoid line} (specs : Specs line)
+  := {
+       denote       : Ast.statement (variables specs)  -> line
+     }.
+
+Arguments denote {_ _ _ _}.
+
+Class Interface (v : Variables.U verse_type_system)
+                {line : Type} `{Monoid line}
+                (specs : Specs line)
+  := {
+      typeCompiler : TypeSystem.compiler verse_type_system
+                                         (types specs);
+      Var : forall {k} {ty : type k},
+          v _ ty -> Variables.result (variables specs)
+                                     (typeTrans typeCompiler ty)
+     }.
+
+Arguments typeCompiler _ {_ _ _ _}.
+Arguments Var _ {_ _ _ _}.
+
+Definition codeDenote {line} `{Monoid line} {specs : Specs line}
+           (sem : Semantics specs)
+  : Ast.code (variables specs) -> line
+  := mapMconcat (denote sem).

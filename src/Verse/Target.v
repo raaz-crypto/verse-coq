@@ -72,10 +72,16 @@ Module Type CONFIG.
        system.
    *)
 
-  Declare Instance
-          target_semantics : semantics (list statement + {TranslationError}).
+  Parameter target_specs : Specs (list statement + {TranslationError}).
 
-  Parameter typeCompiler : TypeSystem.compiler verse_type_system types.
+  Notation typs := (types target_specs).
+  Notation vars := (variables target_specs).
+
+  Parameter
+    target_semantics : Semantics target_specs.
+
+  Parameter typeCompiler : TypeSystem.compiler verse_type_system
+                                               typs.
 
   (**
      The compilation of verse code to the target languages then
@@ -118,13 +124,13 @@ Module Type CONFIG.
 
    *)
 
-  Parameter streamOf  : forall {k}, typeOf types k -> typeOf types memory.
+  Parameter streamOf  : forall {k}, typeOf typs k -> typeOf typs memory.
 
   (** The [dereference] function allows us to index the current block
       that is being acted on by the [process] fragment of the iterator
    *)
-  Parameter dereference  : forall {k}{block : typeOf types k},
-      variables memory (streamOf block) -> variables k block.
+  Parameter dereference  : forall {k}{block : typeOf typs k},
+      vars memory (streamOf block) -> vars k block.
 
   (** The [mapOverBlocks] applies a set of instructions on a single
       block and iterates it over all the blocks in the stream. It
@@ -133,8 +139,8 @@ Module Type CONFIG.
    *)
 
   Parameter mapOverBlocks :
-    forall {block : typeOf types memory},
-      variables memory (streamOf block) ->
+    forall {block : typeOf typs memory},
+      vars memory (streamOf block) ->
       list statement       ->
       list statement.
 
@@ -146,7 +152,7 @@ Module Type CONFIG.
   Parameter makeFunction
     : forall name : Set,
       name
-      -> funSig types variables
+      -> funSig typs vars
       -> list statement -> programLine.
 
 End CONFIG.
@@ -254,12 +260,12 @@ Module CodeGen (T : CONFIG).
 
      *)
 
-    Variable streamElem: typeOf types memory.
+    Variable streamElem: typeOf typs memory.
     Variable streamElemCompat
       : Types.compile T.typeCompiler block = {- streamElem -}.
 
     Definition streamType := T.streamOf streamElem.
-    Variable   streamVar  : variables memory streamType.
+    Variable   streamVar  : vars memory streamType.
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -273,8 +279,8 @@ Module CodeGen (T : CONFIG).
         The allocation types for parameters, locals, and registers
         on the target side.
      *)
-    Variable pts  : Scope.type types p.
-    Variable lts  : Scope.type types l.
+    Variable pts  : Scope.type typs p.
+    Variable lts  : Scope.type typs l.
 
     (**
        Proofs of compatibility of the allocation types on the verse
@@ -291,8 +297,8 @@ Module CodeGen (T : CONFIG).
        used to hold the parameters, locals and register variables on
        the target side.  *)
 
-    Variable params : Scope.allocation variables pts.
-    Variable locals : Scope.allocation variables lts.
+    Variable params : Scope.allocation vars pts.
+    Variable locals : Scope.allocation vars lts.
 
     (** Let us first convert the allocations that we have on the target variables
         to variables in the verse world. *)
@@ -308,7 +314,7 @@ Module CodeGen (T : CONFIG).
       := let 'Scope.body pbody := Scope.fill verse_params (func _) in
          let body := Scope.fill verse_locals pbody
          in btc <- typeCheckedTransform body ;
-              btarget <- codeDenote btc;
+              btarget <- codeDenote target_semantics btc;
               let fsig := FunSig params locals
               in {- T.makeFunction name fname fsig btarget -}.
 
@@ -347,7 +353,7 @@ Module CodeGen (T : CONFIG).
 
 
     (** Given an allocation for the parameters, this generates *)
-    Definition fullParams : Scope.allocation variables fullpts
+    Definition fullParams : Scope.allocation vars fullpts
       := (streamVar, params).
 
     Definition iterativeFunction
@@ -358,9 +364,9 @@ Module CodeGen (T : CONFIG).
          in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals in
-           pre  <- codeDenote (Iterator.preamble iterComp);
-             middle <- codeDenote (Iterator.loopBody iterComp);
-             post <- codeDenote (Iterator.finalisation iterComp);
+           pre  <- codeDenote target_semantics (Iterator.preamble iterComp);
+             middle <- codeDenote target_semantics(Iterator.loopBody iterComp);
+             post <- codeDenote target_semantics (Iterator.finalisation iterComp);
              let lp := T.mapOverBlocks streamVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
@@ -372,5 +378,5 @@ Module CodeGen (T : CONFIG).
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
   Definition programLine := T.programLine.
-  Definition variables   := Semantics.variables.
+  Definition variables   := Semantics.variables target_specs.
 End CodeGen.
