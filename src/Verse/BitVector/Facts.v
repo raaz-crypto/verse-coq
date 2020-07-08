@@ -451,7 +451,7 @@ Proof.
   assumption.
 Qed.
 
-(* begin hide *)
+
 (** injectivity of Bv2N function *)
 
 Lemma inj : forall sz (v0 v1 : Bvector sz),  Bv2N v0 = Bv2N v1 -> v0 = v1.
@@ -463,6 +463,7 @@ Proof.
   trivial.
 Qed.
 
+(* begin hide *)
 
 Module ArithmInternals.
   (**
@@ -578,6 +579,22 @@ Module ArithmInternals.
     crush.
   Qed.
 
+
+  Lemma Bv2N_lt_pow_2_size : forall sz (v : Bvector sz), (Bv2N v < 2^(N.of_nat sz))%N.
+  Proof.
+    intros sz v.
+    apply Nsize_nat_pow_2.
+    (*   N.size_nat (Bv2N v) <= sz *)
+    apply Bv2N_Nsize.
+  Qed.
+  Hint Resolve Bv2N_lt_pow_2_size : bitvector.
+
+  Lemma Bv2N_mod_2_size  : forall sz (v : Bvector sz), (Bv2N v mod 2^(N.of_nat sz) = Bv2N v)%N.
+  Proof.
+    intros.
+    rewrite N.mod_small; trivial.
+    apply Bv2N_lt_pow_2_size.
+  Qed.
 
   Lemma Bv2N_true : forall m : nat, Bv2N (Bvect_true m) = N.ones (N.of_nat m).
   Proof.

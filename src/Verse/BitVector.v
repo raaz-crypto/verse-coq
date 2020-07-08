@@ -24,7 +24,9 @@ Definition BVN_size {sz} (vec : Bvector sz) := N.size (Bv2N vec).
 Definition BVN_size_nat {sz} (vec : Bvector sz) := N.size_nat (Bv2N vec).
 
 Definition BVplus      := arithm N.add.
-Definition BVminus sz  := arithm (fun x y => x + (twopower sz - y))%N sz.
+Definition BVnegative sz (vec : Bvector sz) := N2Bv_sized sz (2^(N.of_nat sz) - Bv2N vec).
+Definition BVminus sz  := arithm (fun x y => x + 2^(N.of_nat sz) - y)%N sz.
+
 Definition BVmul       := arithm N.mul.
 Definition BVquot      := arithm N.div.
 Definition BVrem       := arithm N.modulo.
@@ -99,6 +101,7 @@ Arguments BVminus  [sz].
 Arguments BVmul    [sz].
 Arguments BVquot   [sz].
 Arguments BVrem    [sz].
+Arguments BVnegative [sz].
 Arguments BVand    [_].
 Arguments BVor     [_].
 Arguments BVxor    [_].
