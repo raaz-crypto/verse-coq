@@ -161,14 +161,13 @@ Require Import Verse.Monoid.Semantics.
 
 (* Set Typeclasses Debug. *)
 
-Definition machine_specs (cxt : context) : Specs (instruction cxt)
-  := {| types := abstract_type_system;
-        variables := register cxt
-     |}.
+Definition variables cxt : Variables.U abstract_type_system := register cxt.
 
-Definition machine_semantics (cxt : context) : Semantics (machine_specs cxt)
-  := Build_Semantics (instruction cxt) _ _ (machine_specs cxt)
-                     (Internals.denoteStmt cxt).
+Definition machine_semantics (cxt : context)
+  : Semantics (variables cxt) (instruction cxt)
+  := {|
+      denote := (Internals.denoteStmt cxt)
+     |}.
 
 (* begin hide *)
 Require Import Verse.Ast.
@@ -213,7 +212,7 @@ Section ForAllCxt.
     := Variables.Universe.coTranslate tyD (register cxt).
 
   Definition interpret (prog : code var) : program cxt
-    := codeDenote (machine_semantics cxt) (Code.translate tyD prog).
+    := codeDenote (variables cxt) (machine_semantics cxt) (Code.translate tyD prog).
   (* The type seems to be necessary for any unification involving
   Setoid because a Setoid instance of any type exists, and thus the
   unification problem for the typeclass can proceed without using

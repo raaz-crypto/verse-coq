@@ -72,13 +72,11 @@ Module Type CONFIG.
        system.
    *)
 
-  Parameter target_specs : Specs (list statement + {TranslationError}).
-
-  Notation typs := (types target_specs).
-  Notation vars := (variables target_specs).
+  Parameter typs : typeSystem.
+  Parameter vars : Variables.U typs.
 
   Parameter
-    target_semantics : Semantics target_specs.
+    target_semantics : Semantics vars (list statement + {TranslationError}).
 
   Parameter typeCompiler : TypeSystem.compiler verse_type_system
                                                typs.
@@ -314,7 +312,7 @@ Module CodeGen (T : CONFIG).
       := let 'Scope.body pbody := Scope.fill verse_params (func _) in
          let body := Scope.fill verse_locals pbody
          in btc <- typeCheckedTransform body ;
-              btarget <- codeDenote target_semantics btc;
+              btarget <- codeDenote vars target_semantics btc;
               let fsig := FunSig params locals
               in {- T.makeFunction name fname fsig btarget -}.
 
@@ -364,9 +362,9 @@ Module CodeGen (T : CONFIG).
          in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals in
-           pre  <- codeDenote target_semantics (Iterator.preamble iterComp);
-             middle <- codeDenote target_semantics(Iterator.loopBody iterComp);
-             post <- codeDenote target_semantics (Iterator.finalisation iterComp);
+           pre  <- codeDenote vars target_semantics (Iterator.preamble iterComp);
+             middle <- codeDenote vars target_semantics(Iterator.loopBody iterComp);
+             post <- codeDenote vars target_semantics (Iterator.finalisation iterComp);
              let lp := T.mapOverBlocks streamVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
@@ -378,5 +376,5 @@ Module CodeGen (T : CONFIG).
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
   Definition programLine := T.programLine.
-  Definition variables   := Semantics.variables target_specs.
+  Definition variables   := vars.
 End CodeGen.
