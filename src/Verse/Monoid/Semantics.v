@@ -27,7 +27,6 @@ Record Semantics {types} (variables : Variables.U types) (line : Type) `{Monoid 
 
 Record Interface {types} (variables : Variables.U types)
                 (v : Variables.U verse_type_system)
-                (line : Type) `{Monoid line}
   := {
       typeCompiler : TypeSystem.compiler verse_type_system
                                          types;
