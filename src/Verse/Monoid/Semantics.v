@@ -35,7 +35,7 @@ Definition codeDenote {types} (variables : Variables.U types)
 
 Definition linesDenote {types} (variables : Variables.U types)
                       {line} `{Monoid line}
-                      `{Interface _ line variables}
+                      `{Interface _ variables}
                       (sem : Semantics variables line)
   : Ast.lines variables line -> line
   := mapMconcat (fun l => match l with

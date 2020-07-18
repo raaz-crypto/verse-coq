@@ -36,6 +36,8 @@ Require Import Verse.Language.Types.
 
 Require Import Verse.TypeSystem.
 
+Require Import Verse.Monoid.
+
 Require Import Verse.Monoid.Interface.
 
 Import EqNotations.
@@ -106,14 +108,12 @@ Section VerseCode.
   Definition statement := sigT instruction.
   Definition code := list statement.
 
-  Variable mline : Type.
-
-  Inductive line `{Interface _ mline v} :=
-  | instruct  : forall ty, instruction ty -> line
-  | inline    : mline                     -> line
+  Inductive line mline `{Monoid mline} `{Interface _ v} :=
+  | instruct  : forall ty, instruction ty -> line mline
+  | inline    : mline                     -> line mline
   .
 
-  Definition lines `{Interface _ mline v} := list line.
+  Definition lines mline `{Monoid mline} `{Interface _ v} := list (line mline).
 
 End VerseCode.
 
