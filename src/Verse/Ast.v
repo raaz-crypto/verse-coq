@@ -36,20 +36,22 @@ Require Import Verse.Language.Types.
 
 Require Import Verse.TypeSystem.
 
+Require Import Verse.Monoid.Interface.
+
 Import EqNotations.
 (* end hide *)
 
 (**
     The verse language ast is defined for a generic type system
 
-*)
+ *)
+
 Section VerseCode.
 
   Variable ts : typeSystem.
 
   Variable v : Variables.U ts.
   Arguments v [k].
-
 
   (** Expressions that can occur on the left of an assignment. *)
   Inductive lexpr : typeOf ts TypeSystem.direct -> Type :=
@@ -102,16 +104,28 @@ Section VerseCode.
 
 
   Definition statement := sigT instruction.
-  Definition code      := list statement.
+  Definition code := list statement.
+
+  Variable mline : Type.
+
+  Inductive line `{Interface _ mline v} :=
+  | instruct  : forall ty, instruction ty -> line
+  | inline    : mline                     -> line
+  .
+
+  Definition lines `{Interface _ mline v} := list line.
 
 End VerseCode.
 
 Arguments expr [ts].
 Arguments lexpr [ts].
 Arguments instruction [ts].
+Arguments instruct [ts v mline _ _ _ ty].
+Arguments inline [ts v _ _ _ _].
 Arguments code [ts].
 Arguments statement [ts].
-
+Arguments line [ts] _ _ [_ _ _].
+Arguments lines [ts] _ _ [_ _ _].
 
 (**
 
