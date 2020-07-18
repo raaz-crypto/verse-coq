@@ -25,15 +25,6 @@ Record Semantics {types} (variables : Variables.U types) (line : Type) `{Monoid 
        denote       : Ast.statement variables  -> line
      }.
 
-Record Interface {types} (variables : Variables.U types)
-                (v : Variables.U verse_type_system)
-  := {
-      typeCompiler : TypeSystem.compiler verse_type_system
-                                         types;
-      Var : forall {k} {ty : type k},
-          v _ ty -> Variables.result variables
-                                     (typeTrans typeCompiler ty)
-     }.
 
 Definition codeDenote {types} (variables : Variables.U types)
                       {line} `{Monoid line}
