@@ -15,19 +15,31 @@ statement.
 
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
-Require Import Verse.Language.Types.
 Require Import Verse.Error.
-Require Verse.Ast.
+Require Import Verse.Monoid.Interface.
+Require Import Verse.Ast.
 
 (* This single field record should possibly be removed *)
 Record Semantics {types} (variables : Variables.U types) (line : Type) `{Monoid line}
   := {
        denote       : Ast.statement variables  -> line
-     }.
+    }.
 
+Arguments denote [types variables] _ [_ _].
 
 Definition codeDenote {types} (variables : Variables.U types)
                       {line} `{Monoid line}
                       (sem : Semantics variables line)
   : Ast.code variables -> line
-  := mapMconcat (denote variables line sem).
+  := mapMconcat (denote line sem).
+
+Definition linesDenote {types} (variables : Variables.U types)
+                      {line} `{Monoid line}
+                      `{Interface _ line variables}
+                      (sem : Semantics variables line)
+  : Ast.lines variables line -> line
+  := mapMconcat (fun l => match l with
+                          | instruct i => denote line sem (existT _ _ i)
+                          | inline   i => i
+                          end
+                ).
