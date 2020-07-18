@@ -1,5 +1,6 @@
 -R src Verse
 src/Verse.v
+src/Verse/AbstractMachine.v
 src/Verse/Ast.v
 src/Verse/Error.v
 src/Verse/FFI/Raaz.v
@@ -11,13 +12,12 @@ src/Verse/Language/Macros/Cache.v
 src/Verse/Language/Macros/Loops.v
 src/Verse/Language/Pretty.v
 src/Verse/Language/Types.v
-src/Verse/Machine.v
 src/Verse/Machine/BitVector.v
 src/Verse/BitVector.v
 src/Verse/BitVector/Facts.v
 src/Verse/BitVector/ArithRing.v
-src/Verse/Machine/Hoare.v
 src/Verse/Monoid.v
+src/Verse/Monoid/Interface.v
 src/Verse/Monoid/Semantics.v
 src/Verse/NFacts.v
 src/Verse/Nibble.v
