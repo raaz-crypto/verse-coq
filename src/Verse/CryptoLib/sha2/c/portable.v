@@ -14,6 +14,7 @@
 (** printing oplus %$\oplus$%    #⊕#  *)
 
 Require Import Verse.
+Import VerseNotations.
 Require Import Verse.CryptoLib.sha2.
 Require Import List.
 Import ListNotations.
