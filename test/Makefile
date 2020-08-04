@@ -1,4 +1,4 @@
-TESTS=C.v TestCode.v
+TESTS=TestCode.v
 GENERATED=$(wildcard .*.aux *.glob *.vo)
 
 .PHONY: all clean

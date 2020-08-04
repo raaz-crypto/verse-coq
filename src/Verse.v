@@ -6,6 +6,10 @@ Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
 
+Module VerseNotations.
+  Open Scope verse_scope.
+End VerseNotations.
+
 (* This allows us to use the vector notations for lists as well
 
 <<

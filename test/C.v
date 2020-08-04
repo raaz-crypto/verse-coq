@@ -21,13 +21,14 @@ Section Variables.
 
 
   Variable myfunc : name.
-  Variable a : cvar uint8_t.
+  Variable a : cvar uint64_t.
   Variable b : cvar uint64_t.
   Variable temp : cvar uint8_t.
 
   Definition index_ptr := Expr.ptrDeref ptr.
 
-  Definition e : Expr.expr := Expr.app mul [a ; Expr.app plus [a ; b]].
+  Definition e : Expr.expr := Expr.app mul [Expr.cvar2exp a
+                                            ; Expr.app plus [Expr.cvar2exp a ; Expr.cvar2exp b]].
   Definition lDec := [ declare temp; declare a; declare ptr ]%list.
 
   Definition stmts := [ assign (Expr.index (Expr.ptrDeref(ptr)) 2) e;

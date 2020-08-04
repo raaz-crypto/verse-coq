@@ -19,7 +19,7 @@ Inductive kind   : Set := direct | memory.
 Inductive endian : Set := bigE | littleE | hostE.
 
 Structure typeSystem :=
-  TypeSystem { typeOf       : kind -> Type;
+  TypeSystem { typeOf       :> kind -> Type;
                arrayType    : nat -> endian -> typeOf direct -> typeOf memory;
                constOf      : typeOf direct -> Type;
                operator     : typeOf direct -> nat -> Type

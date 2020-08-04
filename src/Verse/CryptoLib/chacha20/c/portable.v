@@ -10,6 +10,7 @@ This module implements the following
  *)
 
 Require Import Verse.
+Import VerseNotations.
 Require Import Verse.CryptoLib.chacha20.common.
 
 Module Internal.
