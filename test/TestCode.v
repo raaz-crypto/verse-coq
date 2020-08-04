@@ -1,6 +1,7 @@
 Require Import Nat.
 Require Import NArith.
 Require Import Verse.
+Import VerseNotations.
 Require Import Verse.Nibble.
 Require Import String.
 Open Scope string_scope.

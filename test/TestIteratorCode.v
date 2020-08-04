@@ -1,4 +1,5 @@
 Require Import Verse.
+Import VerseNotations.
 Require Import Verse.Arch.C.
 
 Require Import Vector.
