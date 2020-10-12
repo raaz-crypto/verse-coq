@@ -6,6 +6,7 @@ Require Import Verse.Language.Types.
 Require Import Verse.Error.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
+Require Import Verse.Monoid.Interface.
 Require Verse.Scope.
 Require Import Vector.
 Import Vector.VectorNotations.
@@ -73,13 +74,14 @@ Module Type CONFIG.
    *)
 
   Parameter typs : typeSystem.
-  Parameter vars : Variables.U typs.
+  Parameter M : mSpecs verse_type_system typs.
+
+  Notation vars := (mvariables M).
+
+  Notation typeCompiler := (mtypeCompiler M).
 
   Parameter
-    target_semantics : Semantics vars (list statement + {TranslationError}).
-
-  Parameter typeCompiler : TypeSystem.compiler verse_type_system
-                                               typs.
+    target_semantics : Semantics M (list statement + {TranslationError}).
 
   (**
      The compilation of verse code to the target languages then
@@ -312,7 +314,7 @@ Module CodeGen (T : CONFIG).
       := let 'Scope.body pbody := Scope.fill verse_params (func _) in
          let body := Scope.fill verse_locals pbody
          in btc <- typeCheckedTransform body ;
-              btarget <- codeDenote vars target_semantics btc;
+              btarget <- codeDenote M _ target_semantics btc;
               let fsig := FunSig params locals
               in {- T.makeFunction name fname fsig btarget -}.
 
@@ -362,9 +364,9 @@ Module CodeGen (T : CONFIG).
          in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals in
-           pre  <- codeDenote vars target_semantics (Iterator.preamble iterComp);
-             middle <- codeDenote vars target_semantics(Iterator.loopBody iterComp);
-             post <- codeDenote vars target_semantics (Iterator.finalisation iterComp);
+           pre  <- codeDenote M _ target_semantics (Iterator.preamble iterComp);
+             middle <- codeDenote M _ target_semantics(Iterator.loopBody iterComp);
+             post <- codeDenote M _ target_semantics (Iterator.finalisation iterComp);
              let lp := T.mapOverBlocks streamVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
