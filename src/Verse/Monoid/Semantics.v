@@ -20,26 +20,29 @@ Require Import Verse.Monoid.Interface.
 Require Import Verse.Ast.
 
 (* This single field record should possibly be removed *)
-Record Semantics {types} (variables : Variables.U types) (line : Type) `{Monoid line}
+Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
-       denote       : Ast.statement variables  -> line
+       denote       : Ast.statement (mvariables M)  -> line
     }.
 
-Arguments denote [types variables] _ [_ _].
+Arguments denote [types mtypes] _ _ {_ _}.
 
-Definition codeDenote {types} (variables : Variables.U types)
-                      {line} `{Monoid line}
-                      (sem : Semantics variables line)
-  : Ast.code variables -> line
-  := mapMconcat (denote line sem).
+Definition codeDenote {types mtypes}
+                      (M : mSpecs types mtypes)
+                      line `{Monoid line}
+                      (sem : Semantics M line)
+  : Ast.code (mvariables M) -> line
+  := mapMconcat (denote M line sem).
 
-Definition linesDenote {types} (variables : Variables.U types)
-                      {line} `{Monoid line}
-                      `{Interface _ variables}
-                      (sem : Semantics variables line)
-  : Ast.lines variables line -> line
-  := mapMconcat (fun l => match l with
-                          | instruct i => denote line sem (existT _ _ i)
-                          | inline   i => i
-                          end
-                ).
+Definition linesDenote [types mtypes]
+           (M : mSpecs types mtypes)
+           line `{Monoid line}
+           (sem : Semantics M line)
+  : Ast.lines (mvariables M) (line)
+    -> line
+  := mapMconcat
+       (fun l => match l with
+                 | instruct i => denote M line sem i
+                 | inline   i => i
+                 end
+       ).
