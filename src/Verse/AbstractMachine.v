@@ -14,6 +14,7 @@ Import EqNotations.
 
 Definition eq_dec T := forall x y : T, x = y \/ ~ x = y.
 Section EqDep2.
+  (* TODO change names to show the use-case (kind type var *)
   Variable U : Type.
   Variable P : U -> Type.
   Variable Q : forall u, P u -> Type.
