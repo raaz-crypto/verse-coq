@@ -1,6 +1,7 @@
 -R src Verse
 src/Verse.v
 src/Verse/AbstractMachine.v
+src/Verse/TestCode/AnnotatedCode.v
 src/Verse/Ast.v
 src/Verse/Error.v
 src/Verse/FFI/Raaz.v
@@ -23,6 +24,7 @@ src/Verse/NFacts.v
 src/Verse/Nibble.v
 src/Verse/Print.v
 src/Verse/Scope.v
+src/Verse/ScopeStore.v
 src/Verse/Target.v
 src/Verse/Target/C.v
 src/Verse/Target/C/Ast.v
