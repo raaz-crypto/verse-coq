@@ -10,6 +10,7 @@ Require Import Arith.
 Require Import NArith.
 Require Import Nat.
 
+Declare Scope bitvector_scope.
 
 Arguments Bv2N [n].
 
@@ -164,7 +165,7 @@ Notation "A | B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
 Notation "~ A"
   := (BVcomp A)
        (only printing, at level 75, right associativity) : bitvector_scope.
-Notation "A ⊕ B" := (BVxor A B) (only printing, at level 100) : bitvector_scope.
+Notation "A ⊕ B" := (BVxor A B) (only printing, at level 57, left associativity) : bitvector_scope.
 Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.
 Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_scope.
