@@ -306,3 +306,61 @@ Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
         inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup k ty)) in
                                  (existT _ k ty :: sc, i)
      |}.
+
+
+Require Import Vector.
+Section ScopeVar.
+  Variable ts : typeSystem.
+
+  Inductive scopeVar : forall [n] (l : type ts n), Variables.U ts :=
+  | headVar m (v : type ts (S m)) : scopeVar v _ (projT2 (hd v))
+  | restVar m (v : type ts (S m)) k (ty : typeOf ts k) : scopeVar (tl v) _ ty
+                                                         -> scopeVar v _ ty.
+
+  Fixpoint mapAlloc v1 v2 (f : forall k (ty : typeOf ts k), v1 _ ty -> v2 _ ty)
+           n (l : type ts n) : allocation v1 l -> allocation v2 l :=
+    match n return forall l : type ts n, allocation v1 l -> allocation v2 l with
+    | S n => fun l a1 => (f _ _ (fst a1), mapAlloc v1 v2 f _ (tl l) (snd a1))
+    | 0   => fun l _  => tt
+    end l.
+
+  (* The dummy allocation for scoped code *)
+  Fixpoint scopeAlloc {n} (l : type ts n) : allocation (scopeVar l) l :=
+    match n return forall l0 : type ts n, @allocation _ _ n l0 with
+    | S m => fun l0 => (@headVar _ l0, mapAlloc _ _ (@restVar _ l0) _ _ (scopeAlloc (tl l0)))
+    | 0   => fun _  => tt
+    end l.
+
+  (* Generic scoped code filled out with the dummy VariableT *)
+  Definition fillScoped (CODE : Variables.U ts -> Type) n (l : type ts n)
+             (genC : forall v, scoped v l (CODE v)) :=
+    fill (scopeAlloc l) (genC (scopeVar l)).
+
+  Arguments fillScoped [CODE n l] _.
+
+(*
+  Require Import Program.Equality.
+  Definition eq_dec T := forall x y : T, x = y \/ ~ x = y.
+  Definition scopeVar_eq_dec n (vT : type verse_type_system n)
+    : forall {k} {ty : typeOf verse_type_system k}, eq_dec (scopeVar vT _ ty).
+    unfold eq_dec.
+    dependent induction x; dependent induction y;
+      [left | right .. | idtac]; try congruence.
+    destruct (IHx y);
+      [left; congruence | right].
+    contradict H;
+      apply (f_equal ((fun (y : scopeVar (tl v) _ ty) (x : scopeVar v _ ty) =>
+                         (match x in @scopeVar (S n0) v0 _ ty0
+                                return scopeVar (tl v0) _ ty0 -> scopeVar (tl v0) _ ty0 with
+                          | headVar _ _  => fun y => y
+                          | restVar _ _ _ _ x' => fun _ => x'
+                          end y)) x)
+                     H).
+  Defined.
+   *)
+End ScopeVar.
+
+Arguments scopeVar [ts n].
+Arguments headVar {ts m v}.
+Arguments restVar [ts m v k ty].
+Arguments fillScoped [ts CODE n l] _.
