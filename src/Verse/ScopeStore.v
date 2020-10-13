@@ -50,6 +50,7 @@ Fixpoint wrtStore
   | Scope.restVar rx => fun f s => let '(vx, st) := store in {| store := (vx, store (Store := wrtStore rx f {| store := st |})) |}
   end.
 
+(** TODO : Needs a proof eventually! *)
 Axiom frmWrt :
   forall n (sc : Scope.type ts n)
            (st : Store (scstr sc))
