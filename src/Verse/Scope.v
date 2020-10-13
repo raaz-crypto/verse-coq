@@ -51,11 +51,19 @@ Section Scoped.
    *)
 
   Fixpoint allocation {n} (st : type n) : Type :=
+    match n as n0 return type n0 -> Type with
+    | 0   => fun _  => unit
+    | S m => fun v0 => (qualified v (Vector.hd v0) * allocation (Vector.tl v0))%type
+    end st.
+    (* This alternate definition does not interact well with certain ScopeStore
+
+  Fixpoint allocation {n} (st : type n) : Type :=
     match st with
     | [] => unit
     | (x :: xs) => qualified v x * allocation xs
     end.
 
+     *)
   (** And such an allocation can be used to "fill" up the variables *)
 
   Fixpoint fill {CODE} {n} {st : type n}
