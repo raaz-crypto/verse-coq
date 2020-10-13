@@ -377,3 +377,43 @@ Section WordTypeDenote.
        arrayCompatibility := fun _ _ _ => eq_refl
     |}.
 End WordTypeDenote.
+
+(** Tactics for proof goal presentation *)
+Require Import Verse.BitVector.
+
+(* Destruct the variable store for easier access to valuations *)
+Ltac breakStore :=
+  repeat
+    match goal with
+    | a : _ * _ |- _ => simpl in a; destruct a
+    | |- forall _ : _, _ => intro; simpl in * |-
+    end.
+
+Ltac simplify := repeat match goal with
+                        | |- forall _ : str, _ =>
+                          breakStore;
+                          lazy -[
+                            BVplus BVminus BVmul BVquot BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                                   (*
+                            fromNibbles
+                              numBinOp numUnaryOp numBigargExop numOverflowBinop
+                              Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+                              N.add N.sub N.mul N.div N.div_eucl N.modulo
+
+                              Ox nth replace
+                                    *)
+                          ];
+                          repeat
+                            (match goal with
+                             | |- _ /\ _          => constructor
+                             | |- _ -> _          => intro
+                             | H : _ /\ _ |- _    => destruct H
+                             | H : True |- _      => clear H
+                             | |- True            => constructor
+                             | |- ?x = ?x         => trivial
+                             | H : True |- _      => clear H
+                             | H : unit |- _      => clear H
+                             end)
+                        | |- forall _, _ => intro
+                        | |- ?I          => unfold I
+                        end.
