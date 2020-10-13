@@ -72,6 +72,10 @@ Ltac Function name func
                                    cpvs clvs
                                    pfpvt pflvt
                                    pA lA func)
+                   (** TODO: This can be a normal function application if
+                             inferNesting carries around correctness proofs
+                    *)
+
               ) (*(recover (Compile.targetTypes pvs))
                 (recover (Compile.targetTypes lvs))*)
                 eq_refl eq_refl)
