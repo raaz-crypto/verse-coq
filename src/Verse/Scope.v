@@ -34,6 +34,14 @@ Section Scoped.
       (of scopes).
 
    *)
+
+  (* TODO: The following 'type' definition should be in its own
+           module named Scope.
+           That way this can be the only name that is hidden when
+           importing Scope. Otherwise just to avoid having to write
+           'type' in those places, every name in this file needs to
+           be 'Scope.'ed
+  *)
   Definition type n :=  Vector.t (some (typeOf ts)) n.
 
   (*
