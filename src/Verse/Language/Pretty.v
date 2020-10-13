@@ -169,8 +169,8 @@ Instance array_indexing v ty b e : INDEXING {i | i < b}
 
 
 
-
-
+Declare Scope verse_scope.
+Delimit Scope verse_scope with verse.
 
 Notation "A [- N -] " := (idx A (@exist _ _ N%nat _)) (at level 29) : verse_scope.
 
@@ -203,7 +203,6 @@ Infix "XOR"         := (binOpApp bitXor)
                          (at level 57, left associativity, only parsing) : verse_scope.
 Infix "OR"          := (binOpApp bitOr)          (at level 58, left associativity) : verse_scope.
 
-
 Infix "::="   := assignStmt           (at level 70) : verse_scope.
 Infix "<-"     := moveStmt             (at level 70) : verse_scope.
 Infix "::=+"  := (binOpUpdate plus)   (at level 70) : verse_scope.
@@ -224,6 +223,33 @@ Notation "'CLOBBER' A" := (existT _ _ (clobber A))     (at level 70) : verse_sco
 
 Notation "'MOVE' B 'TO' A [- N -]"
   := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (at level 200, A ident) : verse_scope.
+
+(* We overload notations for `instruction` and `line` *)
+Declare Scope code_scope.
+Delimit Scope code_scope with code.
+
+Notation "A ::= E" := (instruct (assignStmt A E))  (at level 70) : code_scope.
+Notation "A <- B" := (instruct (moveStmt A B)) (at level 70) : code_scope.
+Notation "A ::=+ B" := (instruct (binOpUpdate plus A B)) (at level 70) : code_scope.
+Notation "A ::=- B" := (instruct (binOpUpdate minus A B)) (at level 70) : code_scope.
+Notation "A ::=* B" := (instruct (binOpUpdate mul A B)) (at level 70) : code_scope.
+Notation "A ::=/ B" := (instruct (binOpUpdate quot A B)) (at level 70) : code_scope.
+Notation "A ::=% B" := (instruct (binOpUpdate rem A B)) (at level 70) : code_scope.
+Notation "A ::=| B" := (instruct (binOpUpdate bitOr A B)) (at level 70) : code_scope.
+Notation "A ::=& B"  := (instruct (binOpUpdate bitAnd A B)) (at level 70) : code_scope.
+Notation "A ::=x B"  := (instruct (binOpUpdate bitXor A B)) (at level 70, only parsing) : code_scope.
+Notation "A ::=⊕ B" := (instruct (binOpUpdate bitXor A B)) (at level 70) : code_scope.
+
+Notation "A ::=<< N"   := (instruct (uniOpUpdate (shiftL N) A))   (at level 70) : code_scope.
+Notation "A ::=>> N"   := (instruct (uniOpUpdate (shiftR N) A))   (at level 70) : code_scope.
+Notation "A ::=<<< N"  := (instruct (uniOpUpdate (rotL N)   A))   (at level 70) : code_scope.
+Notation "A ::=>>> N"  := (instruct (uniOpUpdate (rotR N)   A))   (at level 70) : code_scope.
+Notation "'CLOBBER' A" := (instruct (existT _ _ (clobber A)))     (at level 70) : code_scope.
+
+Notation "'MOVE' B 'TO' A [- N -]"
+  := (instruct (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A ident) : code_scope.
+
+
 (** * The verse tactic.
 
 The notations clean up the surface syntax but it still leaves routine
@@ -269,4 +295,3 @@ Ltac verse_print_mesg :=  match goal with
                           end.
 
 Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
-Delimit Scope verse_scope with verse.
