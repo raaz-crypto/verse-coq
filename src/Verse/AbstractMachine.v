@@ -1,5 +1,7 @@
 (* begin hide *)
 
+Require Import Verse.Ast.
+Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
@@ -67,22 +69,31 @@ transformation machine, parametrized on a variable type.
 
   Definition type := typeOf ts.
 
-  Record State :=
-    {
-      store : Type;
-      eval  : store -> forall {k} {ty : type k} (var : v _ ty), typeTrans tyD ty : Type;
+  Class Store str := { store : str }.
 
+  Definition SPair A : Type := (Store A)*(Store A).
+  Class StoreP str := { oldAndNew : SPair str }.
+
+  Coercion Build_StoreP : SPair >-> StoreP.
+
+  Class State :=
+    {
+      str : Type;
+      val  : Store str -> forall
+                     {k} {ty : type k} (var : v _ ty),
+              typeTrans tyD ty : Type;
       storeUpdate
       : forall {k} {ty : type k} (var : v _ ty)
                (f : typeTrans tyD ty -> typeTrans tyD ty),
-          store -> store;
+          Store str -> Store str;
 
       evalUpdate
-      : forall (s : store) k (ty : type k) (var : v _ ty) f,
+      : forall (s : Store str) k (ty : type k) (var : v _ ty) f,
           forall k' (ty' : type k') (v' : v _ ty'),
-            ( ~ eq_dep2 var v'-> eval (storeUpdate var f s) v' = eval s v')
+            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) v' = val s v')
             /\
-            eval (storeUpdate var f s) var = f (eval s var)
+            val (storeUpdate var f s) var = f (val s var)
+
     }.
 
 (** An abstract instruction for the machine is just a state
@@ -91,16 +102,16 @@ and hence is also a state transformation.
 
 *)
 
-  Definition instruction state := store state -> store state.
+  Definition instruction `{State} := Store str -> Store str.
 
-  Definition assertion state   := store state -> Prop.
+  Definition assertion `{State}   := SPair str -> Prop.
 
 End Store.
 
 Arguments State [ts].
-Arguments store [ts v tyD].
-Arguments eval [ts v tyD s] _ [k ty].
-Arguments storeUpdate [ts v tyD s k ty].
+Arguments str {ts v tyD State}.
+Arguments val [ts v tyD] {State _} [k ty].
+Arguments storeUpdate [ts v tyD] {State} [k ty].
 Arguments instruction [ts v tyD].
 Arguments assertion [ts v tyD].
 
@@ -118,15 +129,15 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Definition leval {T} (l : lexpr T) (st : store state) : typeTrans tyD T
+    Definition leval {T} (l : lexpr T) (st : Store str) : typeTrans tyD T
       := match l with
-         | Ast.var reg      => eval st reg
+         | Ast.var reg      => val reg
          | Ast.deref v idx  => Vector.nth_order
-                                 (rew [id] arrayCompatibility tyD _ _ _ in eval st v)
+                                 (rew [id] arrayCompatibility tyD _ _ _ in val v)
                                  (proj2_sig idx)
          end.
 
-    Fixpoint evalE {T} (st : store state) (e : expr T) :  typeTrans tyD T
+    Fixpoint evalE {T} (st : Store str) (e : expr T) :  typeTrans tyD T
       := match e with
          | Ast.cval c => constTrans tyD c
          | Ast.valueOf lv => leval lv st
@@ -134,11 +145,11 @@ Module Internals.
          | Ast.uniOp o e0    => (opTrans tyD o) (evalE st e0)
          end.
 
-    Definition assign {T} (l : lexpr T) (e : expr T)(st : store state)
-      : store state
-      := match l in Ast.lexpr _ T0 return  typeTrans tyD T0 -> store state with
+    Definition assign {T} (l : lexpr T) (e : expr T)(st : Store str)
+      : Store str
+      := match l in Ast.lexpr _ T0 return  typeTrans tyD T0 -> Store str with
          | Ast.var reg  => fun v => storeUpdate reg (fun _ => v) st
-         | Ast.deref a idx => fun v => let arr := eval st a in
+         | Ast.deref a idx => fun v => let arr := val a in
                                        let arrp := Vector.replace_order
                                                      (rew [id] arrayCompatibility tyD _ _ _ in arr)
                                                      (proj2_sig idx) v in
@@ -151,14 +162,14 @@ Module Internals.
                (l : lexpr T)
                (o : operator ts T 2)
                (e : expr T)
-      : store state -> store state
+      : Store str -> Store str
       := let rhs := Ast.binOp o (Ast.valueOf l) e in
          assign l rhs.
 
     Definition uniopUpdate {T}
                (l : lexpr T)
                (o : operator ts T 1)
-      : store state -> store state
+      : Store str -> Store str
       := let rhs := Ast.uniOp o (Ast.valueOf l) in
          assign l rhs.
 
@@ -178,35 +189,72 @@ Module Internals.
       := denoteInst (projT2 stmt).
   End MachineType.
 
-
 End Internals.
 
+Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
 Require Import Verse.Monoid.Interface.
 
-Definition line {ts v tyD} (state : State v tyD)
-  := (instruction state * assertion (ts := ts) state)%type.
+Section Machine.
 
-Definition justInst {ts v tyD} (state : State (ts := ts) v tyD)
-  : instruction state -> line state
-  := fun i => (i, fun _ => True).
+  Variable ts : typeSystem.
+  Variable v  : Variables.U ts.
 
-Coercion justInst : instruction >-> line .
+  Variable tyD   : typeDenote ts.
+  Variable state : State v tyD.
 
-Instance store_interface {ts v}
-  : Interface (ltypes := ts) v
-  := {|
-      mtypes       := ts;
-      variables    := v;
-      typeCompiler := injector ts;
-      Var          := @Variables.embed ts v
-    |}.
+  Definition mline
+    := (instruction state * assertion (ts := ts) state)%type.
 
-Definition store_semantics {ts v tyD} state : Semantics v (line state)
-  := Build_Semantics _ _ (line state) _ _
-                     (Internals.denoteStmt ts _ tyD state).
+  Definition justInst
+    : instruction state -> mline
+    := fun i => (i, fun _ => True).
 
+  Coercion justInst : instruction >-> mline .
 
+  Definition store_machine
+    : mSpecs ts ts
+    := {|
+        mvariables   := v;
+        mtypeCompiler := injector ts;
+      |}.
+
+  Instance store_interface
+    : Interface (ltypes := ts) v store_machine
+    := Build_Interface _ _ _ store_machine
+                       (@Variables.embed ts v).
+
+  Definition store_semantics
+    : Semantics store_machine mline
+    := Build_Semantics _ _ store_machine
+                       mline _ _
+                       ((Internals.denoteStmt ts _ tyD state) >-> justInst)
+  .
+
+End Machine.
+
+Arguments mline {ts v tyD state}.
+Arguments store_machine [ts].
+Arguments store_interface {ts v}.
+Arguments store_semantics {ts v tyD state}.
+
+Definition AnnotatedCode (cv : Variables.U verse_type_system) tyD
+  := forall `(State verse_type_system cv tyD),
+    lines cv mline.
+(* TODO - Why does this not work without the backtick?
+          Does not work with '_ : State ..' but does with 'x : State ...'!
+*)
+
+(* Notations for annotations *)
+
+Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ _ v) (at level 50).
+(* TODO - VAL level has to be changed to be stronger than that of '='
+          and of b itvector arithmetic notations *)
+Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
+Tactic Notation "annotated_verse" uconstr(B)
+  := refine (fun _ => B : lines _ mline); repeat verse_simplify; verse_print_mesg.
+
+Notation "'ASSERT' P" := (inline (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : SPair str -> Prop)) (at level 100).
 
 (** * Language Semantics.
 
@@ -241,9 +289,9 @@ Section ForAllCxt.
   Variable tyD : typeDenote verse_type_system.
 
   Variable state : State v tyD.
-  Set Printing Implicit.
-  Definition interpret (prog : Ast.lines v (line state))
-    := linesDenote v (store_semantics state) prog.
+
+  Definition interpret (prog : Ast.lines v mline)
+    := linesDenote (store_machine v) mline store_semantics prog.
 
 End ForAllCxt.
 
