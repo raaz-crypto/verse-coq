@@ -108,24 +108,24 @@ Section VerseCode.
   Definition statement := sigT instruction.
   Definition code := list statement.
 
-  Inductive line mline `{Monoid mline} `{Interface _ v} :=
-  | instruct  : forall ty, instruction ty -> line mline
-  | inline    : mline                     -> line mline
+  Inductive line mline :=
+  | instruct  : statement -> line mline
+  | inline    : mline     -> line mline
   .
 
-  Definition lines mline `{Monoid mline} `{Interface _ v} := list (line mline).
+  Definition lines mline := list (line mline).
 
 End VerseCode.
 
 Arguments expr [ts].
 Arguments lexpr [ts].
 Arguments instruction [ts].
-Arguments instruct [ts v mline _ _ _ ty].
-Arguments inline [ts v _ _ _ _].
+Arguments instruct [ts v mline].
+Arguments inline [ts v _].
 Arguments code [ts].
 Arguments statement [ts].
-Arguments line [ts] _ _ [_ _ _].
-Arguments lines [ts] _ _ [_ _ _].
+Arguments line [ts] _ _.
+Arguments lines [ts] _ _.
 
 (**
 
@@ -370,7 +370,6 @@ Module Statement.
 End Statement.
 
 
-
 Module Code.
 
   Definition translate src tgt
@@ -402,8 +401,6 @@ Module Iterator.
       The translation of an iterator is pretty straight forward and
       results in an iterator
    *)
-
-
 
   Definition translate src tgt
              (tr : translator src tgt)
