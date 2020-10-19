@@ -80,7 +80,7 @@ transformation machine, parametrized on a variable type.
   Class State :=
     {
       str : Type;
-      val  : Store str -> forall
+      val  : forall (Str : Store str)
                      {k} {ty : type k} (var : v _ ty),
               typeTrans tyD ty : Type;
       storeUpdate
@@ -111,7 +111,7 @@ End Store.
 
 Arguments State [ts].
 Arguments str {ts v tyD State}.
-Arguments val [ts v tyD] {State _} [k ty].
+Arguments val [ts v tyD] {State Str} [k ty].
 Arguments storeUpdate [ts v tyD] {State} [k ty].
 Arguments instruction [ts v tyD].
 Arguments assertion [ts v tyD].

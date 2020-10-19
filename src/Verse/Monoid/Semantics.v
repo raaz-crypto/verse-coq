@@ -34,7 +34,7 @@ Definition codeDenote {types mtypes}
   : Ast.code (mvariables M) -> line
   := mapMconcat (denote M line sem).
 
-Definition linesDenote [types mtypes]
+Definition linesDenote types mtypes
            (M : mSpecs types mtypes)
            line `{Monoid line}
            (sem : Semantics M line)
@@ -46,3 +46,5 @@ Definition linesDenote [types mtypes]
                  | inline   i => i
                  end
        ).
+
+Arguments linesDenote [types mtypes] _ _ {_ _}.

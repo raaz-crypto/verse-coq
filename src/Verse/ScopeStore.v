@@ -10,8 +10,6 @@ Require Import Equality.
 Require Import Vector.
 Import VectorNotations.
 
-Set Implicit Arguments.
-
 Section ScopeStore.
 
   Variable ts : typeSystem.
@@ -23,12 +21,12 @@ Section ScopeStore.
 
   Definition type := typeOf ts.
 
-  Definition scstr n (sc : Scope.type ts n)
+  Definition scstr {n} (sc : Scope.type ts n)
     := Scope.allocation tyd sc.
 
   Fixpoint frmStore
-           n [sc : Scope.type ts n] (s : Store (scstr sc))
-           k [ty : type k] (x : Scope.scopeVar sc _ ty)
+           {n} {sc : Scope.type ts n} (s : Store (scstr sc))
+           {k} {ty : type k} (x : Scope.scopeVar sc _ ty)
     : tyd ty
     :=
       match x in Scope.scopeVar sc0 _ ty0 return scstr sc0
@@ -38,8 +36,8 @@ Section ScopeStore.
       end store.
 
 Fixpoint wrtStore
-         n (sc : Scope.type ts n)
-         k [ty : type k] (var : Scope.scopeVar sc _ ty)
+         {n} {sc : Scope.type ts n}
+         {k} {ty : type k} (var : Scope.scopeVar sc _ ty)
   : (tyd ty -> tyd ty) ->
     Store (scstr sc) -> Store (scstr sc) :=
   match var as var0 in Scope.scopeVar sc0 _ ty0 return
@@ -74,6 +72,11 @@ Instance scopeStore
 
 End ScopeStore.
 
+Arguments scstr [ts] _ [n] _.
+Arguments frmStore [ts tyD n sc] {_} [k ty].
+Arguments wrtStore [ts tyD n sc k ty].
+Arguments scopeStore [ts] _ [n].
+
 Require Import Vector.
 Import VectorNotations.
 Require Import Verse.Language.Types.
@@ -98,6 +101,8 @@ Section CodeGen.
 
 End CodeGen.
 
+Arguments cp [n] sc [tyD].
+
 (* Extracting Prop object from annotated code *)
 
 Ltac getProp func
@@ -106,5 +111,5 @@ Ltac getProp func
       let pvs := constr:(fst level0break) in
       let level1 := constr:(snd level0break) in
       let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (forall (st : str), snd (cp (pvs ++ lvs) _ func)
+      exact (forall (st : str), snd (cp (pvs ++ lvs) func)
                                     ({| store := st |}, {| store := st |}))).

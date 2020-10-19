@@ -320,7 +320,7 @@ Require Import Vector.
 Section ScopeVar.
   Variable ts : typeSystem.
 
-  Inductive scopeVar : forall [n] (l : type ts n), Variables.U ts :=
+  Inductive scopeVar : forall {n} (l : type ts n), Variables.U ts :=
   | headVar m (v : type ts (S m)) : scopeVar v _ (projT2 (hd v))
   | restVar m (v : type ts (S m)) k (ty : typeOf ts k) : scopeVar (tl v) _ ty
                                                          -> scopeVar v _ ty.
