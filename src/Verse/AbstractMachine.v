@@ -383,19 +383,61 @@ End WordTypeDenote.
 Require Import Verse.BitVector.
 
 (* Destruct the variable store for easier access to valuations *)
+
+Fixpoint prodn T n : Type
+  := match n with
+     | 0   => Datatypes.unit
+     | S n => (T * prodn T n)%type
+     end.
+
+Fixpoint lamn T n : (prodn T n -> Type) -> Type
+  := match n as n0 return (prodn T n0 -> Type) -> Type with
+     | 0   => fun f => forall t, f t
+     | S n => fun f => forall t : T, lamn T n (fun x => f (t, x))
+     end.
+
+Lemma forallprod T n f
+  : lamn T n f
+    ->
+    forall x : prodn T n, f x.
+  induction n.
+  easy.
+  intros.
+  pose (IHn _ (X (fst x)) (snd x)).
+  rewrite surjective_pairing.
+  exact f0.
+Qed.
+
+Ltac prodsize x :=
+  match x with
+  | (_ * ?t)%type  => let tt := prodsize t in constr:(S tt)
+  | Datatypes.unit => constr:(0)
+  end.
+
+Ltac breakStore :=
+  simpl str;
+  let n := fresh "n" in
+  match goal with
+  | |- forall _ : ?t, _ => let n := prodsize t in pose n
+  end; apply (forallprod _ n);
+  unfold lamn.
+(*
 Ltac breakStore :=
   repeat
     match goal with
     | a : _ * _ |- _ => simpl in a; destruct a
-    | |- forall _ : _, _ => intro; simpl in * |-
+    | |- forall _ : _, _ => intro; simpl in * |- ;
+                            simpl fst (* Tactic works extremely slow without this *)
     end.
-
+*)
 Ltac simplify := repeat match goal with
                         | |- forall _ : str, _ =>
                           breakStore;
                           lazy -[
-                            BVplus BVminus BVmul BVquot BVrotR BVrotL BVshiftL BVshiftR BVcomp
-                                   (*
+                            BVplus BVminus BVmul BVquot
+                            BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                            BVones BVzeros
+                            (*
                             fromNibbles
                               numBinOp numUnaryOp numBigargExop numOverflowBinop
                               Nat.add Nat.sub Nat.mul Nat.div Nat.pow
@@ -412,8 +454,8 @@ Ltac simplify := repeat match goal with
                              | H : True |- _      => clear H
                              | |- True            => constructor
                              | |- ?x = ?x         => trivial
-                             | H : True |- _      => clear H
-                             | H : unit |- _      => clear H
+                             | H : True |- _           => clear H
+                             | H : Datatypes.unit |- _ => clear H
                              end)
                         | |- forall _, _ => intro
                         | |- ?I          => unfold I
