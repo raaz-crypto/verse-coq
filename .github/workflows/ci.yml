@@ -35,7 +35,11 @@ jobs:
       - name: Coq Installation
         run: |
           opam pin add coq "$COQVER" -y
+      - name: Dune build
+        run: |
           opam install dune -y
+          eval $(opam config env)
+          dune build
       - name: Build
         run: |
           eval $(opam config env)
@@ -46,11 +50,6 @@ jobs:
           eval $(opam config env)
           coqtop --version
           make test
-      - name: Dune build
-        run: |
-          eval $(opam config env)
-          make clean
-          dune build
       - name: Documentation
         run: |
           eval $(opam config env)
