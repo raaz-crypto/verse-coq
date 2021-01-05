@@ -25,8 +25,8 @@ clean: subdirs-clean
 	rm -f Makefile.coq Makefile.coq.conf
 
 subdirs-clean:
-	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean; )
-
+	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean;)
+	$(foreach dir, ${SUBDIRS} src, rm -f `find ${dir} -name '.*.aux'`)
 
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o $@

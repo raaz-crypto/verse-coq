@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ '8.11.0', '8.10.2', '8.9.1']
+        coq: [ '8.12.2', '8.11.2', '8.10.2', '8.9.1']
     env:
       COQVER:  ${{ matrix.coq }}
     steps:
@@ -35,7 +35,11 @@ jobs:
       - name: Coq Installation
         run: |
           opam pin add coq "$COQVER" -y
-
+      - name: Dune build
+        run: |
+          opam install dune -y
+          eval $(opam config env)
+          dune build
       - name: Build
         run: |
           eval $(opam config env)
