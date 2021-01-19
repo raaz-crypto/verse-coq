@@ -252,6 +252,7 @@ Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ _ v) (at level 50).
 (* TODO - VAL level has to be changed to be stronger than that of '='
           and of b itvector arithmetic notations *)
 Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
+
 Tactic Notation "annotated_verse" uconstr(B)
   := refine (fun _ => B : lines _ mline); repeat verse_simplify; verse_print_mesg.
 
@@ -381,6 +382,7 @@ End WordTypeDenote.
 
 (** Tactics for proof goal presentation *)
 Require Import Verse.BitVector.
+Require Import Verse.BitVector.ArithRing.
 
 (* Destruct the variable store for easier access to valuations *)
 
@@ -421,22 +423,14 @@ Ltac breakStore :=
   | |- forall _ : ?t, _ => let n := prodsize t in pose n
   end; apply (forallprod _ n);
   unfold lamn.
-(*
-Ltac breakStore :=
-  repeat
-    match goal with
-    | a : _ * _ |- _ => simpl in a; destruct a
-    | |- forall _ : _, _ => intro; simpl in * |- ;
-                            simpl fst (* Tactic works extremely slow without this *)
-    end.
-*)
+
 Ltac simplify := repeat match goal with
                         | |- forall _ : str, _ =>
                           breakStore;
                           lazy -[
                             BVplus BVminus BVmul BVquot
                             BVrotR BVrotL BVshiftL BVshiftR BVcomp
-                            BVones BVzeros
+                            zero one
                             (*
                             fromNibbles
                               numBinOp numUnaryOp numBigargExop numOverflowBinop
@@ -444,7 +438,7 @@ Ltac simplify := repeat match goal with
                               N.add N.sub N.mul N.div N.div_eucl N.modulo
 
                               Ox nth replace
-                                    *)
+                             *)
                           ];
                           repeat
                             (match goal with
