@@ -4,6 +4,7 @@
  (synopsis "A EDSL to write crypto primitives")
  (modules Verse
 	  Verse.Ast
+	  Verse.AbstractMachine
 	  Verse.Error
 	  Verse.FFI.Raaz
 	  Verse.FFI.Raaz.Target.C
@@ -14,23 +15,24 @@
 	  Verse.Language.Macros.Loops
 	  Verse.Language.Pretty
 	  Verse.Language.Types
-	  Verse.Machine
 	  Verse.Machine.BitVector
 	  Verse.BitVector
 	  Verse.BitVector.Facts
 	  Verse.BitVector.ArithRing
-	  Verse.Machine.Hoare
 	  Verse.Monoid
+	  Verse.Monoid.Interface
 	  Verse.Monoid.Semantics
 	  Verse.NFacts
 	  Verse.Nibble
 	  Verse.Print
 	  Verse.Scope
+	  Verse.ScopeStore
 	  Verse.Target
 	  Verse.Target.C
 	  Verse.Target.C.Ast
 	  Verse.Target.C.CodeGen
 	  Verse.Target.C.Pretty
+	  Verse.TestCode.AnnotatedCode
 	  Verse.TypeSystem
 	  Verse.CryptoLib.blake2
 	  Verse.CryptoLib.blake2.c.portable
