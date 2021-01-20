@@ -63,6 +63,13 @@ Require Import Verse.Error.
 
 (* end hide *)
 
+Definition same ts : translator ts ts
+  := {| typeTrans  := fun _ => id;
+        constTrans := fun _ => id;
+        opTrans    := fun _ _ => id;
+        arrayCompatibility := fun _ _ _ => eq_refl
+     |}.
+
 Definition result tgt :=
   let resultType tgt k := typeOf tgt k + {TranslationError} in
   let resultArray tgt b e : resultType tgt direct -> resultType tgt memory
@@ -128,6 +135,8 @@ to be used qualified.
 
 
 (** *** The translate/compile/result functions for types. *)
+Require Import Basics.
+
 Module Types.
 
   (** The universe of types *)
@@ -142,6 +151,21 @@ Module Types.
     := translate (injector ts).
 
   Arguments inject [ts k].
+
+  Definition compose {ts0 ts1 ts2}
+                     (tr2 : translator ts1 ts2)
+                     (tr1 : translator ts0 ts1)
+    : translator ts0 ts2
+    := {|
+        typeTrans  := fun k => compose (typeTrans tr2 (k := k))
+                                       (typeTrans tr1 (k := k));
+        constTrans := fun ty => compose (constTrans tr2 (ty := typeTrans tr1 ty))
+                                        (constTrans tr1 (ty := ty));
+        opTrans    := fun ty n => compose (opTrans tr2 (arity := n))
+                                          (opTrans tr1 (arity := n));
+        arrayCompatibility := fun b e ty => eq_trans (f_equal _ (arrayCompatibility tr1 b e _))
+                                                     (arrayCompatibility tr2 b e (typeTrans tr1 ty))
+      |}.
 
   Definition compile src tgt (cr : compiler src tgt) k (ty : typeOf src k)
     : typeOf tgt k + {TranslationError}
@@ -245,6 +269,11 @@ Module Variables.
 
     Arguments coTranslate [src tgt] tr.
 
+    Inductive translate {src tgt}
+               (tr : translator src tgt)
+               (v : U src) : U tgt
+      := push k ty : v k ty -> translate tr v _ (Types.translate tr ty).
+
     (** Translation of the variable universe is contravariant and
         hence the injector naturally gives a coInject instead of
         an inject. However, like in the case of constants, we can
@@ -254,10 +283,9 @@ Module Variables.
     Definition coInject ts : U (result ts) -> U ts := coTranslate (injector ts).
     Definition inject   ts : U ts  -> U (result ts)
       := fun v k ty => match ty with
-                     | {- good -} => v k good
-                     | error _    => Empty_set
-                     end.
-
+                       | {- good -} => v k good
+                       | error _    => Empty_set
+                       end.
 
     Arguments coInject [ts].
     Arguments inject   [ts].
@@ -271,6 +299,15 @@ Module Variables.
                (v : U tgt) : U src
       := coTranslate cr (inject v).
     Arguments coCompile [src tgt].
+
+    (*
+       The use case and motivation of embed is listed in Monoid/Interface
+    *)
+    Definition embed ts : U ts -> U (result ts)
+      := fun (v : U ts) k (ty : Types.result ts k)
+         => forall {good}, ty = {- good -} -> v k good.
+
+    Arguments embed [ts] v [k] ty.
 
   End Universe.
 
@@ -308,11 +345,18 @@ Module Variables.
     trivial.
   Qed.
 
-  Definition result tgt (v : U tgt)
-             k (ty : Types.result tgt k)
-    := forall {good}, ty = {- good -} -> v k good.
+  Local Definition inleft_inj {A E} {a b : A}
+    : ({- a -} : A + {E}) = {- b -} -> a = b
+    := fun e =>
+         f_equal (fun xe : A + {E} => match xe with
+                                      | {- x -} => x
+                                      | error e => a
+                                      end) e.
 
-  Arguments result [tgt] v [k] ty.
+  Definition embed {ts} {v : U ts} {k} {ty : typeOf ts k}
+    : v k ty -> Universe.embed v (Types.inject ty)
+
+    := fun vty gd e => rew inleft_inj e in vty.
 
 End Variables.
 

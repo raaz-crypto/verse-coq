@@ -1,6 +1,7 @@
 (* begin hide *)
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
+Require Import Verse.Monoid.Interface.
 Require Import Verse.TypeSystem.
 Require Import Verse.Target.
 Require Import Verse.Target.C.Ast.
@@ -151,18 +152,8 @@ Module Config <: CONFIG.
   Definition statement   := C.Ast.statement.
   Definition programLine := Ast.line.
 
-  Definition target_specs : Specs (list C.Ast.statement + {TranslationError})
-    := {| types :=  c_type_system;
-          variables := Internals.variables
-       |}.
-
-  Notation typs := (types target_specs).
-  Notation vars := (variables target_specs).
-
-  Definition target_semantics : Semantics target_specs
-    := Build_Semantics (list C.Ast.statement + {TranslationError})
-                       _ _ target_specs
-                       Internals.trStatement.
+  Definition typs := c_type_system.
+  Definition vars := Internals.variables.
 
   Definition targetTs := TypeSystem.result typs.
   Definition trType (ty : Types.type direct) : typeOf targetTs direct
@@ -199,8 +190,16 @@ Module Config <: CONFIG.
           | _       => op
           end.
 
-  Definition typeCompiler : TypeSystem.compiler verse_type_system typs
-    := verseTranslation trType trConst trOp.
+  Definition M : mSpecs verse_type_system typs :=
+    {|
+      mvariables    := Internals.variables;
+      mtypeCompiler := verseTranslation trType trConst trOp
+    |}.
+
+  Definition target_semantics
+    : Semantics M (list C.Ast.statement + {TranslationError})
+    := Build_Semantics _ _ M (list C.Ast.statement + {TranslationError})
+                       _ _ Internals.trStatement.
 
   Definition streamOf {k}(block : type k)
     : typeOf c_type_system memory

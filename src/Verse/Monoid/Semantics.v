@@ -15,41 +15,36 @@ statement.
 
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
-Require Import Verse.Language.Types.
 Require Import Verse.Error.
-Require Verse.Ast.
+Require Import Verse.Monoid.Interface.
+Require Import Verse.Ast.
 
-Record Specs (line : Type) `{Monoid line}
+(* This single field record should possibly be removed *)
+Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
-       types        : typeSystem;
-       variables    : Variables.U types
-     }.
+       denote       : Ast.statement (mvariables M)  -> line
+    }.
 
-Arguments variables {_ _ _}.
-Arguments types {_ _ _}.
+Arguments denote [types mtypes] _ _ {_ _}.
 
-Record Semantics {line : Type} `{Monoid line} (specs : Specs line)
-  := {
-       denote       : Ast.statement (variables specs)  -> line
-     }.
+Definition codeDenote {types mtypes}
+                      (M : mSpecs types mtypes)
+                      line `{Monoid line}
+                      (sem : Semantics M line)
+  : Ast.code (mvariables M) -> line
+  := mapMconcat (denote M line sem).
 
-Arguments denote {_ _ _ _}.
+Definition linesDenote types mtypes
+           (M : mSpecs types mtypes)
+           line `{Monoid line}
+           (sem : Semantics M line)
+  : Ast.lines (mvariables M) (line)
+    -> line
+  := mapMconcat
+       (fun l => match l with
+                 | instruct i => denote M line sem i
+                 | inline   i => i
+                 end
+       ).
 
-Class Interface (v : Variables.U verse_type_system)
-                {line : Type} `{Monoid line}
-                (specs : Specs line)
-  := {
-      typeCompiler : TypeSystem.compiler verse_type_system
-                                         (types specs);
-      Var : forall {k} {ty : type k},
-          v _ ty -> Variables.result (variables specs)
-                                     (typeTrans typeCompiler ty)
-     }.
-
-Arguments typeCompiler _ {_ _ _ _}.
-Arguments Var _ {_ _ _ _}.
-
-Definition codeDenote {line} `{Monoid line} {specs : Specs line}
-           (sem : Semantics specs)
-  : Ast.code (variables specs) -> line
-  := mapMconcat (denote sem).
+Arguments linesDenote [types mtypes] _ _ {_ _}.

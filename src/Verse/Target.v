@@ -6,6 +6,7 @@ Require Import Verse.Language.Types.
 Require Import Verse.Error.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
+Require Import Verse.Monoid.Interface.
 Require Verse.Scope.
 Require Import Vector.
 Import Vector.VectorNotations.
@@ -72,16 +73,15 @@ Module Type CONFIG.
        system.
    *)
 
-  Parameter target_specs : Specs (list statement + {TranslationError}).
+  Parameter typs : typeSystem.
+  Parameter M : mSpecs verse_type_system typs.
 
-  Notation typs := (types target_specs).
-  Notation vars := (variables target_specs).
+  Notation vars := (mvariables M).
+
+  Notation typeCompiler := (mtypeCompiler M).
 
   Parameter
-    target_semantics : Semantics target_specs.
-
-  Parameter typeCompiler : TypeSystem.compiler verse_type_system
-                                               typs.
+    target_semantics : Semantics M (list statement + {TranslationError}).
 
   (**
      The compilation of verse code to the target languages then
@@ -314,7 +314,7 @@ Module CodeGen (T : CONFIG).
       := let 'Scope.body pbody := Scope.fill verse_params (func _) in
          let body := Scope.fill verse_locals pbody
          in btc <- typeCheckedTransform body ;
-              btarget <- codeDenote target_semantics btc;
+              btarget <- codeDenote M _ target_semantics btc;
               let fsig := FunSig params locals
               in {- T.makeFunction name fname fsig btarget -}.
 
@@ -364,9 +364,9 @@ Module CodeGen (T : CONFIG).
          in
          iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
            let fsig := FunSig fullParams locals in
-           pre  <- codeDenote target_semantics (Iterator.preamble iterComp);
-             middle <- codeDenote target_semantics(Iterator.loopBody iterComp);
-             post <- codeDenote target_semantics (Iterator.finalisation iterComp);
+           pre  <- codeDenote M _ target_semantics (Iterator.preamble iterComp);
+             middle <- codeDenote M _ target_semantics(Iterator.loopBody iterComp);
+             post <- codeDenote M _ target_semantics (Iterator.finalisation iterComp);
              let lp := T.mapOverBlocks streamVar middle in
              {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
@@ -378,5 +378,5 @@ Module CodeGen (T : CONFIG).
     := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
   Definition programLine := T.programLine.
-  Definition variables   := Semantics.variables target_specs.
+  Definition variables   := vars.
 End CodeGen.

@@ -106,11 +106,11 @@ refine {| unit     := @id A;
 all: simpl in *; rewrite e; trivial.
 Defined.
 *)
-
-Instance transition_setoid A : Setoid (A -> A) | 1 :=
+(*
+Instance transition_setoid A : Setoid (A -> A) | 2 :=
   {| equiv := eq |}.
-
-Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 2 :=
+*)
+Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 1 :=
   {| equiv f g := forall x, f x == g x;
      setoid_equiv := {|
                       Equivalence_Reflexive := fun f a =>
@@ -191,7 +191,7 @@ Ltac hom_crush :=
 Module End.
 
   Definition eq {T} `{Monoid T} (h1 h2 : End T)
-    := f h1 = f h2.
+    := f h1 == f h2.
 
   Definition op {T} `{Monoid T}
                   (h1 h2 : End T) : End T.
@@ -211,36 +211,69 @@ Module End.
       commute  := fun f g => reflexivity (f ** g)
     |}.
 
-  Instance end_setoid T `{Monoid T} : Setoid (End T) :=
+  Instance end_setoid T `{Monoid T} : Setoid (End T).
+  refine
   {|
     equiv := eq;
     setoid_equiv :=
       {|
-        Equivalence_Reflexive := fun x : End T => eq_refl;
+        Equivalence_Reflexive := fun x : End T => fun _ => reflexivity _;
         Equivalence_Symmetric := fun (x y : End T)
                                      (H1 : eq x y) =>
-                                   symmetry (R := Init.Logic.eq) H1;
+                                   symmetry H1;
+
         Equivalence_Transitive := fun (x y z : End T)
-                                      (H1 : f x = f y)
-                                      (H2 : f y = f z) =>
-                                    transitivity (R := Init.Logic.eq) H1 H2
+                                      (H1 : eq x y)
+                                      (H2 : eq y z) =>
+                                    transitivity H1 H2
       |}
   |}.
+  unfold Symmetric.
+  intros.
+  unfold eq in *.
+  exact (symmetry H2).
+
+  unfold Transitive.
+  intros.
+  unfold eq in *.
+  exact (transitivity H3 H4).
+  Defined.
 
   Import EqNotations.
-  Instance end_monoid T `{Monoid T} : Monoid (End T) :=
+  Instance end_monoid T `{Monoid T} : Monoid (End T).
+  refine
     {| unit           := id;
        oper           := op;
-       welldef_l      := fun x y z e => eq_ind_r (fun t : T -> T =>
+       welldef_l      := fun x y z e => _ (*eq_ind_r (fun t : T -> T =>
                                                     (fun xx : T => t (f z xx)) = (fun xx : T => f y (f z xx)))
-                                                 eq_refl e;
-       welldef_r      := fun x y z e => eq_ind_r (fun t : T -> T =>
+                                                 eq_refl e*);
+       welldef_r      := fun x y z e => _ (*eq_ind_r (fun t : T -> T =>
                                                     (fun x0 : T => f z (t x0)) = (fun x0 : T => f z (f y x0)))
-                                                 eq_refl e;
-       left_identity  := fun _ => eq_refl;
-       right_identity := fun _ => eq_refl;
-       associativity  := fun _ _ _ => eq_refl;
+                                                 eq_refl e*);
+       left_identity  := fun _ => _(*eq_refl*);
+       right_identity := fun _ => _(*eq_refl*);
+       associativity  := fun _ _ _ => _ (*eq_refl*);
     |}.
+  unfold op.
+  simpl in *.
+  unfold eq in *.
+  simpl in *.
+  now unfold compose.
+
+  unfold op.
+  simpl in *.
+  unfold eq in *.
+  simpl in *.
+  unfold compose.
+  intro.
+  now apply well_def.
+
+  now unfold op.
+
+  now unfold op.
+
+  now unfold op.
+Defined.
 
 End End.
 
@@ -454,8 +487,12 @@ Module SDP.
       apply welldef.
       trivial.
 
-      enough (f (f h (fst px)) = f (f h (fst py))).
-      now rewrite H3.
+      enough (f (f h (fst px)) == f (f h (fst py))).
+      trivial.
+
+      enough (f h (fst px) == f h (fst py)).
+      trivial.
+
       now apply (well_def h).
     Defined.
 
@@ -516,6 +553,10 @@ Module SDP.
       pose (commute (Hom := h) (a := a) (b := a0)).
       transitivity (f (f h a ** f h a0) b1).
       now simpl.
+
+      enough (f h a ** f h a0 == f h (a ** a0)).
+      trivial.
+
       now rewrite e.
     Defined.
 
@@ -534,9 +575,20 @@ Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
         associativity := SDP.associativity _ _ h
      |}.
 
-
 Definition twist {A B} `{Monoid B} (ea : A -> A) : End (A -> B).
   refine {| f        := fun m => ea >-> m;
+            well_def := _;
+            unit_map := _;
+            commute  := _
+         |}.
+  simpl in *.
+  now unfold compose.
+  reflexivity.
+  reflexivity.
+Defined.
+
+Definition halftwist {A B} `{Monoid B} (ea : A -> A) : End (A*A -> B).
+  refine {| f        := fun m => (fun aa => (fst aa, ea (snd aa))) >->  m;
             well_def := _;
             unit_map := _;
             commute  := _
@@ -553,17 +605,40 @@ refine {| f        := twist;
           unit_map := _;
           commute  := _
        |}.
-simpl.
 unfold twist.
+simpl.
 unfold End.eq.
 simpl.
 intros.
 now rewrite H1.
 
-simpl.
-unfold End.eq.
-trivial.
+easy.
+easy.
+Defined.
+
+Instance halfcomp A B `{Monoid B} : action (A -> A) (A*A -> B).
+
+refine {| f        := halftwist;
+          well_def := _;
+          unit_map := _;
+          commute  := _
+       |}.
 
 simpl.
-now unfold End.eq.
+unfold halftwist.
+unfold End.eq.
+intros.
+now rewrite H1.
+
+simpl.
+unfold End.eq.
+unfold halftwist.
+simpl.
+unfold id.
+unfold compose.
+intros.
+now rewrite <- (surjective_pairing).
+
+now unfold halftwist.
+
 Defined.
