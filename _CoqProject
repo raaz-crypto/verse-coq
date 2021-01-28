@@ -13,6 +13,7 @@ src/Verse/Language/Macros/Cache.v
 src/Verse/Language/Macros/Loops.v
 src/Verse/Language/Pretty.v
 src/Verse/Language/Types.v
+src/Verse/Monad.v
 src/Verse/Machine/BitVector.v
 src/Verse/BitVector.v
 src/Verse/BitVector/Facts.v
