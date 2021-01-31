@@ -329,7 +329,6 @@ Module Blake2 (C : CONFIG).
          parameterised by the round number.
 
      *)
-
     Section Round.
 
       Variable r : nat.
@@ -341,7 +340,7 @@ Module Blake2 (C : CONFIG).
                                 (@Vector.nth_order _ _ RoundPerms (r mod 10) _))).
       Defined.
 
-      Definition ROUND : code progvar.
+      Definition BLAKE_ROUND : code progvar.
         verse (G v0 v4 v8  v12 (M 0 _) (M 1 _) ++
                G v1 v5 v9  v13 (M 2 _) (M 3 _) ++
                G v2 v6 v10 v14 (M 4 _) (M 5 _) ++
@@ -355,7 +354,7 @@ Module Blake2 (C : CONFIG).
     End Round.
 
     (** The entire set of rounds *)
-    Definition ALL_ROUNDS := iterate ROUND.
+    Definition ALL_ROUNDS := iterate BLAKE_ROUND.
 
 
     Definition SETUP : code progvar.
