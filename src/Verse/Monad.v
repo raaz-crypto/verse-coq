@@ -88,3 +88,27 @@ Instance opt_monad : Monad option :=
                 end in
   {| pure := fun A (a : A) => Some a;
      bind := bnd |}.
+
+Lemma option_monad_laws : monad_laws opt_monad.
+Proof.
+  crush_monad_laws.
+Qed.
+
+
+(** ** Sumor type used as error. *)
+
+Definition Error {E : Prop} : Type -> Type := fun A => A + {E}.
+
+Instance error_monad (E : Prop) : Monad (Error) :=
+  let bnd  :=
+  fun A B (x : A + {E} )(f : A -> B + {E}) =>
+    match x with
+    | inleft a => f a
+    | inright e => inright e
+    end in
+  {| pure := fun A =>  @inleft A E ;
+     bind := bnd |}.
+
+Lemma error_monad_laws : forall E, monad_laws (error_monad E).
+  intros; crush_monad_laws.
+Qed.
