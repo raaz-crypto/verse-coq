@@ -14,7 +14,13 @@ Class Monad (T : Type -> Type)
 
 Arguments pure {T Monad A}.
 Arguments bind {T Monad A B}.
+
 Notation "x >>= y"   := (bind x y) (at level 58, right associativity).
+
+(** Some common helper functions. They may be given in a more general
+    context, namely functors and applicatives, but for us all of these
+    are only needed for Monads *)
+
 Section Helpers.
   Context {T}`{Monad T}{A B C: Type}.
 
@@ -72,6 +78,7 @@ Ltac crush_monad_laws :=
   | _ => trivial
   end.
 
+(** Some common instances. *)
 
 Instance opt_monad : Monad option :=
   let bnd  := fun A B (x : option A)(f : A -> option B) =>
