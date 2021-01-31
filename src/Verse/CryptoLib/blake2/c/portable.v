@@ -332,7 +332,6 @@ Module Blake2 (C : CONFIG).
     Section Round.
 
       Variable r : nat.
-      Variable rBondPf : r < ROUNDS.
 
       (** The register cache corresponding to the permuted message *)
       Definition M : VarIndex progvar BLOCK_SIZE Word.
@@ -354,7 +353,7 @@ Module Blake2 (C : CONFIG).
     End Round.
 
     (** The entire set of rounds *)
-    Definition ALL_ROUNDS := iterate BLAKE_ROUND.
+    Definition ALL_ROUNDS := iterate (fun r (_ : r < ROUNDS) => BLAKE_ROUND r).
 
 
     Definition SETUP : code progvar.
