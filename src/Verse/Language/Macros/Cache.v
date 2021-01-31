@@ -5,7 +5,8 @@ Require Import Verse.TypeSystem.
 Require        Verse.Language.Pretty.
 Require Import Verse.Language.Macros.Loops.
 Require Import List.
-Require Import Omega.
+Require Import Psatz.
+Require Import Arith.
 Import ListNotations.
 
 (*
@@ -171,6 +172,7 @@ Import Vector.VectorNotations.
    of indices that can be used to index arrays and caches.
  *)
 
+
 Fixpoint makeIndices (b n : nat)(l : Vector.t nat n)
   : Vector.t {i : nat | i < b } n + {exists i, Vector.In i l /\ ~ (i < b) }.
   Hint Constructors Vector.In.
@@ -184,6 +186,7 @@ Fixpoint makeIndices (b n : nat)(l : Vector.t nat n)
             end
           end); eauto. destruct err. intuition. eauto.
 Defined.
+
 
 Require Import Verse.Error.
 
@@ -214,6 +217,6 @@ Global Hint Constructors Vector.In.
 Global Tactic Notation "crush_permutation_obligation" integer(B) :=
       intros;
       repeat match goal with
-             | [ H : _ <= _ |- _ ] => contradict H; omega
+             | [ H : _ <= _ |- _ ] => contradict H; lia
              | [ n : nat    |- _ ] => destruct n; eauto B
              end.

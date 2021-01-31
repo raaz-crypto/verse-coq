@@ -274,14 +274,14 @@ Global Hint Resolve PeanoNat.Nat.mod_upper_bound.
 (* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
 
  *)
-Require Import Omega.
+Require Import Psatz.
 
 Ltac verse_simplify := match goal with
                        | [ H : ?T |- ?T ]     => exact H
                        | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
                        | [ |- ?A mod ?B < ?B ] => apply (PeanoNat.Nat.mod_upper_bound A B)
-                       | [ |- _ <= ?T         ] => compute; omega
-                       | [ |- _ < ?T         ] => compute; omega
+                       | [ |- _ <= ?T         ] => compute; lia
+                       | [ |- _ < ?T         ] => compute; lia
                        end.
 
 
