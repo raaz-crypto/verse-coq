@@ -61,7 +61,7 @@ Module Internals.
      generates declaration for the associated pointer and the counter
      variables *)
 
-  Fixpoint decl {k}{ty} : variables k ty ->  list declaration
+  Definition decl {k}{ty} : variables k ty ->  list declaration
    := match ty with
       | ptrToArray _ _
         => fun u => [ declare (ty:=ty)       (blockPtr u);
