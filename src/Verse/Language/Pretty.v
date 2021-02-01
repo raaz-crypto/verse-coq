@@ -201,7 +201,7 @@ Infix "AND"         := (binOpApp bitAnd)         (at level 56, left associativit
 Infix "⊕"           := (binOpApp bitXor)         (at level 57, left associativity) : verse_scope.
 Infix "XOR"         := (binOpApp bitXor)
                          (at level 57, left associativity, only parsing) : verse_scope.
-Infix "OR"          := (binOpApp bitOr)          (at level 58, left associativity) : verse_scope.
+Infix "OR"          := (binOpApp bitOr)          (at level 59, left associativity) : verse_scope.
 
 Infix "::="   := assignStmt           (at level 70) : verse_scope.
 Infix "<-"     := moveStmt             (at level 70) : verse_scope.

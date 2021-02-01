@@ -184,9 +184,9 @@ Module ConversionToString.
 
   Fixpoint fromString (n : nat)(s : string) : Vector.t Nibble n + {EncodeError} :=
     match s,n with
-    | String x xs, (S m) => h <- fromChar x;
-                             hs <- fromString m xs;
-                             {- h :: hs -}
+    | String x xs, (S m) => do h <- fromChar x ;;
+                              do hs <- fromString m xs ;;
+                                 {- h :: hs -}
 
     | String _ _, 0      => error TooFewDigits
     | EmptyString, (S _) => error TooManyDigits
@@ -212,5 +212,6 @@ End ConversionToString.
 (* end hide *)
 
 Definition Ox s := let t := ConversionToString.trim_separators s in
-                   recover (nibs <- ConversionToString.fromString (String.length t) t;
-                              {- toBv nibs -}).
+                   recover (do nibs <- ConversionToString.fromString (String.length t) t ;;
+                               {- toBv nibs -}
+                           ).

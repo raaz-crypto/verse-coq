@@ -447,10 +447,11 @@ Module Iterator.
              (pf : Types.compile cr memty = {- good -})
              (x  : v memory good)
     : compiled tgt v + {TranslationError}
-    := (stup <- Code.compile cr (setup itr);
-        fnls <- Code.compile cr (finalise itr);
-        prcs <- Code.compile cr (process itr (rew <- pf in Variables.inject x));
-        inleft {| preamble := stup;  loopBody := prcs; finalisation := fnls |}).
+    := (do stup <- Code.compile cr (setup itr) ;;
+        do fnls <- Code.compile cr (finalise itr) ;;
+        do prcs <- Code.compile cr (process itr (rew <- pf in Variables.inject x)) ;;
+           pure {| preamble := stup;  loopBody := prcs; finalisation := fnls |}
+       ).
 
   Arguments compile [src tgt] cr [v memty] itr [good].
 
