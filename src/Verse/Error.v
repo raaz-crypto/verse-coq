@@ -1,4 +1,3 @@
-
 (** * Representing Erros.
 
     We use the sumor type to represent constructs in the verse
@@ -7,36 +6,13 @@ notation for it for ease of use in the rest of the program.
 
 *)
 
-
+Require Export Verse.Monad.
 Global Notation "{- A -}" := (inleft A).
 Global Notation "'error' A" := (inright A) (at level 40).
 
 Section Error.
   Variable A   : Type.
   Variable Err : Prop.
-
-  Section Apply.
-    Variable B   :  Type.
-    Definition ap (f : A -> B) (y : A + {Err}) :=
-      match y with
-      | {- a -}    => {- f a -}
-      | inright err  => inright err
-      end.
-
-    Definition apA (f : (A -> B) + {Err})(x : A + {Err}) :  B + {Err} :=
-      match f, x with
-      | {- f -} , {- x -}  => {- f x -}
-      | inright e, _         => inright e
-      | _        , inright e => inright e
-      end.
-
-    Definition bind (x : A + {Err})(f : A -> B + {Err}) : B + {Err} :=
-      match x with
-      | {- a -} => f a
-      | inright e => inright e
-      end.
-
-  End Apply.
 
   Definition TypeE := Type + {Err}.
 
@@ -47,7 +23,7 @@ Section Error.
     end.
 
   Definition lift (fam : A -> Type) : A + {Err} -> Type
-    := fun ae => inject (ap Type fam ae).
+    := fun ae => inject (fam <$> ae).
 
   Section DependentApply.
 
@@ -116,46 +92,6 @@ Notation "'unable' 'to' 'translate' X 'because,' E"
          format "'[v   ' 'unable'  'to'  'translate'  X  'because,' '/' E ']'"
        ).
 
-(*
-Section Extract.
-
-  Variable T : Type.
-  Variable E : Prop.
-
-  Definition noErr (x : T + {E}) : Prop := exists t : T, x = inleft t.
-
-  Definition isErr (x : T + {E}) : { noErr x } + { ~ noErr x }.
-    refine (match x as y return x = y -> {noErr x} + {~ noErr x} with
-            | {- t -} => fun p => left (ex_intro _ t p)
-            | error e => fun p => right _
-            end eq_refl).
-    destruct 1 as [y H]. rewrite p in H. discriminate H.
-  Defined.
-
-  Definition getT (x : T + {E}) (p : noErr x) : T.
-    refine (match x as y return noErr y -> T with
-            | {- t -} => fun _ => t
-            | error e => _
-            end p).
-    unfold noErr.
-    intro H; contradict H;
-      destruct 1; discriminate.
-  Defined.
-
-  Lemma getTgetsT (x : T + {E}) (p : noErr x) : x = {- getT x p -}.
-    destruct p.
-    rewrite e.
-    trivial.
-  Defined.
-
-  Lemma getTunique (x : T + {E}) (p1 p2 : noErr x) : getT x p1 = getT x p2.
-    destruct (x).
-    simpl; trivial.
-    contradict p1; destruct 1; discriminate.
-  Defined.
-
-End Extract.
-*)
 
 Class Castable (E1 E2 : Prop) := { cast : E1 -> E2 }.
 
@@ -217,16 +153,8 @@ End Conditionals.
 
 Arguments when [A P] _ _.
 Arguments unless [A P] _ _.
-Arguments ap [A Err B] _ _.
 Arguments apD [A Err fam].
-Arguments apA [A Err B] _ _.
 Arguments recover [A Err] _.
-Arguments bind [A Err B] _ _.
-(* Haskell like applicative notation for errors *)
-Global Notation "F <$> A" := (ap  F A) (at level 40, left associativity).
-Global Notation "F <*> A" := (apA F A) (at level 40, left associativity).
-Global Notation "X <- A ; B" := (bind A (fun X => B))(at level 81, right associativity, only parsing).
-Global Notation "X *<- A ; B" := (bind (liftErr A) (fun X => B))(at level 81, right associativity, only parsing).
 
 Require Import List.
 Import ListNotations.
@@ -250,7 +178,7 @@ Section PullOut.
     match lerr with
     | [] => {- [] -}
     | error err :: _  => inright err
-    | {- x -}   :: xs => res <- pullOutList xs; {- x :: res -}
+    | {- x -}   :: xs => do res <- pullOutList xs;; {- x :: res -}
     end%list.
 
   Definition pullOutSigT {P : A -> Type} (serr : sigT (fun A => P A + {Err})) : sigT P + {Err}
