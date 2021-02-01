@@ -73,7 +73,7 @@ Definition same ts : translator ts ts
 Definition result tgt :=
   let resultType tgt k := typeOf tgt k + {TranslationError} in
   let resultArray tgt b e : resultType tgt direct -> resultType tgt memory
-      := ap (arrayType tgt b e) in
+      := fmap (arrayType tgt b e) in
   let resultConst tgt  (ty : resultType tgt direct) :=
       match ty with
       | {- tyC -} => constOf tgt tyC

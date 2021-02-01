@@ -313,10 +313,10 @@ Module CodeGen (T : CONFIG).
       : T.programLine + { TranslationError }
       := let 'Scope.body pbody := Scope.fill verse_params (func _) in
          let body := Scope.fill verse_locals pbody
-         in btc <- typeCheckedTransform body ;
-              btarget <- codeDenote M _ target_semantics btc;
-              let fsig := FunSig params locals
-              in {- T.makeFunction name fname fsig btarget -}.
+         in do btc     <- typeCheckedTransform body ;;
+            do btarget <- codeDenote M _ target_semantics btc ;;
+               let fsig := FunSig params locals
+               in {- T.makeFunction name fname fsig btarget -}.
 
 
 
@@ -361,14 +361,13 @@ Module CodeGen (T : CONFIG).
       : T.programLine + {TranslationError}
       := let 'Scope.body piter := Scope.fill verse_params (iFunc _) in
          let iter    := Scope.fill verse_locals piter
-         in
-         iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar;
-           let fsig := FunSig fullParams locals in
-           pre  <- codeDenote M _ target_semantics (Iterator.preamble iterComp);
-             middle <- codeDenote M _ target_semantics(Iterator.loopBody iterComp);
-             post <- codeDenote M _ target_semantics (Iterator.finalisation iterComp);
-             let lp := T.mapOverBlocks streamVar middle in
-             {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
+         in do iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar ;;
+               let fsig := FunSig fullParams locals
+                 in do pre    <- codeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;
+                    do middle <- codeDenote M _ target_semantics(Iterator.loopBody iterComp)      ;;
+                    do post   <- codeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
+                       let lp := T.mapOverBlocks streamVar middle in
+                       {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
   End Shenanigans.
 
   Arguments function [name] _
