@@ -57,27 +57,25 @@ Section Embedding.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
-  Class EXPR  t := { toExpr  : t -> expr v ty }.
+  Class EXPR  t := toExpr  : t -> expr v ty.
 
 
   (** *** Instances of [EXPR]
    *)
 
-  Global Instance expr_to_expr   : EXPR (expr  v ty)  := { toExpr := fun t => t}.
-  Global Instance v_to_exp       : EXPR (v ty)        := { toExpr := fun x => valueOf (var x)}.
-  Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := { toExpr := fun x => valueOf x}.
-  Global Instance const_to_expr  : EXPR (const ty)    := { toExpr := fun c => cval c }.
-  Global Instance nat_to_exp     : EXPR nat
-  := { toExpr := fun n => cval (natToConst ty n)}.
+  Global Instance expr_to_expr   : EXPR (expr  v ty)  := @id _.
+  Global Instance v_to_exp       : EXPR (v ty)        := fun x => valueOf (var x).
+  Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := valueOf (ty:=ty).
+  Global Instance const_to_expr  : EXPR (const ty)    := cval (ty:=ty).
+  Global Instance nat_to_exp     : EXPR nat := fun n => cval (natToConst ty n).
 
-  Global Instance N_to_exp       : EXPR N
-  := { toExpr := fun n => cval (NToConst ty n)}.
+  Global Instance N_to_exp       : EXPR N := fun n => cval (NToConst ty n).
 
   (** Class similar to [EXPR] but creates l-expressions *)
-  Class LEXPR t := { toLexpr : t -> lexpr v ty }.
+  Class LEXPR t := toLexpr : t -> lexpr v ty.
 
-  Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := { toLexpr := fun t => t}.
-  Global Instance v_to_lexp      : LEXPR (v ty)       := { toLexpr := fun x => var x }.
+  Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := @id _.
+  Global Instance v_to_lexp      : LEXPR (v ty)       := var (ty:=ty).
 
 
 
@@ -154,18 +152,18 @@ give
 *)
 
 Class INDEXING (Ix : Set)(result : Type) t
-  := { idx : t -> Ix  -> result }.
+  := idx : t -> Ix  -> result.
 
-Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < b -> t) :=
-  { idx := fun f ix => match ix with
-                   | @exist _ _ i pf => f i pf
-                   end
-  }.
+Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < b -> t)
+  := fun f ix => match ix with
+              | @exist _ _ i pf => f i pf
+              end.
+
 
 Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v ty)
                                             (v memory (array b e ty))
-  := { idx := fun a ix =>  deref a ix }.
+  := fun a ix =>  deref a ix.
 
 
 
