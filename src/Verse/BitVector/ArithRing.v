@@ -167,12 +167,11 @@ Definition bit_arithm_ring sz
 
 
 
-(** * TODO: Add a ring morphism from Z to the bitvector ring *)
+(** * TODO: Add a ring morphism from Z to the bitvector ring
 
 Require Import ZArith.
 Require Zdigits.
 
-(*
 Require ZArith.Zdigits.
 Program Definition bit_arithm_morph sz
   : ring_morph
