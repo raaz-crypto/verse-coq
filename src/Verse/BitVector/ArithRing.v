@@ -137,11 +137,6 @@ Definition bit_arithm_ring sz
 
 (* TODO: Add a ring morphism from Z to the bitvector ring *)
 
-Print ring_morph.
-Require Import ZArith.
-Require Zdigits.
-Search ( Z -> _ ).
-
 (*
 Program Definition bit_arithm_morph sz
   : ring_morph
