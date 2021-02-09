@@ -42,6 +42,7 @@
 	  Verse.CryptoLib.blake2s.c.portable
 	  Verse.CryptoLib.chacha20.common
 	  Verse.CryptoLib.chacha20.c.portable
+	  Verse.CryptoLib.Polynomial
 	  Verse.CryptoLib.poly1305.c.portable
 	  Verse.CryptoLib.sha2
 	  Verse.CryptoLib.sha2.c.portable

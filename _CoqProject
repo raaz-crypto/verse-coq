@@ -46,6 +46,7 @@ src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/portable.v
 src/Verse/CryptoLib/curve25519/c/portable.v
 src/Verse/CryptoLib/poly1305/c/portable.v
+src/Verse/CryptoLib/Polynomial.v
 src/Verse/CryptoLib/sha2.v
 src/Verse/CryptoLib/sha2/c/portable.v
 # src/Verse/CryptoLib/sha2/c/portableAlternate.v
