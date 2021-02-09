@@ -107,6 +107,13 @@ Proof.
     trivial; arithm_crush.
 Qed.
 
+Lemma BVeqb_eq : forall sz (v1 v2 : Bvector sz), (v1 =? v2)%bitvector = true -> v1 = v2.
+  unfold bveq.
+  unfold BVeq.
+  apply VectorEq.eqb_eq.
+  exact eqb_true_iff.
+Qed.
+
 Definition bit_arithm_ring sz
   : ring_theory
       zero
@@ -129,6 +136,41 @@ Definition bit_arithm_ring sz
     |}.
 
 (* TODO: Add a ring morphism from Z to the bitvector ring *)
+
+Print ring_morph.
+Require Import ZArith.
+Require Zdigits.
+Search ( Z -> _ ).
+
+(*
+Program Definition bit_arithm_morph sz
+  : ring_morph
+      zero one
+      (@BVplus (S sz))
+      (@BVmul  (S sz))
+      (@BVminus (S sz))
+      (@BVnegative (S sz))
+      (@eq (Bvector (S sz)))
+      0%Z
+      1%Z
+      Z.add
+      Z.mul
+      Z.sub
+      Z.opp
+      Z.eqb
+      (Zdigits.Z_to_two_compl sz) :=
+  {| morph0 := _;
+     morph1 := _;
+     morph_add := _;
+     morph_sub := _;
+     morph_mul := _;
+     morph_opp := _;
+     morph_eq := _
+  |}.
+Obligation 1.
+*)
+
+
 
 (** Here is how you use the ring tactic with bitvector.
 
