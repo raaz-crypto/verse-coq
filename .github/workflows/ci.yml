@@ -9,7 +9,7 @@ on:
 jobs:
   linux:
     name: 'Linux'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
         coq: [ 'latest', '8.13.2', '8.12.2', '8.11.2', '8.10.2' ]
