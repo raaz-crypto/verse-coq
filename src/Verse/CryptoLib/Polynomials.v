@@ -123,6 +123,16 @@ Section Spec.
     rewrite <- IHp. easy.
   Qed.
 
+
+  Lemma xpownTimes_eval : forall n (p : poly nat), eval eta (xpownTimes n p) = eta^n  * eval eta p.
+    intros.
+    induction p.
+    - simpl; specialise_nat_ring.
+    - destruct a; simpl; rewrite IHp; repeat (rewrite power_lemma);
+      rewrite Nat.pow_add_r;
+      specialise_nat_ring.
+  Qed.
+
   Lemma mulTT_spec : forall t1 t2, evalT eta (mulTT t1 t2) = evalT eta t1 * evalT eta t2.
     intros; destruct t1; destruct t2; simpl.
     repeat rewrite power_lemma.
