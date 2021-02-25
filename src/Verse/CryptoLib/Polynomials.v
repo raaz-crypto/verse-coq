@@ -100,14 +100,17 @@ Instance nat_mul : Semi_Ring_Mul nat := Nat.mul.
 Instance nat_eq  : Semi_Ring_Eq nat  := eq.
 Instance nat_semi_ring : Semi_Ring nat  := {}.
 
+Ltac specialise_to_nat :=
+  repeat (unfold semi_ring_add; unfold semi_ring_mul;
+          unfold semi_ring_zero; unfold semi_ring_one;
+          unfold nat_add; unfold nat_mul; unfold nat_zero; unfold nat_one).
+
+Ltac specialise_nat_ring:=
+  specialise_to_nat; ring.
+
 Section Spec.
   Context {eta : nat}.
 
-  Ltac specialise_to_nat :=
-    repeat (unfold semi_ring_add; unfold semi_ring_mul; unfold nat_add; unfold nat_mul).
-
-  Ltac specialise_nat_ring:=
-     specialise_to_nat; ring.
 
   Lemma add_spec : forall (p1 p2 : poly nat), eval eta p1 + eval eta p2 = eval eta (add p1 p2).
     intros.
