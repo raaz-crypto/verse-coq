@@ -7,6 +7,9 @@ Require Import BinNat.
 
 Definition term A          := (A * nat)%type.
 Definition poly (A : Type) := list (term A).
+Definition xpownTimes {A} (n : nat) : poly A -> poly A :=
+  let mapper (tm : A * nat) := let (coef, i) := tm in (coef, i + n)
+  in List.map mapper.
 
 (**
 
