@@ -108,55 +108,70 @@ Ltac specialise_to_nat :=
 Ltac specialise_nat_ring:=
   specialise_to_nat; ring.
 
+Create HintDb poly.
+Ltac crush_poly := repeat (simpl;
+                           trivial; try (autorewrite with poly);
+                           try (specialise_nat_ring); eauto;
+                           match goal with
+                           | [ a : term _ |- _ ] => destruct a
+                           | _ => idtac
+                           end).
+
+Ltac induct_on ply :=
+  let term := fresh "term" in
+  let p    := fresh "p" in
+  let IHp  := fresh "IHp" in
+  induction ply as [|term p IHp]; crush_poly.
+
 Section Spec.
-  Context {eta : nat}.
+  Context (eta : nat).
 
 
-  Lemma add_spec : forall (p1 p2 : poly nat), eval eta p1 + eval eta p2 = eval eta (add p1 p2).
+  Lemma add_spec : forall (p1 p2 : poly nat),  eval eta (add p1 p2) = eval eta p1 + eval eta p2.
     intros.
-    induction p1; simpl; trivial.
-    rewrite <- IHp1.
-    specialise_nat_ring.
+    induct_on p1; rewrite IHp.
+    crush_poly.
   Qed.
+
+  Hint Rewrite add_spec : poly.
 
   Lemma power_lemma : forall (x : nat)(p : nat), pow x p = x ^ p.
   Proof using Type.
     intros.
-    induction p; simpl; trivial.
-    rewrite <- IHp. easy.
+    induction p;
+    crush_poly.
   Qed.
 
+
+  Hint Rewrite Nat.pow_add_r power_lemma : poly.
 
   Lemma xpownTimes_eval : forall n (p : poly nat), eval eta (xpownTimes n p) = eta^n  * eval eta p.
     intros.
-    induction p.
-    - simpl; specialise_nat_ring.
-    - destruct a; simpl; rewrite IHp; repeat (rewrite power_lemma);
-      rewrite Nat.pow_add_r;
-      specialise_nat_ring.
+    induct_on p.
+    rewrite IHp.
+    crush_poly.
   Qed.
+
 
   Lemma mulTT_spec : forall t1 t2, evalT eta (mulTT t1 t2) = evalT eta t1 * evalT eta t2.
-    intros; destruct t1; destruct t2; simpl.
-    repeat rewrite power_lemma.
-    rewrite Nat.pow_add_r.
-    specialise_nat_ring.
+    intros; crush_poly.
   Qed.
 
+  Hint Rewrite mulTT_spec : poly .
   Lemma mulTP_spec : forall tm p, eval eta (mulTP tm p) = evalT eta tm * eval eta p.
     intros.
-    induction p; simpl; trivial.
-    rewrite IHp.
-    rewrite (mulTT_spec).
-    specialise_nat_ring.
+    induct_on p.
+    rewrite IHp. crush_poly.
   Qed.
 
+  Hint Rewrite mulTP_spec : poly.
+
   Lemma mul_spec : forall p1 p2, eval eta (mul p1 p2) = eval eta p1 * eval eta p2.
-    intros.
-    induction p1; simpl; trivial.
-    rewrite <- add_spec.
-    rewrite mulTP_spec.
-    rewrite IHp1.
-    specialise_nat_ring.
+    intros;
+    induct_on p1;
+    rewrite IHp;
+    crush_poly.
   Qed.
 End Spec.
+
+Hint Rewrite mul_spec add_spec power_lemma xpownTimes_eval : poly.
