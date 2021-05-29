@@ -43,6 +43,7 @@ src/Verse/CryptoLib/blake2b/c/portable.v
 src/Verse/CryptoLib/blake2s/c/portable.v
 src/Verse/CryptoLib/chacha20/common.v
 src/Verse/CryptoLib/chacha20/c/portable.v
+src/Verse/CryptoLib/curve25519/c/portable.v
 src/Verse/CryptoLib/poly1305/c/portable.v
 src/Verse/CryptoLib/sha2.v
 src/Verse/CryptoLib/sha2/c/portable.v
@@ -50,6 +51,7 @@ src/Verse/CryptoLib/sha2/c/portable.v
 # src/Verse/CryptoLib/sha2/c/portableAnnotated.v
 src/Verse/CryptoLib/sha256/c/portable.v
 src/Verse/CryptoLib/sha512/c/portable.v
+
 
 # src/Verse/Word.v
 # src/Verse/CoLoR_VecUtil.v
