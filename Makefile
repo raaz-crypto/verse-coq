@@ -31,7 +31,7 @@ subdirs-clean:
 Makefile.coq: _CoqProject
 	coq_makefile -f _CoqProject -o $@
 
-_CoqProject:;
+Makefile _CoqProject:;
 
 
 ## All other targets come form what is generated via coq_makefile.

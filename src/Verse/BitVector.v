@@ -11,6 +11,7 @@ Require Import NArith.
 Require Import Nat.
 
 Declare Scope bitvector_scope.
+Delimit Scope bitvector_scope with bitvector.
 
 Arguments Bv2N [n].
 
@@ -145,6 +146,10 @@ Definition of_nat {sz} : nat -> Bvector sz :=  fun n => N2Bv_sized sz (N.of_nat 
 Definition to_nat {sz} : Bvector sz -> nat := fun vec => N.to_nat (to_N vec).
  *)
 
+Definition bveq {sz}(v1 v2 : Bvector sz) := BVeq sz sz v1 v2.
+
+
+
 (** * Notations for bitvector operations
 
 These pretty printing only notations are used primarily so that the
@@ -176,5 +181,5 @@ Infix "+" := (BVplus)  (only printing) : bitvector_scope.
 Infix "*" := (BVmul)   (only printing) : bitvector_scope.
 Infix "-" := (BVminus) (only printing) : bitvector_scope.
 Infix "/" := (BVquot)  (only printing) : bitvector_scope.
-
+Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* end hide *)

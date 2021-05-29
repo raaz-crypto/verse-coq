@@ -35,12 +35,14 @@
 	  Verse.Target.C.Pretty
 	  Verse.TestCode.AnnotatedCode
 	  Verse.TypeSystem
+	  Verse.Zmod
 	  Verse.CryptoLib.blake2
 	  Verse.CryptoLib.blake2.c.portable
 	  Verse.CryptoLib.blake2b.c.portable
 	  Verse.CryptoLib.blake2s.c.portable
 	  Verse.CryptoLib.chacha20.common
 	  Verse.CryptoLib.chacha20.c.portable
+	  Verse.CryptoLib.Polynomials
 	  Verse.CryptoLib.poly1305.c.portable
 	  Verse.CryptoLib.sha2
 	  Verse.CryptoLib.sha2.c.portable
