@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ '8.12.2', '8.11.2', '8.10.2' ]
+        coq: [ 'latest', '8.12.2', '8.11.2', '8.10.2' ]
     env:
       COQVER:  ${{ matrix.coq }}
     steps:
@@ -20,14 +20,19 @@ jobs:
       - uses: coq-community/docker-coq-action@v1
         with:
           custom_script: |
+            {{install}}
             {{before_script}}
             {{script}}
-
+          install: |
+            startGroup "Install"
+              sudo apt-get update -y
+              sudo apt-get install m4 indent dune texlive texlive-latex-extra -y
+              sudo chown -R coq:coq .
+            endGroup
           before_script: |
             startGroup "Getting the pre-req"
-              sudo apt-get update -y
-              sudo apt-get install m4 indent texlive texlive-latex-extra -y
-              sudo chown -R coq:coq .
+              coqtop -v
+              dune --version
             endGroup
           script: |
             startGroup "making library and docs"
