@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ 'latest', '8.12.2', '8.11.2', '8.10.2' ]
+        coq: [ 'latest', '8.13.2', '8.12.2', '8.11.2', '8.10.2' ]
     env:
       COQVER:  ${{ matrix.coq }}
     steps:
@@ -30,12 +30,13 @@ jobs:
               sudo chown -R coq:coq .
             endGroup
           before_script: |
-            startGroup "Getting the pre-req"
+            startGroup "Information on Coq and Dune"
               coqtop -v
               dune --version
             endGroup
           script: |
             startGroup "making library and docs"
+               dune build
                make
                make -C test
                make html
