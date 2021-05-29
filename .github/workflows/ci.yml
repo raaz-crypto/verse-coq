@@ -16,43 +16,22 @@ jobs:
     env:
       COQVER:  ${{ matrix.coq }}
     steps:
-      - name: Get the Repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+      - uses: coq-community/docker-coq-action@v1
+        with:
+          custom_script: |
+            {{before_script}}
+            {{script}}
 
-      - name: Setup
-        run: |
-          sudo apt-get update
-          sudo apt-get install ocaml m4 -y
-          sudo add-apt-repository ppa:avsm/ppa -y
-          sudo apt-get update -y
-          sudo apt-get install opam indent texlive texlive-latex-extra -y
-
-      - name: Opam Setup
-        run: |
-          opam --version
-          opam init -y
-
-      - name: Coq Installation
-        run: |
-          opam pin add coq "$COQVER" -y
-      - name: Dune build
-        run: |
-          opam install dune -y
-          eval $(opam config env)
-          dune build
-      - name: Build
-        run: |
-          eval $(opam config env)
-          coqtop --version
-          make all
-      - name: Test
-        run: |
-          eval $(opam config env)
-          coqtop --version
-          make test
-      - name: Documentation
-        run: |
-          eval $(opam config env)
-          coqtop --version
-          make html
-          make all.pdf
+          before_script: |
+            startGroup "Getting the pre-req"
+              sudo apt-get update -y
+              sudo apt-get install m4 indent texlive texlive-latex-extra -y
+            endGroup
+          script: |
+            startGroup "making library and docs"
+               make
+               make -C test
+               make html
+               make all.pdf
+            endGroup
