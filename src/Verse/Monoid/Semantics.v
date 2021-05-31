@@ -32,7 +32,7 @@ Definition codeDenote {types mtypes}
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
-  := mapMconcat (denote M line sem).
+  := mapMconcat unit (denote M line sem).
 
 Definition linesDenote types mtypes
            (M : mSpecs types mtypes)
@@ -40,7 +40,7 @@ Definition linesDenote types mtypes
            (sem : Semantics M line)
   : Ast.lines (mvariables M) (line)
     -> line
-  := mapMconcat
+  := mapMconcat unit
        (fun l => match l with
                  | instruct i => denote M line sem i
                  | inline   i => i
