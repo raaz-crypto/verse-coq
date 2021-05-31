@@ -49,10 +49,16 @@ Section Scoped.
    *)
 
   Fixpoint scoped {n} (st : type n)(CODE : Type) : Type :=
+    match n as n0 return type n0 -> Type with
+    | 0       => fun _  => CODE
+    | S n0    => fun v0 => qualified v (Vector.hd v0) -> scoped (Vector.tl v0) CODE
+    end st.
+  (* This alternate definition does not interact well with destructing scopes later
     match st with
     | []      => CODE
     | s :: lt => qualified v s -> scoped lt CODE
     end.
+   *)
 
   (** An allocation that can be used to satisfy a scoped object of
       [scopeType], [st].
