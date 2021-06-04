@@ -1,6 +1,7 @@
 -R src Verse
 src/Verse.v
 src/Verse/AbstractMachine.v
+src/Verse/AnnotatedCode.v
 src/Verse/TestCode/AnnotatedCode.v
 src/Verse/Ast.v
 src/Verse/Error.v
