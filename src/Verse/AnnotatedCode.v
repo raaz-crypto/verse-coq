@@ -111,11 +111,11 @@ Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (at level 70) : annota
 
 Global Notation "X < R > Y" := (rel R X Y) (at level 99) : annotation_scope.
 Global Infix "AND" := and (at level 56, left associativity) : annotation_scope.
-Global Infix "OR"  := or  (at level 58, left associativity) : annotation_scope.
+Global Infix "OR"  := or  (at level 59, left associativity) : annotation_scope.
 
-Notation "'CODE' l" := (List.map (@inst _ _ _) l) (at level 59).
+Notation "'CODE' l" := (List.map (@inst _ _ _) l) (at level 60).
 Notation "'ANNOT' a" := (List.map (@annot _ _ _) a)
-                             (at level 59).
+                             (at level 60).
 
 Arguments NEW [v k ty].
 Arguments OLD [v k ty].
