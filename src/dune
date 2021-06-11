@@ -5,6 +5,7 @@
  (modules Verse
 	  Verse.Ast
 	  Verse.AbstractMachine
+	  Verse.AnnotatedCode
 	  Verse.Error
 	  Verse.FFI.Raaz
 	  Verse.FFI.Raaz.Target.C
