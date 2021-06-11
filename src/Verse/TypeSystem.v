@@ -305,7 +305,7 @@ Module Variables.
     *)
     Definition embed ts : U ts -> U (result ts)
       := fun (v : U ts) k (ty : Types.result ts k)
-         => forall {good}, ty = {- good -} -> v k good.
+         => forall good, ty = {- good -} -> v k good.
 
     Arguments embed [ts] v [k] ty.
 
