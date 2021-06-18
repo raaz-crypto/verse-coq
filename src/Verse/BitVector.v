@@ -150,20 +150,43 @@ Definition bveq {sz}(v1 v2 : Bvector sz) := BVeq sz sz v1 v2.
 
 
 
+
 (** * Notations for bitvector operations
 
-These pretty printing only notations are used primarily so that the
-proof obligations turn out to be beautiful. They are not meant for
-input.
+We define instances for Algebraic syntax for bitvector. This gives
+pretty arithmetic operations for bitvectors.
+
+The bitwise operations are given unicode syntax and are used primarily
+so that the proof obligations turn out to readable. They are not meant
+for input.
 
 TODO: Note that we have hidden the notation that uses unicode so that
 coqdoc's pdf generation does not get stuck.
 
 *)
 
-
 (* begin hide *)
+Require Export setoid_ring.Algebra_syntax.
 
+Instance zero_Bvector sz : Zero (Bvector sz)     := @Bvect_false sz.
+Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
+Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
+Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
+Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
+Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+
+(* end hide *)
+
+Fixpoint pow {sz}(eta : Bvector sz)(n : nat) : Bvector sz :=
+  match n with
+  | 0   => 1
+  | S m => (eta  * (pow eta m))
+  end.
+
+Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
+
+Infix "=?" := (bveq) (at level 70): bitvector_scope.
+(* begin hide *)
 
 Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
 Notation "A | B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
@@ -177,9 +200,4 @@ Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_sco
 Notation "A ⋙ m" := (BVrotR m A) (only printing, at level 100) : bitvector_scope.
 Notation "⟦ A ⟧"  := (@Bv2N _ A)    (only printing) : bitvector_scope.
 
-Infix "+" := (BVplus)  (only printing) : bitvector_scope.
-Infix "*" := (BVmul)   (only printing) : bitvector_scope.
-Infix "-" := (BVminus) (only printing) : bitvector_scope.
-Infix "/" := (BVquot)  (only printing) : bitvector_scope.
-Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* end hide *)
