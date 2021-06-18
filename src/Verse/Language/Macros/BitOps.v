@@ -1,5 +1,5 @@
 (* begin hide *)
-Require Import Verse.BitVector.
+Require Verse.BitVector.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
@@ -12,14 +12,14 @@ Require Import Verse.Language.Types.
 Module Internals.
 
   Definition selL (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := lower_ones n in
+    := let mask sz : const (word sz) := BitVector.lower_ones n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
        end.
 
   Definition selU (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := upper_ones n in
+    := let mask sz : const (word sz) := BitVector.upper_ones n in
        match ty with
        | word sz         => mask sz
        | multiword m sz  => Vector.const (mask sz) (2^m)
@@ -28,7 +28,7 @@ Module Internals.
 
   Definition clearL (ty : type direct) n : const ty
     := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in upper_ones (bsz - n)
+           let bsz := bitSize sz in BitVector.upper_ones (bsz - n)
        in
        match ty with
        | word sz         => mask sz
@@ -38,7 +38,7 @@ Module Internals.
 
   Definition clearU (ty : type direct) n : const ty
     := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in lower_ones (bsz - n)
+           let bsz := bitSize sz in BitVector.lower_ones (bsz - n)
        in
        match ty with
        | word sz         => mask sz
@@ -104,9 +104,9 @@ Section ForAll.
   Variable v : VariableT.
   Variable ty : type direct.
   Variable E  : Type.
-  Variable E_is_Expr : EXPR v ty E.
+  Variable E_is_Expr : Pretty.EXPR v ty E.
   Variable L  : Type.
-  Variable L_is_Lexpr : LEXPR v ty L.
+  Variable L_is_Lexpr : Pretty.LEXPR v ty L.
 
   Definition keepOnlyLower       n (e:E) := e AND Internals.selL ty n.
   Definition keepOnlyLowerUpdate n (l:L) := l ::=& Internals.selL ty n.
