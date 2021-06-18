@@ -13,98 +13,127 @@ Hint Rewrite Bv2N_plus_mod Bv2N_mul_mod Bv2N_N2Bv_sized_mod
   : bitvector_arithm.
 
 (* This rewrites will take care of pushing the modulo outwards *)
+
 Hint Rewrite
      N.add_mod_idemp_r N.add_mod_idemp_l
-     N.mul_mod_idemp_l N.mul_mod_idemp_r
+     N.mul_mod_idemp_l N.mul_mod_idemp_r N.mod_1_l
+     N.mod_same
   : bitvector_arithm.
 
 Ltac arithm_crush :=
-    intros;
-    try (apply (inj _ _ _)); (* convert v1 = v2 to Bv2N v1 = Bv2N v2 *)
-    autorewrite with bitvector_arithm;  (* Simplify to modulo equation *)
+  intros;
+  unfold one; unfold one_Bvector;
+  unfold addition; unfold add_Bvector;
+  unfold multiplication; unfold mul_Bvector;
+  unfold subtraction; unfold sub_Bvector; unfold BVminus; unfold arithm;
+  unfold opposite; unfold opp_Bvector; unfold BVnegative;
+  try (apply (inj _ _ _)); (* convert v1 = v2 to Bv2N v1 = Bv2N v2 *)
+  autorewrite with bitvector_arithm;  (* Simplify to modulo equation *)
     repeat match goal with
            | [ |- (_ mod _ = _ mod _)%N ] => f_equal
+           | [ |- context [(?A mod _ )%N ] ] => ring_simplify (?A)
            | [ |- context [ (1 * ?V)%N ]] => ring_simplify (1 * ?V)
            | _ => eauto with Nfacts bitvector_arithm; idtac
     end; try ring.
 
-Definition zero {sz} := @BVzeros sz.
-Definition one  {sz} := N2Bv_sized sz 1.
-
-Lemma Bv2N_zero_is_0 :  forall sz, Bv2N (@zero sz) = 0%N.
+Lemma Bv2N_zero_is_0 :  forall sz, @Bv2N sz 0  = 0%N.
 Proof.
+  intros.
   Hint Rewrite Bv2N_false : bitvector_arithm.
-  unfold BVzeros; arithm_crush.
+  arithm_crush.
 Qed.
+
 
 Hint Rewrite Bv2N_zero_is_0 : bitvector_arithm.
 
 
-Lemma BVadd_0_l : forall sz (v : Bvector sz), BVplus BVzeros v = v.
+Lemma BVadd_0_l : forall sz (v : Bvector sz), 0 + v = v.
 Proof.
-  arithm_crush. autorewrite with Nrewrites. arithm_crush.
+  arithm_crush.
+  autorewrite with Nrewrites. arithm_crush.
 Qed.
 
 
-Lemma BVadd_comm : forall sz (v1 v2 : Bvector sz), BVplus v1 v2 = BVplus v2 v1.
+Lemma BVadd_comm : forall sz (v1 v2 : Bvector sz), v1 + v2 = v2 + v1.
 Proof.
   arithm_crush.
 Qed.
 
 Lemma BVadd_assoc : forall sz (v1 v2 v3 : Bvector sz),
-      BVplus v1 (BVplus v2 v3) = BVplus (BVplus v1 v2) v3.
+      v1 + (v2 + v3) = (v1 + v2) + v3.
 Proof.
   arithm_crush.
 Qed.
 
-Lemma BVmul_1_l : forall sz (v : Bvector (S sz)), BVmul one v = v.
-  unfold one.
+
+Lemma Bv2N_le_2_power : forall sz (v : Bvector sz), (Bv2N v <= 2 ^ (N.of_nat sz))%N.
+  intros.
+  apply N.lt_le_incl.
+  arithm_crush.
+Qed.
+
+Hint Resolve Bv2N_le_2_power : bitvector_arithm.
+
+Lemma one_lt_2_power : forall sz, (1 < 2 ^ N.of_nat (S sz))%N.
+  intros.
+  rewrite Nat2N.inj_succ.
+  generalize (N.of_nat sz).
+  intro n;
+    apply N.pow_gt_1;
+    arithm_crush.
+  apply N.neq_succ_0.
+Qed.
+
+Hint Resolve one_lt_2_power : bitvector_arithm.
+
+
+Lemma Bv2N_one_is_1 : forall sz, @Bv2N (S sz) 1 = 1%N.
+  intro.
+  arithm_crush.
+Qed.
+
+Hint Rewrite Bv2N_one_is_1 : bitvector_arithm.
+
+Lemma BVmul_1_l : forall sz (v : Bvector (S sz)), 1 * v = v.
   arithm_crush.
   ring_simplify (1 * Bv2N v)%N.
   arithm_crush.
 Qed.
 
-Lemma BVmul_comm : forall sz (v1 v2 : Bvector sz), BVmul v1 v2 = BVmul v2 v1.
+Lemma BVmul_comm : forall sz (v1 v2 : Bvector sz), v1 * v2 = v2 * v1.
 Proof.
   arithm_crush.
 Qed.
 
 Lemma BVmul_assoc : forall sz (v1 v2 v3 : Bvector sz),
-    BVmul v1 (BVmul v2 v3) = BVmul (BVmul v1 v2) v3.
+    v1 * (v2 * v3) = (v1 * v2) * v3.
 Proof.
     arithm_crush.
 Qed.
 
 Lemma BVdistr_l : forall sz (v1 v2 v3 : Bvector sz),
-    BVmul (BVplus v1 v2) v3 = BVplus (BVmul v1 v3)  (BVmul v2 v3).
+    (v1 + v2) * v3 = (v1 * v3)  + (v2 *  v3).
 Proof.
   arithm_crush.
 Qed.
 
-Lemma BVsub_def : forall sz (v1 v2 : Bvector sz), BVminus v1 v2 = BVplus v1 (BVnegative v2).
+Lemma BVsub_def : forall sz (v1 v2 : Bvector sz), v1 - v2 = v1 + (- v2).
 Proof.
-  unfold BVnegative.
+  intros.
   Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
   Hint Resolve Bv2N_lt_pow_2_size : bitvector_arithm.
-  unfold BVminus.
-  unfold arithm.
-  arithm_crush;
-    try (rewrite N.add_sub_assoc);  try apply N.lt_le_incl;
-      arithm_crush.
+  arithm_crush.
+  rewrite N.add_sub_assoc;
+  arithm_crush.
 Qed.
 
 
-Lemma BVopp_def : forall sz (v : Bvector sz), BVplus v (BVnegative v) = BVzeros.
+Lemma BVopp_def : forall sz (v : Bvector sz), v + (- v) = 0.
 Proof.
-  unfold BVnegative.
-  Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
+  Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag
+      N.add_sub_assoc N.add_sub_swap
+  : bitvector_arithm.
   arithm_crush.
-  try (rewrite N.add_sub_assoc); try apply N.lt_le_incl;
-    try (rewrite N.add_sub_swap);
-    try (rewrite N.add_mod);
-    try (rewrite N.mod_same);
-    try autorewrite with bitvector_arithm Nfacts ;
-    trivial; arithm_crush.
 Qed.
 
 Lemma BVeqb_eq : forall sz (v1 v2 : Bvector sz), (v1 =? v2)%bitvector = true -> v1 = v2.
@@ -114,14 +143,15 @@ Lemma BVeqb_eq : forall sz (v1 v2 : Bvector sz), (v1 =? v2)%bitvector = true -> 
   exact eqb_true_iff.
 Qed.
 
+
 Definition bit_arithm_ring sz
   : ring_theory
-      zero
-      one
-      (@BVplus (S sz))
-      (@BVmul  (S sz))
-      (@BVminus (S sz))
-      (@BVnegative (S sz))
+      0
+      1
+      addition
+      multiplication
+      subtraction
+      opposite
       (@eq (Bvector (S sz)))
   := {|
       Radd_0_l   := BVadd_0_l (S sz);
@@ -135,14 +165,15 @@ Definition bit_arithm_ring sz
       Ropp_def   := BVopp_def (S sz);
     |}.
 
-(* TODO: Add a ring morphism from Z to the bitvector ring *)
 
-Print ring_morph.
+
+(** * TODO: Add a ring morphism from Z to the bitvector ring *)
+
 Require Import ZArith.
 Require Zdigits.
-Search ( Z -> _ ).
 
 (*
+Require ZArith.Zdigits.
 Program Definition bit_arithm_morph sz
   : ring_morph
       zero one
@@ -158,7 +189,7 @@ Program Definition bit_arithm_morph sz
       Z.sub
       Z.opp
       Z.eqb
-      (Zdigits.Z_to_two_compl sz) :=
+      (Zdigits.Z_to_binary (S sz)) :=
   {| morph0 := _;
      morph1 := _;
      morph_add := _;
@@ -167,7 +198,8 @@ Program Definition bit_arithm_morph sz
      morph_opp := _;
      morph_eq := _
   |}.
-Obligation 1.
+
+
 *)
 
 
@@ -186,18 +218,22 @@ Definition two {sz} := N2Bv_sized sz 2.
 
 *)
 
-Definition two {sz} := BVplus (@one sz) one.
+Require Import Verse.BitVector.
+
+Definition sq {sz} (v : Bvector sz) := v * v.
+
 
 Section Sz.
-  Variable sz : nat.
-  Add Ring bitvector : (bit_arithm_ring sz).
+  Context (sz : nat).
 
-  Lemma sqformula : forall (a b : Bvector (S sz)),
-      bvsquare (BVplus a b) = BVplus (BVplus (bvsquare a)  (bvsquare b)) (BVmul two (BVmul a b)).
-  Proof.
-    unfold bvsquare.
-    unfold two.
-    intros.
-    ring.
-  Qed.
+  Add Ring bit_arith_ring : (bit_arithm_ring sz).
+
+Lemma sqformula : forall  (a b : Bvector (S sz)),
+    (a + b) ^ 2    = a ^ 2   +  b ^ 2 +  (1 + 1) * (a * b).
+Proof.
+  intros. unfold power. unfold bitvector_power_nat. unfold pow.
+  ring.
+Qed.
+
+
 End Sz.
