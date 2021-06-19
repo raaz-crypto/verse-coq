@@ -108,22 +108,42 @@ Section VerseCode.
   Definition statement := sigT instruction.
   Definition code := list statement.
 
-  Inductive line mline :=
-  | instruct  : statement -> line mline
-  | inline    : mline     -> line mline
-  .
-
-  Definition lines mline := list (line mline).
-
 End VerseCode.
 
 Arguments expr [ts].
 Arguments lexpr [ts].
 Arguments instruction [ts].
-Arguments instruct [ts v mline].
-Arguments inline [ts v _].
 Arguments code [ts].
 Arguments statement [ts].
+
+Require Verse.Scope.
+
+Section ModularCode.
+
+  Variable ts : typeSystem.
+
+  Inductive line (v : Variables.U ts) mline :=
+  | inst      : statement v -> line v mline
+  | inline    : mline       -> line v mline
+  | call      : forall n (sc : Scope.type ts n),
+                  (forall w, Scope.allocation w sc -> (list (line w mline)))
+                  -> Scope.allocation v sc -> line v mline
+
+  (* The called code cannot be `scoped (list line)` as Coq cannot
+     verify positivity in that form.
+     Making it uncurried might require typeclasses invoked by
+     notations. This is because the called code will generally
+     be curried and the translation needs to know the scope
+  *)
+  .
+
+  Definition lines v mline := list (line v mline).
+
+End ModularCode.
+
+Arguments inst [ts v mline].
+Arguments inline [ts v _].
+Arguments call [ts v mline n sc] _ _.
 Arguments line [ts] _ _.
 Arguments lines [ts] _ _.
 
