@@ -226,26 +226,26 @@ Notation "'MOVE' B 'TO' A [- N -]"
 Declare Scope code_scope.
 Delimit Scope code_scope with code.
 
-Notation "A ::= E" := (instruct (assignStmt A E))  (at level 70) : code_scope.
-Notation "A <- B" := (instruct (moveStmt A B)) (at level 70) : code_scope.
-Notation "A ::=+ B" := (instruct (binOpUpdate plus A B)) (at level 70) : code_scope.
-Notation "A ::=- B" := (instruct (binOpUpdate minus A B)) (at level 70) : code_scope.
-Notation "A ::=* B" := (instruct (binOpUpdate mul A B)) (at level 70) : code_scope.
-Notation "A ::=/ B" := (instruct (binOpUpdate quot A B)) (at level 70) : code_scope.
-Notation "A ::=% B" := (instruct (binOpUpdate rem A B)) (at level 70) : code_scope.
-Notation "A ::=| B" := (instruct (binOpUpdate bitOr A B)) (at level 70) : code_scope.
-Notation "A ::=& B"  := (instruct (binOpUpdate bitAnd A B)) (at level 70) : code_scope.
-Notation "A ::=x B"  := (instruct (binOpUpdate bitXor A B)) (at level 70, only parsing) : code_scope.
-Notation "A ::=⊕ B" := (instruct (binOpUpdate bitXor A B)) (at level 70) : code_scope.
+Notation "A ::= E" := (inst (assignStmt A E))  (at level 70) : code_scope.
+Notation "A <- B" := (inst (moveStmt A B)) (at level 70) : code_scope.
+Notation "A ::=+ B" := (inst (binOpUpdate plus A B)) (at level 70) : code_scope.
+Notation "A ::=- B" := (inst (binOpUpdate minus A B)) (at level 70) : code_scope.
+Notation "A ::=* B" := (inst (binOpUpdate mul A B)) (at level 70) : code_scope.
+Notation "A ::=/ B" := (inst (binOpUpdate quot A B)) (at level 70) : code_scope.
+Notation "A ::=% B" := (inst (binOpUpdate rem A B)) (at level 70) : code_scope.
+Notation "A ::=| B" := (inst (binOpUpdate bitOr A B)) (at level 70) : code_scope.
+Notation "A ::=& B"  := (inst (binOpUpdate bitAnd A B)) (at level 70) : code_scope.
+Notation "A ::=x B"  := (inst (binOpUpdate bitXor A B)) (at level 70, only parsing) : code_scope.
+Notation "A ::=⊕ B" := (inst (binOpUpdate bitXor A B)) (at level 70) : code_scope.
 
-Notation "A ::=<< N"   := (instruct (uniOpUpdate (shiftL N) A))   (at level 70) : code_scope.
-Notation "A ::=>> N"   := (instruct (uniOpUpdate (shiftR N) A))   (at level 70) : code_scope.
-Notation "A ::=<<< N"  := (instruct (uniOpUpdate (rotL N)   A))   (at level 70) : code_scope.
-Notation "A ::=>>> N"  := (instruct (uniOpUpdate (rotR N)   A))   (at level 70) : code_scope.
-Notation "'CLOBBER' A" := (instruct (existT _ _ (clobber A)))     (at level 70) : code_scope.
+Notation "A ::=<< N"   := (inst (uniOpUpdate (shiftL N) A))   (at level 70) : code_scope.
+Notation "A ::=>> N"   := (inst (uniOpUpdate (shiftR N) A))   (at level 70) : code_scope.
+Notation "A ::=<<< N"  := (inst (uniOpUpdate (rotL N)   A))   (at level 70) : code_scope.
+Notation "A ::=>>> N"  := (inst (uniOpUpdate (rotR N)   A))   (at level 70) : code_scope.
+Notation "'CLOBBER' A" := (inst (existT _ _ (clobber A)))     (at level 70) : code_scope.
 
 Notation "'MOVE' B 'TO' A [- N -]"
-  := (instruct (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A ident) : code_scope.
+  := (inst (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A ident) : code_scope.
 
 
 (** * The verse tactic.

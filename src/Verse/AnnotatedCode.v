@@ -88,8 +88,8 @@ Section Annotated.
     end.
 
   Inductive Annotated : Type :=
-  | inst  : statement v -> Annotated
-  | annot : VProp       -> Annotated
+  | instruct  : statement v -> Annotated
+  | annot     : VProp       -> Annotated
   .
 
   Definition AnnotatedCode := list Annotated.
@@ -97,8 +97,9 @@ Section Annotated.
   Definition denote (ann : AnnotatedCode) : IntAnnotatedCode v tyD
     :=  fun _ => (map (fun a =>
                          (match a with
-                          | inst s  => instruct s
-                          | annot p => (inline (id , ((fun (st : StoreP str) => VPropDenote p (st := st)) : StoreP str -> Prop) : SPair str -> Prop))
+                          | instruct s  => inst s
+                          | annot p     => (inline (id,
+                                                    ((fun (st : StoreP str) => VPropDenote p (st := st)) : StoreP str -> Prop) : SPair str -> Prop))
                           end) : line _ mline))
                    ann
   .
@@ -122,5 +123,5 @@ Arguments NEW [v k ty].
 Arguments OLD [v k ty].
 Arguments noRels {tyD}.
 Arguments Annotated v [tyD].
-Arguments inst [v tyD] {Rels}.
+Arguments instruct [v tyD] {Rels}.
 Arguments annot [v tyD] {Rels}.
