@@ -142,7 +142,7 @@ Module Internals.
   Definition trStatement (s : statement variables) :=
     let single x := cons x nil in
     match s with
-    | existT _ ty inst => single <$> trInst ty inst
+    | existT _ ty i => single <$> trInst ty i
     end.
 
 End Internals.
