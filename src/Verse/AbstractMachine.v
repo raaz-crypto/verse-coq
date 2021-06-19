@@ -188,6 +188,7 @@ Module Internals.
 
     Definition denoteStmt (stmt : Ast.statement v) : instruction state
       := denoteInst (projT2 stmt).
+
   End MachineType.
 
 End Internals.
@@ -230,6 +231,8 @@ Section Machine.
     := Build_Semantics _ _ store_machine
                        mline _ _
                        ((Internals.denoteStmt ts _ tyD state) >-> justInst)
+                       (fun ml => (fst ml, fun stp =>
+                                             (snd ml) (snd stp, snd stp)))
   .
 
 End Machine.
@@ -461,4 +464,9 @@ Ltac simplify := repeat match goal with
                              end)
                         | |- forall _, _ => intro
                         | |- ?I          => unfold I
+                        (* The next simply takes care of a functional
+                           application. Should only be used once for
+                           `tpt`
+                        *)
+                        | |- context f [ ?F _ ] => unfold F
                         end.
