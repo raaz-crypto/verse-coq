@@ -3,6 +3,12 @@
 An implementation of monoids.
 
  *)
+
+(* Lists in the standard library are not universe
+   polymorphic. This does not work well with the
+   `call` element of the Verse AST
+*)
+Require Import Monoid.PList.
 Require Import SetoidClass.
 
 Instance eq_setoid T : Setoid T | 10
@@ -26,17 +32,15 @@ Definition welldef {T} `{Monoid T} w x y z
   := fun e f =>
        transitivity (welldef_l w x y e) (welldef_r y z x f).
 
-Require List.
-
 Instance list_is_monoid (A : Type)
   : Monoid (list A).
 refine  {| unit  := nil;
-           oper  := List.app (A:=A);
+           oper  := app (A:=A);
            welldef_l := fun _ _ _ _ => _;
            welldef_r := fun _ _ _ _ => _;
-           left_identity  := List.app_nil_l (A:=A);
-           right_identity := List.app_nil_r (A:=A);
-           associativity  := List.app_assoc (A:=A)
+           left_identity  := app_nil_l (A:=A);
+           right_identity := app_nil_r (A:=A);
+           associativity  := app_assoc (A:=A)
         |}.
 all : simpl in *; rewrite e; trivial.
 Defined.
@@ -298,12 +302,12 @@ elements in the monoid and multiplies them to get the results
 
 
 Definition mconcat {t}`{mon: Monoid t} init : list t -> t
-  := fun l => List.fold_left oper l init.
+  := fun l => fold_left oper l init.
 
 Definition mapMconcat {A}{t}`{mon : Monoid t} init
            (f : A -> t) (xs : list A)
   : t
-  := mconcat init (List.map f xs).
+  := mconcat init (map f xs).
 
 (**  * Monoid instance A + {E}.
 

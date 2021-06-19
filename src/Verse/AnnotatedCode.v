@@ -3,6 +3,7 @@ Require Import Verse.Language.Types.
 Require Import Verse.Ast.
 Require Import Verse.Language.Pretty.
 Require Import Verse.AbstractMachine.
+Require Import Verse.Monoid.PList.
 
 Require Import EqdepFacts.
 Import EqNotations.
@@ -94,7 +95,7 @@ Section Annotated.
   Definition AnnotatedCode := list Annotated.
 
   Definition denote (ann : AnnotatedCode) : IntAnnotatedCode v tyD
-    :=  fun _ => (List.map (fun a =>
+    :=  fun _ => (map (fun a =>
                          (match a with
                           | inst s  => instruct s
                           | annot p => (inline (id , ((fun (st : StoreP str) => VPropDenote p (st := st)) : StoreP str -> Prop) : SPair str -> Prop))
@@ -113,8 +114,8 @@ Global Notation "X < R > Y" := (rel R X Y) (at level 99) : annotation_scope.
 Global Infix "AND" := and (at level 56, left associativity) : annotation_scope.
 Global Infix "OR"  := or  (at level 59, left associativity) : annotation_scope.
 
-Notation "'CODE' l" := (List.map (@inst _ _ _) l) (at level 60).
-Notation "'ANNOT' a" := (List.map (@annot _ _ _) a)
+Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
+Notation "'ANNOT' a" := (map (@annot _ _ _) a)
                              (at level 60).
 
 Arguments NEW [v k ty].
