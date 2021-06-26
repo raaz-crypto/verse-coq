@@ -77,6 +77,7 @@ Arguments frmStore [ts tyD n sc] {_} [k ty].
 Arguments wrtStore [ts tyD n sc k ty].
 Arguments scopeStore [ts] _ [n].
 
+Require Import Verse.AnnotatedCode.
 Require Import Vector.
 Import VectorNotations.
 Require Import Verse.Language.Types.
@@ -87,21 +88,28 @@ Section CodeGen.
   Variable sc : Scope.type verse_type_system n.
 
   Variable tyD : typeDenote verse_type_system.
+  Variable Rels : forall (ty : typeOf verse_type_system direct),
+      Rel tyD ty -> Prop
+  .
 
   Definition asc
     := Vector.map (fun sty => let 'existT _ _ ty := sty in
                               existT _ _ (typeTrans tyD ty))
                   sc.
 
-  Variable ac : forall v, Scope.scoped v sc (AnnotatedCode v tyD).
+  Variable ac : forall v, Scope.scoped v sc (AnnotatedCode v tyD Rels).
 
-  Definition c := Scope.fillScoped ac (scopeStore _ _).
+  Definition c := denote _ _ _ (Scope.fillScoped ac) (scopeStore _ _).
 
   Definition cp := linesDenote _ _ store_semantics c.
+
+  Definition tpt := forall (st : str), snd cp
+                                           ({| store := st |}, {| store := st |}).
 
 End CodeGen.
 
 Arguments cp [n] sc [tyD].
+Arguments tpt [n] sc [tyD Rels].
 
 (* Extracting Prop object from annotated code *)
 
@@ -111,5 +119,4 @@ Ltac getProp func
       let pvs := constr:(fst level0break) in
       let level1 := constr:(snd level0break) in
       let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (forall (st : str), snd (cp (pvs ++ lvs) func)
-                                    ({| store := st |}, {| store := st |}))).
+      exact (tpt (pvs ++ lvs) func)).

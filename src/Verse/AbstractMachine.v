@@ -239,7 +239,15 @@ Arguments store_machine [ts].
 Arguments store_interface {ts v}.
 Arguments store_semantics {ts v tyD state}.
 
-Definition AnnotatedCode (cv : Variables.U verse_type_system) tyD
+(* These following definitions are not meant to be exposed
+   to the user coding in Verse.
+   Thence the prefix 'Int' for 'internal'
+*)
+Definition IntAnnotation (cv : Variables.U verse_type_system) tyD
+  := forall `(State verse_type_system cv tyD),
+    line cv mline.
+
+Definition IntAnnotatedCode (cv : Variables.U verse_type_system) tyD
   := forall `(State verse_type_system cv tyD),
     lines cv mline.
 (* TODO - Why does this not work without the backtick?
