@@ -137,7 +137,7 @@ Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 1 :=
                     |}
   |}.
 
-Instance point_monoid A B `{Monoid B} : Monoid (A -> B).
+Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
 refine {| unit      := fun _ => unit;
           oper f g  := fun x => f x ** g x;
           welldef_l := _;
@@ -165,6 +165,68 @@ apply right_identity.
 simpl.
 intros.
 apply associativity.
+Defined.
+
+Instance dep_point_setoid A (F : A -> Type)
+         `{forall a, Setoid (F a)}
+  : Setoid (forall a, F a) | 2 :=
+  {| equiv f g := forall x, f x == g x;
+     setoid_equiv := {|
+                      Equivalence_Reflexive := fun f a =>
+                                                 reflexivity (f a);
+                      Equivalence_Symmetric := fun (f g : forall a, F a)
+                                                   (H :
+                                                      forall a : A,
+                                                        f a == g a)
+                                                   (a : A) =>
+                                                 symmetry (H a);
+                      Equivalence_Transitive := fun (f g h : forall a, F a)
+                                                    (Hfg :
+                                                       forall a : A,
+                                                         (f a == g a))
+                                                    (Hgh :
+                                                       forall a : A,
+                                                         (g a == h a))
+                                                    (a : A) =>
+                                                  transitivity (Hfg a) (Hgh a)
+                    |}
+  |}.
+Set Printing Implicit.
+Instance dep_point_monoid A (F : A -> Type)
+         `{forall a, Setoid (F a)}
+         `{forall a, Monoid (F a)}
+  : Monoid (forall a, F a) | 2.
+refine {| unit      := fun _ => unit;
+          oper f g  := fun x => f x ** g x;
+          welldef_l := _;
+          welldef_r := _;
+          left_identity  := _;
+          right_identity := _;
+          associativity  := _;
+       |}.
+
+simpl in *.
+intros.
+apply (welldef_l (Monoid := H0 x0)).
+apply H1.
+
+simpl in *.
+intros.
+apply (welldef_r (Monoid := H0 x0)).
+apply H1.
+
+simpl.
+intros.
+apply (left_identity (Monoid := H0 x0)).
+
+simpl.
+intros.
+apply (right_identity (Monoid := H0 x0)).
+
+simpl.
+intros.
+apply (associativity (Monoid := H0 x0)).
+
 Defined.
 
 Class Hom t1 t2 `{Monoid t1} `{Monoid t2}
@@ -580,6 +642,8 @@ Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
         right_identity := SDP.right_identity _ _ h;
         associativity := SDP.associativity _ _ h
      |}.
+
+
 
 Definition twist {A B} `{Monoid B} (ea : A -> A) : End (A -> B).
   refine {| f        := fun m => ea >-> m;
