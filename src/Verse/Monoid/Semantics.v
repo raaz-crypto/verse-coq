@@ -42,12 +42,12 @@ Definition codeDenote {types mtypes}
 
 Fixpoint lineDenote types mtypes
          (M : mSpecs types mtypes)
-         line `{Monoid line}
-         (sem : Semantics M line)
+         line `{Monoid (line (mvariables M))}
+         (sem : Semantics M (line (mvariables M)))
          (c : Ast.line (mvariables M) line)
-  : line
+  : line (mvariables M)
   := match c with
-     | inst   i => denote M line sem i
+     | inst   i => denote M (line (mvariables M)) sem i
      | inline i => i
      | call f a => inliner _ _ sem
                      (mapMconcat unit
@@ -57,10 +57,10 @@ Fixpoint lineDenote types mtypes
 
 Definition linesDenote types mtypes
          (M : mSpecs types mtypes)
-         line `{Monoid line}
-         (sem : Semantics M line)
+         line `{Monoid (line (mvariables M))}
+         (sem : Semantics M (line (mvariables M)))
          (c : Ast.lines (mvariables M) line)
-  : line
+  : line (mvariables M)
   := mapMconcat unit (lineDenote _ _ _ _ sem) c.
 
 Arguments linesDenote [types mtypes] _ _ {_ _}.
