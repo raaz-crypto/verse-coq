@@ -17,7 +17,7 @@ Set Implicit Arguments.
 
   Variable A B : v Word8.
 
-  Definition test : AnnotatedCode v bvDenote noRels.
+  Definition test : AnnotatedCode bvDenote noRels v.
     verse (
           CODE [ A ::= B;
                  B ::= 5
