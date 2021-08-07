@@ -377,6 +377,9 @@ Section ScopeVar.
    *)
 End ScopeVar.
 
+Notation "(--)"             := (tt).
+Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
+
 Arguments scopeVar [ts n].
 Arguments headVar {ts m v}.
 Arguments restVar [ts m v k ty].
