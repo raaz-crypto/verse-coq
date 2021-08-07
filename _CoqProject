@@ -3,6 +3,7 @@ src/Verse.v
 src/Verse/AbstractMachine.v
 src/Verse/AnnotatedCode.v
 src/Verse/Ast.v
+src/Verse/CoarseMeta.v
 src/Verse/Error.v
 src/Verse/FFI/Raaz.v
 src/Verse/FFI/Raaz/Target/C.v
