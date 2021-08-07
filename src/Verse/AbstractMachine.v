@@ -300,8 +300,11 @@ Section ForAllCxt.
 
   Variable state : State v tyD.
 
-  Definition interpret (prog : Ast.lines v (fun v => @mline _ v tyD (*mline*)))
-    := linesDenote (store_machine v) (fun v => @mline _ v tyD)(*mline*) store_semantics prog.
+  Definition interpret (prog : Ast.lines v (fun v => @mline _ v tyD))
+    := linesDenote (store_machine v)
+                   (fun v => @mline _ v tyD)
+                   store_semantics
+                   prog.
 
 End ForAllCxt.
 

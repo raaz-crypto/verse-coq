@@ -270,7 +270,10 @@ object. This we do by the following type class.
 Require Verse.Language.Types.
 Class Infer t := { nesting : nat;
                    innerType : Type;
-                   inferNesting : t -> type Types.verse_type_system nesting * innerType
+                   inferNesting : t ->
+                                  type Types.verse_type_system nesting
+                                  *
+                                  innerType
                  }.
 
 (**

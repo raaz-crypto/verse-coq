@@ -123,6 +123,7 @@ End Annotated.
 
 Arguments eq [tyD Rels v ty].
 Arguments rel [tyD Rels v ty rel].
+Arguments denote [tyD Rels v].
 
 Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (at level 70) : annotation_scope.
 
