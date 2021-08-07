@@ -5,6 +5,8 @@ Require Import Verse.Language.Pretty.
 Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.PList.
 
+Import ListNotations.
+
 Require Import EqdepFacts.
 Import EqNotations.
 
@@ -94,30 +96,28 @@ Section Annotated.
 
   Inductive Annotated v : Type :=
   | instruct  : statement v -> Annotated v
-(*
   | proc      : forall n (sc : Scope.type verse_type_system n),
       (forall w, Scope.allocation w sc -> (list (Annotated w)))
       -> Scope.allocation v sc -> Annotated v
-*)
   | annot     : VProp v       -> Annotated v
   .
 
   Definition AnnotatedCode v := list (Annotated v).
 
-  Fixpoint denote v (ann : AnnotatedCode v) : IntAnnotatedCode v tyD
-    :=  map (fun a =>
-               (match a with
-                | instruct _ s  => inst s
-                (*
-                          | proc _ n sc p all => denote _ (p v all) S
-                 *)
-                | annot _ p     => (inline
-                                      (fun state : State v tyD =>
-                                        (id,
-                                            ((fun (st : StoreP str) => VPropDenote _ p (st := st)) : StoreP str -> Prop) : SPair str -> Prop)))
-                end)(* : line _ _ (fun v => mline)*))
-            ann
-.
+  Fixpoint denote1 v (ann : Annotated v) : line v (fun w => @mline _ w tyD)
+    := match ann with
+       | instruct _ s  => inst s
+       | proc _ n sc p all => call (fun w wall =>
+                                      map (denote1 _) (p w wall))
+                                   all
+       | annot _ p     => (inline
+                             (fun state : State v tyD =>
+                                (id,
+                                 ((fun (st : StoreP str) => VPropDenote _ p (st := st)) : StoreP str -> Prop) : SPair str -> Prop)))
+       end.
+
+  Definition denote v (ann : AnnotatedCode v) : IntAnnotatedCode v tyD
+    := map (denote1 v) ann.
 
 End Annotated.
 
@@ -130,6 +130,16 @@ Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (at level 70) : annota
 Global Notation "X < R > Y" := (rel R X Y) (at level 99) : annotation_scope.
 Global Infix "AND" := and (at level 56, left associativity) : annotation_scope.
 Global Infix "OR"  := or  (at level 59, left associativity) : annotation_scope.
+
+(* TODO : Somehow not being able to make this work without the 'WITH' *)
+Notation "'CALL' f 'WITH' a"
+  := ([ let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
+      proc _ _ _ _ sc
+           (fun w => Scope.uncurryScope
+                       (st := sc)
+                       (f%function w))
+           a ])
+       (at level 60).
 
 Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
 Notation "'ANNOT' a" := (map (@annot _ _ _) a)
