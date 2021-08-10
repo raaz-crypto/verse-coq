@@ -11,6 +11,11 @@ An implementation of monoids.
 Require Import Monoid.PList.
 Require Import SetoidClass.
 
+(* TODO : Move eq_setoid and its setoids monoids to the bottom of the
+          file. Will avoid errors like that happened with
+          dep_point_monoid
+*)
+
 Instance eq_setoid T : Setoid T | 10
   := { equiv := eq }.
 
