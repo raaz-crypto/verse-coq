@@ -399,32 +399,33 @@ Require Import Verse.BitVector.ArithRing.
 
 (* Destruct the variable store for easier access to valuations *)
 
-(* TODO : These are just the curry uncurry from Scope.v with more
-   generality *)
+Fixpoint lamn ts v n (sc : Scope.type ts n)
+  : (Scope.allocation v sc -> Type) -> Type
+  := match n as n0
+           return
+           forall sc0 : Scope.type _ n0,
+             (@Scope.allocation _ v n0 sc0 -> Type) -> Type with
+     | 0   => fun _ f => forall t, f t
+     | S n => fun _ f => forall t , lamn _ _ n _ (fun x => f (t, x))
+     end sc.
 
-Fixpoint prodn T n : Type
-  := match n with
-     | 0   => Datatypes.unit
-     | S n => (T * prodn T n)%type
-     end.
-
-Fixpoint lamn T n : (prodn T n -> Type) -> Type
-  := match n as n0 return (prodn T n0 -> Type) -> Type with
-     | 0   => fun f => forall t, f t
-     | S n => fun f => forall t : T, lamn T n (fun x => f (t, x))
-     end.
-
-Lemma forallprod T n f
-  : lamn T n f
+Lemma forallprod ts v n sc f
+  : lamn ts v n sc f
     ->
-    forall x : prodn T n, f x.
+    forall x : Scope.allocation v sc, f x.
   induction n.
   easy.
   intros.
-  pose (IHn _ (X (fst x)) (snd x)).
+  pose (IHn _ _ (X (fst x)) (snd x)).
   rewrite surjective_pairing.
   exact f0.
 Qed.
+
+Ltac prodSc x :=
+  match x with
+  | (_ _ ?ty * ?tl)%type  => let tt := prodSc tl in constr:(ty :: tt)
+  | Datatypes.unit => constr:(Vector.nil {k & type k})
+  end.
 
 Ltac prodsize x :=
   match x with
@@ -435,10 +436,13 @@ Ltac prodsize x :=
 Ltac breakStore :=
   simpl str;
   let n := fresh "n" in
-  match goal with
-  | |- forall _ : ?t, _ => let n := prodsize t in pose n
-  end; apply (forallprod _ n);
-  unfold lamn.
+  let sc := fresh "sc" in
+  (match goal with
+  | |- forall _ : ?t, _ => let n := prodsize t in
+                           let sc := prodSc t in
+                           apply (forallprod _ _ n sc)
+  end;
+  unfold lamn).
 
 Ltac simplify := repeat match goal with
                         | |- forall _ : str, _ =>
