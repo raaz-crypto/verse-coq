@@ -63,7 +63,7 @@ Fixpoint lamn ts v n (sc : Scope.type ts n)
            forall sc0 : Scope.type _ n0,
              (HProdn.t v sc0 -> Type) -> Type with
      | 0   => fun _ f => forall t, f t
-     | S n => fun _ f => forall t , lamn _ _ n _ (fun x => f (t, x))
+     | S n => fun _ f => forall t, lamn _ _ n _ (fun x => f (t, x))
      end sc.
 
 Lemma forallprod ts v n sc f
@@ -84,6 +84,7 @@ Ltac prodSc x :=
   | Datatypes.unit     => constr:(Vector.nil {k & type k})
   end.
 
+(* Doesn't seem to be needed *)
 Ltac prodsize x :=
   match x with
   | (_ * ?t)%type  => let tt := prodsize t in constr:(S tt)
@@ -92,16 +93,20 @@ Ltac prodsize x :=
 
 Ltac breakStore :=
   simpl str;
-  let n := fresh "n" in
   let sc := fresh "sc" in
   (match goal with
-   | |- forall _ : ?t, _ =>
-     let n := prodsize t in
+   | |- forall _ : ?t, _  =>
      let sc := prodSc t in
-     apply (forallprod _
-                       _ (*(qualified (typeConv wordOfSize))*)
-                       n
+     (* This refine is very fragile. Break at the drop of a hat.
+        `apply`, for eg, doesn't work here!
+        Maybe find a more robust solution instead
+      *)
+     refine (forallprod _
+                       (qualified (typeConv wordOfSize))
+                       _
                        sc
+                       _
+                       _
            )
    end;
    unfold lamn).
