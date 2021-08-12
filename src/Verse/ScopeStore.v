@@ -103,12 +103,27 @@ Section CodeGen.
 
   Definition cp := interpret c.
 
+  (* We allow `getProp` to take a precondition to prefix to the
+     extracted Prop. This is never exposed to the user, but is used in
+     the CoarseAxiom to provide the proof of the procedure call
+     specification to the main body proof.
+   *)
+
+  Definition getProp (pc : assertion _)
+             (ml : @mline _ (Scope.scopeVar sc) tyD)
+    := forall (st : str), pc ({| store := st |}, {| store := st |})
+                          ->
+                          snd (ml (scopeStore _ _))
+                              ({| store := st |}, {| store := st |}).
+
+  Definition tpt := getProp (fun _ => True) cp.
+(*
   Definition getProp (ml : @mline _ (Scope.scopeVar sc) tyD)
     := forall (st : str), snd (ml (scopeStore _ _))
                               ({| store := st |}, {| store := st |}).
 
   Definition tpt := getProp cp.
-
+*)
 End CodeGen.
 
 Arguments cp [n] sc [tyD].

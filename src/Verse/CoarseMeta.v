@@ -101,6 +101,7 @@ Section Coarse.
   Local Definition sc := const (existT _ _ ty) n.
   Definition v := Scope.scopeVar sc.
 
+
   Axiom modularProof
     : forall (apre : AnnotatedCode tyD Rels v)
              (f : forall [w], Scope.allocation w sc
@@ -113,11 +114,26 @@ Section Coarse.
              (modP : forall dVals,
                  let preP := interpret (denote apre) in
                  let dumP := interpret (denote (dummyProc alloc dVals)) in
-                 let procP := fun st => (id, snd (interpret (denote (f alloc)) st)) in
+                 let procP := snd (interpret (denote (f alloc))
+                                             (scopeStore _ _)) in
                  let postP := (interpret (denote apost)) in
-                 let cp := preP ** dumP ** procP ** postP in
-                 getProp cp),
+                 let cp := preP ** dumP ** postP in
+                 getProp procP cp),
 
-      getProp (interpret (denote (apre ++ (proc _ _ _ _ _ f alloc) :: apost)))%list.
+      getProp (fun _ => True) (interpret (denote (apre ++ (proc _ _ _ _ _ f alloc) :: apost)))%list.
 
 End Coarse.
+
+(*
+pre-block   ---  state -> state, assertion  (* assertion includes d = OLD e *)
+
+proc a b c  ---  state -> state, assertion  (* assertion should technically specify the proc *)
+        replaced by
+
+a = va; b = vb; c = vc  --- and provide assertion on va vb vc as hypothesis to the rest
+
+post-block  ---  state -> state, assertion
+
+
+*)
+(* forall (- va vb vc -), a = va; b = vb; c = vc; *)
