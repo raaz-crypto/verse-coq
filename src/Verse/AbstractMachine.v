@@ -424,7 +424,7 @@ Qed.
 Ltac prodsize x :=
   match x with
   | (_ * ?t)%type  => let tt := prodsize t in constr:(S tt)
-  | Datatypes.unit => constr:(0)
+  | Datatypes.unit => constr:(0%nat)
   end.
 
 Ltac breakStore :=
