@@ -33,24 +33,24 @@ Section Annotated.
     Variable v : Variables.U verse_type_system.
     Arguments v [k].
 
-    Inductive dv : Variables.U verse_type_system :=
-    | NEW k ty :> v ty -> dv k ty
-    | OLD k ty : v ty -> dv k ty
+    Inductive doubled : Variables.U verse_type_system :=
+    | CUR k ty :> v ty -> doubled k ty
+    | OLD k ty : v ty -> doubled k ty
     .
 
-    Arguments NEW [k ty].
+    Arguments CUR [k ty].
     Arguments OLD [k ty].
 
-    Global Instance v_to_expdv ty : EXPR dv ty (v ty)
-      := fun t => valueOf (var (NEW t)).
+    Global Instance v_to_expdv ty : EXPR doubled ty (v ty)
+      := fun t => valueOf (var (CUR t)).
 
-    Definition expr  T := Ast.expr  dv T.
-    Definition lexpr T := Ast.lexpr dv T.
+    Definition expr  T := Ast.expr  doubled T.
+    Definition lexpr T := Ast.lexpr doubled T.
 
     Definition leval {T} (l : lexpr T) `{State _ v tyD} {st : StoreP str}
       : typeTrans tyD T
-      := let val2 {k} {ty} (x : dv k ty) := match x with
-                                            | NEW x => VAL x
+      := let val2 {k} {ty} (x : doubled k ty) := match x with
+                                            | CUR x => VAL x
                                             | OLD x => OLDVAL x
                                             end
          in
@@ -145,7 +145,7 @@ Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
 Notation "'ANNOT' a" := (map (@annot _ _ _) a)
                              (at level 60).
 
-Arguments NEW [v k ty].
+Arguments CUR [v k ty].
 Arguments OLD [v k ty].
 Arguments noRels {tyD}.
 Arguments Annotated [tyD].
