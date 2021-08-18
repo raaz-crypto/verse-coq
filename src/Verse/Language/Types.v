@@ -19,6 +19,7 @@ indicates this distinction in type.
 
 Inductive type       : kind -> Type :=
 | word               : nat -> type direct
+(* TODO : Maybe make `word` a `multiword 0`. Might save stuff *)
 | multiword          : nat -> nat    -> type direct
 | array              : nat -> endian -> type direct -> type memory.
 

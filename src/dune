@@ -24,6 +24,7 @@
 	  Verse.Monoid
 	  Verse.Monoid.Interface
 	  Verse.Monoid.Semantics
+	  Verse.Monoid.PList
 	  Verse.NFacts
 	  Verse.Nibble
 	  Verse.Print

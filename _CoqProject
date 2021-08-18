@@ -21,6 +21,7 @@ src/Verse/BitVector/Facts.v
 src/Verse/BitVector/ArithRing.v
 src/Verse/Monoid.v
 src/Verse/Monoid/Interface.v
+src/Verse/Monoid/PList.v
 src/Verse/Monoid/Semantics.v
 src/Verse/NFacts.v
 src/Verse/Nibble.v

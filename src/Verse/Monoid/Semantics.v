@@ -22,10 +22,16 @@ Require Import Verse.Ast.
 (* This single field record should possibly be removed *)
 Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
-       denote       : Ast.statement (mvariables M)  -> line
-    }.
+        denote       : Ast.statement (mvariables M)  -> line;
+        (* The inliner should possibly take the scope of the
+           called function as an argument.
+           Isn't necessary for semantics, but maybe for inlining
+        *)
+        inliner      : line -> line
+     }.
 
-Arguments denote [types mtypes] _ _ {_ _}.
+Arguments inliner [types mtypes] _ _ {_ _}.
+Arguments denote  [types mtypes] _ _ {_ _}.
 
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
@@ -34,17 +40,27 @@ Definition codeDenote {types mtypes}
   : Ast.code (mvariables M) -> line
   := mapMconcat unit (denote M line sem).
 
+Fixpoint lineDenote types mtypes
+         (M : mSpecs types mtypes)
+         line `{Monoid line}
+         (sem : Semantics M line)
+         (c : Ast.line (mvariables M) line)
+  : line
+  := match c with
+     | inst   i => denote M line sem i
+     | inline i => i
+     | call f a => inliner _ _ sem
+                     (mapMconcat unit
+                                 (lineDenote _ _ M _ sem)
+                                 (f (mvariables M) a))
+     end.
+
 Definition linesDenote types mtypes
-           (M : mSpecs types mtypes)
-           line `{Monoid line}
-           (sem : Semantics M line)
-  : Ast.lines (mvariables M) (line)
-    -> line
-  := mapMconcat unit
-       (fun l => match l with
-                 | instruct i => denote M line sem i
-                 | inline   i => i
-                 end
-       ).
+         (M : mSpecs types mtypes)
+         line `{Monoid line}
+         (sem : Semantics M line)
+         (c : Ast.lines (mvariables M) line)
+  : line
+  := mapMconcat unit (lineDenote _ _ _ _ sem) c.
 
 Arguments linesDenote [types mtypes] _ _ {_ _}.
