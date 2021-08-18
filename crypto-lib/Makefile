@@ -45,10 +45,6 @@ libverse: implementation
 
 ## Cleaning action.
 clean: subdirs-clean
-	make -C implementation clean
-	if [ -d libverse ]; then \
-		make -C libverse clean; \
-	fi
 
 subdirs-clean:
 	$(foreach dir, ${SUBDIRS}, make -C ${dir} clean;)
