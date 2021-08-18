@@ -33,13 +33,7 @@ We begin by defining the types for the language.
 
 (* begin hide *)
 Require Import Verse.Language.Types.
-
 Require Import Verse.TypeSystem.
-
-Require Import Verse.Monoid.
-
-Require Import Verse.Monoid.Interface.
-
 Import EqNotations.
 (* end hide *)
 
