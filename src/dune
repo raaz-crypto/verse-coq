@@ -36,6 +36,7 @@
 	  Verse.Target.C.CodeGen
 	  Verse.Target.C.Pretty
 	  Verse.TestCode.AnnotatedCode
+	  Verse.TestCode.TestCall
 	  Verse.TypeSystem
 	  Verse.CryptoLib.blake2
 	  Verse.CryptoLib.blake2.c.portable
