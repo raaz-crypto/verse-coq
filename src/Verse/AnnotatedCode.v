@@ -25,7 +25,7 @@ Section Annotated.
   Arguments OLD [k ty].
 
   Global Instance v_to_expdv ty : EXPR dv ty (v ty)
-    := { toExpr := fun t => valueOf (var (NEW t)) }.
+    := fun t => valueOf (var (NEW t)).
 
   Definition expr  T := Ast.expr  dv T.
   Definition lexpr T := Ast.lexpr dv T.
