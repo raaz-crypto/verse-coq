@@ -43,4 +43,4 @@ Definition proof : toProve.
 
   simplify.
 
-Abort.
+Qed.
