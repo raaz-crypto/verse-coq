@@ -2,7 +2,6 @@
 src/Verse.v
 src/Verse/AbstractMachine.v
 src/Verse/AnnotatedCode.v
-src/Verse/TestCode/AnnotatedCode.v
 src/Verse/Ast.v
 src/Verse/Error.v
 src/Verse/FFI/Raaz.v
@@ -38,6 +37,9 @@ src/Verse/TypeSystem.v
 ########################################
 ## CryptoLib: Actual implementations  ##
 ########################################
+
+src/Verse/TestCode/AnnotatedCode.v
+src/Verse/TestCode/TestCall.v
 
 src/Verse/CryptoLib/blake2.v
 src/Verse/CryptoLib/blake2/c/portable.v

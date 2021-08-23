@@ -11,23 +11,32 @@ Open Scope annotation_scope.
 
 Set Implicit Arguments.
 
- Section Code.
+Section Code.
 
   Variable v : VariableT.
 
   Variable A B : v Word8.
 
+  Definition f (w : VariableT) (a b : w _ Word8)
+    : AnnotatedCode bvDenote noRels w.
+
+    verse (CODE [ a ::= b
+                ]
+                ++
+           ANNOT [ a = (OLD b) ]
+          )%list%verse.
+  Defined.
+
   Definition test : AnnotatedCode bvDenote noRels v.
+    (* This actually works without the `verse` tactic *)
     verse (
-          CODE [ A ::= B;
-                 B ::= 5
-               ]
-          ++
-          ANNOT [ A = (OLD B) ]
-          ++
-          CODE [ B ::= A; A ::= 6 ]
-          ++
-          ANNOT [ B = (OLD B) ]
+        CODE [ A ::= A; B ::= B ]
+             ++
+        CALL f WITH (- A, B -)
+             ++
+        ANNOT [ A = (OLD B) ]
+             ++
+        CODE [ B ::= A; A ::= 6 ]
       )%list%verse.
   Defined.
 
@@ -38,7 +47,5 @@ Definition toProve : Prop.
 Defined.
 
 Definition proof : toProve.
-
   simplify.
-
-Abort.
+Qed.

@@ -61,7 +61,7 @@ Axiom frmWrt :
 Instance scopeStore
            n (sc : Scope.type ts n)
   : State (Scope.scopeVar sc) tyD :=
-  {| str   := _;
+  {| str   := scstr sc;
 
      val := @frmStore n sc;
 
@@ -97,18 +97,22 @@ Section CodeGen.
                               existT _ _ (typeTrans tyD ty))
                   sc.
 
-  Variable ac : forall v, Scope.scoped v sc (AnnotatedCode v tyD Rels).
+  Variable ac : forall v, Scope.scoped v sc (AnnotatedCode tyD Rels v).
 
-  Definition c := denote _ _ _ (Scope.fillScoped ac) (scopeStore _ _).
+  Definition c := denote (Scope.fillScoped ac).
 
-  Definition cp := linesDenote _ _ store_semantics c.
+  Definition cp := interpret c.
 
-  Definition tpt := forall (st : str), snd cp
-                                           ({| store := st |}, {| store := st |}).
+  Definition getProp (ml : @mline _ (Scope.scopeVar sc) tyD)
+    := forall (st : str), snd (ml (scopeStore _ _))
+                              ({| store := st |}, {| store := st |}).
+
+  Definition tpt := getProp cp.
 
 End CodeGen.
 
 Arguments cp [n] sc [tyD].
+Arguments getProp [n sc tyD].
 Arguments tpt [n] sc [tyD Rels].
 
 (* Extracting Prop object from annotated code *)

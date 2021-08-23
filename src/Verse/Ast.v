@@ -118,7 +118,7 @@ Section ModularCode.
 
   Inductive line (v : Variables.U ts) mline :=
   | inst      : statement v -> line v mline
-  | inline    : mline       -> line v mline
+  | inline    : mline v     -> line v mline
   | call      : forall n (sc : Scope.type ts n),
                   (forall w, Scope.allocation w sc -> (list (line w mline)))
                   -> Scope.allocation v sc -> line v mline

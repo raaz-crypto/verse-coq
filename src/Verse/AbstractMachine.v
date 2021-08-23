@@ -203,16 +203,13 @@ Section Machine.
   Variable v  : Variables.U ts.
 
   Variable tyD   : typeDenote ts.
-  Variable state : State v tyD.
 
-  Definition mline
-    := (instruction state * assertion (ts := ts) state)%type.
+  Definition mline :=
+    forall state : State v tyD, (instruction state * assertion state)%type.
 
   Definition justInst
-    : instruction state -> mline
-    := fun i => (i, fun _ => True).
-
-  Coercion justInst : instruction >-> mline .
+    : (forall state, instruction state) -> mline
+    := fun i => fun st => (i st, fun _ => True).
 
   Definition store_machine
     : mSpecs ts ts
@@ -230,29 +227,29 @@ Section Machine.
     : Semantics store_machine mline
     := Build_Semantics _ _ store_machine
                        mline _ _
-                       ((Internals.denoteStmt ts _ tyD state) >-> justInst)
-                       (fun ml => (fst ml, fun stp =>
-                                             (snd ml) (snd stp, snd stp)))
+                       ((fun s => fun state => Internals.denoteStmt ts (mvariables store_machine) tyD state s) >-> justInst)
+                       (fun ml => fun st => (fst (ml st), fun stp =>
+                                                       (snd (ml st)) (snd stp, snd stp)))
   .
 
 End Machine.
 
-Arguments mline {ts v tyD state}.
+Arguments mline {ts v tyD}.
 Arguments store_machine [ts].
 Arguments store_interface {ts v}.
-Arguments store_semantics {ts v tyD state}.
+Arguments store_semantics {ts v tyD}.
 
 (* These following definitions are not meant to be exposed
    to the user coding in Verse.
    Thence the prefix 'Int' for 'internal'
 *)
 Definition IntAnnotation (cv : Variables.U verse_type_system) tyD
-  := forall `(State verse_type_system cv tyD),
-    line cv mline.
+  := (*forall `(State verse_type_system cv tyD),*)
+    line cv (fun v => @mline _ v tyD).
 
 Definition IntAnnotatedCode (cv : Variables.U verse_type_system) tyD
-  := forall `(State verse_type_system cv tyD),
-    lines cv mline.
+  := (*forall `(State verse_type_system cv tyD),*)
+    lines cv (fun v => @mline _ v tyD).
 (* TODO - Why does this not work without the backtick?
           Does not work with '_ : State ..' but does with 'x : State ...'!
 *)
@@ -265,7 +262,7 @@ Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ _ v) (at level 50).
 Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
 
 Tactic Notation "annotated_verse" uconstr(B)
-  := refine (fun _ => B : lines _ mline); repeat verse_simplify; verse_print_mesg.
+  := refine ((*fun _ =>*) B : lines _ mline); repeat verse_simplify; verse_print_mesg.
 
 Notation "'ASSERT' P" := (inline (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : SPair str -> Prop)) (at level 100).
 
@@ -303,10 +300,15 @@ Section ForAllCxt.
 
   Variable state : State v tyD.
 
-  Definition interpret (prog : Ast.lines v mline)
-    := linesDenote (store_machine v) mline store_semantics prog.
+  Definition interpret (prog : Ast.lines v (fun v => @mline _ v tyD))
+    := linesDenote (store_machine v)
+                   (fun v => @mline _ v tyD)
+                   store_semantics
+                   prog.
 
 End ForAllCxt.
+
+Arguments interpret [v tyD].
 
 Require Import Verse.Language.Types.
 
@@ -396,6 +398,9 @@ Require Import Verse.BitVector.
 Require Import Verse.BitVector.ArithRing.
 
 (* Destruct the variable store for easier access to valuations *)
+
+(* TODO : These are just the curry uncurry from Scope.v with more
+   generality *)
 
 Fixpoint prodn T n : Type
   := match n with
