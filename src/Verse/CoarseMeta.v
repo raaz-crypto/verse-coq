@@ -8,7 +8,7 @@ Require Import Verse.ScopeStore.
 Require Import Verse.Language.Pretty.
 Require Import Verse.Monoid.
 
-Require Import List.
+Require Import Verse.Monoid.PList.
 Import ListNotations.
 
 Require Import Vector.
@@ -197,7 +197,64 @@ proc a b c  ---  state -> state, assertion  (* assertion should technically spec
 a = va; b = vb; c = vc  --- and provide assertion on va vb vc as hypothesis to the rest
 
 post-block  ---  state -> state, assertion
+Fixpoint getProc [tyD Rels n]
+         [sc : Scope.type verse_type_system n]
+         (l1 l2 : AnnotatedCode _ Rels (Scope.scopeVar sc)) {struct l2}
+  : option (modCode tyD Rels n sc)
+  := match l2 with
+     | []       => None
+     | ac :: tl => match ac with
+                   | proc f all => Some {| preB    := l1;
+                                           procC   := f;
+                                           procAll := all;
+                                           postB   := tl
+                                        |}
+                   | _          => getProc (l1 ++ [ac]) tl
+                   end
+     end.
 
+Definition split [tyD Rels n]
+           [sc : Scope.type verse_type_system n]
+           (l : AnnotatedCode _ Rels (Scope.scopeVar sc))
+  : option (modCode tyD Rels n sc)
+  :=  getProc [] l.
+
+Lemma splitEq  [tyD Rels n] [sc : Scope.type verse_type_system n]
+      (l : AnnotatedCode tyD Rels (Scope.scopeVar sc))
+  : match split l with
+    | Some mc => l = mc
+    | None    => True (* TODO : could be eq_refl l *)
+    end.
+Proof.
+
+  assert (forall l2 l1 : AnnotatedCode tyD Rels (Scope.scopeVar sc),
+             match getProc l1 l2 with
+             | Some mc => l1 ++ l2 = (mc : AnnotatedCode _ _ _)
+             | None    => True
+             end).
+
+  induction l2.
+  * easy.
+  * induction a.
+  + simpl.
+    assert (forall T t (l : list T), t :: l = [t] ++ l).
+    easy.
+    rewrite (H _ (instruct s) l2).
+    intro.
+    rewrite (app_assoc l1 [instruct s] l2).
+    apply IHl2.
+  + simpl.
+    now unfold getCode.
+  + simpl.
+    assert (forall T t (l : list T), t :: l = [t] ++ l).
+    easy.
+    rewrite (H _ (annot v) l2).
+    intro.
+    rewrite (app_assoc l1 [annot v] l2).
+    apply IHl2.
+    * unfold split.
+      apply H.
+Qed.
 
 *)
 (* forall (- va vb vc -), a = va; b = vb; c = vc; *)
