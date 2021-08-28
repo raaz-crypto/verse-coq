@@ -92,49 +92,80 @@ Section Annotated.
       end.
   End ParamV.
 
+End Annotated.
   (* TODO : remove spurious old code comments from commits on monotypecall *)
 
-  Inductive Annotated v : Type :=
-  | instruct  : statement v -> Annotated v
-  | proc      : forall n (sc : Scope.type verse_type_system n),
-      (forall w, Scope.allocation w sc -> (list (Annotated w)))
-      -> Scope.allocation v sc -> Annotated v
-  | annot     : VProp v       -> Annotated v
-  .
+Record specified tyD Rels v T := { preC : VProp tyD Rels v;
+                                   block : T tyD Rels v;
+                                   postC : VProp tyD Rels v
+                                 }.
 
-  Definition AnnotatedCode v := list (Annotated v).
+Inductive Annotated tyD Rels v : Type :=
+| instruct  : statement v -> Annotated tyD Rels v
+| proc      : forall n ty, (forall w,
+                               Scope.allocation w (Scope.const n ty)
+                               -> specified tyD Rels w
+                                            (fun a b c => list (Annotated a b c)))
+                           -> Scope.allocation v (Scope.const n ty)
+                           -> Annotated tyD Rels v
+| annot     : VProp tyD Rels v       -> Annotated tyD Rels v
+.
 
-  Fixpoint denote1 v (ann : Annotated v) : line v (fun w => @mline _ w tyD)
-    := match ann with
-       | instruct _ s  => inst s
-       | proc _ n sc p all => call (fun w wall =>
-                                      map (denote1 _) (p w wall))
+Definition specifiedC tyD Rels n ty
+  := (forall w,
+         Scope.allocation w (Scope.const n ty)
+         -> specified tyD Rels w
+                      (fun a b c => list (Annotated a b c))).
+(*specified tyD Rels v
+                                               (fun a b c => list (Annotated a b c)).*)
+
+Definition AnnotatedCode tyD Rels v := list (Annotated tyD Rels v).
+
+Fixpoint denote1 tyD Rels v
+         (ann : Annotated tyD Rels v) {struct ann}
+  : line v (fun w => @mline _ w tyD)
+  :=
+    let anndenote [x] p := (inline
+                              (fun state : State x tyD =>
+                                 (id,
+                                  ((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : SPair str -> Prop))) in
+    match ann with
+    | instruct _ _ _ s  => inst s
+    | annot _ _ _ p     => anndenote p
+    | proc _ _ _ n _ p all => call (fun w wall =>
+                                      let (pre, bl, post) := p w wall in
+                                      anndenote pre ::
+                                                map (denote1 _ _ _) bl
+                                                ++ [anndenote post])
                                    all
-       | annot _ p     => (inline
-                             (fun state : State v tyD =>
-                                (id,
-                                 ((fun (st : StoreP str) => VPropDenote _ p (st := st)) : StoreP str -> Prop) : SPair str -> Prop)))
-       end.
+    end.
 
-  Definition denote v (ann : AnnotatedCode v) : IntAnnotatedCode v tyD
-    := map (denote1 v) ann.
-
-End Annotated.
+Definition denote tyD Rels v (ann : AnnotatedCode tyD Rels v)
+  : IntAnnotatedCode v tyD
+  := map (denote1 tyD Rels v) ann.
 
 Arguments eq [tyD Rels v ty].
+Arguments and [tyD Rels v].
+Arguments or [tyD Rels v].
 Arguments rel [tyD Rels v ty rel].
-Arguments denote [tyD Rels v].
+Arguments VPropDenote [tyD Rels v].
+Arguments denote [tyD Rels v] : simpl never.
 
 Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (at level 70) : annotation_scope.
 
 Global Notation "X < R > Y" := (rel R X Y) (at level 99) : annotation_scope.
-Global Infix "AND" := and (at level 56, left associativity) : annotation_scope.
-Global Infix "OR"  := or  (at level 59, left associativity) : annotation_scope.
+Global Infix "VAND" := and (at level 56, left associativity) : annotation_scope.
+Global Infix "VOR"  := or  (at level 59, left associativity) : annotation_scope.
+
 
 (* TODO : Somehow not being able to make this work without the 'WITH' *)
+(* The implicit parameters of `proc` to do with its scope seem to be
+   inferable in the monotype call setting!
+ *)
+
 Notation "'CALL' f 'WITH' a"
   := ([ let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
-      proc _ _ _ _ sc
+      proc _ _ _ _ (*(Scope.nesting (Scope.Cookup.specialise f))*) _ (*(projT1 (fst sc))*)
            (fun w => Scope.uncurryScope
                        (st := sc)
                        (f%function w))
