@@ -160,12 +160,9 @@ Section Coarse.
                                 snd ((justInst
                                        (fun st => fst (preI st))
                                     **
-(* TODO                                (fun st => Semantics.inliner _ _
-                                                                 store_semantics
-                                                                 dumI)*)
-                                    (fun st => (fst (dumI st),
-                                                fun stp =>
-                                                  (snd (dumI st)) (snd stp, snd stp)))) (scopeStore _ _))
+                                    (Semantics.inliner store_semantics
+                                                       dumI))
+                                       (scopeStore _ _))
                                     (str, str)
                  in
                  getProp (fun str => cpre str /\ procP str)
