@@ -103,31 +103,88 @@ Section Coarse.
         end sc alloc dummyvals).
  *)
 
-  Variable n  : nat.
 
-  Local Definition sc := const (existT _ _ ty) n.
-  Definition v := Scope.scopeVar sc.
+  Variable m : nat.
+  Variable sc : Scope.type verse_type_system m.
 
+  Let scv := Scope.scopeVar sc.
 
+  Record modCode := { preB   : AnnotatedCode tyD Rels scv;
+
+                      procN  : nat;
+                      procTy : verse_type_system direct;
+
+                      procC  : specifiedC tyD Rels procN procTy;
+
+                      procAll : Scope.allocation scv (Scope.const procN procTy);
+
+                      postB  : AnnotatedCode tyD Rels scv
+                    }.
+
+  Coercion getCode (mc : modCode) : AnnotatedCode tyD Rels scv
+    := preB mc ++ (proc (procC mc) (procAll mc)) :: (postB mc)
+  .
+
+  Definition specifiedCDenote [tyD Rels n ty] (f : specifiedC tyD Rels n ty)
+    := let (pre, bl, post) := Scope.fillScoped
+                                (fun w =>
+                                   Scope.curryScope
+                                     (fun all => @f w all))
+       in getProp (fun str =>
+                     VPropDenote pre (scopeStore _ _)
+                                 {| oldAndNew := (str, str) |})
+                  (interpret (denote (bl ++ [ annot post ]))).
+
+(* TODO : Make a big axiom section and make all the parameters and
+          let's section variables and definitions *)
   Axiom modularProof
-    : forall (apre : AnnotatedCode tyD Rels v)
-             (f : forall [w], Scope.allocation w sc
-                              -> AnnotatedCode tyD Rels w)
-             (alloc : Scope.allocation v sc)
-             (apost : AnnotatedCode tyD Rels v)
+    : forall cpre
+             (apre : AnnotatedCode tyD Rels scv)
+             n ty
+             (f : specifiedC tyD Rels n ty)
+             (alloc : Scope.allocation scv (Scope.const n ty))
+             (apost : AnnotatedCode tyD Rels scv)
 
-             (procP : tpt sc (fun w => Scope.curryScope (@f w) ))
              (distinct : distinctAll alloc)
-             (modP : forall dVals,
-                 let preP := interpret (denote apre) in
-                 let dumP := interpret (denote (dummyProc alloc dVals)) in
-                 let procP := snd (interpret (denote (f alloc))
-                                             (scopeStore _ _)) in
-                 let postP := (interpret (denote apost)) in
-                 let cp := preP ** dumP ** postP in
-                 getProp procP cp),
 
-      getProp (fun _ => True) (interpret (denote (apre ++ (proc _ _ _ _ _ f alloc) :: apost)))%list.
+             (modP : forall dVals,
+                 let (preF, blF, postF) := f _ alloc in
+                 let preI := interpret (denote apre) in
+                 let dumI := interpret (denote
+                                          (dummyProc alloc dVals
+                                               ++
+                                           [annot postF]
+                                       )) in
+                 let procP := fun str =>
+                                snd ((justInst
+                                       (fun st => fst (preI st))
+                                    **
+(* TODO                                (fun st => Semantics.inliner _ _
+                                                                 store_semantics
+                                                                 dumI)*)
+                                    (fun st => (fst (dumI st),
+                                                fun stp =>
+                                                  (snd (dumI st)) (snd stp, snd stp)))) (scopeStore _ _))
+                                    (str, str)
+                 in
+                 getProp (fun str => cpre str /\ procP str)
+                         (interpret (denote
+                                       (apre
+                                          ++ [annot preF]
+                                          ++ dummyProc alloc dVals
+                                          ++ apost))))
+
+             (procP : specifiedCDenote f)
+    ,
+      getProp cpre (interpret
+                      (denote
+                         (getCode
+                            (Build_modCode apre
+                                           _
+                                           _
+                                           f
+                                           alloc
+                                           apost)))).
 
 End Coarse.
 
