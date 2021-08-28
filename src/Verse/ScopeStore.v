@@ -19,7 +19,7 @@ Section ScopeStore.
   Local Definition tyd  := typeTrans tyD.
   Arguments tyd [k].
 
-  Definition type := typeOf ts.
+  Local Definition type := typeOf ts.
 
   Definition scstr {n} (sc : Scope.type ts n)
     := Scope.allocation tyd sc.
