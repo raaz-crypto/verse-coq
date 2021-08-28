@@ -74,6 +74,7 @@ Section Annotated.
 
 
     Inductive VProp : Type :=
+    | nil : VProp
     | eq  : forall ty, expr ty -> expr ty -> VProp
     | rel : forall ty rel, Rels ty rel -> expr ty -> expr ty -> VProp
     | and : VProp -> VProp -> VProp
@@ -84,6 +85,7 @@ Section Annotated.
 
     Fixpoint VPropDenote (vp : VProp) `{State _ v tyD} {st : StoreP str} : Prop :=
       match vp with
+      | nil               => True
       | eq ty e1 e2       => evalE e1 = evalE e2
       | rel _ r _ e1 e2   => r (evalE e1) (evalE e2)
       | and vp1 vp2       => VPropDenote vp1 /\ VPropDenote vp2
@@ -181,4 +183,13 @@ Arguments OLD [v k ty].
 Arguments noRels {tyD}.
 Arguments Annotated [tyD].
 Arguments instruct [tyD Rels] {v}.
+Arguments proc [tyD Rels v n ty].
 Arguments annot [tyD Rels] {v}.
+Arguments nil {tyD Rels v}.
+
+Notation "F 'DOES' Post" := ({| preC := nil ; block := F; postC := Post |})
+(at level 60).
+
+(*
+Notation "'SPEC' { Pre } F { Post }" := ({| preC := Pre; block := F; postC := Post |}).
+*)
