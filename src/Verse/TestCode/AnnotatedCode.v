@@ -40,7 +40,5 @@ Definition toProve : Prop.
 Defined.
 
 Definition proof : toProve.
-
-  simplify.
-
+  realize.
 Qed.
