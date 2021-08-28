@@ -102,9 +102,9 @@ Section CodeGen.
      specification to the main body proof.
    *)
 
-  Definition getProp (pc : assertion _)
+  Definition getProp (pc : _ -> Prop)
              (ml : @mline _ (Scope.scopeVar sc) tyD)
-    := forall (st : str), pc ({| store := st |}, {| store := st |})
+    := forall (st : str), pc {| store := st |}
                           ->
                           snd (ml (scopeStore _ _))
                               ({| store := st |}, {| store := st |}).
