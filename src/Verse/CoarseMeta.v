@@ -7,6 +7,7 @@ Require Verse.Scope.
 Require Import Verse.ScopeStore.
 Require Import Verse.Language.Pretty.
 Require Import Verse.Monoid.
+Require Import Verse.Machine.BitVector.
 
 Require Import Verse.Monoid.PList.
 Import ListNotations.
@@ -256,5 +257,68 @@ Proof.
       apply H.
 Qed.
 
-*)
-(* forall (- va vb vc -), a = va; b = vb; c = vc; *)
+Fixpoint lamn T n
+  : (Prodn.t T n -> Type) -> Type
+  := match n as n0
+           return (Prodn.t T n0 -> Type) -> Type
+     with
+     | 0   => fun f => forall t, f t
+     | S n => fun f => forall t, lamn _ n (fun x => f (t, x))
+     end.
+
+Lemma forallprod T n f
+  : lamn T n f
+    ->
+    forall x : Prodn.t T n, f x.
+  induction n.
+  easy.
+  intros.
+  pose (IHn _ (X (fst x)) (snd x)).
+  rewrite surjective_pairing.
+  exact f0.
+Qed.
+
+
+Ltac breakDVals :=
+  let st := fresh "st" in
+  match goal with
+  | |- forall _, _ => intro st; simpl in st; revert st
+  end;
+  let nsc := fresh "nsc" in
+  (match goal with
+   | |- forall _ : ?t, _  =>
+     let nsc := prodsize t in
+     refine (forallprod _
+                        nsc
+                        _
+                        _
+
+            )
+   end;
+   unfold lamn; intros).
+
+Ltac modProof :=
+  let rec inner := first [ match goal with
+                           | |- context [getProp _ (interpret (denote ?l))]
+                             => rewrite (splitEq l); apply modularProof;
+                                [> unfold distinctAll; simpl; easy
+                                | let dv := fresh "dv" in
+                                  intro dv; simpl in dv;
+                                  revert dv; breakDVals;
+                                  simpl; inner
+                                | (* unfold specifiedCDenote;
+                                     simpl; inner *)
+
+                                (* While the above tactic would solve
+                                the functions too, we would like to
+                                employ an external lemma or so here to
+                                really modularize the function proofs
+
+                                simpl
+
+                                ]
+                           end
+                         | simplify ]
+  in inner.
+
+Ltac mrealize := unwrap; modProof.
