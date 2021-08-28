@@ -92,16 +92,9 @@ Section CodeGen.
       Rel tyD ty -> Prop
   .
 
-  Definition asc
-    := Vector.map (fun sty => let 'existT _ _ ty := sty in
-                              existT _ _ (typeTrans tyD ty))
-                  sc.
-
   Variable ac : forall v, Scope.scoped v sc (AnnotatedCode tyD Rels v).
 
-  Definition c := denote (Scope.fillScoped ac).
-
-  Definition cp := interpret c.
+  Definition cp := interpret (denote (Scope.fillScoped ac)).
 
   (* We allow `getProp` to take a precondition to prefix to the
      extracted Prop. This is never exposed to the user, but is used in
