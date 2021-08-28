@@ -329,12 +329,19 @@ Ltac revert_until H :=
                     | revert H' ]
          end.
 
+Ltac clear_until H :=
+  repeat lazymatch goal with
+         | [ H' : _ |- _ ]
+           => first [ constr_eq H H'; fail 1
+                    | clear H' ]
+         end.
+
 Ltac remove_duplicates :=
   [ > lazymatch goal with
       | [ |- duplicate_prod _ _ ] => idtac
       | [ H : duplicate_prod _ _ |- _ ]
         => generalize (I : HERE);
-           (*revert_until H;*)
+           revert_until H;
            let G := match goal with |- ?G => G end in
            lazymatch type of H with
            | context[duplicate_prod G]
@@ -390,4 +397,20 @@ Ltac modProof :=
   in inner.
 
 Ltac mrealize := start_remove_duplicates; [> unwrap; modProof | ..];
-                 remove_duplicates; finish_duplicates.
+
+                 (* The following is a fairly fragile way to handle
+                 duplicate function correctness obligations. We assume
+                 function correctness cannot use any other hypothesis
+                 (we expect these to be only the dummy values that
+                 earlier proc resolutions create). Clearing the
+                 hypothesis allows us to class function calls as
+                 duplicates of each other
+
+                 This might break for fancier proofs with proofs
+                 depending on parameters or other abstract lemmas.
+                 *)
+
+                 match goal with | |- specifiedCDenote _ => match goal
+                 with | H : duplicate_prod _ _ |- _ => clear_until H
+                 end | _ => idtac end; remove_duplicates;
+                 finish_duplicates.

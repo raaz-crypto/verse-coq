@@ -53,9 +53,6 @@ Require Import CoarseMeta.
 
 Definition proof : toProve.
 
-  unwrap.
-  modProof.
-
   mrealize.
 
 Abort.
