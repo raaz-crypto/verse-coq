@@ -297,6 +297,67 @@ Ltac breakDVals :=
    end;
    unfold lamn; intros).
 
+(** The remove duplicates code has been taken from
+    https://stackoverflow.com/questions/45264991/eliminate-redundant-sub-goals-generated-by-case-analysis-in-coq *)
+
+Record duplicate_prod (A B : Type) := duplicate_conj { duplicate_fst : A ; duplicate_snd : B }.
+
+Definition HERE := True.
+
+Ltac start_remove_duplicates :=
+  simple refine (let H___duplicates := @duplicate_conj HERE _ I _ in _);
+  [ shelve | | ]; cycle 1.
+
+Ltac find_dup H G :=
+  lazymatch type of H with
+  | duplicate_prod G _ => constr:(@duplicate_fst _ _ H)
+  | duplicate_prod _ _ => find_dup (@duplicate_snd _ _ H) G
+  end.
+
+Ltac find_end H :=
+  lazymatch type of H with
+  | duplicate_prod _ _ => find_end (@duplicate_snd _ _ H)
+  | _ => H
+  end.
+
+Ltac revert_until H :=
+  repeat lazymatch goal with
+         | [ H' : _ |- _ ]
+           => first [ constr_eq H H'; fail 1
+                    | revert H' ]
+         end.
+
+Ltac remove_duplicates :=
+  [ > lazymatch goal with
+      | [ |- duplicate_prod _ _ ] => idtac
+      | [ H : duplicate_prod _ _ |- _ ]
+        => generalize (I : HERE);
+           (*revert_until H;*)
+           let G := match goal with |- ?G => G end in
+           lazymatch type of H with
+           | context[duplicate_prod G]
+             => let lem := find_dup H G in exact lem
+           | _ => let lem := find_end H in
+                  refine (@duplicate_fst _ _ lem); clear H; (* clear to work around a bug in Coq *)
+                  shelve
+           end
+      end.. ].
+
+Ltac finish_duplicates :=
+  [ > lazymatch goal with
+      | [ H : duplicate_prod _ _ |- _ ] => clear H
+      end..
+  | repeat match goal with
+           | [ |- duplicate_prod _ ?e ]
+             => split;
+                [ repeat lazymatch goal with
+                         | [ |- HERE -> _ ] => fail
+                         | _ => intro
+                         end;
+                  intros _
+                | try (is_evar e; exact I) ]
+           end ].
+
 Ltac modProof :=
   let rec inner := first [ match goal with
                            | |- context [getProp _ (interpret (denote ?l))]
@@ -314,6 +375,11 @@ Ltac modProof :=
                                 employ an external lemma or so here to
                                 really modularize the function proofs
 
+                                Instead we use a `simpl` so that calls
+                                the same functions get massaged to
+                                look the same and thus be caught by
+                                `remove_duplicates` *)
+
                                 simpl
 
                                 ]
@@ -321,4 +387,5 @@ Ltac modProof :=
                          | simplify ]
   in inner.
 
-Ltac mrealize := unwrap; modProof.
+Ltac mrealize := start_remove_duplicates; [> unwrap; modProof | ..];
+                 remove_duplicates; finish_duplicates.
