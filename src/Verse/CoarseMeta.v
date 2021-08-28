@@ -47,6 +47,16 @@ Definition distinctAll [ts n] [sc : Scope.type ts n]
                                     (alltolist (snd an))
            end sc a) ts n sc v a).
 
+Module Prodn.
+
+  Fixpoint t T n : Type
+    := match n with
+       | 0   => Datatypes.unit
+       | S n => (T * t T n)%type
+       end.
+
+End Prodn.
+
 Section Coarse.
 
   Variable tyD : typeDenote verse_type_system.
@@ -54,18 +64,16 @@ Section Coarse.
       Rel tyD ty -> Prop
   .
 
-  Variable ty : typeOf verse_type_system direct.
-
-  Fixpoint dummyProc [n v] (alloc : Scope.allocation v (const (existT _ _ ty) n))
-           (dummyvals : Vector.t (Types.const ty) n)
+  Fixpoint dummyProc [n v ty] (alloc : Scope.allocation v (const (existT _ _ ty) n))
+           (dummyvals : Prodn.t (Types.const ty) n)
            {struct n}
     : AnnotatedCode tyD Rels v
     := (match n as n0
-             return Scope.allocation v (const _ n0) -> Vector.t (Types.const ty) n0 -> _
+             return Scope.allocation v (const _ n0) -> Prodn.t (Types.const ty) n0 -> _
        with
        | 0   => fun _ _ => []
        | S m => fun allS dumS =>
-                  CODE [ assignStmt (var (fst allS)) (fst allS : v _ _)  ]%verse
+                  CODE [ assignStmt (var (fst allS)) (fst dumS)  ]%verse
                         ++
                         dummyProc (snd allS) (snd dumS)
        end alloc dummyvals).
