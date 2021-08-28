@@ -12,18 +12,17 @@ Require Import List.
 Import ListNotations.
 
 Require Import Vector.
-Import VectorNotations.
 
 Fixpoint distinctL [T] (l : list T)
   := let fix distH t l :=
          match l with
-         | []%list         => True
-         | (hd :: tl)%list => t <> hd /\ hd <> t /\ distH t tl
+         | []         => True
+         | (hd :: tl) => t <> hd /\ hd <> t /\ distH t tl
          end
      in
      match l with
-     | []%list         => True
-     | (hd :: tl)%list => distH hd tl /\ distinctL tl
+     | []         => True
+     | (hd :: tl) => distH hd tl /\ distinctL tl
      end.
 
 Definition qualV [ts] (v : Variables.U ts) := sigT (qualified v).
@@ -46,7 +45,7 @@ Definition distinctAll [ts n] [sc : Scope.type ts n]
            | S n => fun scn an => (qualify (fst an))
                                     ::
                                     (alltolist (snd an))
-           end sc a)%list ts n sc v a).
+           end sc a) ts n sc v a).
 
 Section Coarse.
 
@@ -68,8 +67,8 @@ Section Coarse.
        | S m => fun allS dumS =>
                   CODE [ assignStmt (var (fst allS)) (fst allS : v _ _)  ]%verse
                         ++
-                        dummyProc (snd allS) (tl dumS)
-       end alloc dummyvals)%list.
+                        dummyProc (snd allS) (snd dumS)
+       end alloc dummyvals).
 
 (* This generic version doesn't work because you need the variables to
    be of `kind` direct.
@@ -93,7 +92,7 @@ Section Coarse.
                         dummyproc m (Vector.tl scS)
                         (snd allocS)
                         (snd dumS)
-        end sc alloc dummyvals)%list.
+        end sc alloc dummyvals).
  *)
 
   Variable n  : nat.
