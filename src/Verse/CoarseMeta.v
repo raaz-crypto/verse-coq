@@ -189,15 +189,17 @@ Section Coarse.
 
 End Coarse.
 
-(*
-pre-block   ---  state -> state, assertion  (* assertion includes d = OLD e *)
+(* Cannot fold the following definition. Since it is simply for
+pretty-printing, we adopt a notation instead
 
-proc a b c  ---  state -> state, assertion  (* assertion should technically specify the proc *)
-        replaced by
+Definition functionDenote [n ty tyD Rels] (f : forall v, Scope.scoped
+           v (Scope.const n ty) (specified tyD Rels _ AnnotatedCode))
+           : Prop
+*)
+Notation "'functionDenote' f"  := (specifiedCDenote (fun w => Scope.uncurryScope (f w))) (at level 99).
 
-a = va; b = vb; c = vc  --- and provide assertion on va vb vc as hypothesis to the rest
+Arguments getCode [tyD Rels m sc].
 
-post-block  ---  state -> state, assertion
 Fixpoint getProc [tyD Rels n]
          [sc : Scope.type verse_type_system n]
          (l1 l2 : AnnotatedCode _ Rels (Scope.scopeVar sc)) {struct l2}

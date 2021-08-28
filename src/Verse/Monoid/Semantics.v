@@ -30,15 +30,15 @@ Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
         inliner      : line -> line
      }.
 
-Arguments inliner [types mtypes] _ _ {_ _}.
-Arguments denote  [types mtypes] _ _ {_ _}.
+Arguments inliner [types mtypes] [M line] {_ _}.
+Arguments denote  [types mtypes] [M line] {_ _}.
 
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
-  := mapMconcat unit (denote M line sem).
+  := mapMconcat unit (denote sem).
 
 Fixpoint lineDenote types mtypes
          (M : mSpecs types mtypes)
@@ -47,9 +47,9 @@ Fixpoint lineDenote types mtypes
          (c : Ast.line (mvariables M) line)
   : line (mvariables M)
   := match c with
-     | inst   i => denote M (line (mvariables M)) sem i
+     | inst   i => denote sem i
      | inline i => i
-     | call f a => inliner _ _ sem
+     | call f a => inliner sem
                      (mapMconcat unit
                                  (lineDenote _ _ M _ sem)
                                  (f (mvariables M) a))

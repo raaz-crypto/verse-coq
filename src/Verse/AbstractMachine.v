@@ -235,6 +235,7 @@ Section Machine.
 End Machine.
 
 Arguments mline {ts v tyD}.
+Arguments justInst [ts v tyD].
 Arguments store_machine [ts].
 Arguments store_interface {ts v}.
 Arguments store_semantics {ts v tyD}.
