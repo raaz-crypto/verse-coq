@@ -16,9 +16,6 @@ Require Import SetoidClass.
           dep_point_monoid
 *)
 
-Instance eq_setoid T : Setoid T | 10
-  := { equiv := eq }.
-
 Class Monoid t `{Setoid t}
 := { unit  : t;
      oper  : t -> t -> t;
@@ -37,18 +34,6 @@ Definition welldef {T} `{Monoid T} w x y z
   := fun e f =>
        transitivity (welldef_l w x y e) (welldef_r y z x f).
 
-Instance list_is_monoid (A : Type)
-  : Monoid (list A).
-refine  {| unit  := nil;
-           oper  := app (A:=A);
-           welldef_l := fun _ _ _ _ => _;
-           welldef_r := fun _ _ _ _ => _;
-           left_identity  := app_nil_l (A:=A);
-           right_identity := app_nil_r (A:=A);
-           associativity  := app_assoc (A:=A)
-        |}.
-all : simpl in *; rewrite e; trivial.
-Defined.
 
 (** ** State transition.
 
@@ -91,34 +76,6 @@ End LawsTransition.
 
 Import LawsTransition.
 
-Instance transition_monoid (A : Type) : Monoid (A -> A) | 0.
-refine {| unit := @id A;
-          oper f g := f >-> g;
-          welldef_l := fun _ _ _ _ => _;
-          welldef_r := fun _ _ _ _ => _;
-          left_identity := left_identity_compose A;
-          right_identity := right_identity_compose A;
-          associativity   := assoc_compose A
-       |}.
-all: simpl in *; rewrite e; trivial.
-Defined.
-(*
-Instance transition_monoid (A : Type) : Monoid (A -> A).
-refine {| unit     := @id A;
-          oper f g := g >-> f;
-          welldef_l := fun _ _ _ _ => _;
-          welldef_r := fun _ _ _ _ => _;
-          left_identity := right_identity_compose A;
-          right_identity := left_identity_compose A;
-          associativity   := assoc_compose' A
-       |}.
-all: simpl in *; rewrite e; trivial.
-Defined.
-*)
-(*
-Instance transition_setoid A : Setoid (A -> A) | 2 :=
-  {| equiv := eq |}.
-*)
 Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 1 :=
   {| equiv f g := forall x, f x == g x;
      setoid_equiv := {|
@@ -311,6 +268,7 @@ Module End.
   Defined.
 
   Import EqNotations.
+
   Instance end_monoid T `{Monoid T} : Monoid (End T).
   refine
     {| unit           := id;
@@ -674,6 +632,46 @@ Definition halftwist {A B} `{Monoid B} (ea : A -> A) : End (A*A -> B).
   reflexivity.
 Defined.
 
+(** **
+
+This marks the separator between definitions that should not be using
+the eq_setoid and those that 'can'.
+
+*)
+
+Instance eq_setoid T : Setoid T | 10
+  := { equiv := eq }.
+
+Instance list_is_monoid (A : Type)
+  : Monoid (list A).
+refine  {| unit  := nil;
+           oper  := List.app (A:=A);
+           welldef_l := fun _ _ _ _ => _;
+           welldef_r := fun _ _ _ _ => _;
+           left_identity  := app_nil_l (A:=A);
+           right_identity := app_nil_r (A:=A);
+           associativity  := app_assoc (A:=A)
+        |}.
+all : simpl in *; rewrite e; trivial.
+Defined.
+
+Instance transition_monoid (A : Type) : Monoid (A -> A) | 0.
+refine {| unit := @id A;
+          oper f g := f >-> g;
+          welldef_l := _ (*fun _ _ _ _ => _*);
+          welldef_r := _ (*fun _ _ _ _ => _*);
+          left_identity := _ (*fun _ _ => eq_refl left_identity_compose A*);
+          right_identity := _ (*fun _ _ => eq_refl right_identity_compose A*);
+          associativity   := _ (*assoc_compose A*)
+       |}.
+intros. simpl "==". unfold ">->". intro. f_equal. apply H.
+intros. simpl "==". unfold ">->". intro. f_equal.
+easy.
+easy.
+easy.
+(*all: simpl in *; rewrite e; trivial.*)
+Defined.
+
 Instance comp A B `{Monoid B} : action (A -> A) (A -> B).
 refine {| f        := twist;
           well_def := _;
@@ -685,6 +683,7 @@ simpl.
 unfold End.eq.
 simpl.
 intros.
+unfold ">->".
 now rewrite H1.
 
 easy.
@@ -702,6 +701,8 @@ refine {| f        := halftwist;
 simpl.
 unfold halftwist.
 unfold End.eq.
+simpl.
+unfold ">->".
 intros.
 now rewrite H1.
 
