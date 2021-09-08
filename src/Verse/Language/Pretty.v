@@ -190,10 +190,10 @@ Infix "%"           := (binOpApp rem)            (at level 40, left associativit
 Infix "+"           := (binOpApp plus)           (at level 50, left associativity) : verse_scope.
 Infix "-"           := (binOpApp minus)          (at level 50, left associativity) : verse_scope.
 
-Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (at level 55, left associativity) : verse_scope.
-Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 55, left associativity) : verse_scope.
-Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 55, left associativity) : verse_scope.
-Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 55, left associativity) : verse_scope.
+Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (at level 54, left associativity) : verse_scope.
+Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 54, left associativity) : verse_scope.
+Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 54, left associativity) : verse_scope.
+Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 54, left associativity) : verse_scope.
 
 Infix "AND"         := (binOpApp bitAnd)         (at level 56, left associativity) : verse_scope.
 Infix "⊕"           := (binOpApp bitXor)         (at level 57, left associativity) : verse_scope.
