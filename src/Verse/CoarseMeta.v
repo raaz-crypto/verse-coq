@@ -365,7 +365,7 @@ Ltac finish_duplicates :=
            end ].
 
 Ltac modProof :=
-  let rec inner := first [ match goal with
+  let rec inner := try match goal with
                            | |- context [getProp _ (interpret (denote ?l))]
                              => rewrite (splitEq l); apply modularProof;
                                 [> unfold distinctAll; simpl; easy
@@ -390,10 +390,11 @@ Ltac modProof :=
 
                                 ]
                            end
-                         | simplify ]
+
   in inner.
 
-Ltac mrealize := start_remove_duplicates; [> unwrap; modProof | ..];
+Ltac mrealize := unwrap;
+                 start_remove_duplicates; modProof;
 
                  (* The following is a fairly fragile way to handle
                  duplicate function correctness obligations. We assume
@@ -407,7 +408,20 @@ Ltac mrealize := start_remove_duplicates; [> unwrap; modProof | ..];
                  depending on parameters or other abstract lemmas.
                  *)
 
-                 match goal with | |- specifiedCDenote _ => match goal
-                 with | H : duplicate_prod _ _ |- _ => clear_until H
-                 end | _ => idtac end; remove_duplicates;
-                 finish_duplicates.
+                 match goal with
+                 | |- specifiedCDenote _ => match goal with
+                                            | H : duplicate_prod _ _ |- _ => clear_until H
+                                            end
+                 | _ => idtac
+                 end;
+                 remove_duplicates;
+                 finish_duplicates;
+
+                 (* This last is not just to handle non-functional
+                 code but also to simplify the modified body that
+                 comes out of modProof.
+                  *)
+
+                 try simplify.
+
+Global Hint Unfold specifiedCDenote : Wrapper.

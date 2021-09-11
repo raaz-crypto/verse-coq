@@ -119,8 +119,8 @@ Global Hint Unfold tpt : Wrapper.
 Global Hint Unfold cp  : Wrapper.
 
 Ltac unwrap := match goal with
-               | |- ?I => unfold I; autounfold with Wrapper
-               end.
+               | |- ?I => try unfold I
+               end; autounfold with Wrapper; simpl.
 
 Ltac simplify := unfold getProp;
                  breakStore;
