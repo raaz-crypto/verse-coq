@@ -5,14 +5,14 @@ Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
-Require Import PeanoNat.
 
+Require Import PeanoNat.
 Require Import EqdepFacts.
 Import EqNotations.
 
 (* end hide *)
 
-Definition eq_dec T := forall x y : T, x = y \/ ~ x = y.
+
 Section EqDep2.
   (* TODO change names to show the use-case (kind type var *)
   Variable U : Type.
@@ -35,10 +35,9 @@ Arguments eq_dep2 [U P Q p x] _ [q y].
 
 (** * Semantics.
 
-We build the monoidal semantics of this abstract state machine
-machines. The abstract machine needs to be executed in Coq and hence
-the machine types are types in Coq. We therefore have the following
-type system.
+We build the monoidal semantics of this abstract state machine. The
+abstract machine needs to be executed in Coq and hence the machine
+types are types in Coq. We therefore have the following type system.
 
 *)
 
