@@ -36,7 +36,9 @@ Arguments eq_dep2 [U P Q p x] _ [q y].
 (** * Semantics.
 
 We build the monoidal semantics of this abstract state machine
-machines. We start with the type system.
+machines. The abstract machine needs to be executed in Coq and hence
+the machine types are types in Coq. We therefore have the following
+type system.
 
 *)
 
