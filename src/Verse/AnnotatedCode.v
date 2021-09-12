@@ -130,7 +130,7 @@ Fixpoint denote1 tyD Rels v
     let anndenote [x] p := (inline
                               (fun state : State x tyD =>
                                  (id,
-                                  ((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : SPair str -> Prop))) in
+                                  ((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : Pair str -> Prop))) in
     match ann with
     | instruct _ _ _ s  => inst s
     | annot _ _ _ p     => anndenote p

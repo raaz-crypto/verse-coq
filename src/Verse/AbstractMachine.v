@@ -72,26 +72,24 @@ transformation machine, parametrized on a variable type.
 
   Local Definition type := typeOf ts.
 
-  Class Store str := { store : str }.
+  Definition Pair A : Type := A * A.
+  Class StoreP str := { oldAndNew : Pair str }.
 
-  Definition SPair A : Type := Store A * Store A.
-  Class StoreP str := { oldAndNew : SPair str }.
-
-  Coercion Build_StoreP : SPair >-> StoreP.
+  Coercion Build_StoreP : Pair >-> StoreP.
 
   Class State :=
     {
       str : Type;
-      val  : forall (Str : Store str)
+      val  : forall (Str : str)
                      {k} {ty : type k} (var : v _ ty),
               typeTrans tyD ty : Type;
       storeUpdate
       : forall {k} {ty : type k} (var : v _ ty)
                (f : typeTrans tyD ty -> typeTrans tyD ty),
-          Store str -> Store str;
+          str -> str;
 
       evalUpdate
-      : forall (s : Store str) k (ty : type k) (var : v _ ty) f,
+      : forall (s : str) k (ty : type k) (var : v _ ty) f,
           forall k' (ty' : type k') (v' : v _ ty'),
             ( ~ eq_dep2 var v'-> val (storeUpdate var f s) v' = val s v')
             /\
@@ -105,15 +103,15 @@ and hence is also a state transformation.
 
 *)
 
-  Definition instruction `{State} := Store str -> Store str.
+  Definition instruction `{State} := str -> str.
 
-  Definition assertion `{State}   := SPair str -> Prop.
+  Definition assertion `{State}   := Pair str -> Prop.
 
 End Store.
 
 Arguments State [ts].
 Arguments str {ts v tyD State}.
-Arguments val [ts v tyD] {State Str} [k ty].
+Arguments val [ts v tyD] {State} Str [k ty].
 Arguments storeUpdate [ts v tyD] {State} [k ty].
 Arguments instruction [ts v tyD].
 Arguments assertion [ts v tyD].
@@ -132,15 +130,15 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Definition leval {T} (l : lexpr T) (st : Store str) : typeTrans tyD T
+    Definition leval {T} (l : lexpr T) (st : str) : typeTrans tyD T
       := match l with
-         | Ast.var reg      => val reg
+         | Ast.var reg      => val st reg
          | Ast.deref v idx  => Vector.nth_order
-                                 (rew [id] arrayCompatibility tyD _ _ _ in val v)
+                                 (rew [id] arrayCompatibility tyD _ _ _ in val st v)
                                  (proj2_sig idx)
          end.
 
-    Fixpoint evalE {T} (st : Store str) (e : expr T) :  typeTrans tyD T
+    Fixpoint evalE {T} (st : str) (e : expr T) :  typeTrans tyD T
       := match e with
          | Ast.cval c => constTrans tyD c
          | Ast.valueOf lv => leval lv st
@@ -148,11 +146,11 @@ Module Internals.
          | Ast.uniOp o e0    => (opTrans tyD o) (evalE st e0)
          end.
 
-    Definition assign {T} (l : lexpr T) (e : expr T)(st : Store str)
-      : Store str
-      := match l in Ast.lexpr _ T0 return  typeTrans tyD T0 -> Store str with
+    Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
+      : str
+      := match l in Ast.lexpr _ T0 return  typeTrans tyD T0 -> str with
          | Ast.var reg  => fun v => storeUpdate reg (fun _ => v) st
-         | Ast.deref a idx => fun v => let arr := val a in
+         | Ast.deref a idx => fun v => let arr := val st a in
                                        let arrp := Vector.replace_order
                                                      (rew [id] arrayCompatibility tyD _ _ _ in arr)
                                                      (proj2_sig idx) v in
@@ -165,14 +163,14 @@ Module Internals.
                (l : lexpr T)
                (o : operator ts T 2)
                (e : expr T)
-      : Store str -> Store str
+      : str -> str
       := let rhs := Ast.binOp o (Ast.valueOf l) e in
          assign l rhs.
 
     Definition uniopUpdate {T}
                (l : lexpr T)
                (o : operator ts T 1)
-      : Store str -> Store str
+      : str -> str
       := let rhs := Ast.uniOp o (Ast.valueOf l) in
          assign l rhs.
 
@@ -267,7 +265,7 @@ Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
 Tactic Notation "annotated_verse" uconstr(B)
   := refine ((*fun _ =>*) B : lines _ mline); repeat verse_simplify; verse_print_mesg.
 
-Notation "'ASSERT' P" := (inline (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : SPair str -> Prop)) (at level 100).
+Notation "'ASSERT' P" := (inline (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop)) (at level 100).
 
 (** * Language Semantics.
 

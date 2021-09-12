@@ -25,33 +25,33 @@ Section ScopeStore.
     := Scope.allocation tyd sc.
 
   Fixpoint frmStore
-           {n} {sc : Scope.type ts n} (s : Store (scstr sc))
+           {n} {sc : Scope.type ts n} (s : scstr sc)
            {k} {ty : type k} (x : Scope.scopeVar sc _ ty)
     : tyd ty
     :=
       match x in Scope.scopeVar sc0 _ ty0 return scstr sc0
                                                  -> (tyd ty0 : Type) with
       | Scope.headVar    => fun s0 => let '(vx, _) := s0 in vx
-      | Scope.restVar rx => fun s0 => let '(_, st) := s0 in frmStore {| store := st |} rx
-      end store.
+      | Scope.restVar rx => fun s0 => let '(_, st) := s0 in frmStore st rx
+      end s.
 
 Fixpoint wrtStore
          {n} {sc : Scope.type ts n}
          {k} {ty : type k} (var : Scope.scopeVar sc _ ty)
   : (tyd ty -> tyd ty) ->
-    Store (scstr sc) -> Store (scstr sc) :=
+    scstr sc -> scstr sc :=
   match var as var0 in Scope.scopeVar sc0 _ ty0 return
         (tyd ty0 -> tyd ty0)
-        -> Store (scstr sc0) -> Store (scstr sc0)
+        -> scstr sc0 -> scstr sc0
   with
-  | Scope.headVar    => fun f s => let '(vx, st) := store in {| store := (f vx, st) |}
-  | Scope.restVar rx => fun f s => let '(vx, st) := store in {| store := (vx, store (Store := wrtStore rx f {| store := st |})) |}
+  | Scope.headVar    => fun f s => let '(vx, st) := s in (f vx, st)
+  | Scope.restVar rx => fun f s => let '(vx, st) := s in (vx, wrtStore rx f st)
   end.
 
 (** TODO : Needs a proof eventually! *)
 Axiom frmWrt :
   forall n (sc : Scope.type ts n)
-           (st : Store (scstr sc))
+           (st : scstr sc)
            k (ty : type k) (var : Scope.scopeVar sc _ ty) f
            k' (ty' : type k') (v' : Scope.scopeVar sc _ ty'),
     ( ~ eq_dep2 var v'-> frmStore (wrtStore var f st) v' = frmStore st v')
@@ -104,10 +104,10 @@ Section CodeGen.
 
   Definition getProp (pc : _ -> Prop)
              (ml : @mline _ (Scope.scopeVar sc) tyD)
-    := forall (st : str), pc {| store := st |}
+    := forall (st : str), pc st
                           ->
                           snd (ml (scopeStore _ _))
-                              ({| store := st |}, {| store := st |}).
+                              (st, st).
 
   Definition tpt := getProp (fun _ => True) cp.
 (*
