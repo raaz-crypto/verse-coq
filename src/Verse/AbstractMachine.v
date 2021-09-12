@@ -68,7 +68,7 @@ transformation machine, parametrized on a variable type.
   Variable v : Variables.U ts.
   Variable tyD : typeDenote ts.
 
-  Definition type := typeOf ts.
+  Local Definition type := typeOf ts.
 
   Class Store str := { store : str }.
 
@@ -235,6 +235,7 @@ Section Machine.
 End Machine.
 
 Arguments mline {ts v tyD}.
+Arguments justInst [ts v tyD].
 Arguments store_machine [ts].
 Arguments store_interface {ts v}.
 Arguments store_semantics {ts v tyD}.
@@ -392,86 +393,3 @@ Section WordTypeDenote.
        arrayCompatibility := fun _ _ _ => eq_refl
     |}.
 End WordTypeDenote.
-
-(** Tactics for proof goal presentation *)
-Require Import Verse.BitVector.
-Require Import Verse.BitVector.ArithRing.
-
-(* Destruct the variable store for easier access to valuations *)
-
-(* TODO : These are just the curry uncurry from Scope.v with more
-   generality *)
-
-Fixpoint prodn T n : Type
-  := match n with
-     | 0   => Datatypes.unit
-     | S n => (T * prodn T n)%type
-     end.
-
-Fixpoint lamn T n : (prodn T n -> Type) -> Type
-  := match n as n0 return (prodn T n0 -> Type) -> Type with
-     | 0   => fun f => forall t, f t
-     | S n => fun f => forall t : T, lamn T n (fun x => f (t, x))
-     end.
-
-Lemma forallprod T n f
-  : lamn T n f
-    ->
-    forall x : prodn T n, f x.
-  induction n.
-  easy.
-  intros.
-  pose (IHn _ (X (fst x)) (snd x)).
-  rewrite surjective_pairing.
-  exact f0.
-Qed.
-
-Ltac prodsize x :=
-  match x with
-  | (_ * ?t)%type  => let tt := prodsize t in constr:(S tt)
-  | Datatypes.unit => constr:(0%nat)
-  end.
-
-Ltac breakStore :=
-  simpl str;
-  let n := fresh "n" in
-  match goal with
-  | |- forall _ : ?t, _ => let n := prodsize t in pose n
-  end; apply (forallprod _ n);
-  unfold lamn.
-
-Ltac simplify := repeat match goal with
-                        | |- forall _ : str, _ =>
-                          breakStore;
-                          lazy -[
-                            BVplus BVminus BVmul BVquot
-                            BVrotR BVrotL BVshiftL BVshiftR BVcomp
-                            zero one
-                            (*
-                            fromNibbles
-                              numBinOp numUnaryOp numBigargExop numOverflowBinop
-                              Nat.add Nat.sub Nat.mul Nat.div Nat.pow
-                              N.add N.sub N.mul N.div N.div_eucl N.modulo
-
-                              Ox nth replace
-                             *)
-                          ];
-                          repeat
-                            (match goal with
-                             | |- _ /\ _          => constructor
-                             | |- _ -> _          => intro
-                             | H : _ /\ _ |- _    => destruct H
-                             | H : True |- _      => clear H
-                             | |- True            => constructor
-                             | |- ?x = ?x         => trivial
-                             | H : True |- _           => clear H
-                             | H : Datatypes.unit |- _ => clear H
-                             end)
-                        | |- forall _, _ => intro
-                        | |- ?I          => unfold I
-                        (* The next simply takes care of a functional
-                           application. Should only be used once for
-                           `tpt`
-                        *)
-                        | |- context f [ ?F _ ] => unfold F
-                        end.

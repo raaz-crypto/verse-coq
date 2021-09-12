@@ -19,7 +19,7 @@ Section ScopeStore.
   Local Definition tyd  := typeTrans tyD.
   Arguments tyd [k].
 
-  Definition type := typeOf ts.
+  Local Definition type := typeOf ts.
 
   Definition scstr {n} (sc : Scope.type ts n)
     := Scope.allocation tyd sc.
@@ -92,23 +92,31 @@ Section CodeGen.
       Rel tyD ty -> Prop
   .
 
-  Definition asc
-    := Vector.map (fun sty => let 'existT _ _ ty := sty in
-                              existT _ _ (typeTrans tyD ty))
-                  sc.
-
   Variable ac : forall v, Scope.scoped v sc (AnnotatedCode tyD Rels v).
 
-  Definition c := denote (Scope.fillScoped ac).
+  Definition cp := interpret (denote (Scope.fillScoped ac)).
 
-  Definition cp := interpret c.
+  (* We allow `getProp` to take a precondition to prefix to the
+     extracted Prop. This is never exposed to the user, but is used in
+     the CoarseAxiom to provide the proof of the procedure call
+     specification to the main body proof.
+   *)
 
+  Definition getProp (pc : _ -> Prop)
+             (ml : @mline _ (Scope.scopeVar sc) tyD)
+    := forall (st : str), pc {| store := st |}
+                          ->
+                          snd (ml (scopeStore _ _))
+                              ({| store := st |}, {| store := st |}).
+
+  Definition tpt := getProp (fun _ => True) cp.
+(*
   Definition getProp (ml : @mline _ (Scope.scopeVar sc) tyD)
     := forall (st : str), snd (ml (scopeStore _ _))
                               ({| store := st |}, {| store := st |}).
 
   Definition tpt := getProp cp.
-
+*)
 End CodeGen.
 
 Arguments cp [n] sc [tyD].

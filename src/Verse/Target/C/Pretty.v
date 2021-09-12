@@ -91,9 +91,9 @@ Notation "X - Y"           := (app minus [ X; Y] )
                          (at level 50, left associativity, only printing) : c_scope.
 
 Notation "X  <<  N" := (app (shiftL N) [ X ])
-                         (at level 55, left associativity, only printing) : c_scope.
+                         (at level 54, left associativity, only printing) : c_scope.
 Notation "X  >>  N" := (app (shiftR N) [ X ])
-                         (at level 55, left associativity, only printing) : c_scope.
+                         (at level 54, left associativity, only printing) : c_scope.
 
 Notation "X & Y" := (app bitAnd [X ; Y])
                       (at level 56, left associativity, only printing) : c_scope.

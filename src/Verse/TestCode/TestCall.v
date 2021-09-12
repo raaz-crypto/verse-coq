@@ -18,12 +18,11 @@ Section Code.
   Variable A B : v Word8.
 
   Definition f (w : VariableT) (a b : w _ Word8)
-    : AnnotatedCode bvDenote noRels w.
+    : specified bvDenote noRels w AnnotatedCode.
 
-    verse (CODE [ a ::= b
-                ]
-                ++
-           ANNOT [ a = (OLD b) ]
+    verse (CODE [ a ::= b + 2 ]
+                DOES
+           (a = OLD b + 2)
           )%list%verse.
   Defined.
 
@@ -31,12 +30,16 @@ Section Code.
     (* This actually works without the `verse` tactic *)
     verse (
         CODE [ A ::= A; B ::= B ]
-             ++
+        ++
         CALL f WITH (- A, B -)
-             ++
-        ANNOT [ A = (OLD B) ]
-             ++
+        ++
+        ANNOT [ A = OLD B + 2 ]
+        ++
         CODE [ B ::= A; A ::= 6 ]
+        ++
+        CALL f WITH (- A, B -)
+        ++
+        ANNOT [ A = OLD B + 4 ]
       )%list%verse.
   Defined.
 
@@ -46,6 +49,10 @@ Definition toProve : Prop.
   getProp test.
 Defined.
 
+Require Import CoarseMeta.
+
 Definition proof : toProve.
-  simplify.
-Qed.
+
+  mrealize.
+
+Abort.

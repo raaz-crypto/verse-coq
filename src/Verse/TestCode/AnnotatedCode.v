@@ -16,11 +16,13 @@ Set Implicit Arguments.
   Variable v : VariableT.
 
   Variable A B : v Word8.
+  Variable C   : v Word16.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
           CODE [ A ::= B;
-                 B ::= 5
+                 B ::= 5;
+                 C ::= 8
                ]
           ++
           ANNOT [ A = (OLD B) ]
@@ -38,7 +40,5 @@ Definition toProve : Prop.
 Defined.
 
 Definition proof : toProve.
-
-  simplify.
-
-Abort.
+  realize.
+Qed.

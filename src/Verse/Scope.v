@@ -42,7 +42,11 @@ Section Scoped.
            'type' in those places, every name in this file needs to
            be 'Scope.'ed
   *)
-  Definition type n :=  Vector.t (some (typeOf ts)) n.
+
+  Definition type n := Vector.t (some (typeOf ts)) n.
+
+  Definition const n (ty : typeOf ts direct)
+    := Vector.const (existT _ _ ty) n.
 
   (*
   Definition someVar s := qualified v s.
@@ -114,6 +118,7 @@ Section Scoped.
 
 End Scoped.
 
+Arguments const [ts] n ty.
 Arguments allocation [ts] v [n].
 Arguments scoped [ts] v [n].
 Arguments map [ts v A B] f [n st].
