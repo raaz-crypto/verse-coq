@@ -72,7 +72,7 @@ transformation machine, parametrized on a variable type.
 
   Class Store str := { store : str }.
 
-  Definition SPair A : Type := (Store A)*(Store A).
+  Definition SPair A : Type := Store A * Store A.
   Class StoreP str := { oldAndNew : SPair str }.
 
   Coercion Build_StoreP : SPair >-> StoreP.
