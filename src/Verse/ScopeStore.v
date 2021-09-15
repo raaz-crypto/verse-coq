@@ -13,7 +13,6 @@ Import VectorNotations.
 Section ScopeStore.
 
   Variable ts : typeSystem.
-  (* Variable v : Variables.U ts. *)
   Variable tyD : typeDenote ts.
 
   Local Definition tyd  := typeTrans tyD.
