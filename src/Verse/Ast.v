@@ -179,6 +179,13 @@ Require Import Verse.Error.
 
 Module LExpr.
 
+  (** Function for renaming variables *)
+  Definition rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : ts direct} (l : lexpr u ty)
+      := match l with
+         | var x => var (rn direct _ x)
+         | deref a i => deref (rn memory _ a) i
+         end.
+
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt) (ty : typeOf src direct)
@@ -224,10 +231,24 @@ Module LExpr.
     := extract (translate cr le).
 
   Arguments compile [src tgt] cr [v ty].
-*)
+ *)
+
+
+
 End LExpr.
 
 Module Expr.
+
+  (** Renaming variables in an expression *)
+  Fixpoint rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : ts direct} (e : expr u ty)
+  : expr v ty
+    := match e with
+         | cval c        => cval c
+         | valueOf x     => valueOf (LExpr.rename rn x)
+         | uniOp o e0    => uniOp o (rename rn e0)
+         | binOp o e0 e1 => binOp o (rename rn e0) (rename rn e1)
+       end.
+
 
   Fixpoint translate {src tgt}
            (tr : TypeSystem.translator src tgt)
