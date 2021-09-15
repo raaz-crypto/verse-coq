@@ -260,6 +260,8 @@ Module Variables.
   (** The universe of variables (of a given type system) *)
   Definition U ts := forall k, typeOf ts k -> Type.
 
+  Definition renaming {ts} (u v : U ts) := forall k (ty : ts k),  u k ty -> v k ty.
+
   Module Universe.
 
     Definition coTranslate src tgt

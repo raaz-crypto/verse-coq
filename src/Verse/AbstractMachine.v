@@ -58,6 +58,29 @@ Definition abstract_type_system : typeSystem
 
 Definition typeDenote ts := TypeSystem.translator ts abstract_type_system.
 
+Section Evaluation.
+  Context {ts : typeSystem}
+          (tyD : typeDenote ts).
+
+
+  Definition evalLexp {T} (l : lexpr (typeTrans tyD) T) : typeTrans tyD T
+      := match l with
+         | Ast.var x      => x
+         | Ast.deref v idx  => Vector.nth_order
+                                 (rew [id] arrayCompatibility tyD _ _ _ in v)
+                                 (proj2_sig idx)
+         end.
+
+    Fixpoint eval {T} (e : expr (typeTrans tyD) T) :  typeTrans tyD T
+      := match e with
+         | Ast.cval c => constTrans tyD c
+         | Ast.valueOf lv => evalLexp lv
+         | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
+         | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
+         end.
+End Evaluation.
+
+
 Section Store.
 
   (** * Abstract state machines.
@@ -80,9 +103,8 @@ transformation machine, parametrized on a variable type.
   Class State :=
     {
       str : Type;
-      val  : forall (Str : str)
-                     {k} {ty : type k} (var : v _ ty),
-              typeTrans tyD ty : Type;
+      val  : str -> Variables.renaming v (typeTrans tyD);
+
       storeUpdate
       : forall {k} {ty : type k} (var : v _ ty)
                (f : typeTrans tyD ty -> typeTrans tyD ty),
@@ -91,9 +113,9 @@ transformation machine, parametrized on a variable type.
       evalUpdate
       : forall (s : str) k (ty : type k) (var : v _ ty) f,
           forall k' (ty' : type k') (v' : v _ ty'),
-            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) v' = val s v')
+            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) _ _ v' = val s _ _ v')
             /\
-            val (storeUpdate var f s) var = f (val s var)
+            val (storeUpdate var f s) _ _ var = f (val s _ _ var)
 
     }.
 
@@ -130,21 +152,8 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Definition leval {T} (l : lexpr T) (st : str) : typeTrans tyD T
-      := match l with
-         | Ast.var reg      => val st reg
-         | Ast.deref v idx  => Vector.nth_order
-                                 (rew [id] arrayCompatibility tyD _ _ _ in val st v)
-                                 (proj2_sig idx)
-         end.
-
     Fixpoint evalE {T} (st : str) (e : expr T) :  typeTrans tyD T
-      := match e with
-         | Ast.cval c => constTrans tyD c
-         | Ast.valueOf lv => leval lv st
-         | Ast.binOp o e0 e1 => (opTrans tyD o) (evalE st e0) (evalE st e1)
-         | Ast.uniOp o e0    => (opTrans tyD o) (evalE st e0)
-         end.
+      := eval tyD (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
       : str
