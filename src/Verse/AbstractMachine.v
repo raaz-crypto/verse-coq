@@ -152,21 +152,8 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Definition leval {T} (l : lexpr T) (st : str) : typeTrans tyD T
-      := match l with
-         | Ast.var reg      => val st reg
-         | Ast.deref v idx  => Vector.nth_order
-                                 (rew [id] arrayCompatibility tyD _ _ _ in val st v)
-                                 (proj2_sig idx)
-         end.
-
     Fixpoint evalE {T} (st : str) (e : expr T) :  typeTrans tyD T
-      := match e with
-         | Ast.cval c => constTrans tyD c
-         | Ast.valueOf lv => leval lv st
-         | Ast.binOp o e0 e1 => (opTrans tyD o) (evalE st e0) (evalE st e1)
-         | Ast.uniOp o e0    => (opTrans tyD o) (evalE st e0)
-         end.
+      := eval tyD (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
       : str
