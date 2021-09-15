@@ -103,9 +103,8 @@ transformation machine, parametrized on a variable type.
   Class State :=
     {
       str : Type;
-      val  : forall (Str : str)
-                     {k} {ty : type k} (var : v _ ty),
-              typeTrans tyD ty : Type;
+      val  : str -> Variables.renaming v (typeTrans tyD);
+
       storeUpdate
       : forall {k} {ty : type k} (var : v _ ty)
                (f : typeTrans tyD ty -> typeTrans tyD ty),
@@ -114,9 +113,9 @@ transformation machine, parametrized on a variable type.
       evalUpdate
       : forall (s : str) k (ty : type k) (var : v _ ty) f,
           forall k' (ty' : type k') (v' : v _ ty'),
-            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) v' = val s v')
+            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) _ _ v' = val s _ _ v')
             /\
-            val (storeUpdate var f s) var = f (val s var)
+            val (storeUpdate var f s) _ _ var = f (val s _ _ var)
 
     }.
 
