@@ -58,6 +58,29 @@ Definition abstract_type_system : typeSystem
 
 Definition typeDenote ts := TypeSystem.translator ts abstract_type_system.
 
+Section Evaluation.
+  Context {ts : typeSystem}
+          (tyD : typeDenote ts).
+
+
+  Definition evalLexp {T} (l : lexpr (typeTrans tyD) T) : typeTrans tyD T
+      := match l with
+         | Ast.var x      => x
+         | Ast.deref v idx  => Vector.nth_order
+                                 (rew [id] arrayCompatibility tyD _ _ _ in v)
+                                 (proj2_sig idx)
+         end.
+
+    Fixpoint eval {T} (e : expr (typeTrans tyD) T) :  typeTrans tyD T
+      := match e with
+         | Ast.cval c => constTrans tyD c
+         | Ast.valueOf lv => evalLexp lv
+         | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
+         | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
+         end.
+End Evaluation.
+
+
 Section Store.
 
   (** * Abstract state machines.
