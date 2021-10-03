@@ -44,13 +44,13 @@ form [src] to [result tgt].
 Structure translator (ts0 ts1 : typeSystem)
   := TypeTranslation
        {
-         typeTrans   : forall k, typeOf ts0 k -> typeOf ts1 k;
-         constTrans  : forall ty : typeOf ts0 direct,
-             constOf ts0 ty -> constOf ts1 (typeTrans direct ty);
-         opTrans     : forall (ty : typeOf ts0 direct) arity,
-             operator ts0 ty arity -> operator ts1 (typeTrans direct ty) arity;
+         typeTrans   :> forall {k : kind}, ts0 k -> ts1 k;
+         constTrans  : forall ty : ts0 direct,
+             constOf ts0 ty -> constOf ts1 (typeTrans ty);
+         opTrans     : forall (ty : ts0 direct) arity,
+             operator ts0 ty arity -> operator ts1 (typeTrans ty) arity;
          arrayCompatibility : forall b e ty,
-             typeTrans memory (arrayType ts0 b e ty) = arrayType ts1 b e (typeTrans direct ty)
+             typeTrans (arrayType ts0 b e ty) = arrayType ts1 b e (typeTrans ty)
        }.
 
 (* begin hide *)
@@ -70,7 +70,7 @@ Definition same ts : translator ts ts
         arrayCompatibility := fun _ _ _ => eq_refl
      |}.
 
-Definition result tgt :=
+Definition result (tgt : typeSystem) :=
   let resultType tgt k := typeOf tgt k + {TranslationError} in
   let resultArray tgt b e : resultType tgt direct -> resultType tgt memory
       := fmap (arrayType tgt b e) in
@@ -143,7 +143,7 @@ Module Types.
   Definition U := kind -> Set.
 
   Definition translate src tgt (tr : translator src tgt) k (ty : typeOf src k)
-    : typeOf tgt k := typeTrans tr ty.
+    : tgt k := tr k ty.
 
   Arguments translate [src tgt] tr [k].
 
@@ -355,7 +355,7 @@ Module Variables.
                                       | error e => a
                                       end) e.
 
-  Definition embed {ts} {v : U ts} {k} {ty : typeOf ts k}
+  Definition embed {ts} {v : U ts} {k} {ty : ts k}
     : v k ty -> Universe.embed v (Types.inject ty)
 
     := fun vty gd e => rew inleft_inj e in vty.
