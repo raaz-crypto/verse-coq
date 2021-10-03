@@ -63,7 +63,7 @@ Section Evaluation.
           (tyD : typeDenote ts).
 
 
-  Definition evalLexp {T} (l : lexpr (typeTrans tyD) T) : typeTrans tyD T
+  Definition evalLexp {T} (l : lexpr tyD T) : tyD direct T
       := match l with
          | Ast.var x      => x
          | Ast.deref v idx  => Vector.nth_order
@@ -71,7 +71,7 @@ Section Evaluation.
                                  (proj2_sig idx)
          end.
 
-    Fixpoint eval {T} (e : expr (typeTrans tyD) T) :  typeTrans tyD T
+    Fixpoint eval {T} (e : expr tyD T) :  tyD direct T
       := match e with
          | Ast.cval c => constTrans tyD c
          | Ast.valueOf lv => evalLexp lv
@@ -103,11 +103,11 @@ transformation machine, parametrized on a variable type.
   Class State :=
     {
       str : Type;
-      val  : str -> Variables.renaming v (typeTrans tyD);
+      val  : str -> Variables.renaming v tyD;
 
       storeUpdate
       : forall {k} {ty : type k} (var : v _ ty)
-               (f : typeTrans tyD ty -> typeTrans tyD ty),
+               (f : tyD k ty -> tyD k ty),
           str -> str;
 
       evalUpdate
@@ -152,12 +152,12 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Fixpoint evalE {T} (st : str) (e : expr T) :  typeTrans tyD T
+    Fixpoint evalE {T} (st : str) (e : expr T) :  tyD direct T
       := eval tyD (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
       : str
-      := match l in Ast.lexpr _ T0 return  typeTrans tyD T0 -> str with
+      := match l in Ast.lexpr _ T0 return  tyD direct T0 -> str with
          | Ast.var reg  => fun v => storeUpdate reg (fun _ => v) st
          | Ast.deref a idx => fun v => let arr := val st a in
                                        let arrp := Vector.replace_order
