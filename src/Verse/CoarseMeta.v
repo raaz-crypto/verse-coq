@@ -14,6 +14,7 @@ Import ListNotations.
 
 Require Import Vector.
 
+(* TODO : Might be present in some standard library *)
 Fixpoint distinctL [T] (l : list T)
   := let fix distH t l :=
          match l with
@@ -65,24 +66,34 @@ Section Coarse.
       Rel tyD ty -> Prop
   .
 
-  Fixpoint dummyProc [n v ty] (alloc : Scope.allocation v (const (existT _ _ ty) n))
+  (* `dummyProc` generates Verse code to assign variables from an
+     allocation a `Prodn` of provided values
+  *)
+
+  Fixpoint dummyProc [n v ty]
+           (alloc : Scope.allocation v (const (existT _ _ ty) n))
            (dummyvals : Prodn.t (Types.const ty) n)
            {struct n}
     : AnnotatedCode tyD Rels v
     := (match n as n0
-             return Scope.allocation v (const _ n0) -> Prodn.t (Types.const ty) n0 -> _
-       with
-       | 0   => fun _ _ => []
-       | S m => fun allS dumS =>
-                  CODE [ assignStmt (var (fst allS)) (fst dumS)  ]%verse
+              return Scope.allocation v (const _ n0)
+                     -> Prodn.t (Types.const ty) n0 -> _
+        with
+        | 0   => fun _ _ => []
+        | S m => fun allS dumS =>
+                   CODE [ assignStmt (var (fst allS)) (fst dumS)  ]%verse
                         ++
                         dummyProc (snd allS) (snd dumS)
-       end alloc dummyvals).
+        end alloc dummyvals).
 
 (* This generic version doesn't work because you need the variables to
    be of `kind` direct.
 
-
+   This is primarily why we have shifted to homogenous types here. We
+   would need to have definitions of allocations with only `direct`
+   types anyway.
+*)
+(*
   Fixpoint dummyproc n (sc : Scope.type verse_type_system n)
            (alloc : Scope.allocation v sc)
            (dummyvals : Scope.allocation (typeTrans tyD) sc)
@@ -102,13 +113,25 @@ Section Coarse.
                         (snd allocS)
                         (snd dumS)
         end sc alloc dummyvals).
- *)
+*)
 
 
   Variable m : nat.
   Variable sc : Scope.type verse_type_system m.
 
   Let scv := Scope.scopeVar sc.
+
+  (* We write our modular proof axiom for `modCode` instead of for a
+     syntactic shape - block ++ proc call ++ block
+
+     It just makes for cleaner code than massaging user code with a
+     lot of rewrites with associativity-like theorems from the List
+     module.
+
+     Later we write a function that processes code to look for a
+     `proc` and generate a `modCode` object from it. That opens up
+     application of our meta theorem.
+  *)
 
   Record modCode := { preB   : AnnotatedCode tyD Rels scv;
 
@@ -117,7 +140,8 @@ Section Coarse.
 
                       procC  : specifiedC tyD Rels procN procTy;
 
-                      procAll : Scope.allocation scv (Scope.const procN procTy);
+                      procAll : Scope.allocation scv
+                                                 (Scope.const procN procTy);
 
                       postB  : AnnotatedCode tyD Rels scv
                     }.
@@ -344,7 +368,8 @@ Ltac remove_duplicates :=
            | context[duplicate_prod G]
              => let lem := find_dup H G in exact lem
            | _ => let lem := find_end H in
-                  refine (@duplicate_fst _ _ lem); clear H; (* clear to work around a bug in Coq *)
+                  refine (@duplicate_fst _ _ lem); clear H;
+                  (* clear to work around a bug in Coq *)
                   shelve
            end
       end.. ].
@@ -382,7 +407,7 @@ Ltac modProof :=
                                 really modularize the function proofs
 
                                 Instead we use a `simpl` so that calls
-                                the same functions get massaged to
+                                to the same functions get massaged to
                                 look the same and thus be caught by
                                 `remove_duplicates` *)
 
