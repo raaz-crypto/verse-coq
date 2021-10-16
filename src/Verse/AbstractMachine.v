@@ -224,12 +224,16 @@ Section Machine.
 
   Definition store_semantics
     : Semantics store_machine mline
-    := Build_Semantics _ _ store_machine
-                       mline _ _
-                       ((fun s => fun state => Internals.denoteStmt ts (mvariables store_machine) tyD state s) >-> justInst)
-                       (fun ml => fun st => (fst (ml st), fun stp =>
-                                                       (snd (ml st)) (snd stp, snd stp)))
-  .
+    := {| denote := ((fun s => fun state =>
+                                 Internals.denoteStmt ts
+                                                      (mvariables store_machine) tyD state s)
+                       >->
+                       justInst);
+
+          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in
+                                          (mlinst, fun stp : _ * _ => let (_, new) := stp in
+                                                                      mlannot (new, new)))
+       |}.
 
 End Machine.
 
