@@ -5,14 +5,14 @@ Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
-Require Import PeanoNat.
 
+Require Import PeanoNat.
 Require Import EqdepFacts.
 Import EqNotations.
 
 (* end hide *)
 
-Definition eq_dec T := forall x y : T, x = y \/ ~ x = y.
+
 Section EqDep2.
   (* TODO change names to show the use-case (kind type var *)
   Variable U : Type.
@@ -35,10 +35,9 @@ Arguments eq_dep2 [U P Q p x] _ [q y].
 
 (** * Semantics.
 
-We build the monoidal semantics of this abstract state machine
-machines. The abstract machine needs to be executed in Coq and hence
-the machine types are types in Coq. We therefore have the following
-type system.
+We build the monoidal semantics of this abstract state machine. The
+abstract machine needs to be executed in Coq and hence the machine
+types are types in Coq. We therefore have the following type system.
 
 *)
 
@@ -234,12 +233,16 @@ Section Machine.
 
   Definition store_semantics
     : Semantics store_machine mline
-    := Build_Semantics _ _ store_machine
-                       mline _ _
-                       ((fun s => fun state => Internals.denoteStmt ts (mvariables store_machine) tyD state s) >-> justInst)
-                       (fun ml => fun st => (fst (ml st), fun stp =>
-                                                       (snd (ml st)) (snd stp, snd stp)))
-  .
+    := {| denote := ((fun s => fun state =>
+                                 Internals.denoteStmt ts
+                                                      (mvariables store_machine) tyD state s)
+                       >->
+                       justInst);
+
+          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in
+                                          (mlinst, fun stp : _ * _ => let (_, new) := stp in
+                                                                      mlannot (new, new)))
+       |}.
 
 End Machine.
 
@@ -272,9 +275,9 @@ Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ _ v) (at level 50).
 Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
 
 Tactic Notation "annotated_verse" uconstr(B)
-  := refine ((*fun _ =>*) B : lines _ mline); repeat verse_simplify; verse_print_mesg.
+  := refine ((*fun _ =>*) B : lines _ (fun v => mline (v := v))); repeat verse_simplify; verse_print_mesg.
 
-Notation "'ASSERT' P" := (inline (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop)) (at level 100).
+Notation "'ASSERT' P" := (inline (fun _ => (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
 
 (** * Language Semantics.
 
