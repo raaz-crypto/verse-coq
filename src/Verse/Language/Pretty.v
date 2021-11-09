@@ -170,7 +170,16 @@ Instance array_indexing v ty b e : INDEXING {i | i < b}
 Declare Scope verse_scope.
 Delimit Scope verse_scope with verse.
 
-Notation "A [- N -] " := (idx A (@exist _ _ N%nat _)) (at level 29) : verse_scope.
+
+Declare Custom Entry verse.
+(* Notation "'[code|' e  '|]'" := e (e custom verse). *)
+Notation "A [ N ] " := (idx A (@exist _ _ N%nat _)) (in custom verse at level 29).
+Notation "[verse| e |]" := e (e custom verse).
+Notation "[code| x ; .. ; y |]":= (cons x .. (cons y nil) ..) (x custom verse, y custom verse).
+Notation "x" := x (in custom verse at level 0, x global).
+Notation "( x )" := x  (in custom verse at level 0).
+Notation "` x `" := x  (in custom verse at level 0, x constr).
+
 
 (** Notation for operators.
 
@@ -181,46 +190,48 @@ precedence in Coq.
 *)
 
 
-Notation "'neg' E"  := (uniOpApp bitComp E)      (at level 30, right associativity) : verse_scope.
+Notation "~ E"      := (uniOpApp bitComp E)      (in custom verse at level 30, right associativity).
 
-Infix "*"           := (binOpApp mul)            (at level 40, left associativity)  : verse_scope.
-Infix "/"           := (binOpApp quot)           (at level 40, left associativity)  : verse_scope.
-Infix "%"           := (binOpApp rem)            (at level 40, left associativity)  : verse_scope.
+Infix "*"           := (binOpApp mul)            (in custom verse at level 40, left associativity).
+Infix "/"           := (binOpApp quot)           (in custom verse at level 40, left associativity).
+Infix "%"           := (binOpApp rem)            (in custom verse at level 40, left associativity).
 
-Infix "+"           := (binOpApp plus)           (at level 50, left associativity) : verse_scope.
-Infix "-"           := (binOpApp minus)          (at level 50, left associativity) : verse_scope.
+Infix "+"           := (binOpApp plus)           (in custom verse at level 50, left associativity).
+Infix "-"           := (binOpApp minus)          (in custom verse at level 50, left associativity).
 
-Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (at level 54, left associativity) : verse_scope.
-Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (at level 54, left associativity) : verse_scope.
-Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (at level 54, left associativity) : verse_scope.
-Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (at level 54, left associativity) : verse_scope.
+Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (in custom verse at level 54, left associativity).
+Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (in custom verse at level 54, left associativity).
+Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (in custom verse at level 54, left associativity).
+Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity).
 
-Infix "AND"         := (binOpApp bitAnd)         (at level 56, left associativity) : verse_scope.
-Infix "⊕"           := (binOpApp bitXor)         (at level 57, left associativity) : verse_scope.
-Infix "XOR"         := (binOpApp bitXor)
-                         (at level 57, left associativity, only parsing) : verse_scope.
-Infix "OR"          := (binOpApp bitOr)          (at level 59, left associativity) : verse_scope.
+Infix "&"         := (binOpApp bitAnd)         (in custom verse at level 56, left associativity).
+Infix "⊕"           := (binOpApp bitXor)         (in custom verse at level 57, left associativity).
+Infix "^"         := (binOpApp bitXor)
+                         (in custom verse at level 57, left associativity, only parsing).
+Infix "|"          := (binOpApp bitOr)          (in custom verse at level 59, left associativity).
 
-Infix "::="   := assignStmt           (at level 70) : verse_scope.
-Infix "<-"     := moveStmt             (at level 70) : verse_scope.
-Infix "::=+"  := (binOpUpdate plus)   (at level 70) : verse_scope.
-Infix "::=-"  := (binOpUpdate minus ) (at level 70) : verse_scope.
-Infix "::=*"  := (binOpUpdate mul   ) (at level 70) : verse_scope.
-Infix "::=/"  := (binOpUpdate quot  ) (at level 70) : verse_scope.
-Infix "::=%"  := (binOpUpdate rem   ) (at level 70) : verse_scope.
-Infix "::=|"  := (binOpUpdate bitOr ) (at level 70) : verse_scope.
-Infix "::=&"  := (binOpUpdate bitAnd) (at level 70) : verse_scope.
-Infix "::=x"  := (binOpUpdate bitXor) (at level 70, only parsing) : verse_scope.
-Infix "::=⊕"  := (binOpUpdate bitXor) (at level 70) : verse_scope.
+Infix ":="  := assignStmt           (in custom verse at level 70).
+Infix "<-"   := moveStmt             (in custom verse at level 70).
+Infix "+="  := (binOpUpdate plus)   (in custom verse at level 70).
+Infix "-="  := (binOpUpdate minus ) (in custom verse at level 70).
+Infix "*="  := (binOpUpdate mul   ) (in custom verse at level 70).
+Infix "/="  := (binOpUpdate quot  ) (in custom verse at level 70).
+Infix "%="  := (binOpUpdate rem   ) (in custom verse at level 70).
+Infix "|="  := (binOpUpdate bitOr ) (in custom verse at level 70).
+Infix "&="  := (binOpUpdate bitAnd) (in custom verse at level 70).
+Infix "^="  := (binOpUpdate bitXor) (in custom verse at level 70, only parsing).
+Infix "⊕="  := (binOpUpdate bitXor) (in custom verse at level 70).
 
-Notation "A ::=<< N"   := (uniOpUpdate (shiftL N) A)   (at level 70) : verse_scope.
-Notation "A ::=>> N"   := (uniOpUpdate (shiftR N) A)   (at level 70) : verse_scope.
-Notation "A ::=<<< N"  := (uniOpUpdate (rotL N)   A)   (at level 70) : verse_scope.
-Notation "A ::=>>> N"  := (uniOpUpdate (rotR N)   A)   (at level 70) : verse_scope.
-Notation "'CLOBBER' A" := (existT _ _ (clobber A))     (at level 70) : verse_scope.
+Notation "A <<= N"   := (uniOpUpdate (shiftL N) A)   (in custom verse at level 70).
+Notation "A >>= N"   := (uniOpUpdate (shiftR N) A)   (in custom verse at level 70).
+Notation "A <<<= N"  := (uniOpUpdate (rotL N)   A)   (in custom verse at level 70).
+Notation "A >>>= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
+Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 70).
 
-Notation "'MOVE' B 'TO' A [- N -]"
-  := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (at level 200, A ident) : verse_scope.
+(*
+Notation "'MOVE' B 'to' A [ N ]"
+  := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (in custom verse at level 200, A ident).
+ *)
 
 (* We overload notations for `instruction` and `line` *)
 Declare Scope code_scope.
