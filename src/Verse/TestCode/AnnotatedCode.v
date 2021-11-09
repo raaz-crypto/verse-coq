@@ -20,14 +20,14 @@ Set Implicit Arguments.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
-          CODE [ A ::= B;
-                 B ::= 5;
-                 C ::= 8
-               ]
+          CODE [code| A := B;
+                      B := `5`;
+                      C := `8`
+               |]
           ++
           ANNOT [ A = (OLD B) ]
           ++
-          CODE [ B ::= A; A ::= 6 ]
+          CODE [code| B := A; A := `6` |]
           ++
           ANNOT [ B = (OLD B) ]
       )%list%verse.
