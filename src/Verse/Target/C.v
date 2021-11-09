@@ -54,7 +54,6 @@ Require Import Verse.Error.
 
 (* end hide *)
 
-Require Import Verse.
 Import Scope.
 
 Ltac Function name func
