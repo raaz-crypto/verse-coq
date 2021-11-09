@@ -223,30 +223,31 @@ Module Blake2 (C : CONFIG).
       Variable a_is_expr : EXPR progvar Word A.
       Variable byteCount : A.
 
+
       Definition UPDATE_COUNTER (u l : progvar Word) : code progvar :=
-        [ (* We first ensure that the variable C gets the carry that overflows
+        [code| (* We first ensure that the variable C gets the carry that overflows
              when l is added bsize. For this we first need to get the msb of l
              into the lsb position
            *)
-
-          LMSB ::= l;
-          toTopBitsUpdate 1 LMSB; (* get the msb to the lsb *)
-
+          LMSB := l;
+          `toTopBitsUpdate 1 LMSB`; (* get the msb to the lsb *)
           (* Now get the carry that flows into MSB from the previous bits *)
-          C  ::= clearOnlyUpper 1 l; (* select every bit except msb *)
-          C  ::=+ byteCount;         (* carry at the msb position   *)
-          toTopBitsUpdate 1 C;         (* move it to the lsb *)
+          C  := `clearOnlyUpper 1 l`; (* select every bit except msb *)
+          C  += byteCount;         (* carry at the msb position   *)
+          `toTopBitsUpdate 1 C`;         (* move it to the lsb *)
 
-          C  ::=+ LMSB; (* the second now has the carry of the addition    *)
-          C  ::=>> 1;   (* move it to the lsb so that it can be added to u *)
+          C  += LMSB; (* the second now has the carry of the addition    *)
+          C  >>= `1`;   (* move it to the lsb so that it can be added to u *)
 
           (* increment the u:l byte count. u gets added the carry and
              l the bsize
            *)
-          u  ::=+ C;
-          l  ::=+ byteCount
-        ]%list.
-    End UpdateCount.
+        u  += C;
+        l  += byteCount
+
+        |].
+
+      End UpdateCount.
 
     Arguments UPDATE_COUNTER [A a_is_expr] _ _ _ .
 
@@ -277,12 +278,12 @@ Module Blake2 (C : CONFIG).
      *)
 
     Definition G (a b c d m0 m1 : progvar Word) : code progvar :=
-      [
-        a ::=+ b; a ::=+ m0; d ::=x a; d ::= d >>> R0;
-        c ::=+ d;            b ::=x c; b ::= b >>> R1;
-        a ::=+ b; a ::=+ m1; d ::=x a; d ::= d >>> R2;
-        c ::=+ d;            b ::=x c; b ::= b >>> R3
-      ]%list.
+      [code|
+        a += b; a += m0; d ^= a; d := d >>> R0;
+        c += d;          b ^= c; b := b >>> R1;
+        a += b; a += m1; d ^= a; d := d >>> R2;
+        c += d;          b ^= c; b := b >>> R3
+      |].
 
     (** *** Message permutations.
 
@@ -357,7 +358,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [ U ::= UpperRef[- 0 -]; L ::= LowerRef[- 0 -] ] ++ loadCache hash H )%list.
+      verse ( [code| U := UpperRef [ `0` ]; L := LowerRef [ `0` ] |] ++ loadCache hash H )%list.
     Defined.
 
     (** ** The initialisation of state.
@@ -370,44 +371,46 @@ Module Blake2 (C : CONFIG).
      *)
     Definition INIT_STATE : code progvar.
       verse
-        [ v0 ::= h0;
-	  v1 ::= h1;
-	  v2 ::= h2;
-	  v3 ::= h3;
-	  v4 ::= h4;
-	  v5 ::= h5;
-	  v6 ::= h6;
-	  v7 ::= h7;
-	  v8  ::= IV 0 _;
-	  v9  ::= IV 1 _;
-	  v10 ::= IV 2 _;
-	  v11 ::= IV 3 _;
-	  v12 ::= IV 4 _ XOR L;
-	  v13 ::= IV 5 _ XOR U;
-	  v14 ::= IV 6 _ ;
-	  v15 ::= IV 7 _
-        ]%list.
+        [code|
+
+          v0 := h0;
+	  v1 := h1;
+	  v2 := h2;
+	  v3 := h3;
+	  v4 := h4;
+	  v5 := h5;
+	  v6 := h6;
+	  v7 := h7;
+	  v8  := `IV 0 _`;
+	  v9  := `IV 1 _` ;
+	  v10 := `IV 2 _`;
+	  v11 := `IV 3 _`;
+	  v12 := `IV 4 _` ⊕ L;
+	  v13 := `IV 5 _` ⊕ U;
+	  v14 := `IV 6 _`;
+	  v15 := `IV 7 _`
+        |].
     Defined.
 
     Definition INIT_STATE_LAST : code progvar.
       verse
-        [ v0 ::= h0;
-	  v1 ::= h1;
-	  v2 ::= h2;
-	  v3 ::= h3;
-	  v4 ::= h4;
-	  v5 ::= h5;
-	  v6 ::= h6;
-	  v7 ::= h7;
-	  v8  ::= IV 0 _;
-	  v9  ::= IV 1 _;
-	  v10 ::= IV 2 _;
-	  v11 ::= IV 3 _;
-	  v12 ::= IV 4 _ XOR Lower;
-	  v13 ::= IV 5 _ XOR Upper;
-	  v14 ::= IV 6 _ XOR f0;
-	  v15 ::= IV 7 _ XOR f1
-        ]%list.
+        [code| v0 := h0;
+	  v1 := h1;
+	  v2 := h2;
+	  v3 := h3;
+	  v4 := h4;
+	  v5 := h5;
+	  v6 := h6;
+	  v7 := h7;
+	  v8  := `IV 0 _`;
+	  v9  := `IV 1 _`;
+	  v10 := `IV 2 _`;
+	  v11 := `IV 3 _`;
+	  v12 := `IV 4 _` ⊕ Lower;
+	  v13 := `IV 5 _` ⊕ Upper;
+	  v14 := `IV 6 _` ⊕ f0;
+	  v15 := `IV 7 _` ⊕ f1
+        |].
       Defined.
 
 
@@ -420,7 +423,7 @@ Module Blake2 (C : CONFIG).
     Definition W : VarIndex progvar BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_MESSAGE_I (blk : progvar Block) (i : nat) (pf : i < BLOCK_SIZE)
       : code progvar.
-      verse [ W i _ ::= blk [- i -] ]%list.
+      verse [code| `W i _` := blk [ i ] |].
     Defined.
     Definition LOAD_MESSAGE (blk : progvar Block)
       := foreach (indices blk) (LOAD_MESSAGE_I blk).
@@ -432,20 +435,20 @@ Module Blake2 (C : CONFIG).
 
      *)
     Definition UPDATE_HASH : code progvar :=
-      [ h0 ::=x v0 ; h0 ::=x v8;
-        h1 ::=x v1 ; h1 ::=x v9;
-        h2 ::=x v2 ; h2 ::=x v10;
-        h3 ::=x v3 ; h3 ::=x v11;
-        h4 ::=x v4 ; h4 ::=x v12;
-        h5 ::=x v5 ; h5 ::=x v13;
-        h6 ::=x v6 ; h6 ::=x v14;
-        h7 ::=x v7 ; h7 ::=x v15
-      ]%list.
+      [code| h0 ^= v0 ; h0 ^= v8;
+        h1 ^= v1 ; h1 ^= v9;
+        h2 ^= v2 ; h2 ^= v10;
+        h3 ^= v3 ; h3 ^= v11;
+        h4 ^= v4 ; h4 ^= v12;
+        h5 ^= v5 ; h5 ^= v13;
+        h6 ^= v6 ; h6 ^= v14;
+        h7 ^= v7 ; h7 ^= v15
+      |].
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
     Definition FINALISE : code progvar.
-      verse ([ MOVE U TO UpperRef[- 0 -]; MOVE L TO LowerRef[- 0 -] ] ++ moveBackCache hash H )%list.
+      verse ([code| UpperRef [ `0` ] <- U ; LowerRef [ `0` ] <- L |] ++ moveBackCache hash H )%list.
     Defined.
 
 
