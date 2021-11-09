@@ -39,9 +39,9 @@ src/Verse/TypeSystem.v
 ## CryptoLib: Actual implementations  ##
 ########################################
 
-src/Verse/TestCode/AnnotatedCode.v
-src/Verse/TestCode/TestCall.v
-src/Verse/TestCode/TestSemantics.v
+# src/Verse/TestCode/AnnotatedCode.v
+# src/Verse/TestCode/TestCall.v
+# src/Verse/TestCode/TestSemantics.v
 
 src/Verse/CryptoLib/blake2.v
 src/Verse/CryptoLib/blake2/c/portable.v
