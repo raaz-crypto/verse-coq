@@ -108,20 +108,21 @@ Section ForAll.
   Variable L  : Type.
   Variable L_is_Lexpr : Pretty.LEXPR v ty L.
 
-  Definition keepOnlyLower       n (e:E) := e AND Internals.selL ty n.
-  Definition keepOnlyLowerUpdate n (l:L) := l ::=& Internals.selL ty n.
 
-  Definition clearOnlyLower       n (e:E) := e AND Internals.clearL ty n.
-  Definition clearOnlyLowerUpdate n (l:L) := l ::=& (Internals.clearL ty n).
+  Definition keepOnlyLower       n (e:E) := [verse| e & `Internals.selL ty n`  |].
+  Definition keepOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.selL ty n` |].
+
+  Definition clearOnlyLower       n (e:E) := [verse| e & `Internals.clearL ty n` |].
+  Definition clearOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.clearL ty n`|].
 
 
-  Definition keepOnlyUpper       n (e:E) := e AND Internals.selU ty n.
-  Definition keepOnlyUpperUpdate n (l:L) := l ::=& Internals.selU ty n.
-  Definition toTopBits           n (e:E) := e >>  Internals.selShiftR ty n.
-  Definition toTopBitsUpdate     n (l:L) := l ::=>> (Internals.selShiftR ty n).
+  Definition keepOnlyUpper       n (e:E) := [verse| e &  `Internals.selU ty n` |].
+  Definition keepOnlyUpperUpdate n (l:L) := [verse| l &= `Internals.selU ty n` |].
+  Definition toTopBits           n (e:E) := [verse| e >>  `Internals.selShiftR ty n`|].
+  Definition toTopBitsUpdate     n (l:L) := [verse| l >>= `Internals.selShiftR ty n` |].
 
-  Definition clearOnlyUpper       n (e:E) := e AND (Internals.clearU ty n).
-  Definition clearOnlyUpperUpdate n(l: L) := l ::=& (Internals.clearU ty n).
+  Definition clearOnlyUpper       n (e:E) := [verse| e & `Internals.clearU ty n` |].
+  Definition clearOnlyUpperUpdate n(l: L) := [verse| l &= `Internals.clearU ty n` |].
 
 
 
@@ -132,8 +133,8 @@ We can give efficient division algorithms when the divisor is a power of 2.
  *)
 
 
-  Definition div2power_nat          n (e:E) := e >> n.
-  Definition div2powerUpdate_nat    n (l:L) := l ::=>> n.
+  Definition div2power_nat          n (e:E) := [verse| e >> n|].
+  Definition div2powerUpdate_nat    n (l:L) := [verse| l >>= n |].
   Definition modulo2power_nat       := keepOnlyLower.
   Definition modulo2powerUpdate_nat := keepOnlyLowerUpdate.
 
