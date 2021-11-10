@@ -156,12 +156,13 @@ Module SHA2 (C : CONFIG).
                         (PeanoNat.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
           Definition M  : v Word.
-            verse (W[- idx -]).
+            verse ([verse| W[ idx ] |]).
           Defined.
+
 
           (** We capture m(idx - j) using this variable *)
           Definition MM (j : nat) : v Word.
-            verse (W [- (idx + 16 - j) mod BLOCK_SIZE -]).
+            verse ([verse| W [ ` (idx + 16 - j) mod BLOCK_SIZE` ] |]).
           Defined.
 
 
@@ -170,12 +171,12 @@ Module SHA2 (C : CONFIG).
            *)
 
           Definition sigma (r0 r1 s : nat)(x : v Word) : expr v Word :=
-            (x >>> r1) XOR (x >>> r0) XOR (x >> s).
+            [verse| (x >>> r1) ⊕ (x >>> r0) ⊕ (x >> s) |].
 
           Definition SCHEDULE :=
             let sigma0 := sigma r00 r01 s0 (MM 15) in
             let sigma1 := sigma r10 r11 s1 (MM 2) in
-            [ M ::=+ MM 7 + sigma0 + sigma1].
+            [code| M += `MM 7` + sigma0 + sigma1 |].
         End MessageSchedule.
 
         Lemma correctnessNextIdx : forall n, proj1_sig (nextIdx n) = S n mod BLOCK_SIZE.
@@ -253,9 +254,8 @@ Module SHA2 (C : CONFIG).
             H := G s
           |}.
 
-
         Definition Sigma r0 r1 r2 (x : v Word) : expr v Word :=
-          (x >>> r2) XOR (x >>> r1) XOR (x >>> r0).
+          [verse| (x >>> r2) ⊕ (x >>> r1) ⊕ (x >>> r0) |].
 
         Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
         Definition Sigma1 (s : State) := Sigma R10 R11 R12 (E s).
@@ -266,10 +266,10 @@ Module SHA2 (C : CONFIG).
          *)
 
         Definition CH (B C D : v Word) : expr v Word :=
-          (D XOR (B AND (C XOR D))). (* === (B AND C) XOR (neg B and D)  *)
+          [verse| (D ⊕ (B & (C ⊕ D))) |].
 
         Definition MAJ (B C D : v Word) : expr v Word :=
-          (B AND C) OR (D AND (C OR B)). (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
+          [verse| (B & C) | (D & (C | B)) |]. (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
 
 
         (** The heart of the hash algorithm a single round where we update
@@ -279,10 +279,11 @@ Module SHA2 (C : CONFIG).
         the round constant [K].
          *)
         Definition STEP (s : State)(M : v Word)(K : constant Word) : code v :=
-          [ t ::= H s + K + M + CH (E s) (F s) (G s) + Sigma1 s;
-            D s ::=+ t;
-            H s ::= t + Sigma0 s + MAJ (A s) (B s) (C s)
-          ].
+          [code|
+             t := `H s` + K + M + `CH (E s) (F s) (G s)` + `Sigma1 s`;
+            `D s` += t;
+            `H s` := t + `Sigma0 s` + `MAJ (A s) (B s) (C s)`
+          |].
 
         (** Having defined the [STEP] we look at a single round. A round
         [r] consists of an application of the [STEP] together with
@@ -348,7 +349,7 @@ Module SHA2 (C : CONFIG).
 
 
         Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
-          verse ([ STATE[- i -] ::=+ hash [- i -]]).
+          verse [code| STATE[ i ] += hash [ i ] |].
         Defined.
 
         Definition UPDATE : code v
