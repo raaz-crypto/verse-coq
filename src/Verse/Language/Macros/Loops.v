@@ -1,6 +1,5 @@
 (* begin hide *)
 Require Import List.
-Require Import Omega.
 Import ListNotations.
 
 (* end hide *)
