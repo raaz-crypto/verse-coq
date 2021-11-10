@@ -23,16 +23,16 @@ Module Internal.
 
 
     Definition clamp (T : progvar Limb)(scalA : progvar Scalar) : code progvar.
-      verse [
-          T ::= scalA[- 0 -];
-          T ::=& Ox "ff:ff:ff:ff ff:ff:ff:f8";
-          MOVE T TO scalA[- 0 -];
+      verse [code|
+          T := scalA[ `0` ];
+          T &= `Ox "ff:ff:ff:ff ff:ff:ff:f8"`;
+          scalA[ `0` ] <- T;
 
-          T ::= scalA[- 3 -];
-          T ::=& Ox "7f:ff:ff:ff ff:ff:ff:ff";
-          T ::=| Ox "40:00:00:00 00:00:00:00";
-          MOVE T TO scalA[- 3 -]
-        ].
+          T := scalA[ `3` ];
+          T &= `Ox "7f:ff:ff:ff ff:ff:ff:ff"`;
+          T |= `Ox "40:00:00:00 00:00:00:00"`;
+          scalA[ `3` ] <- T
+        |].
     Defined.
 
     Definition clampIter (T : progvar Limb) : iterator progvar Scalar
