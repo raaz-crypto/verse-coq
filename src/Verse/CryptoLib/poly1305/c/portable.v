@@ -300,16 +300,18 @@ Module Internal.
           Variable x0 x1 : progvar Limb.
           Variable bpf   : i < bound.
           Definition Load64 : code progvar.
-            verse [ x1 ::=  Arr [- i -];
-                    x0 ::=  x1 AND Select32;
-                    x1 ::=>> 32
-                  ].
+            verse [code|
+                    x1 :=  Arr [ i ];
+                    x0 :=  x1 & Select32;
+                    x1 >>= `32`
+                  |].
           Defined.
           Definition Mov64 : code progvar.
-            verse [ x1 ::=<< 32;
-                    x1 ::=| x0;
-                    MOVE x1 TO Arr[- i -]
-                  ].
+            verse [code|
+                    x1      <<= `32`;
+                    x1      |= x0;
+                    Arr[ i ] <- x1
+                  |].
           Defined.
         End LoadStore64.
         Arguments Load64 [bound e].
@@ -319,7 +321,7 @@ Module Internal.
           verse (
               Load64 AArray 0 a0 a1 _
                      ++ Load64 AArray 1 a2 a3 _
-                     ++ [ a4 ::= AArray[- 2 -] ]
+                     ++ [code| a4 := AArray[ `2` ] |]
             )%list.
         Defined.
 
@@ -334,7 +336,7 @@ Module Internal.
           verse (
               Mov64 AArray 0 a0 a1 _
                     ++ Mov64 AArray 1 a2 a3 _
-                    ++ [ MOVE a4 TO AArray[- 2 -] ]
+                    ++ [code| AArray[ `2` ] <- a4 |]
             )%list.
         Defined.
 
@@ -370,18 +372,20 @@ Module Internal.
         Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
           verse (
               Load64 blk 0 T0 T1 _
-                     ++ [ a0 ::=+  T0;
-                          a1 ::=+  T1
-                        ]
+                     ++ [code|
+                              a0 +=  T0;
+                              a1 +=  T1
+                        |]
                      ++ Load64 blk 1 T0 T1 _
-                     ++ [ a2 ::=+ T0;
-                          a3 ::=+ T1
-                        ]
+                     ++ [code|
+                               a2 += T0;
+                               a3 += T1
+                        |]
             )%list.
         Defined.
 
         Definition AddFullBlock (blk : progvar Block) : code progvar
-          := (Add128 blk ++ [ a4 ::=+ 1 ])%list.
+          := (Add128 blk ++ [code| a4 += `1` |])%list.
 
         (** ** Computing [A := A * R]
 
@@ -434,29 +438,29 @@ Module Internal.
      *)
     Definition MulR : code progvar
       :=
-        [
+        [code|
           (** *** Coefficients of [Two32ij] for [i+j < 4] *)
 
 
           (** - [p3 = a0 r3 + a1 r2 + a2 r1 + a3 r0] *)
 
-          p3 ::= a0 * r3;
-          T0 ::= a1 * r2; p3 ::=+ T0;
-          T0 ::= a2 * r1; p3 ::=+ T0;
-          T0 ::= a3 * r0; p3 ::=+ T0;
+          p3 := a0 * r3;
+          T0 := a1 * r2; p3 += T0;
+          T0 := a2 * r1; p3 += T0;
+          T0 := a3 * r0; p3 += T0;
 
           (** - [p2 = a0 r2 + a1 r1 + a2 r0] *)
-          p2 ::= a0 * r2;
-          T0 ::= a1 * r1; p2 ::=+ T0;
-          T0 ::= a2 * r0; p2 ::=+ T0;
+          p2 := a0 * r2;
+          T0 := a1 * r1; p2 += T0;
+          T0 := a2 * r0; p2 += T0;
 
           (** - [p1 = a0 r1 + a1 r0] *)
-          p1 ::= a0 * r1;
-          T0 ::= a1 * r0; p1 ::=+ T0;
+          p1 := a0 * r1;
+          T0 := a1 * r0; p1 += T0;
 
           (** - [p0 = a0 * r0 ; a0 := p0] *)
 
-              a0 ::=* r0;
+              a0 *= r0;
 
 
           (** *** Coefficients of [Two32ij] for [i+j >= 4]. *)
@@ -469,11 +473,11 @@ Module Internal.
           and the product component [p1] is now in [a1].
 
            *)
-          T0 ::= r3 >> 2; T0 ::=+ r3;
-          T1 ::= a1 * T0; a0 ::=+ T1;
-          T1 ::= a2 * T0; a1 ::= p1 + T1;
-          T1 ::= a3 * T0; p2 ::=+ T1;
-          T1 ::= a4 * T0; p3 ::=+ T1;
+          T0 := r3 >> `2`; T0 += r3;
+          T1 := a1 * T0; a0 += T1;
+          T1 := a2 * T0; a1 := p1 + T1;
+          T1 := a3 * T0; p2 += T1;
+          T1 := a4 * T0; p3 += T1;
 
           (** - Terms of the kind [ai * r2 * Two32ij]
 
@@ -482,28 +486,28 @@ Module Internal.
           hence update [a2] directly.
 
            *)
-          T0 ::= r2 >> 2; T0 ::=+ r2 ;
-          T1 ::= a2 * T0; a0 ::=+ T1;
-          T1 ::= a3 * T0; a1 ::=+ T1;
-          T1 ::= a4 * T0; a2 ::= p2 + T1;
+          T0 := r2 >> `2`; T0 += r2 ;
+          T1 := a2 * T0; a0 += T1;
+          T1 := a3 * T0; a1 += T1;
+          T1 := a4 * T0; a2 := p2 + T1;
 
           (** - Terms of the kind [ai * r1 * Two32ij].  *)
-          T0 ::= r1 >> 2; T0 ::=+ r1;
-          T1 ::= a3 * T0; a0 ::=+ T1;
-          T1 ::= a4 * T0; a1 ::=+ T1;
+          T0 := r1 >> `2`; T0 += r1;
+          T1 := a3 * T0; a0 += T1;
+          T1 := a4 * T0; a1 += T1;
 
           (** - Terms of the kind [ai * r0 * Two32ij]  *)
-          T0 ::= r0 >> 2; T0 ::=* 5;
-          T1 ::= a4 * T0; a0 ::=+ T1;
+          T0 := r0 >> `2`; T0 *= `5`;
+          T1 := a4 * T0; a0 += T1;
 
           (** *** Setting [a3] and [a4].
 
               The two bits that we lost when shifting [r0] contributes
               to [a4] where as [a3] is just [p3] at this point.  *)
 
-          a3 ::= p3;
-          p4 ::= r0 AND Select2; a4 ::=* p4
-        ].
+          a3 := p3;
+          p4 := r0 & Select2; a4 *= p4
+        |].
 
 
 
@@ -533,15 +537,15 @@ Module Internal.
         *)
 
         Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
-          verse [ T0              ::= A [- i -] >> 32;
-                                      A [- i -]       ::=& Select32;
-                                      A [- 1 + i -]   ::=+ T0
-                ].
+          verse [code| T0             := A [ i ] >> `32`;
+                       A [ i ]        &= Select32;
+                       A [ `1 + i` ]  += T0
+                |].
         Defined.
 
         Definition Propagate : code progvar := iterate PropagateIth.
         Definition Wrap : code progvar :=
-          [ T0 ::= a4 >> 2; a4 ::=& Select2; T0 ::=* 5 ; a0 ::=+ T0].
+          [code| T0 := a4 >> `2`; a4 &= Select2; T0 *= `5` ; a0 += T0 |].
 
         (** ** Adjusting [a0,..,a4] to maintain the invariant.
 
@@ -595,17 +599,18 @@ Module Internal.
 
          *)
         Definition  ReductionAmount : code progvar :=
-          [ T0 ::= a0 + 5;
-                     T0 ::=>> 32;
-                     T0 ::=+ a1;
-                     T0 ::=>> 32;
-                     T0 ::=+ a2;
-                     T0 ::=>> 32;
-                     T0 ::=+ a3;
-                     T0 ::=>> 32;
-                     T0 ::=+ a4;
-                     T0 ::=>> 2
-          ].
+          [code|
+                 T0 := a0 + `5`;
+                 T0 >>= `32`;
+                 T0 += a1;
+                 T0 >>= `32`;
+                 T0 += a2;
+                 T0 >>= `32`;
+                 T0 += a3;
+                 T0 >>= `32`;
+                 T0 += a4;
+                 T0 >>= `2`
+          |].
 
         (** Consider the number stored in the accumulator registers
          [a0..a4]. We assume that the value that we have is the value
@@ -620,7 +625,7 @@ Module Internal.
 
         Definition FullReduction : code progvar :=
           (Wrap ++ ReductionAmount
-                ++ [ T0 ::= T0 * 5; a0 ::=+ T0]
+                ++ [code| T0 := T0 * `5`; a0 += T0 |]
                 ++ Propagate)%list.
 
         (** ** Computing the hash.
@@ -721,15 +726,16 @@ Module Internal.
          *)
 
         Definition clamp (blk : progvar Array128) : code progvar.
-          verse [
-              T0 ::= blk[- 0 -];
-                     T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:ff";
-                     MOVE T0 TO blk[- 0 -];
+          verse [code|
 
-                     T0 ::= blk[- 1 -];
-                            T0 ::=& Ox "0f:ff:ff:fc 0f:ff:ff:fc";
-                            MOVE T0 TO blk[- 1 -]
-            ].
+                 T0 := blk[ `0` ];
+                 T0 &= `Ox "0f:ff:ff:fc 0f:ff:ff:ff"`;
+                 blk[ `0` ] <- T0;
+
+                 T0 := blk[ `1` ];
+                 T0 &= `Ox "0f:ff:ff:fc 0f:ff:ff:fc"`;
+                 blk[ `1` ] <- T0
+            |].
         Defined.
 
         Definition clampIter : iterator progvar Array128
