@@ -31,51 +31,63 @@ Section TestFunction.
 
   (* Definition regAssignment := (- cr uint16_t "temp" -). *)
   Definition someInstruction i (_ : i < 5) : code variable.
-    verse [ arr[- i -] ::=x arr[- (i + 1) mod 5 -] + tmp + 1]%list.
+    verse [code| arr[ i ] ⊕= arr[ ` (i + 1) mod 5` ] + tmp + `1` |].
   Defined.
 
 
-  Definition stmt1 : statement variable := num ::= Ox "1234".
-  Definition stmt2 : statement variable := num ::=* Ox "abcd".
-  Definition stmt3 : statement variable := num ::= num * Ox "12 34".
+  Definition stmt1 : statement variable := [verse| num := `Ox "1234"` |].
+  Definition stmt2 : statement variable := [verse| num *= `Ox "abcd"` |].
+  Definition stmt3 : statement variable := [verse| num := num * `Ox "12 34"` |].
 
 
   Definition testFunction : code variable.
     verse
-      [  (* Assignments  using binary operators *)
-        num ::= tmp + 43981%N;
-        A   ::= A + B;
-        num ::= tmp - num ;
-        num      ::= tmp      * arr[-1-];
-        num      ::= arr[-1-] / tmp ;
-        arr[-1-] ::= tmp  OR num ;
-        num      ::= tmp  XOR arr[-1-];
-        num      ::= tmp  XOR num;
+      [code|  (* Assignments  using binary operators *)
+        num := tmp + `43981%N`;
+        A   := A + B;
+        num := tmp - num ;
+        num      := tmp      * arr[ `1` ];
+        num      := arr[ `1` ] / tmp ;
+        arr[ `1` ] := tmp  | num ;
+        num      := tmp  ^ arr[`1`]; (* ascii version of XOR operator *)
+        num      := tmp  ⊕ num;      (* Unicode version of XOR operator *)
 
-       (* Assignments using unary operators *)
+        (* Assignments using unary operators, Ascii version and unicode version *)
 
-        num      ::= neg tmp;
-        tmp      ::=  arr[-1-] <<  42;
-        tmp      ::=  arr[-1-] >>  42;
-        num      ::=  tmp     <<< 42;
-        arr[-1-] ::=  tmp     >>> 42;
+        num       := ~ tmp;
+        tmp       :=  arr[`1`] <<  `42`;
+        tmp       :=  arr[`1`] ≪  `42`;
+
+        tmp       :=  arr[`1`] >> `42`;
+        tmp       :=  arr[`1`] ≫  `42`;
+
+        num       :=  tmp     <<< `42`;
+        num       :=  tmp     ⋘ `42`;
+
+        arr[ `1`] :=  tmp     >>> `42`;
+        arr[ `1`] :=  tmp     ⋙  `42`;
 
         (* binary update *)
 
-        num ::=+ tmp;
-        num ::=- arr[-1-];
-        num ::=* 2;
-        num ::=/ tmp;
-        num ::=| 5;
-        num ::=& tmp;
-        num ::=x tmp;
+        num += tmp;
+        num -= arr[`1`];
+        num *= `2`;
+        num /= tmp;
+        num |= `5`;
+        num &= tmp;
+        num ^= tmp;
+        num ⊕= tmp;
 
       (* Unary update operators *)
-        tmp      ::=<<  (42%nat);
-        tmp      ::=>>  (42%nat);
-        num      ::=<<< (42%nat);
-        arr[-1-] ::=>>> (42%nat)
-    ]%list.
+        tmp      <<=  (`42%nat`);
+        tmp      ≪=  (`42%nat`);
+        tmp      >>=  (`42%nat`);
+        tmp      ≫=  (`42%nat`);
+        num      <<<= (`42%nat`);
+        num      ⋘= (`42%nat`);
+        arr[`1`] >>>= (`42%nat`);
+        arr[`1`] ⋙= (`42%nat`)
+    |].
   Defined.
 
   Print testFunction.
