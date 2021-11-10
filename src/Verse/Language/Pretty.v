@@ -200,15 +200,23 @@ Infix "+"           := (binOpApp plus)           (in custom verse at level 50, l
 Infix "-"           := (binOpApp minus)          (in custom verse at level 50, left associativity).
 
 Notation "E  <<  N" := (uniOpApp (shiftL N) E)   (in custom verse at level 54, left associativity).
+Notation "E  ≪  N" := (uniOpApp (shiftL N) E)   (in custom verse at level 54, left associativity).
+
 Notation "E  >>  N" := (uniOpApp (shiftR N) E)   (in custom verse at level 54, left associativity).
+Notation "E  ≫  N" := (uniOpApp (shiftR N) E)   (in custom verse at level 54, left associativity).
+
 Notation "E <<<  N" := (uniOpApp (rotL N)   E)   (in custom verse at level 54, left associativity).
+Notation "E ⋘  N" := (uniOpApp (rotL N)   E)   (in custom verse at level 54, left associativity).
+
+
 Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity).
+Notation "E ⋙  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity).
 
 Infix "&"         := (binOpApp bitAnd)         (in custom verse at level 56, left associativity).
-Infix "⊕"           := (binOpApp bitXor)         (in custom verse at level 57, left associativity).
+Infix "⊕"         := (binOpApp bitXor)         (in custom verse at level 57, left associativity).
 Infix "^"         := (binOpApp bitXor)
                          (in custom verse at level 57, left associativity, only parsing).
-Infix "|"          := (binOpApp bitOr)          (in custom verse at level 59, left associativity).
+Infix "|"         := (binOpApp bitOr)          (in custom verse at level 59, left associativity).
 
 Infix ":="  := assignStmt           (in custom verse at level 70).
 Infix "<-"   := moveStmt             (in custom verse at level 70).
@@ -223,9 +231,17 @@ Infix "^="  := (binOpUpdate bitXor) (in custom verse at level 70, only parsing).
 Infix "⊕="  := (binOpUpdate bitXor) (in custom verse at level 70).
 
 Notation "A <<= N"   := (uniOpUpdate (shiftL N) A)   (in custom verse at level 70).
+Notation "A ≪= N"   := (uniOpUpdate (shiftL N) A)   (in custom verse at level 70).
+
 Notation "A >>= N"   := (uniOpUpdate (shiftR N) A)   (in custom verse at level 70).
+Notation "A ≫= N"   := (uniOpUpdate (shiftR N) A)   (in custom verse at level 70).
+
 Notation "A <<<= N"  := (uniOpUpdate (rotL N)   A)   (in custom verse at level 70).
+Notation "A ⋘= N"  := (uniOpUpdate (rotL N)   A)   (in custom verse at level 70).
+
 Notation "A >>>= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
+Notation "A ⋙= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
+
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 70).
 
 (*
