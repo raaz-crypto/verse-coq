@@ -37,8 +37,8 @@
 	  Verse.Target.C.CodeGen
 	  Verse.Target.C.Pretty
 	  Verse.TestCode.AnnotatedCode
-	  ; Verse.TestCode.TestCall
-	  ; Verse.TestCode.TestSemantics
+          Verse.TestCode.TestCall
+	  Verse.TestCode.TestSemantics
 
 	  Verse.TypeSystem
 	  Verse.CryptoLib.blake2
