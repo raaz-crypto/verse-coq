@@ -7,6 +7,7 @@ words as bitvectors.
 
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
+Require Import Verse.Language.Pretty.
 Require Import Verse.AbstractMachine.
 Require Import Verse.BitVector.
 Require Import Verse.ScopeStore.

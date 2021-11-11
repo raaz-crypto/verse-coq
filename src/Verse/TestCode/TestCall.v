@@ -1,11 +1,18 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
-Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.
 Require Import Verse.ScopeStore.
-Require Import Verse.AnnotatedCode.
 
 Require Import Verse.
+(* The file defining a custom entry seems to be a required import to
+   import any file using said custom entry!
+
+   Might have to change `Require Import Verse` and `Require Import
+   Verse.Language` to `Require Export`s.
+ *)
+Require Import Verse.AbstractMachine.
+Require Import Verse.AnnotatedCode.
+
 
 Open Scope annotation_scope.
 

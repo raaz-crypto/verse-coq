@@ -1,11 +1,13 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
-Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.
 Require Import Verse.ScopeStore.
-Require Import Verse.AnnotatedCode.
 
 Require Import Verse.
+
+Require Import Verse.AbstractMachine.
+Require Import Verse.AnnotatedCode.
+
 
 Open Scope annotation_scope.
 
