@@ -153,11 +153,11 @@ Arguments rel [tyD Rels v ty rel].
 Arguments VPropDenote [tyD Rels v].
 Arguments denote [tyD Rels v] : simpl never.
 
-Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (at level 70) : annotation_scope.
+Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (in custom verse at level 70) : annotation_scope.
 
-Global Notation "X < R > Y" := (rel R X Y) (at level 99) : annotation_scope.
-Global Infix "VAND" := and (at level 56, left associativity) : annotation_scope.
-Global Infix "VOR"  := or  (at level 59, left associativity) : annotation_scope.
+Global Notation "X < R > Y" := (rel R X Y) (in custom verse at level 99) : annotation_scope.
+Global Infix "VAND" := and (in custom verse at level 56, left associativity) : annotation_scope.
+Global Infix "VOR"  := or  (in custom verse at level 59, left associativity) : annotation_scope.
 
 
 (* TODO : Somehow not being able to make this work without the 'WITH' *)
