@@ -20,13 +20,12 @@ Section Code.
 
   Definition test : IntAnnotatedCode v bvDenote.
     annotated_verse
-      ([
-        A ::= B;
+      ([A ::= B;
         ASSERT (VAL A = OLDVAL A);
         A ::= B;
         ASSERT (OLDVAL B = VAL A + 1);
-        A ::= B
-      ])%list%code.
+        A ::= B]
+      )%list%code.
   Defined.
 
 End Code.

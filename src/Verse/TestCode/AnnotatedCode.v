@@ -27,11 +27,11 @@ Set Implicit Arguments.
                       C := `8`
                |]
           ++
-          ANNOT [ A = (OLD B) ]
+          ANNOT [code| A = `OLD B` |]
           ++
           CODE [code| B := A; A := `6` |]
           ++
-          ANNOT [ B = (OLD B) ]
+          ANNOT [code| B = `OLD B` |]
       )%list%verse.
   Defined.
 

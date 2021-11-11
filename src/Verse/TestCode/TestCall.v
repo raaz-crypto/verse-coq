@@ -27,26 +27,26 @@ Section Code.
   Definition f (w : VariableT) (a b : w _ Word8)
     : specified bvDenote noRels w AnnotatedCode.
 
-    verse (CODE [ a ::= b + 2 ]
+    verse (CODE [code| a := b + `2` |]
                 DOES
-           (a = OLD b + 2)
+           [verse| a = `OLD b` + `2` |]
           )%list%verse.
   Defined.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     (* This actually works without the `verse` tactic *)
     verse (
-        CODE [ A ::= A; B ::= B ]
+        CODE [code| A := A; B := B |]
         ++
         CALL f WITH (- A, B -)
         ++
-        ANNOT [ A = OLD B + 2 ]
+        ANNOT [code| A = `OLD B` + `2` |]
         ++
-        CODE [ B ::= A; A ::= 6 ]
+        CODE [code| B := A; A := `6` |]
         ++
         CALL f WITH (- A, B -)
         ++
-        ANNOT [ A = OLD B + 4 ]
+        ANNOT [code| A = `OLD B` + `4` |]
       )%list%verse.
   Defined.
 
