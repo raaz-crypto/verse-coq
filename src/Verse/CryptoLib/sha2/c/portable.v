@@ -171,7 +171,7 @@ Module SHA2 (C : CONFIG).
            *)
 
           Definition sigma (r0 r1 s : nat)(x : v Word) : expr v Word :=
-            [verse| (x >>> r1) ⊕ (x >>> r0) ⊕ (x >> s) |].
+            [verse| (x ⋙ r1) ⊕ (x ⋙ r0) ⊕ (x >> s) |].
 
           Definition SCHEDULE :=
             let sigma0 := sigma r00 r01 s0 (MM 15) in
@@ -255,7 +255,7 @@ Module SHA2 (C : CONFIG).
           |}.
 
         Definition Sigma r0 r1 r2 (x : v Word) : expr v Word :=
-          [verse| (x >>> r2) ⊕ (x >>> r1) ⊕ (x >>> r0) |].
+          [verse| (x ⋙ r2) ⊕ (x ⋙ r1) ⊕ (x ⋙ r0) |].
 
         Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
         Definition Sigma1 (s : State) := Sigma R10 R11 R12 (E s).

@@ -108,7 +108,7 @@ Module Internal.
               x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
               x4  := key[ `0` ] ; x5  := key[ `1` ] ; x6  := key[ `2` ] ; x7 := key[ `3` ];
               x8  := key[ `4` ] ; x9  := key[ `5` ] ; x10 := key[ `6` ] ; x11 := key[ `7` ];
-              x12 := ctr        ; x13 := iv [ `0` ]  ; x14 := iv[ `1` ]  ; x15 := iv[ `2` ]
+              x12 := ctr        ; x13 := iv [ `0` ] ; x14 := iv[ `1` ]  ; x15 := iv[ `2` ]
             |].
         Defined.
 
@@ -120,10 +120,11 @@ Module Internal.
          *)
 
         Definition QRound (a b c d : progvar Word) : code progvar
-          := [code| a += b; d ^= a; d := d <<< `16`;
-               c += d; b ^= c; b := b <<< `12`;
-               a += b; d ^= a; d := d <<< `8`;
-               c += d; b ^= c; b := b <<< `7`
+          := [code|
+               a += b; d ⊕= a; d := d ⋘ `16`;
+               c += d; b ⊕= c; b := b ⋘ `12`;
+               a += b; d ⊕= a; d := d ⋘ `8`;
+               c += d; b ⊕= c; b := b ⋘ `7`
              |].
 
         (**
@@ -207,7 +208,7 @@ Module Internal.
 
         Definition XorBlock (B : progvar (Block littleE))(i : nat) (_ : i < 16)
           : code progvar.
-          verse [code| Temp := B[ i ]; Temp ^= X [ i ]; B[ i ] <- Temp |].
+          verse [code| Temp := B[ i ]; Temp ⊕= X [ i ]; B[ i ] <- Temp |].
         Defined.
 
         Definition EmitStream (B : progvar (Block hostE))(i : nat) (_ : i < 16)
@@ -247,7 +248,8 @@ Module Internal.
         Defined.
 
         Definition HUpdateKey : code progvar.
-          verse [code| key [ `0` ] <- x0;
+          verse [code|
+                  key [ `0` ] <- x0;
                   key [ `1` ] <- x1;
                   key [ `2` ] <- x2;
                   key [ `3` ] <- x3;

@@ -279,10 +279,10 @@ Module Blake2 (C : CONFIG).
 
     Definition G (a b c d m0 m1 : progvar Word) : code progvar :=
       [code|
-        a += b; a += m0; d ^= a; d := d >>> R0;
-        c += d;          b ^= c; b := b >>> R1;
-        a += b; a += m1; d ^= a; d := d >>> R2;
-        c += d;          b ^= c; b := b >>> R3
+        a += b; a += m0; d ⊕= a; d := d ⋙ R0;
+        c += d;          b ⊕= c; b := b ⋙ R1;
+        a += b; a += m1; d ⊕= a; d := d ⋙ R2;
+        c += d;          b ⊕= c; b := b ⋙ R3
       |].
 
     (** *** Message permutations.
@@ -435,14 +435,15 @@ Module Blake2 (C : CONFIG).
 
      *)
     Definition UPDATE_HASH : code progvar :=
-      [code| h0 ^= v0 ; h0 ^= v8;
-        h1 ^= v1 ; h1 ^= v9;
-        h2 ^= v2 ; h2 ^= v10;
-        h3 ^= v3 ; h3 ^= v11;
-        h4 ^= v4 ; h4 ^= v12;
-        h5 ^= v5 ; h5 ^= v13;
-        h6 ^= v6 ; h6 ^= v14;
-        h7 ^= v7 ; h7 ^= v15
+      [code|
+        h0 ⊕= v0 ; h0 ⊕= v8;
+        h1 ⊕= v1 ; h1 ⊕= v9;
+        h2 ⊕= v2 ; h2 ⊕= v10;
+        h3 ⊕= v3 ; h3 ⊕= v11;
+        h4 ⊕= v4 ; h4 ⊕= v12;
+        h5 ⊕= v5 ; h5 ⊕= v13;
+        h6 ⊕= v6 ; h6 ⊕= v14;
+        h7 ⊕= v7 ; h7 ⊕= v15
       |].
 
     (** In the iterator one needs to update the hash array as well as
