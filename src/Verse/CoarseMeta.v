@@ -1,11 +1,11 @@
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Ast.
+Require Import Verse.Language.Pretty.
 Require Import Verse.AnnotatedCode.
 Require Import Verse.AbstractMachine.
 Require Verse.Scope.
 Require Import Verse.ScopeStore.
-Require Import Verse.Language.Pretty.
 Require Import Verse.Monoid.
 Require Import Verse.Machine.BitVector.
 

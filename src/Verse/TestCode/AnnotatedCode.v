@@ -1,11 +1,13 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
-Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.
 Require Import Verse.ScopeStore.
-Require Import Verse.AnnotatedCode.
 
 Require Import Verse.
+
+Require Import Verse.AbstractMachine.
+Require Import Verse.AnnotatedCode.
+
 
 Open Scope annotation_scope.
 
@@ -25,11 +27,11 @@ Set Implicit Arguments.
                       C := `8`
                |]
           ++
-          ANNOT [ A = (OLD B) ]
+          ANNOT [code| A = `OLD B` |]
           ++
           CODE [code| B := A; A := `6` |]
           ++
-          ANNOT [ B = (OLD B) ]
+          ANNOT [code| B = `OLD B` |]
       )%list%verse.
   Defined.
 
