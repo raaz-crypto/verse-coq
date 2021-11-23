@@ -38,7 +38,7 @@ Definition codeDenote {types mtypes}
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
-  := mapMconcat unit (denote sem).
+  := mapMconcat ε (denote sem).
 
 Fixpoint lineDenote types mtypes
          (M : mSpecs types mtypes)
@@ -50,7 +50,7 @@ Fixpoint lineDenote types mtypes
      | inst   i => denote sem i
      | inline i => i
      | call f a => inliner sem
-                     (mapMconcat unit
+                     (mapMconcat ε
                                  (lineDenote _ _ M _ sem)
                                  (f (mvariables M) a))
      end.
@@ -61,6 +61,6 @@ Definition linesDenote types mtypes
          (sem : Semantics M (line (mvariables M)))
          (c : Ast.lines (mvariables M) line)
   : line (mvariables M)
-  := mapMconcat unit (lineDenote _ _ _ _ sem) c.
+  := mapMconcat ε (lineDenote _ _ _ _ sem) c.
 
 Arguments linesDenote [types mtypes] _ _ {_ _}.

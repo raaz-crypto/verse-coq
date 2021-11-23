@@ -17,12 +17,12 @@ Require Import SetoidClass.
 *)
 
 Class Monoid t `{Setoid t}
-:= { unit  : t;
+:= { ε  : t;
      oper  : t -> t -> t;
      welldef_l : forall x y z, x == y -> oper x z == oper y z;
      welldef_r : forall x y z, x == y -> oper z x == oper z y;
-     left_identity  : forall x : t, (oper unit x) == x;
-     right_identity : forall x : t, (oper x unit) == x;
+     left_identity  : forall x : t, (oper ε x) == x;
+     right_identity : forall x : t, (oper x ε) == x;
      associativity  : forall x y z : t,
          (oper x (oper y z)) == (oper (oper x y) z)
    }.
@@ -100,7 +100,7 @@ Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 1 :=
   |}.
 
 Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
-refine {| unit      := fun _ => unit;
+refine {| ε      := fun _ => ε;
           oper f g  := fun x => f x ** g x;
           welldef_l := _;
           welldef_r := _;
@@ -158,7 +158,7 @@ Instance dep_point_monoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
          `{forall a, Monoid (F a)}
   : Monoid (forall a, F a) | 2.
-refine {| unit      := fun _ => unit;
+refine {| ε := fun _ => ε;
           oper f g  := fun x => f x ** g x;
           welldef_l := _;
           welldef_r := _;
@@ -194,7 +194,7 @@ Defined.
 Class Hom t1 t2 `{Monoid t1} `{Monoid t2}
   := { f         : t1 -> t2;
        well_def  : forall {a b}, a == b -> f a == f b;
-       unit_map  : f unit == unit;
+       unit_map  : f ε == ε;
        commute   : forall {a b}, f (a ** b) == (f a) ** (f b)
      }.
 
@@ -208,7 +208,7 @@ Ltac hom_crush :=
   repeat
   match goal with
   | |- f ?h _ == f ?h _  => apply well_def
-  | |- f ?h _  == unit   => try (apply unit_map);
+  | |- f ?h _  == ε   => try (apply unit_map);
                             apply Equivalence_Symmetric;
                             rewrite <- (unit_map (Hom := h)) at 1;
                             apply well_def; apply Equivalence_Symmetric
@@ -235,7 +235,7 @@ Module End.
     {|
       f := id;
       well_def := fun _ _ e => e;
-      unit_map := reflexivity unit;
+      unit_map := reflexivity ε;
       commute  := fun f g => reflexivity (f ** g)
     |}.
 
@@ -271,7 +271,7 @@ Module End.
 
   Instance end_monoid T `{Monoid T} : Monoid (End T).
   refine
-    {| unit           := id;
+    {| ε           := id;
        oper           := op;
        welldef_l      := fun x y z e => _ (*eq_ind_r (fun t : T -> T =>
                                                     (fun xx : T => t (f z xx)) = (fun xx : T => f y (f z xx)))
@@ -307,7 +307,7 @@ Defined.
 End End.
 
 Instance prop_monoid : Monoid Prop.
-refine {| unit          := True;
+refine {| ε          := True;
           oper f g      := and f g;
           welldef_l     := _;
           welldef_r     := _;
@@ -407,12 +407,12 @@ Module Sumor.
     end.
 
   Definition left_id {A E} `{Monoid A} :
-    forall ex : A + {E},  eq (oper {-unit-} ex) ex.
+    forall ex : A + {E},  eq (oper {-ε-} ex) ex.
     intros; destruct ex; unfold oper; constructor; try (apply left_identity).
   Qed.
 
   Definition right_id {A E} `{Monoid A} :
-    forall ex : A + {E},  eq (oper ex {-unit-}) ex.
+    forall ex : A + {E},  eq (oper ex {-ε-}) ex.
     intros; destruct ex; unfold oper; constructor; try (apply right_identity).
   Qed.
 
@@ -437,7 +437,7 @@ Instance error_setoid {E : Prop}{A}`{Setoid A} : Setoid (A + {E}) :=
 
 Instance error_monoid {E : Prop}{A}`{Monoid A}
   : Monoid (A + {E}) :=
-  {| unit := {- unit -};
+  {| ε := {- ε -};
      oper := Sumor.oper;
      welldef_l := Sumor.welldef_l;
      welldef_r := Sumor.welldef_r;
@@ -496,7 +496,7 @@ Module SDP.
   Section SDP.
     Variable A B : Type.
 
-    Definition id `{Monoid A} `{Monoid B} : A*B := (unit, unit).
+    Definition id `{Monoid A} `{Monoid B} : A*B := (ε, ε).
 
     Definition oper `{Monoid A} `{Monoid B} (h : action A B)
       := fun p q => ((fst p) ** (fst q),
@@ -597,7 +597,7 @@ End SDP.
 Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
                          `{h : action A B}
   : Monoid (A * B)
-  := {| unit := SDP.id A B;
+  := {| ε := SDP.id A B;
         oper := SDP.oper _ _ h;
         welldef_l := SDP.welldefl _ _ h;
         welldef_r := SDP.welldefr _ _ h;
@@ -644,7 +644,7 @@ Instance eq_setoid T : Setoid T | 10
 
 Instance list_is_monoid (A : Type)
   : Monoid (list A).
-refine  {| unit  := nil;
+refine  {| ε  := nil;
            oper  := List.app (A:=A);
            welldef_l := fun _ _ _ _ => _;
            welldef_r := fun _ _ _ _ => _;
@@ -656,7 +656,7 @@ all : simpl in *; rewrite e; trivial.
 Defined.
 
 Instance transition_monoid (A : Type) : Monoid (A -> A) | 0.
-refine {| unit := @id A;
+refine {| ε := @id A;
           oper f g := f >-> g;
           welldef_l := _ (*fun _ _ _ _ => _*);
           welldef_r := _ (*fun _ _ _ _ => _*);
