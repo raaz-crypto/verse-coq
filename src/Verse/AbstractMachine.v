@@ -151,7 +151,7 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Fixpoint evalE {T} (st : str) (e : expr T) :  tyD direct T
+    Definition evalE {T} (st : str) (e : expr T) :  tyD direct T
       := eval tyD (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
