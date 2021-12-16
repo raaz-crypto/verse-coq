@@ -326,13 +326,13 @@ elements in the monoid and multiplies them to get the results
  *)
 
 
-Definition mconcat {t}`{mon: Monoid t} init : list t -> t
-  := fun l => fold_left oper l init.
+Definition mconcat {t}`{mon: Monoid t} : list t -> t
+  := fun l => fold_left oper l ε.
 
-Definition mapMconcat {A}{t}`{mon : Monoid t} init
+Definition mapMconcat {A}{t}`{mon : Monoid t}
            (f : A -> t) (xs : list A)
   : t
-  := mconcat init (map f xs).
+  := mconcat (map f xs).
 
 (**  * Monoid instance A + {E}.
 
