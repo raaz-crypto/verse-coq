@@ -10,7 +10,7 @@ GIT_REPO_SSH=git@github.com:raaz-crypto/libverse.git
 
 INDENT_OPTS=-linux
 ROOT=$(abspath ..)
-VERSE=${ROOT}/src
+VERSE=${ROOT}/_build/default/src/
 CRYPTOLIB=$(abspath .)
 LIBVERSE=${CRYPTOLIB}/libverse
 
