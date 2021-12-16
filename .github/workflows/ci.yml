@@ -35,10 +35,6 @@ jobs:
               dune --version
             endGroup
           script: |
-            startGroup "making library and docs"
-               dune build
-               make
-               make -C test
-               make html
-               make all.pdf
+            startGroup "Build using dune"
+              dune build
             endGroup
