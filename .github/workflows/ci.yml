@@ -26,7 +26,8 @@ jobs:
           install: |
             startGroup "Install"
               sudo apt-get update -y
-              sudo apt-get install m4 indent dune texlive texlive-latex-extra -y
+              sudo apt-get install -y m4 indent dune
+              # sudo apt-get install -y texlive texlive-latex-extra  # Only when documentation building is enabled.
               sudo chown -R coq:coq .
             endGroup
           before_script: |
