@@ -52,5 +52,6 @@
 	  Verse.CryptoLib.sha2.c.portable
 	  Verse.CryptoLib.sha256.c.portable
 	  Verse.CryptoLib.sha512.c.portable
+	  Verse.Utils.hlist
 	  ))
 (include_subdirs qualified)
