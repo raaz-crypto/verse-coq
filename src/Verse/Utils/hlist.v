@@ -23,13 +23,25 @@ Section hlist.
   | hnext  : forall s0 l, member l -> member (s0 :: l).
 
 End hlist.
-
 (* begin hide *)
 Arguments hnil {sort A}.
 Arguments hcons {sort A x xs}.
 Arguments hfirst {sort elem l}.
 Arguments hnext {sort elem s0 l}.
 (* end hide *)
+
+Declare Scope hlist_scope.
+
+Infix "::" := (hcons) : hlist_scope.
+Notation "[ ]" := (hnil) : hlist_scope.
+Notation "[ X ]" := (hcons X hnil) : hlist_scope.
+Notation "[ X ; Y ; .. ; Z ]" := (hcons X (hcons Y .. (hcons Z hnil) ..)) : hlist_scope.
+Notation "X ∈ L" := (member X L)  (at level 70).
+Infix "++" := app : hlist_scope.
+
+Delimit Scope hlist_scope with hlist.
+Bind Scope hlist_scope with hlist.
+
 
 Definition hd {sort}{A : sort -> Type}{x: sort}{xs : list sort}
            (ha : hlist A (x :: xs)) : A x :=
@@ -51,11 +63,29 @@ Fixpoint map {sort}{A B : sort -> Type}{l : list sort}
   end.
 
 Fixpoint foldl {sort T}{A : sort -> Type}
-         (func : forall s, T -> A s -> T) (t0 : T) {l} : hlist A l -> T
-  := match l with
-     | [] => fun _ => t0
-     | (x :: xs) => fun us => foldl func (func x t0 (hd us)) (tl us)
+         (func : forall s, T -> A s -> T) (t0 : T) {l}(hl : hlist A l): T
+  := match hl with
+     | []%hlist => t0
+     | (x :: xs)%hlist => foldl func (func _ t0 x) xs
      end.
+
+
+Fixpoint foldr {sort T}{A : sort -> Type}
+         (func : forall s, A s -> T -> T)(t0 : T){l}(hl : hlist A l) : T
+  := match hl with
+    | []%hlist => t0
+    | (x :: xs)%hlist => func _ x (foldr func t0 xs)
+    end.
+
+Definition toList {sort} {A : Type} {l : list sort} : hlist (fun _ : sort => A) l -> list A :=
+  foldr (fun (_ : sort) (x : A) xs => (x :: xs)) [].
+
+Fixpoint zipWith {sort}{A B C: sort -> Type}
+         (func : forall s, A s -> B s -> C s) {l} : hlist A l -> hlist B l -> hlist C l :=
+  match l with
+  | [] => fun _ _ => []%hlist
+  | _  => fun ha hb => (func _ (hd ha) (hd hb) :: zipWith func (tl ha) (tl hb))%hlist
+  end.
 
 Program Fixpoint app {sort}{A : sort -> Type}{l lp : list sort}
         (h : hlist A l) : hlist A lp -> hlist A (l ++ lp) :=
@@ -81,17 +111,6 @@ End ELift.
 
 Arguments elift {sort T B} [ls].
 
-Declare Scope hlist_scope.
-
-Infix "::" := (hcons) : hlist_scope.
-Notation "[ ]" := (hnil) : hlist_scope.
-Notation "[ X ]" := (hcons X hnil) : hlist_scope.
-Notation "[ X ; Y ; .. ; Z ]" := (hcons X (hcons Y .. (hcons Z hnil) ..)) : hlist_scope.
-Notation "X ∈ L" := (member X L)  (at level 70).
-Infix "++" := app : hlist_scope.
-
-Delimit Scope hlist_scope with hlist.
-Bind Scope hlist_scope with hlist.
 
 Ltac induction_on hl :=
   let x   := fresh "x"   in
@@ -128,14 +147,7 @@ Section Indexing.
 
 End Indexing.
 
-
-
-
-
-(** ** Currying and Uncurring
-
-
- *)
+(** ** Currying and Uncurring *)
 
 Import EqNotations.
 Section Currying.
