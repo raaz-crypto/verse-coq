@@ -7,6 +7,7 @@ A list that has elements of different sorts.
 (* begin hide *)
 Require Import List.
 Import List.ListNotations.
+Set Universe Polymorphism.
 (* end hide *)
 
 Section hlist.
