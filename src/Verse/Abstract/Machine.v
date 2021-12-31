@@ -1,8 +1,12 @@
 (* begin hide *)
 Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
+Require List.
+Import List.ListNotations.
+
 (* end hide *)
 
+Set Universe Polymorphism.
 (** * An (family of) abstract machine.
 
 To given semantics to straight line program, we define an abstract
@@ -44,6 +48,23 @@ ordered collection of cells of the original memory.
 
 Definition slice (fam : family) := hlist (cell fam).
 
+(*
+
+This is another way look at slices, it is a memory that contains
+pointers to the other memory. Making it work requires universe
+polymorphism definition in hlist and in this file.
+
+ *)
+Definition pointers (fam : family) := fun fam' => memory (List.map (fun tau => cell fam tau) fam').
+
+
+Fixpoint full_slice (fam : family) : slice fam fam :=
+  match fam with
+  | []%list => []%hlist
+  | (x :: xs)%list => let xsslice := full_slice xs in
+                    (hfirst :: hlist.map (fun tau (e : tau ∈ xs) => hnext e)  xsslice)%hlist
+  end.
+
 
 (** We now define get and put like operation on memory slices *)
 Section SliceOperations.
@@ -60,9 +81,9 @@ Section SliceOperations.
   (** The puts operation gives a list of possible updates to the
       memory location. The overall effect on the memory depends on the
       order that these operations are executed. Of particular interest
-      is two variants one which does the operations from left to right where as the other which does the
-      operations from right to left
-   *)
+      is two variants one which does the operations from left to right
+      where as the other which does the operations from right to
+      left *)
 
   Definition puts (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
   Definition puts_from_left (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
@@ -73,17 +94,12 @@ Section SliceOperations.
 
 End SliceOperations.
 
-
-(** ** Transactional slice.
-
-TODO. May be transaction is not a nice word. Other possible names,
-linear (more inspired from linear logic), commutative (operations
-happen in any order).
-
+(** ** Linear slice.
 
 This is an alternative to distinctness of variables as far as I see
 it.
+
 *)
 
-Definition transactional {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
+Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
     puts_from_left s mem start  = puts_from_right s mem start.

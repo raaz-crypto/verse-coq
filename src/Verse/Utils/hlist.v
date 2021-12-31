@@ -230,3 +230,24 @@ Arguments curry {sort A B ss}.
 Arguments uncurry {sort A B ss}.
 Arguments bind {sort A B ss s}.
 Arguments unbind {sort A B ss s}.
+
+
+(**  * Permuting hlists *)
+
+Module Perm.
+
+  Context [sort : Type]{L : list sort}.
+  Record t := Perm { app  :> forall s : sort, s ∈ L -> s ∈ L ;
+                     iapp : forall s : sort, s ∈ L -> s ∈ L ;
+                     app_iapp_id : forall s (pf : s ∈ L), app s (iapp s pf) = pf;
+                     iapp_app_id : forall s (pf : s ∈ L), iapp s (app s pf) = pf
+                   }.
+
+  Definition idPerm : t := Perm (fun _ pf => pf) (fun _ pf => pf) (fun _ _ => eq_refl) (fun _ _ => eq_refl).
+  Definition inv (g : t) := Perm (iapp g) (app g) (iapp_app_id g) (app_iapp_id g).
+
+  Notation "𝟙" := (idPerm).
+
+  Definition permute {A : sort -> Type}(hl : hlist A L)(g : t) : hlist A L := generate (fun s mem => functional hl s (app g s mem)).
+
+End Perm.
