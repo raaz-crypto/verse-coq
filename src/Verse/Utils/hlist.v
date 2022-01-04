@@ -71,6 +71,7 @@ Fixpoint foldl {sort T}{A : sort -> Type}
      end.
 
 
+
 Fixpoint foldr {sort T}{A : sort -> Type}
          (func : forall s, A s -> T -> T)(t0 : T){l}(hl : hlist A l) : T
   := match hl with
@@ -146,7 +147,31 @@ Section Indexing.
     | hnext idx' => fun x a => hd x :: update idx' (tl x) a
     end%hlist.
 
+  Fixpoint all_membership (l : list sort) : hlist (fun s => s ∈ l) l :=
+    match l with
+    | []%list => []%hlist
+    | (x :: xs)%list => let xsslice := all_membership xs in
+                      (hfirst :: hlist.map (fun tau (e : tau ∈ xs) => hnext e)  xsslice)
+    end.
+
+  Definition generate {l : list sort} (func : forall s, s ∈ l -> A s) : hlist A l :=
+    map func (all_membership l).
+
 End Indexing.
+
+Lemma index_map sort (A B  : sort -> Type) (func : forall s, A s -> B s)(l : list sort) s (pf : s ∈ l)  :
+  forall hl : hlist A l, index pf (map func hl) = func s (index pf hl).
+  intros.
+  induction pf; simpl; trivial.
+Qed.
+
+Lemma all_membership_all sort (l : list sort) : forall s (pf : s ∈ l), index pf (all_membership l) = pf.
+  intros.
+  induction pf; simpl; trivial.
+  rewrite index_map.
+  congruence.
+Qed.
+
 
 (** ** Currying and Uncurring *)
 
