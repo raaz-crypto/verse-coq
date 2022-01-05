@@ -159,6 +159,13 @@ Section Indexing.
 
 End Indexing.
 
+(** Functional form of hlist *)
+Definition functional {sort}{A : sort -> Type}{l : list sort} (hl : hlist A l)
+  : forall s, s ∈ l -> A s :=
+  fun _ mem => index mem hl.
+
+Notation "L [@ i ]" := (index i L)  (at level 1, format "L [@ i ]").
+
 Lemma index_map sort (A B  : sort -> Type) (func : forall s, A s -> B s)(l : list sort) s (pf : s ∈ l)  :
   forall hl : hlist A l, index pf (map func hl) = func s (index pf hl).
   intros.
