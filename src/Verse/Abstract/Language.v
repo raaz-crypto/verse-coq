@@ -76,3 +76,37 @@ Module Type LanguageTranslate.
   Declare Instance code_translation {v : dtype -> Type} : Translate.class (Code.t (Translate.tr v)) (Code.t v).
 
 End LanguageTranslate.
+
+Require Import Verse.Utils.hlist.
+
+(** * Code with inlined functions
+
+Although we are interested in straight line programs, breaking up such
+programs into function calls that are eventually inlined is useful to
+simplfy proofs. The types below captures the functional variant of the
+call.
+
+*)
+
+Module FunCode.
+
+  Inductive t {type : Type}(code : (type -> Type) -> Type)(v : type -> Type) : Type :=
+  | callFunc : forall lts : list type, (forall w, hlist w lts -> code w)
+                                  -> hlist v lts -> t code v.
+
+  Arguments callFunc [type code v lts].
+
+  Definition inline {type}{v : type -> Type}{code : (type -> Type) -> Type}(p : t code v) : code v :=
+    match p with
+    | callFunc func args => func v args
+    end.
+
+  Definition inlineS {type}`{Code.class type}{v : type -> Type}(prog : list (t Code.t v)) : Code.t v :=
+    sequence (List.map inline prog).
+
+
+  Definition call {type}{lts : list type}{code : (type -> Type) ->  Type}
+             (func : forall w, curried w (code w) lts) {v} : hlist v lts -> t code v :=
+    callFunc (fun w => uncurry (func w)).
+
+End FunCode.
