@@ -12,8 +12,7 @@ Set Universe Polymorphism.
 To given semantics to straight line program, we define an abstract
 (typed) machine inside Coq with programs being "compiled into" this
 machine. These are finite memory machines where the entire memory is
-divided into finitely many cells. Each cell is associated where type
-[τ : Type].
+divided into finitely many cells.
 
 We have a machine for each element in the type [family] which is
 nothing but a list of types that the cells of the machine have. The
@@ -22,77 +21,65 @@ and the indices into this hlist, serves as memory cells.
 
  *)
 
-Definition family := list Type.
-Definition memory (fam : family) := hlist (fun tau => tau) fam.
-Definition cell   (fam : family)(tau : Type) :=  tau ∈ fam.
+Section Machine.
+
+  Context {type : Type} (** The types of the machine *)
+          (A : type -> Type).
+
+  (** We have a family of machines one for each possible list of types. The list of
+      types give the types of the memory cells of the machine (in that order)
+   *)
+  Definition family := list type.
+
+  (** The memory of the machine is just the appropriate hlist *)
+  Definition memory  (fam : family) := hlist A fam.
+  Definition address (fam : family)(tau : type) :=  tau ∈ fam.
 
 
-(** Two very basic operations on the memory is the get and put functions which we define now *)
-
-Section BasicOperations.
-  Context {fam : family}{tau : Type}.
-  Definition get : cell fam tau -> memory fam -> tau
+  Definition get {fam : family}{tau : type} : address fam tau -> memory fam -> A tau
     := index.
-  Definition put (c : cell fam tau) (x : tau) (mem : memory fam) : memory fam
-    := update c mem x.
-End BasicOperations.
+  Definition put {fam : family}{tau : type} (addrs : address fam tau) (x : A tau) (mem : memory fam) : memory fam
+    := update addrs mem x.
+
+  (** ** Memory slices
+
+   We would want to generalize the get and put operations and in this
+   generalized setting we deal with memory slices. A slice is just an
+   ordered collection of cells of the original memory.
+
+   *)
+
+  Definition slice (fam : family) := hlist (address fam).
 
 
-(** ** Memory slices
+  (** We now define get and put like operation on memory slices *)
+  Section SliceOperations.
+    Context {fam fam' : family}.
 
-We would want to generalize the get and put operations and in this
-generalized setting we deal with memory slices. A slice is just an
-ordered collection of cells of the original memory.
+    (** Getting a slice gives the memory of appropriate type *)
+    Definition gets (s : slice fam fam') (mem : memory fam) : memory fam'
+      := hlist.map (fun tau c => get (tau:=tau) c mem) s.
 
-*)
+    (* begin hide *)
+    Definition puts_hlist (s : slice fam fam') (mem : memory fam')
+      := hlist.zipWith (fun _ c v => put c v) s mem.
+    (* end hide *)
 
-Definition slice (fam : family) := hlist (cell fam).
+    (** The puts operation gives a list of possible updates to the
+        memory location. The overall effect on the memory depends on the
+        order that these operations are executed. Of particular interest
+        is two variants one which does the operations from left to right
+        where as the other which does the operations from right to
+        left *)
 
-(*
+    Definition puts (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
+    Definition puts_from_left (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
+      := hlist.foldl (fun _ (m : memory fam)  (tr : memory fam -> memory fam) => tr m) start (puts_hlist s mem).
 
-This is another way look at slices, it is a memory that contains
-pointers to the other memory. Making it work requires universe
-polymorphism definition in hlist and in this file.
+    Definition puts_from_right (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
+      := hlist.foldr (fun _  (tr : memory fam -> memory fam) (m : memory fam)  => tr m) start (puts_hlist s mem).
 
- *)
-Definition pointers (fam : family) := fun fam' => memory (List.map (fun tau => cell fam tau) fam').
-
-
-Fixpoint full_slice (fam : family) : slice fam fam :=
-  match fam with
-  | []%list => []%hlist
-  | (x :: xs)%list => let xsslice := full_slice xs in
-                    (hfirst :: hlist.map (fun tau (e : tau ∈ xs) => hnext e)  xsslice)%hlist
-  end.
-
-
-(** We now define get and put like operation on memory slices *)
-Section SliceOperations.
-  Context {fam fam' : family}.
-
-  (** Getting a slice gives the memory of appropriate type *)
-  Definition gets (s : slice fam fam') (mem : memory fam) : memory fam'
-    := hlist.map (fun tau c => get (tau:=tau) c mem) s.
-
-  (* begin hide *)
-  Definition puts_hlist (s : slice fam fam') (mem : memory fam') := hlist.zipWith (fun _ c v => put c v) s mem.
-  (* end hide *)
-
-  (** The puts operation gives a list of possible updates to the
-      memory location. The overall effect on the memory depends on the
-      order that these operations are executed. Of particular interest
-      is two variants one which does the operations from left to right
-      where as the other which does the operations from right to
-      left *)
-
-  Definition puts (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
-  Definition puts_from_left (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
-    := hlist.foldl (fun _ (m : memory fam)  (tr : memory fam -> memory fam) => tr m) start (puts_hlist s mem).
-
-  Definition puts_from_right (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
-    := hlist.foldr (fun _  (tr : memory fam -> memory fam) (m : memory fam)  => tr m) start (puts_hlist s mem).
-
-End SliceOperations.
+  End SliceOperations.
 
 (** ** Linear slice.
 
@@ -101,5 +88,7 @@ it.
 
 *)
 
-Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
-    puts_from_left s mem start  = puts_from_right s mem start.
+  Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
+      puts_from_left s mem start  = puts_from_right s mem start.
+
+End Machine.
