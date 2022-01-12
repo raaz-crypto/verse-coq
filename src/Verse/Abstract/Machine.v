@@ -81,14 +81,51 @@ Section Machine.
 
   End SliceOperations.
 
-(** ** Linear slice.
+  (** ** Linear slice.
 
-This is an alternative to distinctness of variables as far as I see
-it.
+   This is an alternative to distinctness of variables as far as I see
+   it.
 
-*)
+   *)
 
   Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
       puts_from_left s mem start  = puts_from_right s mem start.
+
+  (** NOTE: I now have second thoughts about the above definition of
+      linearity. Maybe something based on distinctness is probably
+      what is more relevant.
+   *)
+
+
+  (** TODO: needs some cleanup *)
+
+  Record procedure (global : family) :=
+    {
+    inp : family;
+    inpSlice : slice global inp;
+    out : family;
+    outSlice : slice global out;  (* this needs to be linear for things to fit in *)
+
+    requirement : memory inp -> Prop;
+    (* The procedure can be called only if the input satisfies this property *)
+    transform    : memory inp -> memory out;
+
+    guarantee : memory out -> Prop;
+
+    verification_condition : forall i : memory inp, requirement i -> guarantee (transform i) }.
+
+  Definition program (fam : family) :=  list (procedure fam).
+  Print True.
+  Definition apply {fam}(proc : memory fam -> memory fam) : procedure fam :=
+    {|
+    inp      := fam;
+    inpSlice := all_membership fam;
+    out      := fam;
+    outSlice := all_membership fam;
+    requirement := (fun _ => True);
+    transform := proc;
+    guarantee := (fun _ => True);
+    verification_condition := fun _ _ => I
+    |}.
 
 End Machine.
