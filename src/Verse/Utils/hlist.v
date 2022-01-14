@@ -251,3 +251,28 @@ Module Perm.
   Definition permute {A : sort -> Type}(hl : hlist A L)(g : t) : hlist A L := generate (fun s mem => functional hl s (app g s mem)).
 
 End Perm.
+
+
+(**  * Equality of membership types
+
+
+ *)
+
+Section EqBool.
+  Context {sort  : Type}.
+
+
+  Fixpoint equivb {s1 s2 : sort}{L1 L2 : list sort}(i1 : s1 ∈ L1)(i2 : s2 ∈ L2) : bool :=
+    match i1, i2 with
+    | hfirst, hfirst => true
+    | hnext i1p, hnext i2p => equivb i1p i2p
+    | _, _ => false
+    end.
+
+  Lemma equivb_eq s L (pf1 pf2 : s ∈ L) : equivb pf1 pf2 = true -> pf1 = pf2.
+    induction L.
+    inversion pf1.
+    destruct pf1.
+    (* TODO: See if this is possible to prove *)
+  Abort.
+End EqBool.
