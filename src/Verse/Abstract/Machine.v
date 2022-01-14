@@ -4,6 +4,7 @@ Require Import Verse.Utils.hlist.
 Require List.
 Import List.ListNotations.
 
+Declare Custom Entry machine.
 (* end hide *)
 
 Set Universe Polymorphism.
@@ -72,8 +73,8 @@ Section Machine.
         where as the other which does the operations from right to
         left *)
 
-    Definition puts (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
-    Definition puts_from_left (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
+    Definition puts_list (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
+    Definition puts (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
       := hlist.foldl (fun _ (m : memory fam)  (tr : memory fam -> memory fam) => tr m) start (puts_hlist s mem).
 
     Definition puts_from_right (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
@@ -89,43 +90,40 @@ Section Machine.
    *)
 
   Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
-      puts_from_left s mem start  = puts_from_right s mem start.
+      gets s (puts s mem start)  = mem.
 
-  (** NOTE: I now have second thoughts about the above definition of
-      linearity. Maybe something based on distinctness is probably
-      what is more relevant.
-   *)
+  Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
+  Definition updateWith {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
+    : memory fam -> memory fam :=
+    fun mem => put adr (uncurry f (gets args mem)) mem.
 
-
-  (** TODO: needs some cleanup *)
-
-  Record procedure (global : family) :=
-    {
-    inp : family;
-    inpSlice : slice global inp;
-    out : family;
-    outSlice : slice global out;  (* this needs to be linear for things to fit in *)
-
-    requirement : memory inp -> Prop;
-    (* The procedure can be called only if the input satisfies this property *)
-    transform    : memory inp -> memory out;
-
-    guarantee : memory out -> Prop;
-
-    verification_condition : forall i : memory inp, requirement i -> guarantee (transform i) }.
-
-  Definition program (fam : family) :=  list (procedure fam).
-  Print True.
-  Definition apply {fam}(proc : memory fam -> memory fam) : procedure fam :=
-    {|
-    inp      := fam;
-    inpSlice := all_membership fam;
-    out      := fam;
-    outSlice := all_membership fam;
-    requirement := (fun _ => True);
-    transform := proc;
-    guarantee := (fun _ => True);
-    verification_condition := fun _ _ => I
-    |}.
 
 End Machine.
+
+
+Notation "[machine| e |]" := e (e custom machine).
+Notation "x" := x     (in custom machine at level 0, x global).
+Notation "( x )" := x  (in custom machine at level 0).
+Notation "` x `" := x  (in custom machine at level 0, x constr).
+Notation "idx := v " := (fun mem => put idx v) (in custom machine at level 61).
+Notation "idx := F ( A , .. , B )" := (updateWith _ idx F (hcons A .. (hcons B hnil) ..)) (in custom machine at level 61).
+Notation "[mcode| X ; .. ; Y |]" := (cons X .. (cons Y nil) ..) (X custom machine, Y custom machine).
+
+
+Module Examples.
+
+Definition mymem := hlist (fun x => x) [nat ; nat ; bool ].
+
+Definition myfunction l := function (fun x => x) l.
+Definition succ : myfunction [nat]%list nat := S.
+Definition negate : myfunction [bool]%list bool := negb.
+Definition x  : nat ∈ [nat ; nat ; bool] := hfirst.
+Definition y  : nat ∈ [nat ; nat ; bool] := hnext hfirst.
+Definition z  : bool ∈ [nat ; nat ; bool] := hnext (hnext hfirst).
+Definition equals : myfunction [nat ; nat]%list bool := Nat.eqb.
+Definition upD : list (mymem -> mymem) := [mcode|
+                                          `x` := `succ` ( `x` ) ;
+                                          `z` := `equals` ( `x` , `y` )
+                                         |].
+
+End Examples.
