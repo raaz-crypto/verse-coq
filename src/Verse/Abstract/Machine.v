@@ -98,6 +98,19 @@ Section Machine.
     fun mem => put adr (uncurry f (gets args mem)) mem.
 
 
+  Record subroutine (inp out : family) :=
+    { requirement : memory inp -> Prop;
+      transform   : memory inp -> memory out;
+      guarantee   : memory inp -> memory out -> Prop;
+    }.
+
+  Arguments requirement {inp out}.
+  Arguments transform   {inp out}.
+  Arguments guarantee   {inp out}.
+
+  Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
+  Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
+
 End Machine.
 
 
