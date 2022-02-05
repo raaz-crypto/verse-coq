@@ -111,6 +111,26 @@ Section Machine.
   Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
+  Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
+    : subroutine fam fam :=
+    {| requirement := fun v => requirement sr (gets inslice v);
+       transform   := fun v => puts outslice (transform sr (gets inslice v)) v ;
+       guarantee   := fun start stop => guarantee sr (gets inslice start) (gets outslice stop)
+    (* Additional requirement needed here to say that other variables do not change *)
+    |}.
+
+  Program Definition vlift {fam inp out : family} (vsr : vsubroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
+             (linprf : linear outslice)
+    : vsubroutine fam fam :=
+    let (sr, vcprf) := vsr in exist VC (lift sr inslice outslice) _.
+
+  Next Obligation.
+    unfold VC; simpl.
+    intro gmemstart.
+    rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
+    apply vcprf.
+  Qed.
+
 End Machine.
 
 
