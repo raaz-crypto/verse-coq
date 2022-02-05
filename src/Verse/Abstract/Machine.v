@@ -155,8 +155,7 @@ Definition y  : nat ∈ [nat ; nat ; bool] := hnext hfirst.
 Definition z  : bool ∈ [nat ; nat ; bool] := hnext (hnext hfirst).
 Definition equals : myfunction [nat ; nat]%list bool := Nat.eqb.
 Definition upD : list (mymem -> mymem) := [mcode|
-                                          `x` := `succ` ( `x` ) ;
-                                          `z` := `equals` ( `x` , `y` )
+                                          x := succ ( x ) ;
+                                          z := equals ( x , y )
                                          |].
-
 End Examples.
