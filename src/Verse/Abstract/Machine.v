@@ -92,12 +92,6 @@ Section Machine.
   Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
       gets s (puts s mem start)  = mem.
 
-  Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
-  Definition updateWith {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
-    : memory fam -> memory fam :=
-    fun mem => put adr (uncurry f (gets args mem)) mem.
-
-
   Record subroutine (inp out : family) :=
     { requirement : memory inp -> Prop;
       transform   : memory inp -> memory out;
@@ -110,6 +104,12 @@ Section Machine.
 
   Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
+
+  Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
+  Definition updateWith {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
+    : memory fam -> memory fam :=
+    fun mem => put adr (uncurry f (gets args mem)) mem.
+
 
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
     : subroutine fam fam :=
