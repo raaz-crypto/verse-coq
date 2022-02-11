@@ -12,7 +12,7 @@ Section EndianConversion.
   Variable src     : variable (array 10 bigE Word16).
   Variable dest    : variable (array 10 littleE Word16).
   Definition copy i (_ : i < 10) : code variable.
-    verse [code| dest[ i ] := src [ `i` ]  |].
+    verse [code| dest[ i ] := src [ i ]  |].
   Defined.
   Definition conv := do iterate copy end.
 End EndianConversion.
