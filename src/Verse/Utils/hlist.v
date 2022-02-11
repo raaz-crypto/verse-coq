@@ -231,6 +231,17 @@ Arguments uncurry {sort A B ss}.
 Arguments bind {sort A B ss s}.
 Arguments unbind {sort A B ss s}.
 
+Fixpoint ForAll {sort:Type}{A : sort -> Type}{ss : list sort} : curried A Prop ss -> Prop
+  := match ss as ss0 return curried A Prop ss0 -> Prop with
+     | [] => fun x => x
+     | (s0 :: ss0) => fun curP => forall x : A s0, ForAll (curP x)
+     end.
+
+Fixpoint Exists {sort}{A : sort -> Type}{ss : list sort} : curried A Prop ss -> Prop :=
+  match ss as ss0 return curried A Prop ss0 -> Prop with
+  | [] => fun x   => x
+  | (s0 :: ss0) => fun curP => exists x : A s0, Exists (curP x)
+  end.
 
 (**  * Permuting hlists *)
 
