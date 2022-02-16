@@ -105,12 +105,6 @@ Section Machine.
   Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
-  Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
-  Definition updateWith {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
-    : memory fam -> memory fam :=
-    fun mem => put adr (uncurry f (gets args mem)) mem.
-
-
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
     : subroutine fam fam :=
     {| requirement := fun v => requirement sr (gets inslice v);
@@ -131,7 +125,35 @@ Section Machine.
     apply vcprf.
   Qed.
 
+
+  Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
+  Definition updateTransform {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
+    : memory fam -> memory fam :=
+    fun mem => put adr (uncurry f (gets args mem)) mem.
+
+  Check subroutine.
+  Print family.
+  Check get.
+  Definition updateSub {tau :type}{inp : family}(f : function inp tau)
+    : subroutine inp [tau]%list
+           := {| requirement := fun _ => True;
+                 transform   := fun v => [hlist.uncurry f v]%hlist;
+                 guarantee    := fun old new => get hfirst new = hlist.uncurry f old
+              |}.
+
+
+  Program Definition vupdate {tau : type}{inp : family}(f : function inp tau) :=
+    exist VC (updateSub f) _ .
+
+  Next Obligation.
+    unfold updateSub.
+    unfold VC.
+    simpl. trivial.
+  Qed.
+
+
 End Machine.
+
 
 
 Notation "[machine| e |]" := e (e custom machine).
@@ -139,7 +161,7 @@ Notation "x" := x     (in custom machine at level 0, x global).
 Notation "( x )" := x  (in custom machine at level 0).
 Notation "` x `" := x  (in custom machine at level 0, x constr).
 Notation "idx := v " := (fun mem => put idx v) (in custom machine at level 61).
-Notation "idx := F ( A , .. , B )" := (updateWith _ idx F (hcons A .. (hcons B hnil) ..)) (in custom machine at level 61).
+Notation "idx := F ( A , .. , B )" := (updateTransform _ idx F (hcons A .. (hcons B hnil) ..)) (in custom machine at level 61).
 Notation "[mcode| X ; .. ; Y |]" := (cons X .. (cons Y nil) ..) (X custom machine, Y custom machine).
 
 
