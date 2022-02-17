@@ -6,6 +6,7 @@ A list that has elements of different sorts.
 
 (* begin hide *)
 Require Import List.
+Require Import Program.Equality.
 Import List.ListNotations.
 Set Universe Polymorphism.
 (* end hide *)
@@ -96,6 +97,45 @@ Program Fixpoint app {sort}{A : sort -> Type}{l lp : list sort}
   | hnil =>  fun h => h
   | hcons x hs => fun h => hcons x (app hs h)
   end.
+
+(* ** Hetrogeneous boolean equality on membership types *)
+Section EqBool.
+  Context {sort  : Type}.
+
+  (* Hetrogeneous eqb *)
+  Fixpoint heqb {s1 s2 : sort}{L1 L2 : list sort}(i1 : s1 ∈ L1)(i2 : s2 ∈ L2) : bool :=
+    match i1, i2 with
+    | hfirst, hfirst => true
+    | hnext i1p, hnext i2p => heqb i1p i2p
+    | _, _ => false
+    end.
+
+  Lemma heqb_sort {s1 s2 : sort}(L : list sort) :
+    forall (i1 : s1 ∈ L)(i2 : s2 ∈ L), heqb i1 i2 = true -> s1 = s2.
+    intros i1 i2.
+    induction L; dependent destruction i1;
+      dependent destruction i2; repeat (intuition; eauto).
+  Qed.
+
+  Lemma hneqb_type {s1 s2 : sort}(sNeq : s1 <> s2)(L : list sort) :
+    forall (i1 : s1 ∈ L)(i2 : s2 ∈ L), heqb i1 i2 = false.
+    intros i1 i2.
+    induction L; dependent destruction i1;
+      dependent destruction i2; simpl; intuition; eauto.
+  Qed.
+
+  Lemma eq_heqb s L (pf1 pf2 : s ∈ L) : pf1 = pf2 -> heqb pf1 pf2 = true.
+    intro HeqPf. rewrite HeqPf.
+    induction pf2; simpl; eauto.
+  Qed.
+
+  Lemma heqb_eq s L (pf1 pf2 : s ∈ L) : heqb pf1 pf2 = true -> pf1 = pf2.
+    induction L;
+    dependent destruction pf1;
+    dependent destruction pf2; simpl; intuition;
+    f_equal; eauto.
+  Qed.
+End EqBool.
 
 Section ELift.
 
@@ -262,28 +302,3 @@ Module Perm.
   Definition permute {A : sort -> Type}(hl : hlist A L)(g : t) : hlist A L := generate (fun s mem => functional hl s (app g s mem)).
 
 End Perm.
-
-
-(**  * Equality of membership types
-
-
- *)
-
-Section EqBool.
-  Context {sort  : Type}.
-
-
-  Fixpoint equivb {s1 s2 : sort}{L1 L2 : list sort}(i1 : s1 ∈ L1)(i2 : s2 ∈ L2) : bool :=
-    match i1, i2 with
-    | hfirst, hfirst => true
-    | hnext i1p, hnext i2p => equivb i1p i2p
-    | _, _ => false
-    end.
-
-  Lemma equivb_eq s L (pf1 pf2 : s ∈ L) : equivb pf1 pf2 = true -> pf1 = pf2.
-    induction L.
-    inversion pf1.
-    destruct pf1.
-    (* TODO: See if this is possible to prove *)
-  Abort.
-End EqBool.
