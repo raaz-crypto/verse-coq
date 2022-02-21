@@ -131,9 +131,6 @@ Section Machine.
     : memory fam -> memory fam :=
     fun mem => put adr (uncurry f (gets args mem)) mem.
 
-  Check subroutine.
-  Print family.
-  Check get.
   Definition updateSub {tau :type}{inp : family}(f : function inp tau)
     : subroutine inp [tau]%list
            := {| requirement := fun _ => True;
