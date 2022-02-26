@@ -12,6 +12,7 @@ Require Import Verse.AbstractMachine.
 Require Import Verse.BitVector.
 Require Import Verse.ScopeStore.
 
+
 Definition wordOfSize : nat -> Type := Types.BWord.
 Definition const : forall sz : nat, constOf verse_type_system (word sz) -> wordOfSize sz
   := fun sz x => x.
@@ -49,29 +50,29 @@ Require Import Verse.BitVector.ArithRing.
 
 Module HProdn.
 
-  Fixpoint t [T n] (u : T -> Type)
-  : Vector.t T n -> Type
+  Fixpoint t [n]
+  : Vector.t Type n -> Type
     := match n as n0 return Vector.t _ n0 -> Type with
        | 0   => fun _  => unit
-       | S m => fun v0 => (u (Vector.hd v0) * t u (Vector.tl v0))%type
+       | S m => fun v0 => ((Vector.hd v0) * t (Vector.tl v0))%type
        end.
 
 End HProdn.
 
-Fixpoint hlamn ts v n (sc : Scope.type ts n)
-  : (HProdn.t v sc -> Type) -> Type
+Fixpoint hlamn n (sc : Vector.t Type n)
+  : (HProdn.t sc -> Type) -> Type
   := match n as n0
            return
-           forall sc0 : Scope.type _ n0,
-             (HProdn.t v sc0 -> Type) -> Type with
+           forall sc0 : Vector.t _ n0,
+             (HProdn.t sc0 -> Type) -> Type with
      | 0   => fun _ f => forall t, f t
-     | S n => fun _ f => forall t, hlamn _ _ n _ (fun x => f (t, x))
+     | S n => fun _ f => forall t, hlamn n _ (fun x => f (t, x))
      end sc.
 
-Lemma forallhprod ts v n sc f
-  : hlamn ts v n sc f
+Lemma forallhprod n sc f
+  : hlamn n sc f
     ->
-    forall x : HProdn.t v sc, f x.
+    forall x : HProdn.t sc, f x.
   induction n.
   easy.
   intros.
@@ -82,8 +83,8 @@ Qed.
 
 Ltac prodSc x :=
   match x with
-  | (_ ?ty * ?tl)%type => let tt := prodSc tl in constr:(Vector.cons _ ty _ tt)
-  | Datatypes.unit     => constr:(Vector.nil {k & type k})
+  | (?ty * ?tl)%type => let tt := prodSc tl in constr:(Vector.cons _ ty _ tt)
+  | Datatypes.unit   => constr:(Vector.nil Type)
   end.
 
 (* Doesn't seem to be needed *)
@@ -107,8 +108,6 @@ Ltac breakStore :=
         Maybe find a more robust solution instead
       *)
      refine (forallhprod _
-                         _
-                         _
                          sc
                          _
                          _

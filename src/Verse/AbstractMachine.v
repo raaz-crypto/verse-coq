@@ -7,31 +7,11 @@ Require Import Verse.Language.Types.
 Require Import Verse.Monoid.Semantics.
 
 Require Import PeanoNat.
+
 Require Import EqdepFacts.
 Import EqNotations.
 
 (* end hide *)
-
-
-Section EqDep2.
-  (* TODO change names to show the use-case (kind type var *)
-  Variable U : Type.
-  Variable P : U -> Type.
-  Variable Q : forall u, P u -> Type.
-
-  Definition eq_dep2 (p:U) (x:P p) (a:Q _ x)
-            (q:U) (y:P q) (b : Q _ y)
-    : Prop.
-  refine (forall (e:q = p) (f:rew e in y = x),
-             a = _).
-  subst q.
-  simpl in f.
-  subst y.
-  exact b.
-  Defined.
-End EqDep2.
-
-Arguments eq_dep2 [U P Q p x] _ [q y].
 
 (** * Semantics.
 
@@ -61,24 +41,25 @@ Section Evaluation.
   Context {ts : typeSystem}
           (tyD : typeDenote ts).
 
+  Definition evalLexp {T} (l : lexpr (Variables.sigParam tyD) T) : tyD _ (projT2 T)
+    := match l in (lexpr _ s) return (tyD (projT1 s) (projT2 s)) with
+       | var x => x
+       | @deref _ _ ty b e v idx =>
+           Vector.nth_order
+             (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
+                  arrayCompatibility tyD b e ty
+               in v)
+             (proj2_sig idx)
+       end.
 
-  Definition evalLexp {T} (l : lexpr tyD T) : tyD direct T
-      := match l with
-         | Ast.var x      => x
-         | Ast.deref v idx  => Vector.nth_order
-                                 (rew [id] arrayCompatibility tyD _ _ _ in v)
-                                 (proj2_sig idx)
-         end.
-
-    Fixpoint eval {T} (e : expr tyD T) :  tyD direct T
-      := match e with
-         | Ast.cval c => constTrans tyD c
-         | Ast.valueOf lv => evalLexp lv
-         | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
-         | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
-         end.
+  Fixpoint eval {T} (e : expr (Variables.sigParam tyD) T) :  tyD _ (projT2 T)
+    := match e with
+       | Ast.cval c => constTrans tyD c
+       | Ast.valueOf lv => evalLexp lv
+       | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
+       | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
+       end.
 End Evaluation.
-
 
 Section Store.
 
@@ -93,6 +74,7 @@ transformation machine, parametrized on a variable type.
   Variable tyD : typeDenote ts.
 
   Local Definition type := typeOf ts.
+  Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
   Definition Pair A : Type := A * A.
   Class StoreP str := { oldAndNew : Pair str }.
@@ -102,19 +84,19 @@ transformation machine, parametrized on a variable type.
   Class State :=
     {
       str : Type;
-      val  : str -> Variables.renaming v tyD;
+      val  : str -> Variables.renaming v (Variables.sigParam tyD);
 
       storeUpdate
-      : forall {k} {ty : type k} (var : v _ ty)
-               (f : tyD k ty -> tyD k ty),
+      : forall {ty : some type} (var : v ty)
+               (f : tyd ty -> tyd ty),
           str -> str;
 
       evalUpdate
-      : forall (s : str) k (ty : type k) (var : v _ ty) f,
-          forall k' (ty' : type k') (v' : v _ ty'),
-            ( ~ eq_dep2 var v'-> val (storeUpdate var f s) _ _ v' = val s _ _ v')
+      : forall (s : str) (ty : some type) (var : v ty) f,
+          forall (ty' : some type) (v' : v ty'),
+            ( ~ eq_dep _ _ _ var _ v'-> val (storeUpdate var f s) _ v' = val s _ v')
             /\
-            val (storeUpdate var f s) _ _ var = f (val s _ _ var)
+            val (storeUpdate var f s) _ var = f (val s _ var)
 
     }.
 
@@ -132,8 +114,8 @@ End Store.
 
 Arguments State [ts].
 Arguments str {ts v tyD State}.
-Arguments val [ts v tyD] {State} Str [k ty].
-Arguments storeUpdate [ts v tyD] {State} [k ty].
+Arguments val [ts v tyD] {State} _ [ty].
+Arguments storeUpdate [ts v tyD] {State} [ty].
 Arguments instruction [ts v tyD].
 Arguments assertion [ts v tyD].
 
@@ -151,39 +133,45 @@ Module Internals.
     Definition expr  T := Ast.expr  v T.
     Definition lexpr T := Ast.lexpr v T.
 
-    Definition evalE {T} (st : str) (e : expr T) :  tyD direct T
+    Definition evalE {T} (st : str) (e : expr T) :  tyD _ (projT2 T)
       := eval tyD (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : str)
-      : str
-      := match l in Ast.lexpr _ T0 return  tyD direct T0 -> str with
-         | Ast.var reg  => fun v => storeUpdate reg (fun _ => v) st
-         | Ast.deref a idx => fun v => let arr := val st a in
-                                       let arrp := Vector.replace_order
-                                                     (rew [id] arrayCompatibility tyD _ _ _ in arr)
-                                                     (proj2_sig idx) v in
-                                       storeUpdate a (fun _ =>
-                                                        (rew <- [id] arrayCompatibility tyD _ _ _ in arrp)
-                                                     ) st
-         end (evalE st e).
+      : str :=
+      match l in Ast.lexpr _ T0 return  tyD _ (projT2 T0) -> str with
+      | Ast.var reg  => fun v => storeUpdate reg (fun _ => v) st
+      | Ast.deref a idx => fun v => let arr := val st a in
+                                let arrp := Vector.replace_order
+                                              (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
+                                                   arrayCompatibility tyD _ _ _
+                                                in arr)
+                                              (proj2_sig idx) v
+                                in
+                                storeUpdate a (fun _ =>
+                                                 (rew <- [id] arrayCompatibility tyD _ _ _ in arrp)
+                                              ) st
+      end (evalE st e).
 
     Definition binopUpdate {T}
-               (l : lexpr T)
+               (l : lexpr (existT _ _ T))
                (o : operator ts T 2)
-               (e : expr T)
+               (e : expr (existT _ _ T))
       : str -> str
       := let rhs := Ast.binOp o (Ast.valueOf l) e in
          assign l rhs.
 
     Definition uniopUpdate {T}
-               (l : lexpr T)
+               (l : lexpr (existT _ _ T))
                (o : operator ts T 1)
       : str -> str
       := let rhs := Ast.uniOp o (Ast.valueOf l) in
          assign l rhs.
 
-    Definition move {T}(l : lexpr T)(r : v direct T) :=
-      assign l (Ast.valueOf (Ast.var r)).
+    Program Definition move {T}(l : lexpr T)(r : v T) :=
+      match l in Ast.lexpr _ T0 return v T0 -> _ with
+      | var _ as l1     => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
+      | deref _ _ as l1 => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
+      end r.
 
     Definition denoteInst {T}(inst : Ast.instruction v  T) : instruction state
       := match inst with
@@ -210,6 +198,12 @@ Section Machine.
   Variable ts : typeSystem.
   Variable v  : Variables.U ts.
 
+  Definition store_machine
+    : mSpecs ts ts
+    := {| mvariables   := v;
+          mtypeCompiler := injector ts;
+       |}.
+
   Variable tyD   : typeDenote ts.
 
   Definition mline :=
@@ -218,13 +212,6 @@ Section Machine.
   Definition justInst
     : (forall state, instruction state) -> mline
     := fun i => fun st => (i st, fun _ => True).
-
-  Definition store_machine
-    : mSpecs ts ts
-    := {|
-        mvariables   := v;
-        mtypeCompiler := injector ts;
-      |}.
 
   Instance store_interface
     : Interface (ltypes := ts) v store_machine
@@ -269,10 +256,10 @@ Definition IntAnnotatedCode (cv : Variables.U verse_type_system) tyD
 
 (* Notations for annotations *)
 
-Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ _ v) (at level 50).
+Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ v) (at level 50).
 (* TODO - VAL level has to be changed to be stronger than that of '='
           and of b itvector arithmetic notations *)
-Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ _ v) (at level 50).
+Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ v) (at level 50).
 
 Tactic Notation "annotated_verse" uconstr(B)
   := refine ((*fun _ =>*) B : lines _ (fun v => mline (v := v))); repeat verse_simplify; verse_print_mesg.
