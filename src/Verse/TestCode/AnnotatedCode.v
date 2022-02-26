@@ -17,8 +17,8 @@ Set Implicit Arguments.
 
   Variable v : VariableT.
 
-  Variable A B : v Word8.
-  Variable C   : v Word16.
+  Variable A B : v (existT _ _ Word8).
+  Variable C   : v (existT _ _ Word16).
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (

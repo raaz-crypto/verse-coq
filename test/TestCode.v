@@ -9,22 +9,21 @@ Section TestFunction.
 
   Variable variable : VariableT.
 
-  Arguments variable [k] _.
   (* The parameters of the function *)
-  Variable arr     : variable (array 5 bigE Word16).
-  Variable A B     : variable Byte.
+  Variable arr     : variable (existT _ _ (array 5 bigE Word16)).
+  Variable A B     : variable (existT _ _ Byte).
 
 
   (* Definition parameters := [Var arr; Var A; Var B]. *)
 
   (* The local variables *)
-  Variable num      : variable Word16.
+  Variable num      : variable (existT _ _ Word16).
 
   (*
   Definition locals := [Var num]. *)
 
   (* The temp register *)
-  Variable tmp       : variable Word16.
+  Variable tmp       : variable (existT _ _ Word16).
 
   (* Definition registers := [Var tmp]. *)
 

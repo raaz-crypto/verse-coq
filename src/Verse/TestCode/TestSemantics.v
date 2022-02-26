@@ -16,7 +16,7 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v Word8.
+  Variable A B : v (existT _ _ Word8).
 
   Definition test : IntAnnotatedCode v bvDenote.
     annotated_verse
