@@ -31,40 +31,39 @@ Section Annotated.
   Section ParamV.
 
     Variable v : Variables.U verse_type_system.
-    Arguments v [k].
 
     Inductive doubled : Variables.U verse_type_system :=
-    | CUR k ty :> v ty -> doubled k ty
-    | OLD k ty : v ty -> doubled k ty
+    | CUR ty :> v ty -> doubled ty
+    | OLD ty : v ty -> doubled ty
     .
 
-    Arguments CUR [k ty].
-    Arguments OLD [k ty].
+    Arguments CUR [ty].
+    Arguments OLD [ty].
 
-    Global Instance v_to_expdv ty : EXPR doubled ty (v ty)
+    Global Instance v_to_expdv ty : EXPR doubled ty (v (existT _ _ ty))
       := fun t => valueOf (var (CUR t)).
 
     Definition expr  T := Ast.expr  doubled T.
     Definition lexpr T := Ast.lexpr doubled T.
 
     Definition leval {T} (l : lexpr T) `{State _ v tyD} {st : StoreP str}
-      : typeTrans tyD T
-      := let val2 {k} {ty} (x : doubled k ty) := match x with
-                                            | CUR x => VAL x
-                                            | OLD x => OLDVAL x
-                                            end
+      : typeTrans tyD (projT2 T)
+      := let val2 {ty} (x : doubled ty) := match x with
+                                           | CUR x => VAL x
+                                           | OLD x => OLDVAL x
+                                           end
          in
          match l with
          | Ast.var reg     => val2 reg
          | Ast.deref v idx => Vector.nth_order
-                                (rew [id] arrayCompatibility tyD _ _ _
-                                  in
-                                    val2 v)
-                                (proj2_sig idx)
+                               (rew [fun T0 : Type@{abstract_type_system.u0} => T0] arrayCompatibility tyD _ _ _
+                                 in
+                                 val2 v)
+                               (proj2_sig idx)
          end.
 
     Fixpoint evalE {T} `{State _ v tyD} {st : StoreP str} (e : expr T)
-      :  typeTrans tyD T
+      :  typeTrans tyD (projT2 T)
       := match e with
          | Ast.cval c => constTrans tyD c
          | Ast.valueOf lv => leval lv
@@ -76,7 +75,7 @@ Section Annotated.
     Inductive VProp : Type :=
     | nil : VProp
     | eq  : forall ty, expr ty -> expr ty -> VProp
-    | rel : forall ty rel, Rels ty rel -> expr ty -> expr ty -> VProp
+    | rel : forall ty rel, Rels ty rel -> expr (existT _ _ ty) -> expr (existT _ _ ty) -> VProp
     | and : VProp -> VProp -> VProp
     | or  : VProp -> VProp -> VProp
     | not : VProp -> VProp
@@ -178,8 +177,8 @@ Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
 Notation "'ANNOT' a" := (map (@annot _ _ _) a)
                              (at level 60).
 
-Arguments CUR [v k ty].
-Arguments OLD [v k ty].
+Arguments CUR [v ty].
+Arguments OLD [v ty].
 Arguments noRels {tyD}.
 Arguments Annotated [tyD].
 Arguments instruct [tyD Rels] {v}.

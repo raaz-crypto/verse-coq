@@ -27,11 +27,11 @@ Fixpoint distinctL [T] (l : list T)
      | (hd :: tl) => distH hd tl /\ distinctL tl
      end.
 
-Definition qualV [ts] (v : Variables.U ts) := sigT (qualified v).
+Definition qualV [ts] (v : Variables.U ts) := sigT v.
 
-Definition qualify [ts] [v : Variables.U ts] [k ty] (x : v k ty)
+Definition qualify [ts] [v : Variables.U ts] [ty] (x : v ty)
   : qualV v
-  := existT _ (existT _ _ ty) x.
+  := existT _ ty x.
 
 Definition distinctAll [ts n] [sc : Scope.type ts n]
            [v : Variables.U ts]
