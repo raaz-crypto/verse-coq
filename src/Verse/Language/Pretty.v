@@ -57,25 +57,25 @@ Section Embedding.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
-  Class EXPR  t := toExpr  : t -> expr v ty.
+  Class EXPR  t := toExpr  : t -> expr v (existT _ _ ty).
 
 
   (** *** Instances of [EXPR]
    *)
 
-  Global Instance expr_to_expr   : EXPR (expr  v ty)  := @id _.
-  Global Instance v_to_exp       : EXPR (v ty)        := fun x => valueOf (var x).
-  Global Instance lexp_to_exp    : EXPR (lexpr v ty)  := valueOf (ty:=ty).
+  Global Instance expr_to_expr   : EXPR (expr  v (existT _ _ ty))  := @id _.
+  Global Instance v_to_exp       : EXPR (v (existT _ _ ty))        := fun x => valueOf (var x).
+  Global Instance lexp_to_exp    : EXPR (lexpr v (existT _ _ ty))  := valueOf (ty := existT _ _ ty).
   Global Instance const_to_expr  : EXPR (const ty)    := cval (ty:=ty).
   Global Instance nat_to_exp     : EXPR nat := fun n => cval (natToConst ty n).
 
   Global Instance N_to_exp       : EXPR N := fun n => cval (NToConst ty n).
 
   (** Class similar to [EXPR] but creates l-expressions *)
-  Class LEXPR t := toLexpr : t -> lexpr v ty.
+  Class LEXPR t := toLexpr : t -> lexpr v (existT _ _ ty).
 
-  Global Instance lexpr_to_lexpr : LEXPR (lexpr v ty) := @id _.
-  Global Instance v_to_lexp      : LEXPR (v ty)       := var (ty:=ty).
+  Global Instance lexpr_to_lexpr : LEXPR (lexpr v (existT _ _ ty)) := @id _.
+  Global Instance v_to_lexp      : LEXPR (v (existT _ _ ty))       := var (ty:=ty).
 
 
 
@@ -100,7 +100,7 @@ Section Embedding.
     Definition assignStmt : statement v
       := existT _  _ (assign  (toLexpr lhs)  (toExpr e1)).
 
-     Definition moveStmt (x : v ty) : statement v
+     Definition moveStmt (x : v (existT _ _ ty)) : statement v
       := existT _ _ (Ast.moveTo (toLexpr lhs) x).
 
     (** Applies the binary operator [o] to two values [e1] and [e2]
@@ -161,8 +161,8 @@ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < 
 
 
 Instance array_indexing v ty b e : INDEXING {i | i < b}
-                                            (lexpr v ty)
-                                            (v memory (array b e ty))
+                                            (lexpr v (existT _ _ ty))
+                                            (v (existT _ _ (array b e ty)))
   := fun a ix =>  deref a ix.
 
 
