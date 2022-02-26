@@ -55,7 +55,7 @@ Section Scoped.
   Fixpoint scoped {n} (st : type n)(CODE : Type) : Type :=
     match n as n0 return type n0 -> Type with
     | 0       => fun _  => CODE
-    | S n0    => fun v0 => qualified v (Vector.hd v0) -> scoped (Vector.tl v0) CODE
+    | S n0    => fun v0 => v (Vector.hd v0) -> scoped (Vector.tl v0) CODE
     end st.
   (* This alternate definition does not interact well with destructing scopes later
     match st with
@@ -71,7 +71,7 @@ Section Scoped.
   Fixpoint allocation {n} (st : type n) : Type :=
     match n as n0 return type n0 -> Type with
     | 0   => fun _  => unit
-    | S m => fun v0 => (qualified v (Vector.hd v0) * allocation (Vector.tl v0))%type
+    | S m => fun v0 => (v (Vector.hd v0) * allocation (Vector.tl v0))%type
     end st.
     (* This alternate definition does not interact well with certain ScopeStore
 
@@ -165,6 +165,7 @@ Module Types.
 End Types.
 
 (** ** Translation/compilation for allocations *)
+
 Module Allocation.
 
   Fixpoint coTranslate src tgt
@@ -178,7 +179,7 @@ Module Allocation.
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-              let (f, r) := a in (Qualified.coTranslate tr f, coTranslate src tgt tr v n0 xs r)
+              let (f, r) := a in (Variables.coTranslate tr f, coTranslate src tgt tr v n0 xs r)
         end.
 
   Fixpoint translate src tgt
@@ -192,7 +193,7 @@ Module Allocation.
        | [] => fun H : unit => H
        | Vector.cons _ x n0 xs
          => fun a =>
-             let (f, r) := a in (Qualified.coTranslate tr f, translate src tgt tr v n0 xs r)
+             let (f, r) := a in (Variables.coTranslate tr f, translate src tgt tr v n0 xs r)
        end.
 
   Arguments coTranslate [src tgt] tr [v n st].
@@ -216,6 +217,14 @@ Module Allocation.
 
   Import EqNotations.
 
+  (* We need the following lemma to define coCompile *)
+  Definition vector_map_tl [T U n] (f : T -> U) (v : Vector.t T (S n))
+    : Vector.map f (Vector.tl v) = Vector.tl (Vector.map f v).
+  Proof.
+    pose (Vector.eta v).
+    now rewrite Vector.eta at 2.
+  Qed.
+
   Section Compile.
     Variables src tgt : typeSystem.
     Variable  cr : compiler src tgt.
@@ -225,8 +234,25 @@ Module Allocation.
              (pfCompat : Types.compatible cr st ss)
              (v : Variables.U tgt)
     : allocation v st ->
-      allocation (Variables.Universe.coCompile cr v) ss :=
-    fun a => coTranslate cr (rew pfCompat in (inject a)).
+      allocation (Variables.Universe.coCompile cr v) ss.
+    (* In the absence of a injection_lemma for `Variables.U`, not sure
+       this can be defined cleanly.
+       We would have liked it to be -
+
+         fun a => coTranslate cr (rew pfCompat in (inject a)))
+     *)
+    refine (fun a => coTranslate cr (rew pfCompat in (inject _))).
+    induction st.
+    * exact tt.
+    * constructor.
+      exact (rew sigT_eta _ in fst a).
+      refine (IHst (Vector.tl ss) _ (snd a)).
+      unfold Types.compatible in pfCompat.
+      unfold Types.translate in pfCompat.
+      pose (f_equal Vector.tl pfCompat).
+      rewrite <- vector_map_tl in e.
+      exact e.
+  Defined.
 
   End Compile.
 
@@ -290,7 +316,7 @@ the type for one level deep nesting.
 
 Module Cookup.
   Inductive var : Variables.U Types.verse_type_system :=
-  | cookup : forall k (ty : Types.type k), var k ty.
+  | cookup : forall (ty : some Types.type), var ty.
 
   Definition specialise {t : Variables.U verse_type_system -> Type}
            (func : forall v, t v) :
@@ -301,7 +327,7 @@ Module Cookup.
   : allocation var sty
   := match sty as sty0 return allocation var sty0 with
      | []                     => tt
-     | (x :: xs) => (cookup (projT1 x) (projT2 x) , alloc xs)
+     | (x :: xs) => (cookup x ,alloc xs)
      end.
 End Cookup.
 
@@ -322,11 +348,11 @@ Instance infer_undelimited A : Infer A | 1
         inferNesting := fun d => ([], d)
      |}.
 
-Instance infer_arrow t (sub : Infer t) k (ty : Types.type k)
-  : Infer (Cookup.var k ty -> t)
+Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
+  : Infer (Cookup.var ty -> t)
   := {| nesting := S nesting;
-        inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup k ty)) in
-                                 (existT _ k ty :: sc, i)
+        inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
+                                 (ty :: sc, i)
      |}.
 
 
@@ -335,14 +361,14 @@ Section ScopeVar.
   Variable ts : typeSystem.
 
   Inductive scopeVar : forall {n} (l : type ts n), Variables.U ts :=
-  | headVar m (v : type ts (S m)) : scopeVar v _ (projT2 (hd v))
-  | restVar m (v : type ts (S m)) k (ty : typeOf ts k) : scopeVar (tl v) _ ty
-                                                         -> scopeVar v _ ty.
+  | headVar m (v : type ts (S m)) : scopeVar v (hd v)
+  | restVar m (v : type ts (S m)) (ty : some (typeOf ts)) : scopeVar (tl v) ty
+                                                         -> scopeVar v ty.
 
-  Fixpoint mapAlloc v1 v2 (f : forall k (ty : typeOf ts k), v1 _ ty -> v2 _ ty)
+  Fixpoint mapAlloc v1 v2 (f : forall (ty : some (typeOf ts)), v1 ty -> v2 ty)
            n (l : type ts n) : allocation v1 l -> allocation v2 l :=
     match n return forall l : type ts n, allocation v1 l -> allocation v2 l with
-    | S n => fun l a1 => (f _ _ (fst a1), mapAlloc v1 v2 f _ (tl l) (snd a1))
+    | S n => fun l a1 => (f _ (fst a1), mapAlloc v1 v2 f _ (tl l) (snd a1))
     | 0   => fun l _  => tt
     end l.
 
@@ -357,8 +383,6 @@ Section ScopeVar.
   Definition fillScoped (CODE : Variables.U ts -> Type) n (l : type ts n)
              (genC : forall v, scoped v l (CODE v)) :=
     fill (scopeAlloc l) (genC (scopeVar l)).
-
-  Arguments fillScoped [CODE n l] _.
 
 (*
   Require Import Program.Equality.
@@ -387,5 +411,5 @@ Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
 
 Arguments scopeVar [ts n].
 Arguments headVar {ts m v}.
-Arguments restVar [ts m v k ty].
+Arguments restVar [ts m v ty].
 Arguments fillScoped [ts CODE n l] _.
