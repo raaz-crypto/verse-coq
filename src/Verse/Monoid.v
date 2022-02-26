@@ -153,7 +153,7 @@ Instance dep_point_setoid A (F : A -> Type)
                                                   transitivity (Hfg a) (Hgh a)
                     |}
   |}.
-Set Printing Implicit.
+
 Instance dep_point_monoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
          `{forall a, Monoid (F a)}
@@ -266,8 +266,6 @@ Module End.
   unfold eq in *.
   exact (transitivity H3 H4).
   Defined.
-
-  Import EqNotations.
 
   Instance end_monoid T `{Monoid T} : Monoid (End T).
   refine
