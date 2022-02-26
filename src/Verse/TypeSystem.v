@@ -186,7 +186,8 @@ Module Types.
 
     Arguments translate [src tgt].
 
-    Definition inject ts := translate (injector ts).
+    Definition inject ts : some (typeOf ts) -> some (result ts)
+      := fun x => existT _ _ {- projT2 x -}.
     Arguments inject [ts].
 
     Definition result tgt := some (result tgt).
@@ -258,23 +259,23 @@ Import EqNotations.
 Module Variables.
 
   (** The universe of variables (of a given type system) *)
-  Definition U ts := forall k, typeOf ts k -> Type.
+  Definition U ts := sigT (typeOf ts) -> Type.
 
-  Definition renaming {ts} (u v : U ts) := forall k (ty : ts k),  u k ty -> v k ty.
+  Definition renaming {ts} (u v : U ts) := forall ty,  u ty -> v ty.
 
   Module Universe.
 
     Definition coTranslate src tgt
                (tr : translator src tgt)
                (v : U tgt) : U src
-      := fun k ty => v k (Types.translate tr ty).
+      := fun ty => v (Types.Some.translate tr ty).
 
     Arguments coTranslate [src tgt] tr.
 
     Inductive translate {src tgt}
                (tr : translator src tgt)
                (v : U src) : U tgt
-      := push k ty : v k ty -> translate tr v _ (Types.translate tr ty).
+      := push ty : v ty -> translate tr v (Types.Some.translate tr ty).
 
     (** Translation of the variable universe is contravariant and
         hence the injector naturally gives a coInject instead of
@@ -283,18 +284,23 @@ Module Variables.
         as a result.
      *)
     Definition coInject ts : U (result ts) -> U ts := coTranslate (injector ts).
+
     Definition inject   ts : U ts  -> U (result ts)
-      := fun v k ty => match ty with
-                       | {- good -} => v k good
-                       | error _    => Empty_set
-                       end.
+      := fun v ty => match ty with
+                     | existT _ _ {- good -} => v (existT _ _ good)
+                     | existT _ _ (error _)  => Empty_set
+                  end.
 
     Arguments coInject [ts].
     Arguments inject   [ts].
 
+    (* The following injection_lemma might need functional
+       extensionality. We instead avoid using this at its only (previous)
+       call site, where a direct proof is possible.
+     *)
+
     Lemma injection_lemma : forall ts (v : U ts), v = coInject (inject v).
-      trivial.
-    Qed.
+    Abort.
 
     Definition coCompile  src tgt
                (cr : compiler src tgt)
@@ -306,43 +312,43 @@ Module Variables.
        The use case and motivation of embed is listed in Monoid/Interface
     *)
     Definition embed ts : U ts -> U (result ts)
-      := fun (v : U ts) k (ty : Types.result ts k)
-         => forall good, ty = {- good -} -> v k good.
+      := fun (v : U ts) ty
+         => forall good, projT2 ty = {- good -} -> v (existT _ _ good).
 
-    Arguments embed [ts] v [k] ty.
+    Arguments embed [ts] v ty.
 
   End Universe.
 
   Definition coTranslate src tgt
              (tr : translator src tgt)
-             (v : U tgt) (k : kind)
-             (ty : typeOf src k)
-    : v k (Types.translate tr ty) -> Universe.coTranslate tr v k ty
+             (v : U tgt)
+             (ty : some (typeOf src))
+    : v (Types.Some.translate tr ty) -> Universe.coTranslate tr v ty
     := fun x => x.
 
   Definition translate src tgt
              (tr : translator src tgt)
-             (v : U tgt) (k : kind)
-             (ty : typeOf src k)
-    : Universe.coTranslate tr v k ty -> v k (Types.translate tr ty)
+             (v : U tgt)
+             (ty : some (typeOf src))
+    : Universe.coTranslate tr v ty -> v (Types.Some.translate tr ty)
     := fun x => x.
 
-  Arguments coTranslate [src tgt] tr [v k ty].
-  Arguments translate [src tgt] tr [v k ty].
+  Arguments coTranslate [src tgt] tr [v ty].
+  Arguments translate [src tgt] tr [v ty].
 
-  Definition coInject ts : forall (v : U (result ts)) k (ty : typeOf ts k),
-      v k (Types.inject ty) -> Universe.coInject v k ty
+  Definition coInject ts : forall (v : U (result ts)) (ty : some (typeOf ts)),
+      v (Types.Some.inject ty) -> Universe.coInject v ty
     := coTranslate (injector ts).
 
-  Definition inject ts : forall (v : U ts) k (ty : typeOf ts k),
-      v k ty -> Universe.inject v k (Types.inject ty)
-    := fun _ _ _ x => x.
+  Definition inject ts (v : U ts) (ty : some (typeOf ts))
+          (x : v ty) : Universe.inject v (Types.Some.inject ty)
+    := rew sigT_eta _ in x.
 
-  Arguments coInject [ts v k ty].
-  Arguments inject   [ts v k ty].
+  Arguments coInject [ts v ty].
+  Arguments inject   [ts v ty].
 
-  Lemma injection_lemma : forall ts (v : U ts) k (ty : typeOf ts k) (x : v k ty),
-      x = coInject (inject x).
+  Lemma injection_lemma : forall ts (v : U ts) (ty : some (typeOf ts)) (x : v ty),
+      rew (sigT_eta ty) in x = coInject (@inject ts v ty x).
   Proof.
     trivial.
   Qed.
@@ -355,68 +361,22 @@ Module Variables.
                                       | error e => a
                                       end) e.
 
-  Definition embed {ts} {v : U ts} {k} {ty : ts k}
-    : v k ty -> Universe.embed v (Types.inject ty)
-
-    := fun vty gd e => rew inleft_inj e in vty.
-
-End Variables.
-
-
-(** ** Qualified variables.
-
-This module capture variables qualified by their types (which
-themselves are existentially qualified by their kinds).
-
-*)
-Definition qualified ts (v : Variables.U ts) (s : some (typeOf ts))
-  := v (projT1 s) (projT2 s).
-
-Arguments qualified [ts].
-
-Module Qualified.
-
-  Definition coTranslate src tgt
-             (tr : translator src tgt)
-             (v : Variables.U tgt)
-             (s : some (typeOf src))
-  : qualified v (Types.Some.translate tr s) -> qualified (Variables.Universe.coTranslate tr v) s
-    := fun H => H.
-
-  Definition translate src tgt
-             (tr : translator src tgt)
-             (v : Variables.U tgt)
-             (s : some (typeOf src))
-  : qualified (Variables.Universe.coTranslate tr v) s -> qualified v (Types.Some.translate tr s)
-    := fun H => H.
-
-
-  Arguments coTranslate [src tgt] tr [v s].
-  Arguments translate   [src tgt] tr [v s].
-
-  Definition coInject ts :
-    forall v s, qualified v (Types.Some.inject s) -> qualified (Variables.Universe.coInject  v) s
-    := coTranslate (injector ts).
-
-  Definition inject ts :
-    forall (v : Variables.U ts) s,
-      qualified v s
-      -> qualified (Variables.Universe.inject v) (Types.Some.inject s)
-    := fun _ _ x => x.
-
-  Arguments coInject [ts v s].
-  Arguments inject [ts v s].
-  Lemma injection_lemma : forall ts (v : Variables.U ts) s (x : qualified v s),
-      x = coInject (inject x).
-  Proof.
-    trivial.
-  Qed.
-
+  Definition embed {ts} {v : U ts} {ty : some (typeOf ts)}
+    : v ty -> Universe.embed v (Types.Some.inject ty).
+    (* TODO : Not sure if this can be written cleanly *)
+    unfold Universe.embed.
+    intros.
+    injection H as goodTy.
+    rewrite <- goodTy.
+    simpl.
+    rewrite <- sigT_eta.
+    exact X.
+  Defined.
 
   Definition input tgt
              (v : Variables.U tgt)
              (s : Types.Some.result tgt)
-    := qualified (Variables.Universe.inject v) s.
+    := (Variables.Universe.inject v) s.
 
   Arguments input [tgt].
 
@@ -424,9 +384,13 @@ Module Qualified.
              (cr : compiler src tgt)
              (v : Variables.U tgt)
              (s : some (typeOf src))
-    : input v (Types.Some.compile cr s) -> qualified (Variables.Universe.coCompile cr v) s
+    : input v (Types.Some.compile cr s) -> (Variables.Universe.coCompile cr v) s
     := fun H => H.
 
   Arguments coCompile [src tgt] cr [v s].
 
-End Qualified.
+  Definition kVariable (ts : typeSystem) := forall k, ts k -> Type.
+  Definition sigParam [ts] (kv : kVariable ts) : U ts
+    := fun T => kv _ (projT2 T).
+
+End Variables.
