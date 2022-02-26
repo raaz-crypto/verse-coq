@@ -5,14 +5,16 @@ Require Import Verse.Monoid.Interface.
 Require Import Verse.TypeSystem.
 Require Import Verse.Target.
 Require Import Verse.Target.C.Ast.
+(* Importing Verse.Ast above C.Ast causes a name conflict *)
+Require Import Verse.Ast.
 Require Import Verse.Error.
 Require Import Verse.Nibble.
 Require        Verse.Scope.
+
 Require Import List.
 Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
-Require Import Verse.Ast.
 
 
 (* end hide *)
@@ -46,10 +48,10 @@ Module Internals.
    *)
 
   Definition variables : Variables.U c_type_system
-    := fun k (ty : C.Ast.type k) =>
-         match k with
+    := fun (ty : some type) =>
+         match projT1 ty with
          | direct => expr
-         | _      => match ty with
+         | _      => match projT2 ty with
                     | ptrToArray n ty0 => (expr * expr)%type
                     | _                => expr
                     end
@@ -61,61 +63,62 @@ Module Internals.
      generates declaration for the associated pointer and the counter
      variables *)
 
-  Definition decl {k}{ty} : variables k ty ->  list declaration
-   := match ty with
-      | ptrToArray _ _
-        => fun u => [ declare (ty:=ty)       (blockPtr u);
-                      declare (ty:=uint64_t) (counter u)
-                    ]
-      | _ => fun u =>  [ declare (ty:=ty) u]
-      end%list.
+  Definition decl {k ty} : variables (existT _ k ty) -> list declaration
+    := match ty as ty0 in type k0
+             return variables (existT _ k0 ty0) -> list declaration
+       with
+       | ptrToArray _ _
+         => fun u => [ declare (ty:=existT _ _ ty)       (blockPtr u);
+                   declare (ty:=existT _ _ uint64_t) (counter u)
+             ]
+       | _ => fun u =>  [ declare (ty:=existT _ _ ty) u]
+       end%list.
 
   (* begin hide *)
   Fixpoint trExpr {ty} (e : Ast.expr variables ty) : expr :=
     match e with
-    | Ast.cval   c     => verse_const ty c
+    | @Ast.cval _ _ ty0 c     => verse_const ty0 c
     | Ast.valueOf le   => match le with
                          | Ast.var v => v
-                         | @Ast.deref _ _ _ b endn arr (exist _ i _) =>
+                         | @Ast.deref _ _ ty0 b endn arr (exist _ i _) =>
                            let arrI := match b with
                                        | 1 => ptrDeref arr (* array[1] = pointer *)
                                        | _ => index arr i
                                        end in
                            match endn with
                            | hostE => arrI
-                           | _     => convert_from endn ty arrI
+                           | _     => convert_from endn ty0 arrI
                            end
                          end
     | Ast.binOp o e0 e1 => app o [trExpr e0; trExpr e1]
-    | Ast.uniOp o e0 =>
+    | @Ast.uniOp _ _ ty0 o e0 =>
       match o with
-      | rotL n => rotateL ty (trExpr e0 , n)
-      | rotR n => rotateR ty (trExpr e0, n)
+      | rotL n => rotateL ty0 (trExpr e0 , n)
+      | rotR n => rotateR ty0 (trExpr e0, n)
       | x      => app x [trExpr e0]
       end
     end.
 
   Definition trAssign {ty} (le : Ast.lexpr variables ty) (ex : Ast.expr variables ty) :=
-    let endianConversion endn cex :=
-        match endn, cex with
-        | hostE, _                            => cex
-        | _, _                                => convert_to endn ty cex
-        end in
-
     match le with
     | Ast.var v => C.Ast.assign v (trExpr ex)
-    | @Ast.deref _ _ _ _ endn arr (exist _ i _)
-      => C.Ast.assign (index arr i) (endianConversion endn (trExpr ex))
+    | @Ast.deref _ _ ty0 _ endn arr (exist _ i _)
+      => let endianConversion endn cex :=
+          match endn, cex with
+          | hostE, _                            => cex
+          | _, _                                => convert_to endn ty0 cex
+          end in
+        C.Ast.assign (index arr i) (endianConversion endn (trExpr ex))
     end.
 
-  (** This definition is giving some warning in terms of implicits please check *)
+  (* TODO : This definition is giving some warning in terms of implicits please check *)
   Definition trInst ty (inst : Ast.instruction variables ty) : C.Ast.statement + {TranslationError}
     := let getCOP n (o : Ast.op n)
            := match o with
               | rotL _ | rotR _ => error (CouldNotTranslateBecause inst UpdatesNotForRotatesInC)
               | o => {- o -}
               end in
-       let handleUpdate le (func : expr -> C.Ast.statement) :=
+       let handleUpdate [ty] (le : lexpr variables ty) (func : expr -> C.Ast.statement) :=
            match le with
            | Ast.var v => {- func v -}
            | @Ast.deref _ _ _ _ endn arr (exist _ i _)
@@ -133,7 +136,9 @@ Module Internals.
        | uniopUpdate le o
          => do co <- getCOP 1 o ;;
               handleUpdate le (fun lhs => C.Ast.update lhs co [])
-       | Ast.moveTo le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
+       (* TODO : The next is an ugly hack. Works mostly because the
+       last match clause exists. *)
+       | @Ast.moveTo _ _ (existT _ direct _) le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
        | _                    => error (CouldNotTranslateBecause inst ExplicitClobberNotInC)
       end.
 
@@ -184,11 +189,10 @@ Module Config <: CONFIG.
              : operator verse_type_system ty n ->
                operator targetTs (trType ty) n
     := fun op : Types.op n =>
-          match trType ty as ty0
-                return if ty0 then Types.op n else Empty_set + {TranslationError} with
-          | error e => error e
-          | _       => op
-          end.
+         match trType ty as x return (operator targetTs x n) with
+         | error e => error e
+         | _ => op
+         end.
 
   Definition M : mSpecs verse_type_system typs :=
     {|
@@ -214,14 +218,14 @@ Module Config <: CONFIG.
        ptrToArray sz ty0.
 
   Definition dereference {k}{ty : type k}
-    : vars  memory (streamOf ty) -> vars k ty
+    : vars (existT _ _ (streamOf ty)) -> vars (existT _ _ ty)
     :=  match ty with
        | ptrToArray b t => fun x => x (* this branch is not really used *)
        | _ => fun x => Expr.ptrDeref (Internals.blockPtr x)
        end.
 
   Definition mapOverBlocks {block : type memory}
-             (stream : vars memory (streamOf block))
+             (stream : vars (existT _ _ (streamOf block)))
              (body : list statement)
              : list statement
     := (let cond := Expr.gt_zero (Internals.counter stream) in

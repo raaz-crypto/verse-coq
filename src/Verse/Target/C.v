@@ -24,20 +24,20 @@ Import Vector.VectorNotations.
 (* begin hide *)
 Module Internals.
 
-  Definition mkVar (alk : nat) {k} (ty : type k) : variables k ty
-    := match ty as ty0 in type k0 return variables k0 ty0 with
-       | uint8_t    => cvar2exp (cVar uint8_t alk)
-       | uint16_t   => cvar2exp (cVar uint16_t alk)
-       | uint32_t   => cvar2exp (cVar uint32_t alk)
-       | uint64_t   => cvar2exp (cVar uint64_t alk)
-       | array sz t  => cvar2exp (cVar (array sz t) alk)
-       | ptrToArray sz t => let ptrVar := @bPtr sz t in
+  Program Definition mkVar (alk : nat) (ty : sigT type) : variables ty
+    := match projT2 ty as ty0 return variables (existT _ _ ty0) with
+       | uint8_t  as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
+       | uint16_t as ty0   => cvar2exp (cVar (existT _ _ ty0) alk)
+       | uint32_t as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
+       | uint64_t as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
+       | (array sz t) as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
+       | (ptrToArray sz t) as ty0 => let ptrVar := @bPtr sz t in
                            let ctrVar := cTr in
                            (cvar2exp ptrVar, cvar2exp ctrVar)
        end.
 
-  Definition mkQVar (alk : nat) s : TypeSystem.qualified variables s :=
-    mkVar alk (projT2 s).
+  Definition mkQVar (alk : nat) s : variables s :=
+    mkVar alk s.
 
   Fixpoint calloc (alk : nat) {n} (st :  Scope.type C.Ast.c_type_system n)
     : Scope.allocation variables st * nat
@@ -94,7 +94,7 @@ Ltac Iterator name memty ifunc
        exact ((fun pfpvt pflvt =>
                  let (pA,n0) := Internals.calloc 0 pvt in
                  let (lA,n1) := Internals.calloc n0 lvt in
-                 let streamVar := Internals.mkVar n1 (Compile.Config.streamOf memtyTgt) in
+                 let streamVar := Internals.mkVar n1 (existT _ _ (Compile.Config.streamOf memtyTgt)) in
                  Compile.iterativeFunction name memty
                                            pvs lvs
                                            memtyTgt eq_refl
