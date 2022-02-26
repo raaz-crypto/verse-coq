@@ -130,7 +130,7 @@ Module Type CONFIG.
       that is being acted on by the [process] fragment of the iterator
    *)
   Parameter dereference  : forall {k}{block : typeOf typs k},
-      vars memory (streamOf block) -> vars k block.
+      vars (existT _ _ (streamOf block)) -> vars (existT _ _ block).
 
   (** The [mapOverBlocks] applies a set of instructions on a single
       block and iterates it over all the blocks in the stream. It
@@ -140,7 +140,7 @@ Module Type CONFIG.
 
   Parameter mapOverBlocks :
     forall {block : typeOf typs memory},
-      vars memory (streamOf block) ->
+      vars (existT _ _ (streamOf block)) ->
       list statement       ->
       list statement.
 
@@ -149,6 +149,7 @@ Module Type CONFIG.
      signature and its body of statements.
    *)
   Parameter programLine  : Type.
+
   Parameter makeFunction
     : forall name : Set,
       name
@@ -265,7 +266,7 @@ Module CodeGen (T : CONFIG).
       : Types.compile T.typeCompiler block = {- streamElem -}.
 
     Definition streamType := T.streamOf streamElem.
-    Variable   streamVar  : vars memory streamType.
+    Variable   streamVar  : vars (existT _ _ streamType).
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -368,6 +369,7 @@ Module CodeGen (T : CONFIG).
                     do post   <- codeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
                        let lp := T.mapOverBlocks streamVar middle in
                        {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
+
   End Shenanigans.
 
   Arguments function [name] _
@@ -378,4 +380,5 @@ Module CodeGen (T : CONFIG).
 
   Definition programLine := T.programLine.
   Definition variables   := vars.
+
 End CodeGen.
