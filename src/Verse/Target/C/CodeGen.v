@@ -5,7 +5,7 @@ Require Import Verse.Monoid.Interface.
 Require Import Verse.TypeSystem.
 Require Import Verse.Target.
 Require Import Verse.Target.C.Ast.
-(* Importing Verse.Ast above C.Ast causes a name conflict *)
+(* TODO : Importing Verse.Ast above C.Ast causes a name conflict *)
 Require Import Verse.Ast.
 Require Import Verse.Error.
 Require Import Verse.Nibble.
