@@ -356,7 +356,7 @@ Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
      |}.
 
 
-Require Import Vector.
+(*
 Section ScopeVar.
   Variable ts : typeSystem.
 
@@ -413,3 +413,4 @@ Arguments scopeVar [ts n].
 Arguments headVar {ts m v}.
 Arguments restVar [ts m v ty].
 Arguments fillScoped [ts CODE n l] _.
+*)

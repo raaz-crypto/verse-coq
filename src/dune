@@ -32,7 +32,6 @@
           Verse.Nibble
           Verse.Print
           Verse.Scope
-          Verse.ScopeStore
           Verse.Target
           Verse.Target.C
           Verse.Target.C.Ast
