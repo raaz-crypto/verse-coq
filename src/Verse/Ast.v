@@ -117,7 +117,7 @@ Section ModularCode.
   Inductive line (v : Variables.U ts) mline :=
   | inst      : statement v -> line v mline
   | inline    : mline v     -> line v mline
-  | call      : forall n (sc : Scope.type ts n),
+  | call      : forall (sc : Scope.type ts),
                   (forall w, Scope.allocation w sc -> (list (line w mline)))
                   -> Scope.allocation v sc -> line v mline
 
@@ -135,7 +135,7 @@ End ModularCode.
 
 Arguments inst [ts v mline].
 Arguments inline [ts v _].
-Arguments call [ts v mline n sc] _ _.
+Arguments call [ts v mline sc] _ _.
 Arguments line [ts] _ _.
 Arguments lines [ts] _ _.
 

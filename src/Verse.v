@@ -27,11 +27,10 @@ Coercion Vector.to_list : Vector.t >-> list.
 
 Definition VariableT := Variables.U verse_type_system.
 Definition constant ty := const ty.
-Definition Declaration n := Verse.Scope.type verse_type_system n.
+Definition Declaration := Verse.Scope.type verse_type_system.
 Definition Var (v : VariableT) ty : v ty -> some (typeOf verse_type_system)
   := fun _ => ty.
 
-Arguments Declaration {n}.
 Arguments Var [v ty].
 
 Notation "(--)"             := (tt).

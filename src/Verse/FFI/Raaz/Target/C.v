@@ -26,8 +26,8 @@ Fixpoint translate {k} (ty : typeOf verse_type_system k) : Raaz.type
      end.
 
 Require Import Verse.
-Definition fromDecl {n}(params : @Declaration n) : list Raaz.type
-  := List.map (fun st => translate (projT2 st)) (Vector.to_list params).
+Definition fromDecl (params : Declaration) : list Raaz.type
+  := List.map (fun st => translate (projT2 st)) params.
 
 
 Require Verse.

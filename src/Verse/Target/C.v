@@ -18,8 +18,8 @@ in the generated code.
 Require Import Verse.Target.C.Ast.
 Import Expr.
 Require Verse.Scope.
-Require Vector.
-Import Vector.VectorNotations.
+Require Import List.
+Import List.ListNotations.
 
 (* begin hide *)
 Module Internals.
@@ -39,7 +39,7 @@ Module Internals.
   Definition mkQVar (alk : nat) s : variables s :=
     mkVar alk s.
 
-  Fixpoint calloc (alk : nat) {n} (st :  Scope.type C.Ast.c_type_system n)
+  Fixpoint calloc (alk : nat) (st :  Scope.type C.Ast.c_type_system)
     : Scope.allocation variables st * nat
     := match st as st0 return Scope.allocation variables st0 * nat with
          | [] => (tt, alk)

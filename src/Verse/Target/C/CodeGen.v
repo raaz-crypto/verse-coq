@@ -11,12 +11,10 @@ Require Import Verse.Error.
 Require Import Verse.Nibble.
 Require        Verse.Scope.
 
-Require Import List.
-Import ListNotations.
 Require Vector.
 Import Vector.VectorNotations.
-
-
+Require Import List.
+Import ListNotations.
 (* end hide *)
 
 (** * Target configuration for Portable C.
@@ -90,12 +88,12 @@ Module Internals.
                            | _     => convert_from endn ty0 arrI
                            end
                          end
-    | Ast.binOp o e0 e1 => app o [trExpr e0; trExpr e1]
+    | Ast.binOp o e0 e1 => app o [trExpr e0; trExpr e1]%vector
     | @Ast.uniOp _ _ ty0 o e0 =>
       match o with
       | rotL n => rotateL ty0 (trExpr e0 , n)
       | rotR n => rotateR ty0 (trExpr e0, n)
-      | x      => app x [trExpr e0]
+      | x      => app x [trExpr e0]%vector
       end
     end.
 
@@ -132,10 +130,10 @@ Module Internals.
        | assign le ex     => {- trAssign le ex -}
        | binopUpdate le o vex
          => do co <- getCOP 2 o ;;
-              handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr [vex]))
+              handleUpdate le (fun lhs => C.Ast.update lhs co (Vector.map trExpr [vex]%vector))
        | uniopUpdate le o
          => do co <- getCOP 1 o ;;
-              handleUpdate le (fun lhs => C.Ast.update lhs co [])
+              handleUpdate le (fun lhs => C.Ast.update lhs co []%vector)
        (* TODO : The next is an ugly hack. Works mostly because the
        last match clause exists. *)
        | @Ast.moveTo _ _ (existT _ direct _) le v      => {- trAssign le (Ast.valueOf (Ast.var v)) -}
@@ -237,7 +235,7 @@ Module Config <: CONFIG.
        )%list.
 
 
-  Fixpoint allocToList {n} (st : Scope.type typs n)
+  Fixpoint allocToList (st : Scope.type typs)
     :  Scope.allocation vars st -> list declaration :=
     match st as st0 return Scope.allocation vars st0 -> list declaration
     with
@@ -248,7 +246,7 @@ Module Config <: CONFIG.
                    (this ++ rest)%list
     end.
 
-  Arguments allocToList [n st].
+  Arguments allocToList [st].
 
   Definition makeFunction (name : Set) (fname : name)(fsig : funSig typs vars)
              (body : list statement)

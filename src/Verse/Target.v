@@ -8,8 +8,8 @@ Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
 Require Import Verse.Monoid.Interface.
 Require Verse.Scope.
-Require Import Vector.
-Import Vector.VectorNotations.
+Require Import List.
+Import List.ListNotations.
 (* end hide *)
 
 
@@ -24,19 +24,15 @@ need saving etc) and the C prototype for the function.
 *)
 Record funSig ts (v : Variables.U ts) :=
   FunSig {
-      nParameters : nat;
-      nLocals     : nat;
-      paramTypes  : Scope.type ts nParameters;
-      localTypes  : Scope.type ts nLocals;
+      paramTypes  : Scope.type ts;
+      localTypes  : Scope.type ts;
       parameters : Scope.allocation v paramTypes;
       locals     : Scope.allocation v localTypes;
     }.
 
-Arguments FunSig [ts v nParameters nLocals paramTypes localTypes].
+Arguments FunSig [ts v paramTypes localTypes].
 (* begin hide *)
 
-Arguments nParameters [ts v].
-Arguments nLocals     [ts v].
 Arguments paramTypes  [ts v].
 Arguments localTypes  [ts v].
 Arguments parameters [ts v].
@@ -203,12 +199,11 @@ Module CodeGen (T : CONFIG).
   (** To carry out these transformation, we also need compatibility of
       the allocation types which the following predicate asserts *)
 
-  Definition compatible n st ss := Scope.Types.compatible (n:=n) T.typeCompiler st ss.
+  Definition compatible st ss := Scope.Types.compatible T.typeCompiler st ss.
 
   (* begin hide *)
-  Arguments toVerseAllocation [n st ss] _ [v].
+  Arguments toVerseAllocation [st ss] _ [v].
   Arguments typeCheckedTransform [v].
-  Arguments compatible [n].
 
   (* end hide *)
 
@@ -238,9 +233,9 @@ Module CodeGen (T : CONFIG).
         variables of the iterator/function.
 
      *)
-    Variable p l : nat.
-    Variable pvs  : Scope.type verse_type_system p.
-    Variable lvs  : Scope.type verse_type_system l.
+
+    Variable pvs  : Scope.type verse_type_system.
+    Variable lvs  : Scope.type verse_type_system.
 
     (**
        The abstracted form of function/iterator is just a nested
@@ -280,8 +275,8 @@ Module CodeGen (T : CONFIG).
         The allocation types for parameters, locals, and registers
         on the target side.
      *)
-    Variable pts  : Scope.type typs p.
-    Variable lts  : Scope.type typs l.
+    Variable pts  : Scope.type typs.
+    Variable lts  : Scope.type typs.
 
     (**
        Proofs of compatibility of the allocation types on the verse
@@ -372,11 +367,10 @@ Module CodeGen (T : CONFIG).
 
   End Shenanigans.
 
-  Arguments function [name] _
-            [p l].
-  Arguments iterativeFunction [name] _ _ [p l].
-  Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
-    := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
+  Arguments function [name] _.
+  Arguments iterativeFunction [name] _ _.
+  Definition targetTypes (vts : Scope.type Types.verse_type_system)
+    := pullOutList (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
   Definition programLine := T.programLine.
   Definition variables   := vars.
