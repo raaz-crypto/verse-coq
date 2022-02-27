@@ -4,8 +4,8 @@
 
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
-Require Vector.
-Import Vector.VectorNotations.
+Require Import List.
+Import ListNotations.
 
 Section Scoped.
 
@@ -43,48 +43,30 @@ Section Scoped.
            be 'Scope.'ed
   *)
 
-  Definition type n := Vector.t (some (typeOf ts)) n.
+  Definition type := list (some (typeOf ts)).
 
   Definition const n (ty : typeOf ts direct)
-    := Vector.const (existT _ _ ty) n.
+    := List.repeat (existT _ _ ty) n.
 
-  (*
-  Definition someVar s := qualified v s.
-   *)
-
-  Fixpoint scoped {n} (st : type n)(CODE : Type) : Type :=
-    match n as n0 return type n0 -> Type with
-    | 0       => fun _  => CODE
-    | S n0    => fun v0 => v (Vector.hd v0) -> scoped (Vector.tl v0) CODE
-    end st.
-  (* This alternate definition does not interact well with destructing scopes later
+  Fixpoint scoped (st : type)(CODE : Type) : Type :=
     match st with
     | []      => CODE
-    | s :: lt => qualified v s -> scoped lt CODE
+    | t::stl  => v t -> scoped stl CODE
     end.
-   *)
 
   (** An allocation that can be used to satisfy a scoped object of
       [scopeType], [st].
    *)
 
-  Fixpoint allocation {n} (st : type n) : Type :=
-    match n as n0 return type n0 -> Type with
-    | 0   => fun _  => unit
-    | S m => fun v0 => (v (Vector.hd v0) * allocation (Vector.tl v0))%type
-    end st.
-    (* This alternate definition does not interact well with certain ScopeStore
-
-  Fixpoint allocation {n} (st : type n) : Type :=
+  Fixpoint allocation (st : type) : Type :=
     match st with
-    | [] => unit
-    | (x :: xs) => qualified v x * allocation xs
+    | []     => unit
+    | t::stl => (v t * allocation stl)%type
     end.
 
-     *)
   (** And such an allocation can be used to "fill" up the variables *)
 
-  Fixpoint fill {CODE} {n} {st : type n}
+  Fixpoint fill {CODE} {st : type}
   : allocation st -> scoped st CODE -> CODE :=
     match st with
     | []             => fun a x => x
@@ -93,38 +75,39 @@ Section Scoped.
 
   Definition emptyAllocation : allocation [] := tt.
 
-  Definition uncurryScope {CODE} {n} {st : type n}
+  Definition uncurryScope {CODE} {st : type}
     : scoped st CODE -> allocation st -> CODE
     := fun sc al =>  fill al sc.
 
-  Fixpoint map A B (f : A -> B) n (st : type n) : scoped st A -> scoped st B
+  Fixpoint map [A B] (f : A -> B) [st : type] : scoped st A -> scoped st B
     := match st as st0
              return scoped st0 A -> scoped st0 B with
-       | [] => f
-       | _ :: xs => fun sStA z => map _ _ f _ _ (sStA z)
+       | []      => f
+       | _ :: xs => fun sStA z => map f (sStA z)
        end.
 
-  Fixpoint scopedAlloc {n} (st : type n) : scoped st (allocation st)
+  Fixpoint scopedAlloc (st : type) : scoped st (allocation st)
     := match st as st0
              return scoped st0 (allocation st0) with
        | [] => tt
        | _ :: xs =>
          fun z =>
-           map _ _ (fun a => (z, a)) _ _  (scopedAlloc xs)
+           map (fun a => (z, a)) (scopedAlloc xs)
        end.
 
-    Definition curryScope {CODE}{n}{st : type n}(f : allocation st -> CODE) : scoped st CODE
-    := map _ _ f _ _ (scopedAlloc st).
+    Definition curryScope {CODE}{st : type}(f : allocation st -> CODE) : scoped st CODE
+    := map f (scopedAlloc st).
 
 End Scoped.
 
 Arguments const [ts] n ty.
-Arguments allocation [ts] v [n].
-Arguments scoped [ts] v [n].
-Arguments map [ts v A B] f [n st].
-Arguments curryScope [ts v CODE n st] f.
-Arguments uncurryScope [ts v CODE n st].
-Arguments fill [ts v CODE n st].
+Arguments allocation [ts] v.
+Arguments scoped [ts] v.
+Arguments map [ts v A B] f [st].
+Arguments curryScope [ts v CODE st] f.
+Arguments uncurryScope [ts v CODE st].
+Arguments fill [ts v CODE st].
+
 Require Import Verse.Error.
 
 (** ** Translation/compilation for type of scopes *)
@@ -133,34 +116,31 @@ Module Types.
 
   Definition translate src tgt
              (tr : translator src tgt)
-             (n : nat)
-             (st : type src n)
-  : type tgt n := Vector.map (Types.Some.translate tr) st.
-  Arguments translate [src tgt] tr [n].
+             (st : type src)
+  : type tgt := List.map (Types.Some.translate tr) st.
+  Arguments translate [src tgt] tr.
 
-  Definition result tgt n
-    := type (TypeSystem.result tgt) n.
+  Definition result tgt
+    := type (TypeSystem.result tgt).
 
   Definition inject ts := translate (TypeSystem.injector ts).
 
-  Arguments inject [ts n].
+  Arguments inject [ts].
 
   Definition compatible  (src tgt : typeSystem)
              (cr : compiler src tgt)
-             (n  : nat)
-             (st : type tgt n) (ss : type src n) : Prop
+             (st : type tgt) (ss : type src) : Prop
     := inject st = translate cr ss.
 
-  Arguments compatible [src tgt] cr [n].
+  Arguments compatible [src tgt] cr.
 
   Definition compile src tgt
              (cr : compiler src tgt)
-             (n : nat)
-             (ss : type src n)
-             : result tgt n
+             (ss : type src)
+             : result tgt
     := translate cr ss.
 
-  Arguments compile [src tgt] cr [n].
+  Arguments compile [src tgt] cr.
 
 End Types.
 
@@ -171,66 +151,62 @@ Module Allocation.
   Fixpoint coTranslate src tgt
              (tr : translator src tgt)
              (v  : Variables.U tgt)
-             (n : nat)
-             (st : type src n)
+             (st : type src)
   : allocation v (Types.translate tr st) ->
     allocation (Variables.Universe.coTranslate tr v) st
     := match st with
-       | [] => fun H : unit => H
-       | Vector.cons _ x n0 xs
-         => fun a =>
-              let (f, r) := a in (Variables.coTranslate tr f, coTranslate src tgt tr v n0 xs r)
+       | []    => fun H : unit => H
+       | x::xs => fun a =>
+                  let (f, r) := a in
+                  (Variables.coTranslate tr f, coTranslate src tgt tr v xs r)
         end.
 
   Fixpoint translate src tgt
            (tr : translator src tgt)
            (v  : Variables.U tgt)
-           (n : nat)
-           (st : type src n)
+           (st : type src)
     : allocation (Variables.Universe.coTranslate tr v) st
       -> allocation v (Types.translate tr st)
     := match st with
-       | [] => fun H : unit => H
-       | Vector.cons _ x n0 xs
-         => fun a =>
-             let (f, r) := a in (Variables.coTranslate tr f, translate src tgt tr v n0 xs r)
+       | []    => fun H : unit => H
+       | x::xs => fun a =>
+                  let (f, r) := a in
+                  (Variables.coTranslate tr f, translate src tgt tr v xs r)
        end.
 
-  Arguments coTranslate [src tgt] tr [v n st].
-  Arguments translate   [src tgt] tr [v n st].
+  Arguments coTranslate [src tgt] tr [v st].
+  Arguments translate   [src tgt] tr [v st].
 
   Definition inject ts :
-    forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
+    forall (v : Variables.U (result ts)) (st : type ts),
       allocation (Variables.Universe.coInject v) st ->
       allocation v (Types.inject st)
     := translate (injector ts).
 
   Definition coInject ts :
-    forall (v : Variables.U (result ts)) (n : nat) (st : type ts n),
+    forall (v : Variables.U (result ts)) (st : type ts),
       allocation v (Types.inject st) ->
       allocation (Variables.Universe.coInject v) st
      := coTranslate (injector ts).
 
 
-  Arguments inject [ts v n st].
-  Arguments coInject [ts v n st].
+  Arguments inject [ts v st].
+  Arguments coInject [ts v st].
 
   Import EqNotations.
 
   (* We need the following lemma to define coCompile *)
-  Definition vector_map_tl [T U n] (f : T -> U) (v : Vector.t T (S n))
-    : Vector.map f (Vector.tl v) = Vector.tl (Vector.map f v).
+  Definition list_map_tl [T U] (f : T -> U) (v : list T)
+    : List.map f (List.tl v) = List.tl (List.map f v).
   Proof.
-    pose (Vector.eta v).
-    now rewrite Vector.eta at 2.
+    now induction v.
   Qed.
 
   Section Compile.
     Variables src tgt : typeSystem.
     Variable  cr : compiler src tgt.
-    Variable n  : nat.
 
-  Definition coCompile (st : type tgt n) (ss : type src n)
+  Definition coCompile (st : type tgt) (ss : type src)
              (pfCompat : Types.compatible cr st ss)
              (v : Variables.U tgt)
     : allocation v st ->
@@ -242,29 +218,36 @@ Module Allocation.
          fun a => coTranslate cr (rew pfCompat in (inject a)))
      *)
     refine (fun a => coTranslate cr (rew pfCompat in (inject _))).
+    revert pfCompat.
+    revert ss.
     induction st.
-    * exact tt.
-    * constructor.
-      exact (rew sigT_eta _ in fst a).
-      refine (IHst (Vector.tl ss) _ (snd a)).
+    * intros; exact tt.
+    * intros.
       unfold Types.compatible in pfCompat.
+      unfold Types.inject in pfCompat.
       unfold Types.translate in pfCompat.
-      pose (f_equal Vector.tl pfCompat).
-      rewrite <- vector_map_tl in e.
-      exact e.
+      pose (f_equal (@List.length _) pfCompat).
+      repeat rewrite map_length in e.
+      destruct ss.
+      discriminate.
+      constructor.
+      exact (rew sigT_eta _ in fst a).
+      refine (IHst (snd a) ss _).
+      pose (f_equal (@List.tl _) pfCompat).
+      rewrite <- list_map_tl in e0.
+      exact e0.
   Defined.
 
   End Compile.
 
-  Arguments coCompile [src tgt] cr [n st ss] pfCompat [v] a.
+  Arguments coCompile [src tgt] cr [st ss] pfCompat [v] a.
 
 End Allocation.
 
 Definition translate src tgt
            (tr    : translator src tgt)
            (v     : Variables.U tgt)
-           (n     : nat)
-           (ss    : type src n)
+           (ss    : type src)
            (CODE  : Type)
            (sCode : scoped (Variables.Universe.coTranslate tr v) ss CODE)
   : scoped v (Types.translate tr ss) CODE
@@ -275,9 +258,8 @@ Definition translate src tgt
 Definition compile src tgt
            (cr : compiler src tgt)
            (v  : Variables.U tgt)
-           (n : nat)
-           (ss : type src n)
-           (st : type tgt n)
+           (ss : type src)
+           (st : type tgt)
            (pfCompat: Types.compatible cr st ss)
            (CODE : Type)
            (sCode : scoped (Variables.Universe.coCompile cr v) ss CODE)
@@ -286,8 +268,8 @@ Definition compile src tgt
      let resultUncurry := fun a => sCodeUncurried (Allocation.coCompile cr pfCompat a) in
      curryScope resultUncurry.
 
-Arguments translate [src tgt] tr [v n ss CODE].
-Arguments compile   [src tgt] cr [v n ss st] pfCompat [CODE].
+Arguments translate [src tgt] tr [v ss CODE].
+Arguments compile   [src tgt] cr [v ss st] pfCompat [CODE].
 
 (** ** Infering the scope type.
 
@@ -299,10 +281,9 @@ object. This we do by the following type class.
 *)
 
 Require Verse.Language.Types.
-Class Infer t := { nesting : nat;
-                   innerType : Type;
+Class Infer t := { innerType : Type;
                    inferNesting : t ->
-                                  type Types.verse_type_system nesting
+                                  type Types.verse_type_system
                                   *
                                   innerType
                  }.
@@ -323,7 +304,7 @@ Module Cookup.
            (t var)
   := func var.
 
-  Fixpoint alloc {n : nat}(sty : type verse_type_system n)
+  Fixpoint alloc (sty : type verse_type_system)
   : allocation var sty
   := match sty as sty0 return allocation var sty0 with
      | []                     => tt
@@ -337,24 +318,20 @@ Inductive delimit A := body : A -> delimit A.
 Arguments body [A].
 
 Instance infer_delimited A : Infer (delimit A) | 0
-  := {| nesting := 0;
-        innerType := A;
+  := {| innerType := A;
         inferNesting := fun d => let 'body i := d in ([], i)
      |}.
 
 Instance infer_undelimited A : Infer A | 1
-  := {| nesting := 0;
-        innerType := A;
+  := {| innerType := A;
         inferNesting := fun d => ([], d)
      |}.
 
 Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
   : Infer (Cookup.var ty -> t)
-  := {| nesting := S nesting;
-        inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
+  := {| inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
                                  (ty :: sc, i)
      |}.
-
 
 (*
 Section ScopeVar.
