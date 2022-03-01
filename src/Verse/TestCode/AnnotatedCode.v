@@ -1,8 +1,6 @@
 Require Import Verse.BitVector.
-Require Import Verse.Machine.BitVector.
 Require Import Verse.Monoid.
-Require Import Verse.ScopeStore.
-
+Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
 Require Import Verse.AbstractMachine.
@@ -13,7 +11,7 @@ Open Scope annotation_scope.
 
 Set Implicit Arguments.
 
- Section Code.
+Section Code.
 
   Variable v : VariableT.
 
@@ -36,6 +34,10 @@ Set Implicit Arguments.
   Defined.
 
 End Code.
+
+Require Import Verse.Machine.BitVector.
+Require Import Verse.HlistMachine.
+Require Import Verse.ProofTac.
 
 Definition toProve : Prop.
   getProp test.

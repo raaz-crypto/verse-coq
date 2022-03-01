@@ -1,7 +1,7 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.Monoid.
-Require Import Verse.ScopeStore.
+Require Import Verse.HlistMachine.
 
 Require Import Verse.
 (* The file defining a custom entry seems to be a required import to
@@ -56,10 +56,10 @@ Definition toProve : Prop.
   getProp test.
 Defined.
 
-Require Import CoarseMeta.
-
+(*Require Import CoarseMeta.*)
+Require Import ProofTac.
 Definition proof : toProve.
 
-  mrealize.
+  realize.
 
 Abort.
