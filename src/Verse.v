@@ -2,6 +2,7 @@ Require Export String.
 Require Export Verse.Nibble.
 Require Export Verse.Language.
 Require Export Verse.TypeSystem.
+Require Import Verse.Utils.hlist.
 Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
@@ -33,7 +34,9 @@ Definition Var (v : VariableT) ty : v ty -> some (typeOf verse_type_system)
 
 Arguments Var [v ty].
 
-Notation "(--)"             := (tt).
-Notation "(- x -)"          := (pair x tt).
-Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
+(* While there are notations for hlists, function calls look cleaner
+   with this notation *)
+Notation "(--)"             := ([]%hlist).
+Notation "(- x -)"          := ([x]%hlist).
+Notation "(- x , y , .. , z -)" := (hcons x (hcons y .. (hcons z hnil) ..)).
 Notation "'do' B 'end'"     := (Scope.body B).

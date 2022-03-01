@@ -241,8 +241,8 @@ Module Config <: CONFIG.
     with
     | []      => fun _   => nil
     | _ :: xs => fun arg =>
-                   let this := Internals.decl (fst arg) in
-                   let rest := allocToList xs (snd arg) in
+                   let this := Internals.decl (hlist.hd arg) in
+                   let rest := allocToList xs (hlist.tl arg) in
                    (this ++ rest)%list
     end.
 

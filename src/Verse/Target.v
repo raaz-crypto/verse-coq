@@ -7,6 +7,7 @@ Require Import Verse.Error.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
 Require Import Verse.Monoid.Interface.
+Require Import Verse.Utils.hlist.
 Require Verse.Scope.
 Require Import List.
 Import List.ListNotations.
@@ -307,8 +308,8 @@ Module CodeGen (T : CONFIG).
     Definition function
                (func   : forall v, abstracted v (code v))
       : T.programLine + { TranslationError }
-      := let 'Scope.body pbody := Scope.fill verse_params (func _) in
-         let body := Scope.fill verse_locals pbody
+      := let 'Scope.body pbody := Scope.uncurry (func _) verse_params in
+         let body := Scope.uncurry pbody verse_locals
          in do btc     <- typeCheckedTransform body ;;
             do btarget <- codeDenote M _ target_semantics btc ;;
                let fsig := FunSig params locals
@@ -350,13 +351,13 @@ Module CodeGen (T : CONFIG).
 
     (** Given an allocation for the parameters, this generates *)
     Definition fullParams : Scope.allocation vars fullpts
-      := (streamVar, params).
+      := (streamVar :: params)%hlist.
 
     Definition iterativeFunction
                (iFunc       : forall v, abstracted v (iterator v block))
       : T.programLine + {TranslationError}
-      := let 'Scope.body piter := Scope.fill verse_params (iFunc _) in
-         let iter    := Scope.fill verse_locals piter
+      := let 'Scope.body piter := Scope.uncurry (iFunc _) verse_params in
+         let iter    := Scope.uncurry piter verse_locals
          in do iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar ;;
                let fsig := FunSig fullParams locals
                  in do pre    <- codeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;

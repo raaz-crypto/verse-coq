@@ -1,5 +1,6 @@
 Require Import Verse.Target.
 Require Import Verse.Target.C.CodeGen.
+Require Import Verse.Utils.hlist.
 
 Module Compile := Target.CodeGen (C.CodeGen.Config).
 Definition variables := Compile.variables.
@@ -42,10 +43,10 @@ Module Internals.
   Fixpoint calloc (alk : nat) (st :  Scope.type C.Ast.c_type_system)
     : Scope.allocation variables st * nat
     := match st as st0 return Scope.allocation variables st0 * nat with
-         | [] => (tt, alk)
+         | [] => ([]%hlist, alk)
          | qty  :: qts
            => let (xs, used) := calloc (S alk) qts  in
-             ((mkQVar alk qty , xs), used)
+             ((mkQVar alk qty :: xs)%hlist, used)
          end.
 
 End Internals.
