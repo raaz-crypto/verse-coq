@@ -7,6 +7,7 @@ _build/default/src/Verse/CoarseMeta.v
 _build/default/src/Verse/Error.v
 _build/default/src/Verse/FFI/Raaz.v
 _build/default/src/Verse/FFI/Raaz/Target/C.v
+_build/default/src/Verse/HlistMachine.v
 _build/default/src/Verse/Language.v
 _build/default/src/Verse/Language/Macros.v
 _build/default/src/Verse/Language/Macros/BitOps.v
@@ -26,8 +27,9 @@ _build/default/src/Verse/Monoid/Semantics.v
 _build/default/src/Verse/NFacts.v
 _build/default/src/Verse/Nibble.v
 _build/default/src/Verse/Print.v
+_build/default/src/Verse/ProofTac.v
 _build/default/src/Verse/Scope.v
-_build/default/src/Verse/ScopeStore.v
+# _build/default/src/Verse/ScopeStore.v
 _build/default/src/Verse/Target.v
 _build/default/src/Verse/Target/C.v
 _build/default/src/Verse/Target/C/Ast.v

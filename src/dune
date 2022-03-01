@@ -12,6 +12,7 @@
           Verse.Error
           Verse.FFI.Raaz
           Verse.FFI.Raaz.Target.C
+	  Verse.HlistMachine
           Verse.Language
           Verse.Language.Macros
           Verse.Language.Macros.BitOps
@@ -31,6 +32,7 @@
           Verse.NFacts
           Verse.Nibble
           Verse.Print
+	  Verse.ProofTac
           Verse.Scope
           Verse.Target
           Verse.Target.C
