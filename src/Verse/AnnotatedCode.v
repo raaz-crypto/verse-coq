@@ -103,11 +103,11 @@ Record specified tyD Rels v T := { preC : VProp tyD Rels v;
 
 Inductive Annotated tyD Rels v : Type :=
 | instruct  : statement v -> Annotated tyD Rels v
-| proc      : forall n ty, (forall w,
-                               Scope.allocation w (Scope.const n ty)
+| proc      : forall sc, (forall w,
+                               Scope.allocation w sc
                                -> specified tyD Rels w
                                             (fun a b c => list (Annotated a b c)))
-                           -> Scope.allocation v (Scope.const n ty)
+                           -> Scope.allocation v sc
                            -> Annotated tyD Rels v
 | annot     : VProp tyD Rels v       -> Annotated tyD Rels v
 .
@@ -133,7 +133,7 @@ Fixpoint denote1 tyD Rels v
     match ann with
     | instruct _ _ _ s  => inst s
     | annot _ _ _ p     => anndenote p
-    | proc _ _ _ n _ p all => call (fun w wall =>
+    | proc _ _ _ _ p all => call (fun w wall =>
                                       let (pre, bl, post) := p w wall in
                                       anndenote pre ::
                                                 map (denote1 _ _ _) bl
@@ -164,27 +164,27 @@ Global Infix "VOR"  := or  (in custom verse at level 59, left associativity) : a
    inferable in the monotype call setting!
  *)
 
+Arguments CUR [v ty].
+Arguments OLD [v ty].
+Arguments noRels {tyD}.
+Arguments Annotated [tyD].
+Arguments instruct [tyD Rels] {v}.
+Arguments proc [tyD Rels v sc].
+Arguments annot [tyD Rels] {v}.
+Arguments nil {tyD Rels v}.
+
 Notation "'CALL' f 'WITH' a"
   := ([ let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
-      proc _ _ _ _ (*(Scope.nesting (Scope.Cookup.specialise f))*) _ (*(projT1 (fst sc))*)
-           (fun w => Scope.uncurryScope
-                       (st := sc)
-                       (f%function w))
+        proc
+           (fun w => Scope.uncurry
+                    (st := sc)
+                    (f%function w))
            a ])
        (at level 60).
 
 Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
 Notation "'ANNOT' a" := (map (@annot _ _ _) a)
                              (at level 60).
-
-Arguments CUR [v ty].
-Arguments OLD [v ty].
-Arguments noRels {tyD}.
-Arguments Annotated [tyD].
-Arguments instruct [tyD Rels] {v}.
-Arguments proc [tyD Rels v n ty].
-Arguments annot [tyD Rels] {v}.
-Arguments nil {tyD Rels v}.
 
 Notation "F 'DOES' Post" := ({| preC := nil ; block := F; postC := Post |})
 (at level 60).
