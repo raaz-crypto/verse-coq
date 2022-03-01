@@ -7,7 +7,9 @@ A list that has elements of different sorts.
 (* begin hide *)
 Require Import List.
 Require Import Program.Equality.
+
 Import List.ListNotations.
+
 Set Universe Polymorphism.
 (* end hide *)
 
@@ -57,6 +59,18 @@ Definition tl {sort}{A : sort -> Type}{x: sort}{xs : list sort}
   | hcons _ us => us
   end.
 
+Definition hlist_eta {sort}{A : sort -> Type}{x : sort}{xs : list sort}
+      (ha : hlist A (x :: xs)) : ha = (hd ha :: tl ha)%hlist
+  := match ha with
+     | hcons u us => eq_refl
+     end.
+
+Definition casenil [T] (A : T -> Type) (P:hlist A [] -> Type) (H:P []%hlist) hl:P hl :=
+  match hl with
+  | []%hlist => H
+  | _ => fun devil => False_ind (@IDProp) devil
+  end.
+
 Fixpoint map {sort}{A B : sort -> Type}{l : list sort}
          (f : forall s, A s -> B s) : hlist A l -> hlist B l :=
   match l with
@@ -70,7 +84,6 @@ Fixpoint foldl {sort T}{A : sort -> Type}
      | []%hlist => t0
      | (x :: xs)%hlist => foldl func (func _ t0 x) xs
      end.
-
 
 
 Fixpoint foldr {sort T}{A : sort -> Type}
@@ -135,6 +148,24 @@ Section EqBool.
     dependent destruction pf2; simpl; intuition;
     f_equal; eauto.
   Qed.
+
+  Lemma heqb_eqSigT s1 s2 L (pf1 : s1 ∈ L) (pf2 : s2 ∈ L)
+    : heqb pf1 pf2 = true -> existT (fun s => s ∈ L) s1 pf1 = existT _ s2 pf2.
+    induction L;
+      dependent destruction pf1; dependent destruction pf2;
+      simpl; intuition.
+    apply (f_equal (fun ss => existT _ _ (hnext (projT2 ss))) (IHL _ _ H)).
+  Qed.
+
+  Lemma hneqSigT_first (s1 s2 : sort) L (pf : s2 ∈ (s1::L))
+    : existT (fun s => s ∈ (s1::L)) _ hfirst <> existT _ _ pf
+      -> exists pf1, pf = hnext pf1.
+  Proof.
+    dependent destruction pf.
+    + contradiction.
+    + intro. now exists pf.
+  Qed.
+
 End EqBool.
 
 Section ELift.
@@ -171,16 +202,16 @@ for list, indexing hetrogeneous lists element.
 *)
 
 Section Indexing.
-  Context {sort : Type}{A : sort -> Type} {s : sort} .
+  Context {sort : Type}{A : sort -> Type}.
 
-  Fixpoint index {ss : list sort}(idx : s ∈ ss)  :=
+  Fixpoint index {s}{ss : list sort}(idx : s ∈ ss)  :=
     match idx in _ ∈ ss0 return hlist A ss0 -> A s
     with
     |  hfirst => hd
     |  hnext idx' => fun x => index idx' (tl x)
     end.
 
-  Fixpoint update {ss : list sort}(idx : s ∈ ss) :=
+  Fixpoint update {s}{ss : list sort}(idx : s ∈ ss) :=
     match idx in _ ∈ ss0 return hlist A ss0 -> A s -> hlist A ss0
     with
     | hfirst => fun x a => a :: tl x
@@ -196,6 +227,33 @@ Section Indexing.
 
   Definition generate {l : list sort} (func : forall s, s ∈ l -> A s) : hlist A l :=
     map func (all_membership l).
+
+  Lemma updated_index {s}{ss : list sort} (idx : s ∈ ss)
+        (hl : hlist A ss) (x : A s)
+    : index idx (update idx hl x) = x.
+  Proof.
+    induction idx.
+    trivial.
+    apply IHidx.
+  Qed.
+
+  Lemma update_other_index (s0 s1 : sort) (ss : list sort)
+        (idx0 : s0 ∈ ss) (idx1 : s1 ∈ ss)
+        (hl : hlist A ss) (x : A s0)
+    : ~ existT (fun s => member s ss) _ idx0 = existT _ _ idx1
+      -> index idx1 (update idx0 hl x) = index idx1 hl.
+  Proof.
+    (* TODO : Not sure this can be written without dependent induction *)
+    intro.
+    induction hl;
+    dependent induction idx0;
+      dependent induction idx1;
+      try contradiction; trivial.
+    apply IHhl.
+    intro.
+    pose (f_equal (fun sigs => existT (fun s => member s (x0::xs)) _ (hnext (projT2 sigs))) (H0)).
+    contradiction.
+  Qed.
 
 End Indexing.
 
