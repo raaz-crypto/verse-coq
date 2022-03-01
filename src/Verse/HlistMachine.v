@@ -1,6 +1,6 @@
 (* begin hide *)
 Require Import Verse.TypeSystem.
-Require Verse.Scope.
+Require Import Verse.Scope.
 Require Import Verse.Utils.hlist.
 Require Import Verse.AbstractMachine.
 Require Import Verse.Abstract.Machine.
@@ -14,9 +14,9 @@ Section Hlist.
 
   Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
-  Definition v : Variables.U ts := fun ty => member ty sc.
+  Definition memV : Variables.U ts := fun ty => member ty sc.
 
-  Instance HlistMem : State v tyD.
+  Instance HlistMem : State memV tyD.
   refine {| str         := memory tyd sc;
             val         := fun m _ v => index v m;
             storeUpdate := fun _ v f m => update v m (f (index v m));
