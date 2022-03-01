@@ -4,6 +4,7 @@
 
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
+Require Import Verse.Utils.hlist.
 Require Import List.
 Import ListNotations.
 
@@ -48,65 +49,29 @@ Section Scoped.
   Definition const n (ty : typeOf ts direct)
     := List.repeat (existT _ _ ty) n.
 
-  Fixpoint scoped (st : type)(CODE : Type) : Type :=
-    match st with
-    | []      => CODE
-    | t::stl  => v t -> scoped stl CODE
-    end.
+  Definition scoped (st : type)(CODE : Type) : Type := curried v CODE st.
 
   (** An allocation that can be used to satisfy a scoped object of
       [scopeType], [st].
    *)
 
-  Fixpoint allocation (st : type) : Type :=
-    match st with
-    | []     => unit
-    | t::stl => (v t * allocation stl)%type
-    end.
+  Definition allocation (st : type) : Type := hlist v st.
 
   (** And such an allocation can be used to "fill" up the variables *)
 
-  Fixpoint fill {CODE} {st : type}
-  : allocation st -> scoped st CODE -> CODE :=
-    match st with
-    | []             => fun a x => x
-    | existT _ _ _:: lt => fun a x => fill (snd a) (x (fst a))
-    end.
+  Definition uncurry {CODE} {st : type}
+  : scoped st CODE -> allocation st -> CODE := uncurry.
 
-  Definition emptyAllocation : allocation [] := tt.
-
-  Definition uncurryScope {CODE} {st : type}
-    : scoped st CODE -> allocation st -> CODE
-    := fun sc al =>  fill al sc.
-
-  Fixpoint map [A B] (f : A -> B) [st : type] : scoped st A -> scoped st B
-    := match st as st0
-             return scoped st0 A -> scoped st0 B with
-       | []      => f
-       | _ :: xs => fun sStA z => map f (sStA z)
-       end.
-
-  Fixpoint scopedAlloc (st : type) : scoped st (allocation st)
-    := match st as st0
-             return scoped st0 (allocation st0) with
-       | [] => tt
-       | _ :: xs =>
-         fun z =>
-           map (fun a => (z, a)) (scopedAlloc xs)
-       end.
-
-    Definition curryScope {CODE}{st : type}(f : allocation st -> CODE) : scoped st CODE
-    := map f (scopedAlloc st).
+  Definition curry {CODE}{st : type} : (allocation st -> CODE) -> scoped st CODE
+    := curry.
 
 End Scoped.
 
 Arguments const [ts] n ty.
 Arguments allocation [ts] v.
 Arguments scoped [ts] v.
-Arguments map [ts v A B] f [st].
-Arguments curryScope [ts v CODE st] f.
-Arguments uncurryScope [ts v CODE st].
-Arguments fill [ts v CODE st].
+Arguments curry [ts v CODE st] f.
+Arguments uncurry [ts v CODE st].
 
 Require Import Verse.Error.
 
@@ -155,10 +120,9 @@ Module Allocation.
   : allocation v (Types.translate tr st) ->
     allocation (Variables.Universe.coTranslate tr v) st
     := match st with
-       | []    => fun H : unit => H
+       | []    => fun _ => []%hlist
        | x::xs => fun a =>
-                  let (f, r) := a in
-                  (Variables.coTranslate tr f, coTranslate src tgt tr v xs r)
+                  (Variables.coTranslate tr (hlist.hd a) :: coTranslate src tgt tr v xs (hlist.tl a))%hlist
         end.
 
   Fixpoint translate src tgt
@@ -167,11 +131,10 @@ Module Allocation.
            (st : type src)
     : allocation (Variables.Universe.coTranslate tr v) st
       -> allocation v (Types.translate tr st)
-    := match st with
-       | []    => fun H : unit => H
+    := match st as st0 with
+       | []    => fun _ => []%hlist
        | x::xs => fun a =>
-                  let (f, r) := a in
-                  (Variables.coTranslate tr f, translate src tgt tr v xs r)
+                  (Variables.translate tr (hlist.hd a) :: translate src tgt tr v xs (hlist.tl a))%hlist
        end.
 
   Arguments coTranslate [src tgt] tr [v st].
@@ -221,7 +184,7 @@ Module Allocation.
     revert pfCompat.
     revert ss.
     induction st.
-    * intros; exact tt.
+    * intros; exact []%hlist.
     * intros.
       unfold Types.compatible in pfCompat.
       unfold Types.inject in pfCompat.
@@ -231,8 +194,8 @@ Module Allocation.
       destruct ss.
       discriminate.
       constructor.
-      exact (rew sigT_eta _ in fst a).
-      refine (IHst (snd a) ss _).
+      exact (rew sigT_eta _ in hlist.hd a).
+      refine (IHst (hlist.tl a) ss _).
       pose (f_equal (@List.tl _) pfCompat).
       rewrite <- list_map_tl in e0.
       exact e0.
@@ -251,9 +214,9 @@ Definition translate src tgt
            (CODE  : Type)
            (sCode : scoped (Variables.Universe.coTranslate tr v) ss CODE)
   : scoped v (Types.translate tr ss) CODE
-  := let sCodeUncurried := uncurryScope sCode in
+  := let sCodeUncurried := uncurry sCode in
      let resultUncurry := fun a => sCodeUncurried (Allocation.coTranslate tr a) in
-     curryScope resultUncurry.
+     curry resultUncurry.
 
 Definition compile src tgt
            (cr : compiler src tgt)
@@ -264,9 +227,9 @@ Definition compile src tgt
            (CODE : Type)
            (sCode : scoped (Variables.Universe.coCompile cr v) ss CODE)
   : scoped v st CODE
-  := let sCodeUncurried := uncurryScope sCode in
+  := let sCodeUncurried := uncurry sCode in
      let resultUncurry := fun a => sCodeUncurried (Allocation.coCompile cr pfCompat a) in
-     curryScope resultUncurry.
+     curry resultUncurry.
 
 Arguments translate [src tgt] tr [v ss CODE].
 Arguments compile   [src tgt] cr [v ss st] pfCompat [CODE].
@@ -307,8 +270,8 @@ Module Cookup.
   Fixpoint alloc (sty : type verse_type_system)
   : allocation var sty
   := match sty as sty0 return allocation var sty0 with
-     | []                     => tt
-     | (x :: xs) => (cookup x ,alloc xs)
+     | []                     => []%hlist
+     | (x :: xs) => (cookup x :: alloc xs)%hlist
      end.
 End Cookup.
 
