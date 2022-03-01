@@ -1,7 +1,6 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.Monoid.
-Require Import Verse.ScopeStore.
 
 Require Import Verse.
 

@@ -8,8 +8,7 @@
           Verse.Ast
           Verse.AbstractMachine
           Verse.AnnotatedCode
-          Verse.CoarseMeta
-          Verse.Error
+	  Verse.Error
           Verse.FFI.Raaz
           Verse.FFI.Raaz.Target.C
 	  Verse.HlistMachine
