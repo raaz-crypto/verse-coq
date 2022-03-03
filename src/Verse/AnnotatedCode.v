@@ -117,8 +117,6 @@ Definition specifiedC tyD Rels n ty
          Scope.allocation w (Scope.const n ty)
          -> specified tyD Rels w
                       (fun a b c => list (Annotated a b c))).
-(*specified tyD Rels v
-                                               (fun a b c => list (Annotated a b c)).*)
 
 Definition AnnotatedCode tyD Rels v := list (Annotated tyD Rels v).
 
