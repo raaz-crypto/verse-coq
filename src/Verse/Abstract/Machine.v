@@ -52,7 +52,6 @@ Section Machine.
 
   Definition slice (fam : family) := hlist (address fam).
 
-
   (** We now define get and put like operation on memory slices *)
   Section SliceOperations.
     Context {fam fam' : family}.
@@ -74,10 +73,12 @@ Section Machine.
         left *)
 
     Definition puts_list (s : slice fam fam') (mem : memory fam') := toList (puts_hlist s mem).
-    Definition puts (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
+    Definition puts_from_left (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
       := hlist.foldl (fun _ (m : memory fam)  (tr : memory fam -> memory fam) => tr m) start (puts_hlist s mem).
 
-    Definition puts_from_right (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
+    (* The default puts being a fold_right interacts better with the
+    inductive proof of local updates *)
+    Definition puts (s : slice fam fam') (mem : memory fam') (start : memory fam) : memory fam
       := hlist.foldr (fun _  (tr : memory fam -> memory fam) (m : memory fam)  => tr m) start (puts_hlist s mem).
 
   End SliceOperations.
@@ -105,26 +106,56 @@ Section Machine.
   Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
+  Definition local_update {fam out : family} (outslice : slice fam out)
+             (f : memory fam -> memory fam)
+    := forall s (idx : s ∈ fam),
+      (forall t (i : t ∈ out), existT _ _ idx <> existT _ _ (outslice[@i]))
+      -> forall v, get idx (f v) = get idx v.
+
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
     : subroutine fam fam :=
+    let trans := fun v => puts outslice (transform sr (gets inslice v)) v in
     {| requirement := fun v => requirement sr (gets inslice v);
-       transform   := fun v => puts outslice (transform sr (gets inslice v)) v ;
-       guarantee   := fun start stop => guarantee sr (gets inslice start) (gets outslice stop)
-    (* Additional requirement needed here to say that other variables do not change *)
+       transform   := trans;
+       guarantee   := fun start stop =>
+                       guarantee sr (gets inslice start) (gets outslice stop)
+                       /\
+                       local_update outslice trans
     |}.
 
   Program Definition vlift {fam inp out : family} (vsr : vsubroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
              (linprf : linear outslice)
-    : vsubroutine fam fam :=
-    let (sr, vcprf) := vsr in exist VC (lift sr inslice outslice) _.
+    :=
+    let (sr, vcprf) := vsr in
+    exist VC (lift sr inslice outslice) _.
 
   Next Obligation.
     unfold VC; simpl.
     intro gmemstart.
-    rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
-    apply vcprf.
+    constructor.
+    * rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
+      now apply vcprf.
+    * destruct sr.
+      simpl.
+      clear vsr vcprf linprf H requirement0 guarantee0.
+      unfold puts.
+      unfold puts_hlist.
+      intros s idx ineq.
+      induction out.
+    + trivial.
+    + simpl.
+      unfold put.
+      intro.
+      unfold put in IHout.
+      unfold get.
+      rewrite update_other_index.
+      pose (IHout (tl outslice)
+                  (fun mi => tl (transform0 mi))
+                  (fun t i => ineq t (hnext i))
+                  v).
+      apply e.
+      apply (ineq _ hfirst).
   Qed.
-
 
   Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
   Definition updateTransform {tau : type}{fam inp : family}(adr : address fam tau) (f : function inp tau)(args : slice fam inp)
