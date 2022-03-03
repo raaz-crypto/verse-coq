@@ -20,18 +20,18 @@ Section hlist.
   | hnil  : hlist []%list
   | hcons : forall x xs,  A x -> hlist xs -> hlist (x :: xs).
 
-  Context (elem : sort).
-
-  Inductive member : list sort -> Type :=
-  | hfirst : forall l, member (elem :: l)
-  | hnext  : forall s0 l, member l -> member (s0 :: l).
+  (* member's arguments being ordered in this way allows existT's for instances
+  to be written without filling out all holes *)
+  Inductive member : list sort -> sort -> Type :=
+  | hfirst : forall l elem, member (elem :: l) elem
+  | hnext  : forall s0 l elem, member l elem -> member (s0 :: l) elem.
 
 End hlist.
 (* begin hide *)
 Arguments hnil {sort A}.
 Arguments hcons {sort A x xs}.
-Arguments hfirst {sort elem l}.
-Arguments hnext {sort elem s0 l}.
+Arguments hfirst {sort l elem}.
+Arguments hnext {sort s0 l elem}.
 (* end hide *)
 
 Declare Scope hlist_scope.
@@ -40,7 +40,7 @@ Infix "::" := (hcons) : hlist_scope.
 Notation "[ ]" := (hnil) : hlist_scope.
 Notation "[ X ]" := (hcons X hnil) : hlist_scope.
 Notation "[ X ; Y ; .. ; Z ]" := (hcons X (hcons Y .. (hcons Z hnil) ..)) : hlist_scope.
-Notation "X ∈ L" := (member X L)  (at level 70).
+Notation "X ∈ L" := (member L X)  (at level 70).
 Infix "++" := app : hlist_scope.
 
 Delimit Scope hlist_scope with hlist.
@@ -66,6 +66,7 @@ Definition hlist_eta {sort}{A : sort -> Type}{x : sort}{xs : list sort}
      end.
 
 Definition casenil [T] (A : T -> Type) (P:hlist A [] -> Type) (H:P []%hlist) hl:P hl :=
+  (* TODO : Understand this devil business. Taken from VectorDef.case0 *)
   match hl with
   | []%hlist => H
   | _ => fun devil => False_ind (@IDProp) devil
@@ -205,14 +206,14 @@ Section Indexing.
   Context {sort : Type}{A : sort -> Type}.
 
   Fixpoint index {s}{ss : list sort}(idx : s ∈ ss)  :=
-    match idx in _ ∈ ss0 return hlist A ss0 -> A s
+    match idx in s0 ∈ ss0 return hlist A ss0 -> A s0
     with
-    |  hfirst => hd
+    |  hfirst     => hd
     |  hnext idx' => fun x => index idx' (tl x)
     end.
 
   Fixpoint update {s}{ss : list sort}(idx : s ∈ ss) :=
-    match idx in _ ∈ ss0 return hlist A ss0 -> A s -> hlist A ss0
+    match idx in s0 ∈ ss0 return hlist A ss0 -> A s0 -> hlist A ss0
     with
     | hfirst => fun x a => a :: tl x
     | hnext idx' => fun x a => hd x :: update idx' (tl x) a
@@ -240,7 +241,7 @@ Section Indexing.
   Lemma update_other_index (s0 s1 : sort) (ss : list sort)
         (idx0 : s0 ∈ ss) (idx1 : s1 ∈ ss)
         (hl : hlist A ss) (x : A s0)
-    : ~ existT (fun s => member s ss) _ idx0 = existT _ _ idx1
+    : ~ existT _ _ idx1 = existT _ _ idx0
       -> index idx1 (update idx0 hl x) = index idx1 hl.
   Proof.
     (* TODO : Not sure this can be written without dependent induction *)
@@ -251,7 +252,7 @@ Section Indexing.
       try contradiction; trivial.
     apply IHhl.
     intro.
-    pose (f_equal (fun sigs => existT (fun s => member s (x0::xs)) _ (hnext (projT2 sigs))) (H0)).
+    pose (f_equal (fun sigs => existT (member (x0::xs)) _ (hnext (projT2 sigs))) (H0)).
     contradiction.
   Qed.
 
@@ -274,7 +275,7 @@ Lemma all_membership_all sort (l : list sort) : forall s (pf : s ∈ l), index p
   intros.
   induction pf; simpl; trivial.
   rewrite index_map.
-  congruence.
+  now f_equal.
 Qed.
 
 
