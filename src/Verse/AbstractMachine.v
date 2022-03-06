@@ -94,7 +94,7 @@ transformation machine, parametrized on a variable type.
       evalUpdate
       : forall (s : str) (ty : some type) (var : v ty) f,
           forall (ty' : some type) (v' : v ty'),
-            ( ~ (existT _ _ var) = existT _ _ v'-> val (storeUpdate var f s) _ v' = val s _ v')
+            ( ~ (existT _ _ v') = existT _ _ var -> val (storeUpdate var f s) _ v' = val s _ v')
             /\
             val (storeUpdate var f s) _ var = f (val s _ var)
 
