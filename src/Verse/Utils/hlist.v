@@ -112,6 +112,15 @@ Program Fixpoint app {sort}{A : sort -> Type}{l lp : list sort}
   | hcons x hs => fun h => hcons x (app hs h)
   end.
 
+(** Hetrogeneous equality and inequality on membership type *)
+Definition heq {sort}{L : list sort}{s1 s2 : sort}(pf1 : s1 ∈ L)(pf2 : s2 ∈ L)
+           := existT (fun s => s ∈ L) s1 pf1 = existT _ s2 pf2.
+Definition hneq {sort}{L : list sort}{s1 s2 : sort}(pf1 : s1 ∈ L)(pf2 : s2 ∈ L)
+  := existT (fun s => s ∈ L) s1 pf1 <> existT _ s2 pf2.
+
+Notation "P ≡ Q" := (heq P Q) (at level 70, no associativity).
+Notation "P ≢ Q" := (hneq P Q) (at level 70, no associativity).
+
 (* ** Hetrogeneous boolean equality on membership types *)
 Section EqBool.
   Context {sort  : Type}.
@@ -151,7 +160,7 @@ Section EqBool.
   Qed.
 
   Lemma heqb_eqSigT s1 s2 L (pf1 : s1 ∈ L) (pf2 : s2 ∈ L)
-    : heqb pf1 pf2 = true -> existT (fun s => s ∈ L) s1 pf1 = existT _ s2 pf2.
+    : heqb pf1 pf2 = true -> pf1 ≡ pf2.
     induction L;
       dependent destruction pf1; dependent destruction pf2;
       simpl; intuition.
@@ -159,7 +168,7 @@ Section EqBool.
   Qed.
 
   Lemma hneqSigT_first (s1 s2 : sort) L (pf : s2 ∈ (s1::L))
-    : existT (fun s => s ∈ (s1::L)) _ hfirst <> existT _ _ pf
+    : hfirst ≢ pf
       -> exists pf1, pf = hnext pf1.
   Proof.
     dependent destruction pf.
