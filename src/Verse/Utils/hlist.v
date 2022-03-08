@@ -24,14 +24,14 @@ Section hlist.
   to be written without filling out all holes *)
   Inductive member : list sort -> sort -> Type :=
   | hfirst : forall l elem, member (elem :: l) elem
-  | hnext  : forall s0 l elem, member l elem -> member (s0 :: l) elem.
+  | hnext  : forall s l elem, member l elem -> member (s :: l) elem.
 
 End hlist.
 (* begin hide *)
 Arguments hnil {sort A}.
 Arguments hcons {sort A x xs}.
 Arguments hfirst {sort l elem}.
-Arguments hnext {sort s0 l elem}.
+Arguments hnext {sort s l elem}.
 (* end hide *)
 
 Declare Scope hlist_scope.
@@ -121,6 +121,40 @@ Definition hneq {sort}{L : list sort}{s1 s2 : sort}(pf1 : s1 ∈ L)(pf2 : s2 ∈
 Notation "P ≡ Q" := (heq P Q) (at level 70, no associativity).
 Notation "P ≢ Q" := (hneq P Q) (at level 70, no associativity).
 
+
+Lemma heq_next_cong {sort}{L : list sort}{s s1 s2 : sort}{pf1 : s1 ∈ L}{pf2 : s2 ∈ L}
+  : pf1 ≡ pf2 -> hnext (s:=s) pf1 ≡ hnext pf2.
+  unfold heq.
+  intros.
+  dependent destruction H.
+  trivial.
+Qed.
+
+Lemma heq_next_inv {sort}{L : list sort}{s s1 s2 : sort}{pf1 : s1 ∈ L}{pf2 : s2 ∈ L}
+  : hnext (s:=s) pf1 ≡ hnext pf2 -> pf1 ≡ pf2.
+  unfold heq.
+  intros.
+  dependent destruction H.
+  trivial.
+Qed.
+
+Lemma hneq_next_cong {sort}{L : list sort}{s s1 s2 : sort}{pf1 : s1 ∈ L}{pf2 : s2 ∈ L}
+  : pf1 ≢ pf2 -> hnext (s:=s) pf1 ≢ hnext pf2.
+  intro H.
+  intro HnextNeq.
+  apply H.
+  exact (heq_next_inv HnextNeq).
+Qed.
+
+Lemma hneq_next_inv {sort}{L : list sort}{s s1 s2 : sort}{pf1 : s1 ∈ L}{pf2 : s2 ∈ L}
+  : hnext (s:=s) pf1 ≢ hnext pf2 -> pf1 ≢ pf2.
+  intro H.
+  intro HnextNeq.
+  apply H.
+  exact (heq_next_cong HnextNeq).
+Qed.
+
+
 (* ** Hetrogeneous boolean equality on membership types *)
 Section EqBool.
   Context {sort  : Type}.
@@ -161,10 +195,9 @@ Section EqBool.
 
   Lemma heqb_eqSigT s1 s2 L (pf1 : s1 ∈ L) (pf2 : s2 ∈ L)
     : heqb pf1 pf2 = true -> pf1 ≡ pf2.
+    Local Hint Resolve heq_next_cong.
     induction L;
-      dependent destruction pf1; dependent destruction pf2;
-      simpl; intuition.
-    apply (f_equal (fun ss => existT _ _ (hnext (projT2 ss))) (IHL _ _ H)).
+      dependent destruction pf1; dependent destruction pf2; simpl; intuition.
   Qed.
 
   Lemma hneqSigT_first (s1 s2 : sort) L (pf : s2 ∈ (s1::L))
@@ -175,6 +208,7 @@ Section EqBool.
     + contradiction.
     + intro. now exists pf.
   Qed.
+
 
 End EqBool.
 
@@ -242,27 +276,22 @@ Section Indexing.
         (hl : hlist A ss) (x : A s)
     : index idx (update idx hl x) = x.
   Proof.
-    induction idx.
-    trivial.
-    apply IHidx.
+    induction idx; simpl; eauto.
   Qed.
 
   Lemma update_other_index (s0 s1 : sort) (ss : list sort)
         (idx0 : s0 ∈ ss) (idx1 : s1 ∈ ss)
         (hl : hlist A ss) (x : A s0)
-    : ~ existT _ _ idx1 = existT _ _ idx0
+    : idx1 ≢ idx0
       -> index idx1 (update idx0 hl x) = index idx1 hl.
   Proof.
     (* TODO : Not sure this can be written without dependent induction *)
     intro.
+    Hint Resolve hneq_next_inv.
     induction hl;
     dependent induction idx0;
-      dependent induction idx1;
-      try contradiction; trivial.
-    apply IHhl.
-    intro.
-    pose (f_equal (fun sigs => existT (member (x0::xs)) _ (hnext (projT2 sigs))) (H0)).
-    contradiction.
+    dependent induction idx1; simpl;
+    try contradiction;eauto.
   Qed.
 
 End Indexing.
