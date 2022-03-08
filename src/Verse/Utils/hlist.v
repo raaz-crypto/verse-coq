@@ -294,6 +294,12 @@ Section Indexing.
     try contradiction;eauto.
   Qed.
 
+  Check index.
+  Lemma index_tl (s : sort)(ss : list sort)
+    : forall (u : hlist A (s :: ss))(t : sort)(idx : t ∈ ss), index idx (tl u) = index (hnext idx) u.
+    intros.
+    destruct ss; simpl; trivial.
+  Qed.
 End Indexing.
 
 (** Functional form of hlist *)
