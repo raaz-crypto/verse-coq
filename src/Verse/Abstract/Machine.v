@@ -83,6 +83,42 @@ Section Machine.
 
   End SliceOperations.
 
+  Definition notIn {fam out : family}{s}(idx : s ∈ fam)(outslice : slice fam out) : Prop
+    := forall t (i : t ∈ out), idx ≢ outslice[@i].
+
+  Lemma notIn_hd {fam out : family}{s s0}(outslice : slice fam (s0 :: out))
+        : forall  (idx : s ∈ fam), notIn idx outslice -> idx ≢ hd outslice.
+    intros idx HnotIn.
+    apply (HnotIn _ hfirst).
+  Qed.
+
+  Lemma notIn_tl {fam out : family}{s s0}(outslice : slice fam (s0 :: out))
+        : forall  (idx : s ∈ fam), notIn idx outslice -> notIn idx (tl outslice).
+    intros.
+    Hint Resolve index_tl.
+    intros t i.
+    rewrite index_tl.
+    eauto.
+  Qed.
+
+  Lemma noupdate_lemma {fam out : family}(outslice : slice fam out) :
+    forall s (idx : s ∈ fam),
+      notIn idx outslice ->
+      forall v, forall u, get idx (puts outslice u v) = get idx v.
+    intros s idx ineq.
+    Hint Unfold get put.
+    intro v.
+    unfold puts.
+    unfold puts_hlist.
+    induction out; simpl; trivial.
+    unfold put.
+    unfold get.
+    intro u.
+    Local Hint Resolve notIn_tl notIn_hd.
+    rewrite update_other_index;
+    eauto.
+  Qed.
+
   (** ** Linear slice.
 
    This is an alternative to distinctness of variables as far as I see
@@ -109,7 +145,7 @@ Section Machine.
   Definition local_update {fam out : family} (outslice : slice fam out)
              (f : memory fam -> memory fam)
     := forall s (idx : s ∈ fam),
-      (forall t (i : t ∈ out), existT _ _ idx <> existT _ _ (outslice[@i]))
+      (forall t (i : t ∈ out), idx ≢ outslice[@i])
       -> forall v, get idx (f v) = get idx v.
 
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
@@ -135,26 +171,9 @@ Section Machine.
     constructor.
     * rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
       now apply vcprf.
-    * destruct sr.
-      simpl.
-      clear vsr vcprf linprf H requirement0 guarantee0.
-      unfold puts.
-      unfold puts_hlist.
-      intros s idx ineq.
-      induction out.
-    + trivial.
-    + simpl.
-      unfold put.
-      intro.
-      unfold put in IHout.
-      unfold get.
-      rewrite update_other_index.
-      pose (IHout (tl outslice)
-                  (fun mi => tl (transform0 mi))
-                  (fun t i => ineq t (hnext i))
-                  v).
-      apply e.
-      apply (ineq _ hfirst).
+    * unfold local_update.
+      Hint Resolve noupdate_lemma.
+      eauto.
   Qed.
 
   Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
