@@ -1,7 +1,6 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.Monoid.
-Require Import Verse.ScopeStore.
 
 Require Import Verse.
 
@@ -16,7 +15,7 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v Word8.
+  Variable A B : v (existT _ _ Word8).
 
   Definition test : IntAnnotatedCode v bvDenote.
     annotated_verse

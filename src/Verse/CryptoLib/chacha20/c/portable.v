@@ -25,7 +25,6 @@ Module Internal.
      *)
 
     Variable progvar  : VariableT.
-    Arguments progvar [k] _.
 
     Section Params.
       (**
@@ -36,12 +35,12 @@ Module Internal.
 
        *)
 
-      Variable key      : progvar Key.
-      Variable iv       : progvar IV.
-      Variable ctrRef   : progvar (Array 1 hostE Counter).
+      Variable key      : progvar (existT _ _ Key).
+      Variable iv       : progvar (existT _ _ IV).
+      Variable ctrRef   : progvar (existT _ _ (Array 1 hostE Counter)).
 
       (** IV for hchacha20 *)
-      Variable hiv0 hiv1 hiv2 hiv3 : progvar Word.
+      Variable hiv0 hiv1 hiv2 hiv3 : progvar (existT _ _ Word).
 
       Section Locals.
 
@@ -58,12 +57,12 @@ Module Internal.
 
          *)
 
-        Variable Temp            : progvar Word.
-        Variable ctr             : progvar Counter.
+        Variable Temp            : progvar (existT _ _ Word).
+        Variable ctr             : progvar (existT _ _ Counter).
         Variable x0  x1  x2  x3
                  x4  x5  x6  x7
                  x8  x9  x10 x11
-                 x12 x13 x14 x15 : progvar Word.
+                 x12 x13 x14 x15 : progvar (existT _ _ Word).
 
         (**
         Let us make some auxiliary definitions that simplify some of
@@ -119,7 +118,7 @@ Module Internal.
 
          *)
 
-        Definition QRound (a b c d : progvar Word) : code progvar
+        Definition QRound (a b c d : progvar (existT _ _ Word)) : code progvar
           := [code|
                a += b; d ⊕= a; d := d ⋘ `16`;
                c += d; b ⊕= c; b := b ⋘ `12`;
@@ -206,12 +205,12 @@ Module Internal.
 
          *)
 
-        Definition XorBlock (B : progvar (Block littleE))(i : nat) (_ : i < 16)
+        Definition XorBlock (B : progvar (existT _ _ (Block littleE)))(i : nat) (_ : i < 16)
           : code progvar.
           verse [code| Temp := B[ i ]; Temp ⊕= X [ i ]; B[ i ] <- Temp |].
         Defined.
 
-        Definition EmitStream (B : progvar (Block hostE))(i : nat) (_ : i < 16)
+        Definition EmitStream (B : progvar (existT _ _ (Block hostE)))(i : nat) (_ : i < 16)
           : code progvar.
           verse [code| B[ i ] <-  `X i _` |].
         Defined.

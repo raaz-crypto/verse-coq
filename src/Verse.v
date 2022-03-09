@@ -2,6 +2,7 @@ Require Export String.
 Require Export Verse.Nibble.
 Require Export Verse.Language.
 Require Export Verse.TypeSystem.
+Require Import Verse.Utils.hlist.
 Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
@@ -27,14 +28,15 @@ Coercion Vector.to_list : Vector.t >-> list.
 
 Definition VariableT := Variables.U verse_type_system.
 Definition constant ty := const ty.
-Definition Declaration n := Verse.Scope.type verse_type_system n.
-Definition Var (v : VariableT) k ty : v k ty -> some (typeOf verse_type_system)
-  := fun _ => existT _ k ty.
+Definition Declaration := Verse.Scope.type verse_type_system.
+Definition Var (v : VariableT) ty : v ty -> some (typeOf verse_type_system)
+  := fun _ => ty.
 
-Arguments Declaration {n}.
-Arguments Var [v k ty].
+Arguments Var [v ty].
 
-Notation "(--)"             := (tt).
-Notation "(- x -)"          := (pair x tt).
-Notation "(- x , .. , z -)" := (pair x .. (pair z tt) ..).
+(* While there are notations for hlists, function calls look cleaner
+   with this notation *)
+Notation "(--)"             := ([]%hlist).
+Notation "(- x -)"          := ([x]%hlist).
+Notation "(- x , y , .. , z -)" := (hcons x (hcons y .. (hcons z hnil) ..)).
 Notation "'do' B 'end'"     := (Scope.body B).

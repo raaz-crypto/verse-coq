@@ -7,9 +7,10 @@ Require Import Verse.Error.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
 Require Import Verse.Monoid.Interface.
+Require Import Verse.Utils.hlist.
 Require Verse.Scope.
-Require Import Vector.
-Import Vector.VectorNotations.
+Require Import List.
+Import List.ListNotations.
 (* end hide *)
 
 
@@ -24,19 +25,15 @@ need saving etc) and the C prototype for the function.
 *)
 Record funSig ts (v : Variables.U ts) :=
   FunSig {
-      nParameters : nat;
-      nLocals     : nat;
-      paramTypes  : Scope.type ts nParameters;
-      localTypes  : Scope.type ts nLocals;
+      paramTypes  : Scope.type ts;
+      localTypes  : Scope.type ts;
       parameters : Scope.allocation v paramTypes;
       locals     : Scope.allocation v localTypes;
     }.
 
-Arguments FunSig [ts v nParameters nLocals paramTypes localTypes].
+Arguments FunSig [ts v paramTypes localTypes].
 (* begin hide *)
 
-Arguments nParameters [ts v].
-Arguments nLocals     [ts v].
 Arguments paramTypes  [ts v].
 Arguments localTypes  [ts v].
 Arguments parameters [ts v].
@@ -130,7 +127,7 @@ Module Type CONFIG.
       that is being acted on by the [process] fragment of the iterator
    *)
   Parameter dereference  : forall {k}{block : typeOf typs k},
-      vars memory (streamOf block) -> vars k block.
+      vars (existT _ _ (streamOf block)) -> vars (existT _ _ block).
 
   (** The [mapOverBlocks] applies a set of instructions on a single
       block and iterates it over all the blocks in the stream. It
@@ -140,7 +137,7 @@ Module Type CONFIG.
 
   Parameter mapOverBlocks :
     forall {block : typeOf typs memory},
-      vars memory (streamOf block) ->
+      vars (existT _ _ (streamOf block)) ->
       list statement       ->
       list statement.
 
@@ -149,6 +146,7 @@ Module Type CONFIG.
      signature and its body of statements.
    *)
   Parameter programLine  : Type.
+
   Parameter makeFunction
     : forall name : Set,
       name
@@ -202,12 +200,11 @@ Module CodeGen (T : CONFIG).
   (** To carry out these transformation, we also need compatibility of
       the allocation types which the following predicate asserts *)
 
-  Definition compatible n st ss := Scope.Types.compatible (n:=n) T.typeCompiler st ss.
+  Definition compatible st ss := Scope.Types.compatible T.typeCompiler st ss.
 
   (* begin hide *)
-  Arguments toVerseAllocation [n st ss] _ [v].
+  Arguments toVerseAllocation [st ss] _ [v].
   Arguments typeCheckedTransform [v].
-  Arguments compatible [n].
 
   (* end hide *)
 
@@ -237,9 +234,9 @@ Module CodeGen (T : CONFIG).
         variables of the iterator/function.
 
      *)
-    Variable p l : nat.
-    Variable pvs  : Scope.type verse_type_system p.
-    Variable lvs  : Scope.type verse_type_system l.
+
+    Variable pvs  : Scope.type verse_type_system.
+    Variable lvs  : Scope.type verse_type_system.
 
     (**
        The abstracted form of function/iterator is just a nested
@@ -265,7 +262,7 @@ Module CodeGen (T : CONFIG).
       : Types.compile T.typeCompiler block = {- streamElem -}.
 
     Definition streamType := T.streamOf streamElem.
-    Variable   streamVar  : vars memory streamType.
+    Variable   streamVar  : vars (existT _ _ streamType).
 
 
     (** Both iterators and ordinary straight line functions now need
@@ -279,8 +276,8 @@ Module CodeGen (T : CONFIG).
         The allocation types for parameters, locals, and registers
         on the target side.
      *)
-    Variable pts  : Scope.type typs p.
-    Variable lts  : Scope.type typs l.
+    Variable pts  : Scope.type typs.
+    Variable lts  : Scope.type typs.
 
     (**
        Proofs of compatibility of the allocation types on the verse
@@ -311,8 +308,8 @@ Module CodeGen (T : CONFIG).
     Definition function
                (func   : forall v, abstracted v (code v))
       : T.programLine + { TranslationError }
-      := let 'Scope.body pbody := Scope.fill verse_params (func _) in
-         let body := Scope.fill verse_locals pbody
+      := let 'Scope.body pbody := Scope.uncurry (func _) verse_params in
+         let body := Scope.uncurry pbody verse_locals
          in do btc     <- typeCheckedTransform body ;;
             do btarget <- codeDenote M _ target_semantics btc ;;
                let fsig := FunSig params locals
@@ -354,13 +351,13 @@ Module CodeGen (T : CONFIG).
 
     (** Given an allocation for the parameters, this generates *)
     Definition fullParams : Scope.allocation vars fullpts
-      := (streamVar, params).
+      := (streamVar :: params)%hlist.
 
     Definition iterativeFunction
                (iFunc       : forall v, abstracted v (iterator v block))
       : T.programLine + {TranslationError}
-      := let 'Scope.body piter := Scope.fill verse_params (iFunc _) in
-         let iter    := Scope.fill verse_locals piter
+      := let 'Scope.body piter := Scope.uncurry (iFunc _) verse_params in
+         let iter    := Scope.uncurry piter verse_locals
          in do iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar ;;
                let fsig := FunSig fullParams locals
                  in do pre    <- codeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;
@@ -368,14 +365,15 @@ Module CodeGen (T : CONFIG).
                     do post   <- codeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
                        let lp := T.mapOverBlocks streamVar middle in
                        {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
+
   End Shenanigans.
 
-  Arguments function [name] _
-            [p l].
-  Arguments iterativeFunction [name] _ _ [p l].
-  Definition targetTypes {n} (vts : Scope.type Types.verse_type_system n)
-    := pullOutVector (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
+  Arguments function [name] _.
+  Arguments iterativeFunction [name] _ _.
+  Definition targetTypes (vts : Scope.type Types.verse_type_system)
+    := pullOutList (map pullOutSigT (Scope.Types.translate T.typeCompiler vts)).
 
   Definition programLine := T.programLine.
   Definition variables   := vars.
+
 End CodeGen.

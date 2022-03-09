@@ -4,6 +4,7 @@ Require Verse.Scope.
 Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.Semantics.
 
+Require Import EqdepFacts.
 Require Import Eqdep_dec.
 Require Import Equality.
 
@@ -15,8 +16,7 @@ Section ScopeStore.
   Variable ts : typeSystem.
   Variable tyD : typeDenote ts.
 
-  Local Definition tyd  := typeTrans tyD.
-  Arguments tyd [k].
+  Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
   Local Definition type := typeOf ts.
 
@@ -25,10 +25,10 @@ Section ScopeStore.
 
   Fixpoint frmStore
            {n} {sc : Scope.type ts n} (s : scstr sc)
-           {k} {ty : type k} (x : Scope.scopeVar sc _ ty)
+           {ty : some type} (x : Scope.scopeVar sc ty)
     : tyd ty
     :=
-      match x in Scope.scopeVar sc0 _ ty0 return scstr sc0
+      match x in Scope.scopeVar sc0 ty0 return scstr sc0
                                                  -> (tyd ty0 : Type) with
       | Scope.headVar    => fun s0 => let '(vx, _) := s0 in vx
       | Scope.restVar rx => fun s0 => let '(_, st) := s0 in frmStore st rx
@@ -36,10 +36,10 @@ Section ScopeStore.
 
 Fixpoint wrtStore
          {n} {sc : Scope.type ts n}
-         {k} {ty : type k} (var : Scope.scopeVar sc _ ty)
+         {ty : some type} (var : Scope.scopeVar sc ty)
   : (tyd ty -> tyd ty) ->
     scstr sc -> scstr sc :=
-  match var as var0 in Scope.scopeVar sc0 _ ty0 return
+  match var as var0 in Scope.scopeVar sc0 ty0 return
         (tyd ty0 -> tyd ty0)
         -> scstr sc0 -> scstr sc0
   with
@@ -51,9 +51,9 @@ Fixpoint wrtStore
 Axiom frmWrt :
   forall n (sc : Scope.type ts n)
            (st : scstr sc)
-           k (ty : type k) (var : Scope.scopeVar sc _ ty) f
-           k' (ty' : type k') (v' : Scope.scopeVar sc _ ty'),
-    ( ~ eq_dep2 var v'-> frmStore (wrtStore var f st) v' = frmStore st v')
+           (ty : some type) (var : Scope.scopeVar sc ty) f
+           (ty' : some type) (v' : Scope.scopeVar sc ty'),
+    ( ~ eq_dep _ _ _ var _ v'-> frmStore (wrtStore var f st) v' = frmStore st v')
     /\
     frmStore (wrtStore var f st) var = f (frmStore st var).
 
@@ -72,8 +72,8 @@ Instance scopeStore
 End ScopeStore.
 
 Arguments scstr [ts] _ [n] _.
-Arguments frmStore [ts tyD n sc] {_} [k ty].
-Arguments wrtStore [ts tyD n sc k ty].
+Arguments frmStore [ts tyD n sc] {_} [ty].
+Arguments wrtStore [ts tyD n sc ty].
 Arguments scopeStore [ts] _ [n].
 
 Require Import Verse.AnnotatedCode.

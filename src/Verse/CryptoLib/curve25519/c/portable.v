@@ -2,15 +2,14 @@ Require Import Verse.
 Import VerseNotations.
 
 
-Definition Limb      := Word64.
-Definition Element   := Array 4 littleE Limb.
-Definition Scalar    := Array 4 littleE Limb.
+Definition Limb      := existT _ _ Word64.
+Definition Element   := existT _ _ (Array 4 littleE (projT2 Limb)).
+Definition Scalar    := existT _ _ (Array 4 littleE (projT2 Limb)).
 
 Module Internal.
 
   Section Curve25519.
     Variable progvar : VariableT.
-    Arguments progvar [k] _.
 
     (** ** Clamping the scalar [n].
 
@@ -35,7 +34,7 @@ Module Internal.
         |].
     Defined.
 
-    Definition clampIter (T : progvar Limb) : iterator progvar Scalar
+    Definition clampIter (T : progvar Limb) : iterator progvar (projT2 Scalar)
       := {| setup    := [];
             process  := clamp T;
             finalise := []
@@ -56,7 +55,7 @@ Require Import Verse.Error.
 
 Definition clamp  : CodeGen.Config.programLine + {Error.TranslationError}.
   Iterator verse_curve25519_c_portable_clamp
-           Scalar
+           (projT2 Scalar)
            Internal.ClampIter.
 Defined.
 
@@ -70,6 +69,6 @@ Require Import Verse.FFI.Raaz.Target.C.
 
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_curve25519_c_portable_clamp
-                               Scalar
+                               (projT2 Scalar)
                                Internal.ClampIter
                     ].

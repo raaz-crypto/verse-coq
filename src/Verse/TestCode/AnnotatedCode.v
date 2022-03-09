@@ -1,8 +1,6 @@
 Require Import Verse.BitVector.
-Require Import Verse.Machine.BitVector.
 Require Import Verse.Monoid.
-Require Import Verse.ScopeStore.
-
+Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
 Require Import Verse.AbstractMachine.
@@ -13,12 +11,12 @@ Open Scope annotation_scope.
 
 Set Implicit Arguments.
 
- Section Code.
+Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v Word8.
-  Variable C   : v Word16.
+  Variable A B : v (existT _ _ Word8).
+  Variable C   : v (existT _ _ Word16).
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
@@ -36,6 +34,10 @@ Set Implicit Arguments.
   Defined.
 
 End Code.
+
+Require Import Verse.Machine.BitVector.
+Require Import Verse.HlistMachine.
+Require Import Verse.ProofTac.
 
 Definition toProve : Prop.
   getProp test.

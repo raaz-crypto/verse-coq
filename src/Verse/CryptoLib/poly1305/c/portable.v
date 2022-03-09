@@ -203,7 +203,6 @@ Module Internal.
      *)
 
     Variable progvar : VariableT.
-    Arguments progvar [k] _.
 
     Section Params.
 
@@ -259,10 +258,10 @@ Module Internal.
 
        *)
 
-      Variable LastBlock : progvar Block.
-      Variable AArray    : progvar ElemArray.
-      Variable RArray    : progvar Array128.
-      Variable SArray    : progvar Array128.
+      Variable LastBlock : progvar (existT _ _ Block).
+      Variable AArray    : progvar (existT _ _ ElemArray).
+      Variable RArray    : progvar (existT _ _ Array128).
+      Variable SArray    : progvar (existT _ _ Array128).
 
       Section Locals.
         (** ** Registers.
@@ -281,13 +280,13 @@ Module Internal.
 
          *)
 
-        Variables a0 a1 a2 a3 a4 : progvar Limb.
-        Variables r0 r1 r2 r3    : progvar Limb.
+        Variables a0 a1 a2 a3 a4 : progvar (existT _ _ Limb).
+        Variables r0 r1 r2 r3    : progvar (existT _ _ Limb).
         (** The limbs that capture the result of product *)
-        Variable p1 p2 p3 p4 : progvar Limb.
+        Variable p1 p2 p3 p4 : progvar (existT _ _ Limb).
 
         (** Temporary variables that is used often *)
-        Variable T0 T1 : progvar Limb.
+        Variable T0 T1 : progvar (existT _ _ Limb).
 
         Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
         Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
@@ -295,9 +294,9 @@ Module Internal.
         Section LoadStore64.
           Variable bound : nat.
           Variable e     : endian.
-          Variable Arr   : progvar (Array bound e Limb).
+          Variable Arr   : progvar (existT _ _ (Array bound e Limb)).
           Variable i     : nat.
-          Variable x0 x1 : progvar Limb.
+          Variable x0 x1 : progvar (existT _ _ Limb).
           Variable bpf   : i < bound.
           Definition Load64 : code progvar.
             verse [code|
@@ -369,7 +368,7 @@ Module Internal.
          *)
 
 
-        Definition Add128 {e : endian}(blk : progvar (Array 2 e Word64)) : code progvar.
+        Definition Add128 {e : endian}(blk : progvar (existT _ _ (Array 2 e Word64))) : code progvar.
           verse (
               Load64 blk 0 T0 T1 _
                      ++ [code|
@@ -384,7 +383,7 @@ Module Internal.
             )%list.
         Defined.
 
-        Definition AddFullBlock (blk : progvar Block) : code progvar
+        Definition AddFullBlock (blk : progvar (existT _ _ Block)) : code progvar
           := (Add128 blk ++ [code| a4 += `1` |])%list.
 
         (** ** Computing [A := A * R]
@@ -647,12 +646,12 @@ Module Internal.
       block is full or partial.
          *)
 
-        Definition ProcessBlock (AddC : progvar Block -> code progvar)(blk : progvar Block)
+        Definition ProcessBlock (AddC : progvar (existT _ _ Block) -> code progvar)(blk : progvar (existT _ _ Block))
           : code progvar
           := (AddC blk ++ MulR ++ AdjustBits)%list.
 
-        Definition ProcessFullBlock : progvar Block -> code progvar  := ProcessBlock AddFullBlock.
-        Definition ProcessLastBlock : progvar Block -> code progvar  := ProcessBlock Add128.
+        Definition ProcessFullBlock : progvar (existT _ _ Block) -> code progvar  := ProcessBlock AddFullBlock.
+        Definition ProcessLastBlock : progvar (existT _ _ Block) -> code progvar  := ProcessBlock Add128.
 
         (** * The exported functions and iterators.
 
@@ -725,7 +724,7 @@ Module Internal.
 
          *)
 
-        Definition clamp (blk : progvar Array128) : code progvar.
+        Definition clamp (blk : progvar (existT _ _ Array128)) : code progvar.
           verse [code|
 
                  T0 := blk[ `0` ];

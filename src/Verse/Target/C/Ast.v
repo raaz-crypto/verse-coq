@@ -9,7 +9,7 @@ translation of verse code is captured here.
 
  *)
 
-Inductive type  : kind -> Set :=
+Inductive type  : kind -> Type :=
 | uint8_t       : type direct
 | uint16_t      : type direct
 | uint32_t      : type direct
@@ -20,7 +20,7 @@ Inductive type  : kind -> Set :=
 
 Definition carrayType n (e : endian) t := array n t.
 
-Definition const (ty : type direct) := list Nibble.
+Definition const (ty : type direct) : Type := list Nibble.
 
 
 (** * The expression language.
@@ -74,19 +74,18 @@ variables.
 
 *)
 
-Inductive cvar : forall k, type k -> Type :=
-| bPtr  : forall sz t, cvar memory (ptrToArray sz t)
-| cTr   : cvar direct uint64_t
-| cTr32 : cvar direct uint64_t
-| cVar  : forall k (ty : type k), nat -> cvar k ty.
+Inductive cvar : some type -> Type :=
+| bPtr  : forall sz t, cvar (existT _ _ (ptrToArray sz t))
+| cTr   : cvar (existT _ _ uint64_t)
+| cTr32 : cvar (existT _ _ uint64_t)
+| cVar  : forall (ty : some type), nat -> cvar ty.
 
 Arguments bPtr [sz].
-Arguments cVar [k].
 
 Module Expr.
 
   Inductive expr :=
-  | cvar2exp       : forall k (ty : type k), cvar k ty -> expr
+  | cvar2exp       : forall (ty : some type), cvar ty -> expr
   | app            : forall n, op n -> Vector.t expr n -> expr
   | index          : expr -> nat -> expr
   | ptrDeref       : expr -> expr
@@ -97,7 +96,7 @@ Module Expr.
   | verse_const    : forall ty, const ty -> expr
   | gt_zero        : expr -> expr.
   Arguments app [n].
-  Arguments cvar2exp [k ty].
+  Arguments cvar2exp [ty].
 End Expr.
 
 Coercion Expr.cvar2exp : cvar >-> Expr.expr.
@@ -105,9 +104,9 @@ Coercion Expr.cvar2exp : cvar >-> Expr.expr.
 Import Expr.
 
 Inductive declaration :=
-| declare_variable : forall k (ty : type k), expr -> declaration.
+| declare_variable : forall (ty : some type), expr -> declaration.
 
-Definition declare k ty := declare_variable k ty.
+Definition declare ty := declare_variable ty.
 
 Inductive parameters := params : list declaration -> parameters.
 
@@ -132,9 +131,7 @@ Inductive program :=
 (* begin hide *)
 Arguments update _ [n].
 
-Arguments cvar [k].
-Arguments declare_variable [k].
-Arguments declare [k ty].
+Arguments declare [ty].
 Arguments function [FN].
 Arguments include [FileName].
 
