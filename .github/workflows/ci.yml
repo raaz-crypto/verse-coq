@@ -1,7 +1,11 @@
 name: CI
 on:
   push:
+    branches:
+      - "**"
   pull_request:
+    branches:
+      - "**"
   schedule:
     # Daily build.
     - cron: '0 8 * * *'
@@ -12,13 +16,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        coq: [ 'latest', '8.13.2', '8.12.2', '8.11.2', '8.10.2' ]
-    env:
-      COQVER:  ${{ matrix.coq }}
+        coq_version: [ 'latest', '8.13.2', '8.12.2', '8.11.2', '8.10.2' ]
+      fail-fast: false
     steps:
       - uses: actions/checkout@v2
       - uses: coq-community/docker-coq-action@v1
         with:
+          coq_version: ${{ matrix.coq_version }}
           custom_script: |
             {{install}}
             {{before_script}}
