@@ -36,6 +36,7 @@ End Hlist.
 
 Arguments fillMemV [ts sc CODE].
 
+Require Import Verse.Language.Pretty.
 Require Import Verse.AnnotatedCode.
 Require Import Vector.
 Import VectorNotations.
