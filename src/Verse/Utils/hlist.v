@@ -374,6 +374,29 @@ Arguments uncurry {sort A B ss}.
 Arguments bind {sort A B ss s}.
 Arguments unbind {sort A B ss s}.
 
+
+Require Import FunctionalExtensionality.
+Section CurryUncurry.
+  Context {sort}{A : sort -> Type}{B : Type}.
+  Lemma uncurry_curry : forall ss (fn : hlist A ss -> B), forall hl, uncurry (curry fn) hl = fn hl.
+  Proof.
+    intros.
+    induction hl as [|s ss a hlp IH]; simpl; eauto.
+    rewrite IH; trivial.
+  Qed.
+
+  Lemma uncurry_curry_ext : forall ss (fn : hlist A ss -> B), uncurry (curry fn) = fn.
+  Proof.
+    intros.
+    extensionality hl.
+    apply uncurry_curry.
+  Qed.
+
+End CurryUncurry.
+
+Definition collect {sort} (A : sort -> Type) (ss : list sort) : curried A (hlist A ss) ss :=
+  curry (fun x => x).
+
 Fixpoint ForAll {sort:Type}{A : sort -> Type}{ss : list sort} : curried A Prop ss -> Prop
   := match ss as ss0 return curried A Prop ss0 -> Prop with
      | [] => fun x => x
