@@ -595,7 +595,7 @@ Module SDP.
 End SDP.
 
 Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
-                         `{h : action A B}
+         (h : action A B)
   : Monoid (A * B)
   := {| ε := SDP.id A B;
         oper := SDP.oper _ _ h;
@@ -672,6 +672,16 @@ easy.
 (*all: simpl in *; rewrite e; trivial.*)
 Defined.
 
+(* The following definitions are towards giving a monoid structure for
+   the Abstract Machine.
+
+   Code there is of the type
+
+   (state -> state) * (state * state -> Prop)
+
+   to capture both the state transition and annotations on the state.
+ *)
+
 Definition comp A B `{Monoid B} : action (A -> A) (A -> B).
 refine {| f        := twist;
           well_def := _;
@@ -718,3 +728,6 @@ now rewrite <- (surjective_pairing).
 now unfold halftwist.
 
 Defined.
+
+Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
+  := semi_direct_prod _ _ (halfcomp A B).
