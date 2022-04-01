@@ -191,7 +191,7 @@ apply (associativity (Monoid := H0 x0)).
 
 Defined.
 
-Class Hom t1 t2 `{Monoid t1} `{Monoid t2}
+Record Hom t1 t2 `{Monoid t1} `{Monoid t2}
   := { f         : t1 -> t2;
        well_def  : forall {a b}, a == b -> f a == f b;
        unit_map  : f ε == ε;
@@ -200,6 +200,8 @@ Class Hom t1 t2 `{Monoid t1} `{Monoid t2}
 
 Arguments f {t1 t2 _ _ _ _}.
 Arguments well_def {t1 t2 _ _ _ _} _ [a b].
+Arguments unit_map [t1 t2] {_ _ _ _} _.
+Arguments commute [t1 t2] {_ _ _ _} _.
 
 Definition End T `{Monoid T} := Hom T T.
 
@@ -210,7 +212,7 @@ Ltac hom_crush :=
   | |- f ?h _ == f ?h _  => apply well_def
   | |- f ?h _  == ε   => try (apply unit_map);
                             apply Equivalence_Symmetric;
-                            rewrite <- (unit_map (Hom := h)) at 1;
+                            rewrite <- (unit_map h) at 1;
                             apply well_def; apply Equivalence_Symmetric
   | |- f ?h _ == f ?h _ ** f ?h _ => try (apply commute); rewrite <- commute
   | _                    => trivial
@@ -545,7 +547,7 @@ Module SDP.
       apply conj.
       apply left_identity.
       rewrite left_identity.
-      pose (unit_map (Hom := h)).
+      pose (unit_map h).
       simpl in e.
       unfold End.eq in e.
       simpl in e.
@@ -579,7 +581,7 @@ Module SDP.
       apply welldef_r.
       rewrite commute.
       apply welldef_r.
-      pose (commute (Hom := h) (a := a) (b := a0)).
+      pose (commute h a a0).
       transitivity (f (f h a ** f h a0) b1).
       now simpl.
 
@@ -670,7 +672,7 @@ easy.
 (*all: simpl in *; rewrite e; trivial.*)
 Defined.
 
-Instance comp A B `{Monoid B} : action (A -> A) (A -> B).
+Definition comp A B `{Monoid B} : action (A -> A) (A -> B).
 refine {| f        := twist;
           well_def := _;
           unit_map := _;
@@ -688,7 +690,7 @@ easy.
 easy.
 Defined.
 
-Instance halfcomp A B `{Monoid B} : action (A -> A) (A*A -> B).
+Definition halfcomp A B `{Monoid B} : action (A -> A) (A*A -> B).
 
 refine {| f        := halftwist;
           well_def := _;
