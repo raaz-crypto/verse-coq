@@ -191,49 +191,57 @@ apply (associativity (Monoid := H0 x0)).
 
 Defined.
 
-Class Hom t1 t2 `{Monoid t1} `{Monoid t2}
-  := { f         : t1 -> t2;
+Record isHom [t1 t2] `{Monoid t1} `{Monoid t2} (f : t1 -> t2)
+  := {
        well_def  : forall {a b}, a == b -> f a == f b;
        unit_map  : f ε == ε;
        commute   : forall {a b}, f (a ** b) == (f a) ** (f b)
      }.
 
-Arguments f {t1 t2 _ _ _ _}.
-Arguments well_def {t1 t2 _ _ _ _} _ [a b].
+Arguments well_def {t1 t2 _ _ _ _ _} _ [a b].
+Arguments unit_map [t1 t2] {_ _ _ _ _} _.
+Arguments commute [t1 t2] {_ _ _ _ _} _.
+
+Definition Hom t1 t2 `{Monoid t1} `{Monoid t2} := { f : t1 -> t2 & isHom f }.
 
 Definition End T `{Monoid T} := Hom T T.
+
+Notation func := projT1.
 
 Ltac hom_crush :=
   unfold compose; intros;
   repeat
-  match goal with
-  | |- f ?h _ == f ?h _  => apply well_def
-  | |- f ?h _  == ε   => try (apply unit_map);
-                            apply Equivalence_Symmetric;
-                            rewrite <- (unit_map (Hom := h)) at 1;
-                            apply well_def; apply Equivalence_Symmetric
-  | |- f ?h _ == f ?h _ ** f ?h _ => try (apply commute); rewrite <- commute
-  | _                    => trivial
+    match goal with
+    | H : Hom _ |- _ => destruct H
+    | E : End _ |- _ => destruct E
+    | |- func ?h _  == func ?h _  => apply well_def
+    | |- func ?h _  == ε   => try (apply (unit_map (projT2 h)));
+                              apply Equivalence_Symmetric;
+                              rewrite <- (unit_map (projT2 h)) at 1;
+                              apply (well_def (projT2 h)); apply Equivalence_Symmetric
+    | |- func ?h _  == func ?h _ ** func ?h _ => try (apply (commute (projT2 h)));
+                                                 rewrite <- (commute (projT2 h))
+    | _                    => trivial
   end.
 
 Module End.
 
   Definition eq {T} `{Monoid T} (h1 h2 : End T)
-    := f h1 == f h2.
+    := func h1 == func h2.
 
   Definition op {T} `{Monoid T}
                   (h1 h2 : End T) : End T.
-    refine {| f        := f h2 >-> f h1;
-              well_def := _;
-              unit_map := _;
-              commute  := _
-           |}.
+    refine (existT _ (func h2 >-> func h1)
+                  {|
+                    well_def := _;
+                    unit_map := _;
+                    commute  := _
+                  |}).
     all: hom_crush.
   Defined.
 
-  Definition id {T} `{Monoid T} : End T :=
+  Definition id {T} `{Monoid T} : isHom id :=
     {|
-      f := id;
       well_def := fun _ _ e => e;
       unit_map := reflexivity ε;
       commute  := fun f g => reflexivity (f ** g)
@@ -269,23 +277,22 @@ Module End.
 
   Instance end_monoid T `{Monoid T} : Monoid (End T).
   refine
-    {| ε           := id;
+    {| ε           := existT _ _ id;
        oper           := op;
-       welldef_l      := fun x y z e => _ (*eq_ind_r (fun t : T -> T =>
-                                                    (fun xx : T => t (f z xx)) = (fun xx : T => f y (f z xx)))
-                                                 eq_refl e*);
-       welldef_r      := fun x y z e => _ (*eq_ind_r (fun t : T -> T =>
-                                                    (fun x0 : T => f z (t x0)) = (fun x0 : T => f z (f y x0)))
-                                                 eq_refl e*);
-       left_identity  := fun _ => _(*eq_refl*);
-       right_identity := fun _ => _(*eq_refl*);
-       associativity  := fun _ _ _ => _ (*eq_refl*);
+       welldef_l      := fun x y z e => _;
+       welldef_r      := fun x y z e => _;
+       left_identity  := fun _ => _;
+       right_identity := fun _ => _;
+       associativity  := fun _ _ _ => _;
     |}.
   unfold op.
   simpl in *.
   unfold eq in *.
   simpl in *.
-  now unfold compose.
+  destruct z.
+  unfold compose.
+  intro.
+  apply e.
 
   unfold op.
   simpl in *.
@@ -293,7 +300,10 @@ Module End.
   simpl in *.
   unfold compose.
   intro.
-  now apply well_def.
+  trivial.
+
+  unfold op.
+  now apply (well_def (projT2 z)).
 
   now unfold op.
 
@@ -485,9 +495,7 @@ Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
                          Equivalence_Transitive := Prod.trans
                         |}
      |}.
-(*
-Definition action A B `{Monoid A} `{Monoid B} := Hom A (End B).
- *)
+
 Notation action A B := (Hom A (End B)).
 
 Module SDP.
@@ -497,8 +505,8 @@ Module SDP.
     Definition id `{Monoid A} `{Monoid B} : A*B := (ε, ε).
 
     Definition oper `{Monoid A} `{Monoid B} (h : action A B)
-      := fun p q => ((fst p) ** (fst q),
-                     (snd p) ** (f (f h (fst p)) (snd q))).
+      := fun (p q : A*B) => ((fst p) ** (fst q),
+                     (snd p) ** (func (func h (fst p)) (snd q))).
 
     Definition welldefl `{Monoid A} `{Monoid B} h px py pz
       : px == py -> oper h px pz == oper h py pz.
@@ -516,13 +524,13 @@ Module SDP.
       apply welldef.
       trivial.
 
-      enough (f (f h (fst px)) == f (f h (fst py))).
+      enough (func (func h (fst px)) == func (func h (fst py))).
       trivial.
 
-      enough (f h (fst px) == f h (fst py)).
+      enough (func h (fst px) == func h (fst py)).
       trivial.
 
-      now apply (well_def h).
+      now apply (well_def (projT2 h)).
     Defined.
 
     Definition welldefr `{Monoid A} `{Monoid B} h px py pz
@@ -534,10 +542,14 @@ Module SDP.
 
       simpl.
       apply welldef_r.
-      now apply well_def.
+      apply well_def.
+      destruct h.
+      simpl.
+      destruct (x a).
+      all: trivial.
     Defined.
 
-    Definition left_identity `{Monoid A} `{Monoid B} h x
+    Definition left_identity `{Monoid A} `{Monoid B} h (x:A*B)
       : oper h id x == x.
       simpl.
       unfold Prod.eq.
@@ -545,7 +557,7 @@ Module SDP.
       apply conj.
       apply left_identity.
       rewrite left_identity.
-      pose (unit_map (Hom := h)).
+      pose (unit_map (projT2 h)).
       simpl in e.
       unfold End.eq in e.
       simpl in e.
@@ -564,6 +576,10 @@ Module SDP.
       apply welldef.
       reflexivity.
       apply unit_map.
+      destruct h.
+      simpl.
+      destruct (x0 (fst x)).
+      now simpl.
     Defined.
 
     Definition associativity `{Monoid A} `{Monoid B} h x y z
@@ -577,13 +593,14 @@ Module SDP.
       simpl.
       rewrite <- associativity.
       apply welldef_r.
-      rewrite commute.
+      simpl End.eq.
+      rewrite (commute (projT2 (func h a))).
       apply welldef_r.
-      pose (commute (Hom := h) (a := a) (b := a0)).
-      transitivity (f (f h a ** f h a0) b1).
+      pose (commute (projT2 h) a a0).
+      transitivity (func (func h a ** func h a0) b1).
       now simpl.
 
-      enough (f h a ** f h a0 == f h (a ** a0)).
+      enough (func h a ** func h a0 == func h (a ** a0)).
       trivial.
 
       now rewrite e.
@@ -593,7 +610,7 @@ Module SDP.
 End SDP.
 
 Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
-                         `{h : action A B}
+         (h : action A B)
   : Monoid (A * B)
   := {| ε := SDP.id A B;
         oper := SDP.oper _ _ h;
@@ -607,11 +624,12 @@ Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
 
 
 Definition twist {A B} `{Monoid B} (ea : A -> A) : End (A -> B).
-  refine {| f        := fun m => ea >-> m;
-            well_def := _;
-            unit_map := _;
-            commute  := _
-         |}.
+  refine (existT _ (fun m => ea >-> m)
+                {|
+                  well_def := _;
+                  unit_map := _;
+                  commute  := _
+                |}).
   simpl in *.
   now unfold compose.
   reflexivity.
@@ -619,11 +637,12 @@ Definition twist {A B} `{Monoid B} (ea : A -> A) : End (A -> B).
 Defined.
 
 Definition halftwist {A B} `{Monoid B} (ea : A -> A) : End (A*A -> B).
-  refine {| f        := fun m => (fun aa => (fst aa, ea (snd aa))) >->  m;
-            well_def := _;
-            unit_map := _;
-            commute  := _
-         |}.
+  refine (existT _ (fun m => (fun aa => (fst aa, ea (snd aa))) >->  m)
+                 {|
+                   well_def := _;
+                   unit_map := _;
+                   commute  := _
+                 |}).
   simpl in *.
   now unfold compose.
   reflexivity.
@@ -667,15 +686,26 @@ intros. simpl "==". unfold ">->". intro. f_equal.
 easy.
 easy.
 easy.
-(*all: simpl in *; rewrite e; trivial.*)
+
 Defined.
 
-Instance comp A B `{Monoid B} : action (A -> A) (A -> B).
-refine {| f        := twist;
-          well_def := _;
-          unit_map := _;
-          commute  := _
-       |}.
+(* The following definitions are towards giving a monoid structure for
+   the Abstract Machine.
+
+   Code there is of the type
+
+   (state -> state) * (state * state -> Prop)
+
+   to capture both the state transition and annotations on the state.
+ *)
+
+Definition comp A B `{Monoid B} : action (A -> A) (A -> B).
+  refine (existT _ twist
+                 {|
+                   well_def := _;
+                   unit_map := _;
+                   commute  := _
+                 |}).
 unfold twist.
 simpl.
 unfold End.eq.
@@ -688,13 +718,14 @@ easy.
 easy.
 Defined.
 
-Instance halfcomp A B `{Monoid B} : action (A -> A) (A*A -> B).
+Definition halfcomp A B `{Monoid B} : action (A -> A) (A*A -> B).
 
-refine {| f        := halftwist;
-          well_def := _;
-          unit_map := _;
-          commute  := _
-       |}.
+  refine (existT _ halftwist
+                 {|
+                   well_def := _;
+                   unit_map := _;
+                   commute  := _
+                 |}).
 
 simpl.
 unfold halftwist.
@@ -716,3 +747,6 @@ now rewrite <- (surjective_pairing).
 now unfold halftwist.
 
 Defined.
+
+Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
+  := semi_direct_prod _ _ (halfcomp A B).
