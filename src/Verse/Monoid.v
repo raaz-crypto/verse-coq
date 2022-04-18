@@ -76,28 +76,17 @@ End LawsTransition.
 
 Import LawsTransition.
 
-Instance point_setoid A B `{Setoid B} : Setoid (A -> B) | 1 :=
+
+Program Instance point_setiod A B `{Setoid B} : Setoid (A -> B) | 1 :=
   {| equiv f g := forall x, f x == g x;
-     setoid_equiv := {|
-                      Equivalence_Reflexive := fun f a =>
-                                                 reflexivity (f a);
-                      Equivalence_Symmetric := fun (f g : A -> B)
-                                                   (H :
-                                                      forall a : A,
-                                                        f a == g a)
-                                                   (a : A) =>
-                                                 symmetry (H a);
-                      Equivalence_Transitive := fun (f g h : A -> B)
-                                                    (Hfg :
-                                                       forall a : A,
-                                                         (f a == g a))
-                                                    (Hgh :
-                                                       forall a : A,
-                                                         (g a == h a))
-                                                    (a : A) =>
-                                                  transitivity (Hfg a) (Hgh a)
-                    |}
+     setoid_equiv := _
   |}.
+Next Obligation.
+  constructor.
+  - unfold Reflexive; intros; setoid_reflexivity.
+  - unfold Symmetric; intros; setoid_symmetry; eauto.
+  - unfold Transitive; intros f g h; intros fEQg gEQh; intro x; setoid_transitivity (g x); eauto.
+Qed.
 
 Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
 refine {| ε      := fun _ => ε;
