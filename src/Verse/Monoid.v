@@ -192,41 +192,74 @@ Arguments unit_map [t1 t2] {_ _ _ _ _} _.
 Arguments commute [t1 t2] {_ _ _ _ _} _.
 
 Definition Hom t1 t2 `{Monoid t1} `{Monoid t2} := { f : t1 -> t2 & isHom f }.
+Definition homFunction {t1 t2}`{Monoid t1}`{Monoid t2}(f : Hom t1 t2) : t1 -> t2 := projT1 f.
 
-Definition End T `{Monoid T} := Hom T T.
+Definition Endo T `{Monoid T} := Hom T T.
+Definition endoFunction {T}`{Monoid T} : Endo T -> T -> T := homFunction.
+Coercion homFunction : Hom >-> Funclass.
+Coercion endoFunction : Endo >-> Funclass.
 
-Notation func := projT1.
 
 Ltac hom_crush :=
   unfold compose; intros;
   repeat
     match goal with
+    | [ |- isHom ?h] => exact (projT2 h)
+    | [ |- ?X == ?X ] => setoid_reflexivity
+    | [ |- ?h _ == ε ] => apply unit_map
+    | [ _ : ?A == ?B
+                   , _ : ?B == ?C
+        |- ?A == ?C ] => setoid_transitivity B
+
+    |[ |- ?h _  == ?h _ ] => apply well_def
     | H : Hom _ |- _ => destruct H
-    | E : End _ |- _ => destruct E
-    | |- func ?h _  == func ?h _  => apply well_def
-    | |- func ?h _  == ε   => try (apply (unit_map (projT2 h)));
+    | E : Endo _ |- _ => destruct E
+
+                                 (*
+    | [ h : Endo _  |- ?h _  == ε ]  => try (apply (unit_map (projT2 h)));
                               apply Equivalence_Symmetric;
                               rewrite <- (unit_map (projT2 h)) at 1;
                               apply (well_def (projT2 h)); apply Equivalence_Symmetric
-    | |- func ?h _  == func ?h _ ** func ?h _ => try (apply (commute (projT2 h)));
+    | [|-  ?h _  ==  ?h _ ** ?h _] => try (apply (commute (projT2 h)));
                                                  rewrite <- (commute (projT2 h))
-    | _                    => trivial
+                                *)
+    | _                    => eauto
   end.
+
 
 Module End.
 
-  Definition eq {T} `{Monoid T} (h1 h2 : End T)
-    := func h1 == func h2.
+  Lemma endo_unit_map {T}`{Monoid T}(h : Endo T)(eps : T) : (eps == ε) -> h eps == ε.
+    intros;
+      assert (h eps == h ε) by hom_crush;
+      assert (h ε == ε) by hom_crush.
+    hom_crush.
+  Qed.
+
+
+  Lemma endo_commute {T}`{Monoid T}(h : Endo T) : forall (a b : T),  h (a ** b) ==  h a ** h b.
+    apply commute; hom_crush.
+  Qed.
+
+  Definition eq {T} `{Monoid T} (h1 h2 : Endo T)
+    := (h1 : T -> T) == (h2 : T -> T).
 
   Definition op {T} `{Monoid T}
-                  (h1 h2 : End T) : End T.
-    refine (existT _ (func h2 >-> func h1)
+             (h1 h2 : Endo T) : Endo T.
+    refine (existT _ (h2 >-> h1)
                   {|
                     well_def := _;
                     unit_map := _;
                     commute  := _
                   |}).
-    all: hom_crush.
+    - hom_crush.
+    - unfold compose; hom_crush;
+        repeat apply endo_unit_map; hom_crush.
+    - intros.
+      assert (h2 ( a ** b) == h2 a ** h2 b) by apply (endo_commute h2).
+      assert (h1 (h2 (a ** b)) == h1 (h2 a ** h2 b)). apply well_def; hom_crush.
+      assert (h1 (h2 a ** h2 b) == h1 (h2 a) ** h1 (h2 b)). apply (endo_commute h1).
+      unfold compose. hom_crush.
   Defined.
 
   Definition id {T} `{Monoid T} : isHom id :=
@@ -236,18 +269,18 @@ Module End.
       commute  := fun f g => reflexivity (f ** g)
     |}.
 
-  Instance end_setoid T `{Monoid T} : Setoid (End T).
+  Instance end_setoid T `{Monoid T} : Setoid (Endo T).
   refine
   {|
     equiv := eq;
     setoid_equiv :=
       {|
-        Equivalence_Reflexive := fun x : End T => fun _ => reflexivity _;
-        Equivalence_Symmetric := fun (x y : End T)
+        Equivalence_Reflexive := fun x : Endo T => fun _ => reflexivity _;
+        Equivalence_Symmetric := fun (x y : Endo T)
                                      (H1 : eq x y) =>
                                    symmetry H1;
 
-        Equivalence_Transitive := fun (x y z : End T)
+        Equivalence_Transitive := fun (x y z : Endo T)
                                       (H1 : eq x y)
                                       (H2 : eq y z) =>
                                     transitivity H1 H2
@@ -264,7 +297,7 @@ Module End.
   exact (transitivity H3 H4).
   Defined.
 
-  Instance end_monoid T `{Monoid T} : Monoid (End T).
+  Instance end_monoid T `{Monoid T} : Monoid (Endo T).
   refine
     {| ε           := existT _ _ id;
        oper           := op;
@@ -485,8 +518,9 @@ Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
                         |}
      |}.
 
-Notation action A B := (Hom A (End B)).
+Notation action A B := (Hom A (Endo B)).
 
+Record SemiDirectProduct = SemiDirect
 Module SDP.
   Section SDP.
     Variable A B : Type.
@@ -495,7 +529,7 @@ Module SDP.
 
     Definition oper `{Monoid A} `{Monoid B} (h : action A B)
       := fun (p q : A*B) => ((fst p) ** (fst q),
-                     (snd p) ** (func (func h (fst p)) (snd q))).
+                     (snd p) ** ((h (fst p)) (snd q))).
 
     Definition welldefl `{Monoid A} `{Monoid B} h px py pz
       : px == py -> oper h px pz == oper h py pz.
