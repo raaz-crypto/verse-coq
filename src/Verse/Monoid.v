@@ -77,16 +77,37 @@ End LawsTransition.
 Import LawsTransition.
 
 
-Program Instance point_setiod A B `{Setoid B} : Setoid (A -> B) | 1 :=
-  {| equiv f g := forall x, f x == g x;
-     setoid_equiv := _
+Require Import RelationClasses.
+Require Import Setoid.
+
+Section FunctionEquivalence.
+  Context {B : Type}`{Setoid B}{A : Type}.
+  Definition equiv_function : relation (A -> B) := fun (f g : A -> B) => forall x, f x == g x.
+  Lemma equiv_function_refl : reflexive _ equiv_function.
+    intros f x. setoid_reflexivity.
+  Qed.
+
+  Lemma equiv_function_symm : symmetric _ equiv_function.
+    intros f g fEg x. setoid_symmetry. eauto.
+  Qed.
+
+  Lemma equiv_function_transitive : transitive _ equiv_function.
+    intros f g h fEg gEh x. setoid_transitivity (g x); eauto.
+  Qed.
+
+  Add Parametric Relation : (A -> B) equiv_function
+    reflexivity proved by equiv_function_refl
+    symmetry proved by equiv_function_symm
+    transitivity proved by equiv_function_transitive
+  as function_equivalence.
+
+End FunctionEquivalence.
+
+
+Instance point_setiod B `{Setoid B} A : Setoid (A -> B) | 1 :=
+  {| SetoidClass.equiv := equiv_function;
+     setoid_equiv := function_equivalence
   |}.
-Next Obligation.
-  constructor.
-  - unfold Reflexive; intros; setoid_reflexivity.
-  - unfold Symmetric; intros; setoid_symmetry; eauto.
-  - unfold Transitive; intros f g h; intros fEQg gEQh; intro x; setoid_transitivity (g x); eauto.
-Qed.
 
 Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
 refine {| ε      := fun _ => ε;
