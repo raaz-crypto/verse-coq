@@ -10,6 +10,10 @@ An implementation of monoids.
 *)
 Require Import Monoid.PList.
 Require Import SetoidClass.
+Require Export Setoid.
+Require Import RelationClasses.
+Require Export Relation_Definitions.
+
 
 (* TODO : Move eq_setoid and its setoids monoids to the bottom of the
           file. Will avoid errors like that happened with
@@ -27,13 +31,29 @@ Class Monoid t `{Setoid t}
          (oper x (oper y z)) == (oper (oper x y) z)
    }.
 
+
 Infix "**" := oper (right associativity, at level 60).
+
+Definition monoid_equiv T `{Monoid T} : relation T := SetoidClass.equiv (A:=T).
+(** Make it possible to rewrite terms involving monoid expressions *)
+Add Parametric Relation T  TSetoid `{@Monoid T TSetoid} : T  (SetoidClass.equiv)
+    reflexivity proved by (setoid_refl TSetoid)
+    symmetry proved by (setoid_sym (sa:=TSetoid) )
+    transitivity proved by (setoid_trans (sa:=TSetoid) ) as monoid_equivalence.
+
 
 Definition welldef {T} `{Monoid T} w x y z
   : w == x -> y == z -> w ** y == x ** z
   := fun e f =>
        transitivity (welldef_l w x y e) (welldef_r y z x f).
 
+
+Add Parametric Morphism T `{Monoid T} : (oper (t:=T))
+  with signature (monoid_equiv T) ++> (monoid_equiv T) ++> (monoid_equiv T) as monoid_operation_mor.
+Proof.
+  unfold monoid_equiv;intros.
+  apply welldef; eauto.
+Qed.
 
 (** ** State transition.
 
@@ -77,22 +97,21 @@ End LawsTransition.
 Import LawsTransition.
 
 
-Require Import RelationClasses.
-Require Import Setoid.
 
 Section FunctionEquivalence.
   Context {B : Type}`{Setoid B}{A : Type}.
   Definition equiv_function : relation (A -> B) := fun (f g : A -> B) => forall x, f x == g x.
   Lemma equiv_function_refl : reflexive _ equiv_function.
-    intros f x. setoid_reflexivity.
+    intros f x. reflexivity.
   Qed.
 
   Lemma equiv_function_symm : symmetric _ equiv_function.
-    intros f g fEg x. setoid_symmetry. eauto.
+    intros f g fEg x.
+    symmetry; eauto.
   Qed.
 
   Lemma equiv_function_transitive : transitive _ equiv_function.
-    intros f g h fEg gEh x. setoid_transitivity (g x); eauto.
+    intros f g h fEg gEh x; transitivity (g x); eauto.
   Qed.
 
   Add Parametric Relation : (A -> B) equiv_function
@@ -108,6 +127,14 @@ Instance point_setiod B `{Setoid B} A : Setoid (A -> B) | 1 :=
   {| SetoidClass.equiv := equiv_function;
      setoid_equiv := function_equivalence
   |}.
+
+Section FunctionEquivalence.
+  Context {B : Type}`{Monoid B}{A : Type}.
+  Definition function_product (f g : A -> B) : A -> B := fun x => f x ** g x.
+
+End FunctionEquivalence.
+
+
 
 Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
 refine {| ε      := fun _ => ε;
