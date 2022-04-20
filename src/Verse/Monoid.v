@@ -145,9 +145,9 @@ refine {| ε      := fun _ => ε;
           right_identity := _;
           associativity  := _;
        |}.
-simpl in *.
-intros.
-now apply welldef_l.
+simpl in *; unfold equiv_function.
+- intros f g h hyp x. rewrite hyp; reflexivity.
+
 
 simpl in *.
 intros.
