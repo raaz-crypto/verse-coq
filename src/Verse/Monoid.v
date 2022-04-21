@@ -20,40 +20,35 @@ Require Export Relation_Definitions.
           dep_point_monoid
 *)
 
-Class Monoid t `{Setoid t}
-:= { ε  : t;
-     oper  : t -> t -> t;
-     welldef_l : forall x y z, x == y -> oper x z == oper y z;
-     welldef_r : forall x y z, x == y -> oper z x == oper z y;
-     left_identity  : forall x : t, (oper ε x) == x;
-     right_identity : forall x : t, (oper x ε) == x;
-     associativity  : forall x y z : t,
-         (oper x (oper y z)) == (oper (oper x y) z)
-   }.
+Section MonoidClass.
+  Context {t : Type}{tsetoid : Setoid t}.
+  Class Monoid
+    := { ε  : t;
+         oper  : t -> t -> t;
+         proper_oper : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) oper;
+         left_identity  : forall x : t, (oper ε x) == x;
+         right_identity : forall x : t, (oper x ε) == x;
+         associativity  : forall x y z : t,
+             (oper x (oper y z)) == (oper (oper x y) z)
+       }.
 
+End MonoidClass.
+Arguments Monoid t {tsetoid}.
 
 Infix "**" := oper (right associativity, at level 60).
 
-Definition monoid_equiv T `{Monoid T} : relation T := SetoidClass.equiv (A:=T).
-(** Make it possible to rewrite terms involving monoid expressions *)
+(** It should be possible to rewrite with monoid equivalence and
+    operation. For this we register the underlying setoid equivalence
+    and declare the monoid operation as a morphism *)
+
 Add Parametric Relation T  TSetoid `{@Monoid T TSetoid} : T  (SetoidClass.equiv)
     reflexivity proved by (setoid_refl TSetoid)
     symmetry proved by (setoid_sym (sa:=TSetoid) )
     transitivity proved by (setoid_trans (sa:=TSetoid) ) as monoid_equivalence.
 
-
-Definition welldef {T} `{Monoid T} w x y z
-  : w == x -> y == z -> w ** y == x ** z
-  := fun e f =>
-       transitivity (welldef_l w x y e) (welldef_r y z x f).
-
-
-Add Parametric Morphism T `{Monoid T} : (oper (t:=T))
-  with signature (monoid_equiv T) ++> (monoid_equiv T) ++> (monoid_equiv T) as monoid_operation_mor.
-Proof.
-  unfold monoid_equiv;intros.
-  apply welldef; eauto.
-Qed.
+Instance oper_proper T `{Monoid T}
+  : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) oper
+  := proper_oper.
 
 (** ** State transition.
 
@@ -132,40 +127,40 @@ Section FunctionEquivalence.
   Context {B : Type}`{Monoid B}{A : Type}.
   Definition function_product (f g : A -> B) : A -> B := fun x => f x ** g x.
 
+  Add Parametric Morphism : function_product with signature
+      (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) as function_product_mor.
+  Proof.
+    intros f g fEQg fp gp fEQgP; intro.
+    unfold function_product. rewrite (fEQg x). rewrite (fEQgP x); reflexivity.
+  Qed.
+
 End FunctionEquivalence.
 
 
 
-Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1.
-refine {| ε      := fun _ => ε;
-          oper f g  := fun x => f x ** g x;
-          welldef_l := _;
-          welldef_r := _;
-          left_identity  := _;
-          right_identity := _;
-          associativity  := _;
-       |}.
-simpl in *; unfold equiv_function.
-- intros f g h hyp x. rewrite hyp; reflexivity.
+Program Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
+  {| ε              := fun _ => ε;
+     oper f g       := fun x => f x ** g x;
+     proper_oper    := function_product_mor_Proper;
+     left_identity  := _;
+     right_identity := _;
+     associativity  := _;
+  |}.
 
+Next Obligation.
+  unfold equiv_function; intros;apply left_identity.
+Qed.
 
-simpl in *.
-intros.
-now apply welldef_r.
+Next Obligation.
+  unfold equiv_function; intros; apply right_identity.
+Qed.
 
-simpl.
-intros.
-apply left_identity.
+Next Obligation.
+  unfold equiv_function.
+  intros. apply associativity.
+Qed.
 
-simpl.
-intros.
-apply right_identity.
-
-simpl.
-intros.
-apply associativity.
-Defined.
-
+(* TODO
 Instance dep_point_setoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
   : Setoid (forall a, F a) | 2 :=
@@ -227,6 +222,7 @@ intros.
 apply (associativity (Monoid := H0 x0)).
 
 Defined.
+ *)
 
 Record isHom [t1 t2] `{Monoid t1} `{Monoid t2} (f : t1 -> t2)
   := {
