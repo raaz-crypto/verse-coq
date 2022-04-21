@@ -224,14 +224,16 @@ apply (associativity (Monoid := H0 x0)).
 Defined.
  *)
 
-Record isHom [t1 t2] `{Monoid t1} `{Monoid t2} (f : t1 -> t2)
-  := {
-       well_def  : forall {a b}, a == b -> f a == f b;
+Print SetoidClass.equiv.
+Class isHom [t1 t2]`{Monoid t1} `{Monoid t2} (f : t1 -> t2) : Prop
+  := { proper_hom  : Proper (SetoidClass.equiv ==> SetoidClass.equiv) f;
        unit_map  : f ε == ε;
-       commute   : forall {a b}, f (a ** b) == (f a) ** (f b)
+       commute   : forall {a b}, f (a ** b) == f a ** f b
      }.
 
-Arguments well_def {t1 t2 _ _ _ _ _} _ [a b].
+Instance monoid_homomorphism_Proper t1 t2 (f : t1 -> t2) `{isHom t1 t2 f} : Proper (SetoidClass.equiv ==> SetoidClass.equiv) f
+  := proper_hom.
+
 Arguments unit_map [t1 t2] {_ _ _ _ _} _.
 Arguments commute [t1 t2] {_ _ _ _ _} _.
 
