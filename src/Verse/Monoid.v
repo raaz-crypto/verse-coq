@@ -260,110 +260,95 @@ Definition mapMconcat {A}{t}`{mon : Monoid t}
 
 Require Import Verse.Error.
 
-Module Sumor.
+Section Error.
+  Context {E : Prop}{A : Type}{asetoid: Setoid A}.
 
-  (* Setoid *)
-
-  Inductive eq {E A} `{Setoid A}: A + {E} -> A + {E} -> Prop :=
-  | eqErr e   : eq (error e) (error e)
-  | eqA a1 a2 : a1 == a2 -> eq {- a1 -} {- a2 -}
-  .
-
-  Instance eq_reflex {E : Prop} {A : Type} `{Setoid A} : Reflexive (eq (E := E))
-    := fun ae => match ae with
-                 | {- a -} => eqA a a (Equivalence_Reflexive a)
-                 | error e => eqErr e
-                 end.
-
-  Instance eq_symm {E A} `{Setoid A} : Symmetric (eq (E := E))
-    := fun ae bf r => match r in eq A B return eq B A with
-                      | eqErr e => eqErr e
-                      | eqA a1 a2 eqa => eqA a2 a1 (Equivalence_Symmetric a1 a2 eqa)
-                      end.
-
-  Instance eq_trans {E A} `{Setoid A} : Transitive (eq (E := E)).
-  refine (fun ae bf cg r1 => match r1 with
-                             | eqErr e   => id
-                             | eqA _ _ _ => fun r2 => _
-                             end).
-  inversion r2.
-  apply eqA.
-  exact (Equivalence_Transitive _ _ _ e H1).
-  Defined.
-
-  (* Monoid *)
-
-  Definition oper {A E} `{Monoid A} (ex ey : A + {E}) : A + {E}
-    := match ex, ey with
-       | {- x -} , {- y -} => {- x ** y -}
-       | error _ , _       => ex
-       | _       , error _ => ey
-       end.
-
-  Definition welldef_l {A E} `{Monoid A}
-                       (ex ey ez : A + {E}) (eexy : eq ex ey)
-    : eq (oper ex ez) (oper ey ez) :=
-    match eexy in eq ex0 ey0 return eq (oper ex0 ez) (oper ey0 ez) with
-    | eqA x y exy => match ez with
-                     | {- z -} => eqA _ _ (welldef_l _ _ _ exy)
-                     | error _ => eqErr _
-                     end
-    | eqErr e     => eqErr _
+  Definition eq_error (x y : A + {E}) : Prop :=
+    match x , y with
+    | error xe, error ye => xe = ye
+    | {- xa -}, {- ya -} => xa == ya
+    | _, _               => False
     end.
 
-  Definition welldef_r {A E} `{Monoid A}
-                       (ex ey ez : A + {E}) (eexy : eq ex ey)
-    : eq (oper ez ex) (oper ez ey) :=
-    match eexy in eq ex0 ey0 return eq (oper ez ex0) (oper ez ey0) with
-    | eqA x y exy => match ez with
-                     | {- z -} => eqA _ _ (welldef_r _ _ _ exy)
-                     | error _ => eqErr _
-                     end
-    | eqErr e     => match ez with
-                     | {- _ -} => eqErr _
-                     | error _ => eqErr _
-                     end
+  Lemma eq_error_refl : Reflexive eq_error.
+  Proof.
+    intro; destruct x; simpl; reflexivity.
+  Qed.
+
+  Lemma eq_error_sym : Symmetric  eq_error.
+  Proof.
+    intros x y; destruct x; destruct y; simpl;
+      repeat intuition.
+  Qed.
+
+  Lemma eq_error_trans : Transitive eq_error.
+  Proof.
+    intros x y z; destruct x; destruct y; destruct z; simpl; intros;
+      match goal with
+      | [ _ :  _ == ?X,  _ : ?X == _ |- _ == _ ] => intros; transitivity X; eauto
+      | [ _ :  _ = ?X,  _ : ?X = _ |- _ = _ ] => intros; transitivity X; eauto
+      | [ H1 : False |- _ ] => intuition
+      | _ => idtac
+      end.
+  Qed.
+
+  Add Parametric Relation : (A + {E}) eq_error
+      reflexivity proved by eq_error_refl
+      symmetry proved by eq_error_sym
+      transitivity proved by eq_error_trans as error_equivalence.
+
+  Instance error_setoid : Setoid (A + {E}) :=
+    {| SetoidClass.equiv :=  eq_error;
+
+       SetoidClass.setoid_equiv := error_equivalence
+    |}.
+
+  Context `{@Monoid A asetoid}.
+  Definition error_prod (x y : A + {E}) : A + {E} :=
+    match x, y with
+    | {- a -}, {- b -}  => {- a ** b -}
+    | error e, _       => error e
+    | _      , error e => error e
     end.
 
-  Definition left_id {A E} `{Monoid A} :
-    forall ex : A + {E},  eq (oper {-ε-} ex) ex.
-    intros; destruct ex; unfold oper; constructor; try (apply left_identity).
+  Add Parametric Morphism : error_prod with signature
+      (eq_error ==> eq_error ==> eq_error) as error_prod_mor.
+  Proof using.
+    repeat match goal with
+           | [ |- _ + {_} -> _ ] => let x := fresh "x" in (intro x; destruct x; simpl)
+           | [ |- _ -> _ ] => intro
+           | [ H : False |- _] => inversion H
+           | [ H1 : _ == _, H2 : _ == _ |- _ ] => rewrite H1; rewrite H2
+           | _ => eauto; idtac
+           end.
+    reflexivity.
   Qed.
 
-  Definition right_id {A E} `{Monoid A} :
-    forall ex : A + {E},  eq (oper ex {-ε-}) ex.
-    intros; destruct ex; unfold oper; constructor; try (apply right_identity).
-  Qed.
-
-  Definition assoc {A E} `{Monoid A} :
-    forall ex ey ez : A + {E},
-      eq (oper ex (oper ey ez)) (oper (oper ex ey) ez).
-    intros; destruct ex; destruct ey; destruct ez;
-      unfold oper; constructor; try (apply associativity).
-  Qed.
-
-End Sumor.
-
-Instance error_setoid {E : Prop}{A}`{Setoid A} : Setoid (A + {E}) :=
- {|
-   equiv := Sumor.eq;
-            setoid_equiv := {|
-                             Equivalence_Reflexive := Sumor.eq_reflex (A:=A);
-                             Equivalence_Symmetric := Sumor.eq_symm (A:=A);
-                             Equivalence_Transitive := Sumor.eq_trans (A:=A)
-                            |}
- |}.
-
-Instance error_monoid {E : Prop}{A}`{Monoid A}
+  Program Instance error_monoid
   : Monoid (A + {E}) :=
   {| ε := {- ε -};
-     oper := Sumor.oper;
-     welldef_l := Sumor.welldef_l;
-     welldef_r := Sumor.welldef_r;
-     left_identity := Sumor.left_id;
-     right_identity := Sumor.right_id;
-     associativity := Sumor.assoc
+     oper := error_prod;
+     proper_oper := error_prod_mor_Proper;
+     left_identity := _;
+     right_identity := _;
+     associativity := _;
   |}.
+
+
+
+  Next Obligation.
+    destruct x; simpl; trivial; apply left_identity.
+  Qed.
+  Next Obligation.
+    destruct x; simpl; trivial; apply right_identity.
+  Qed.
+
+  Next Obligation.
+    destruct x; destruct y; destruct z; simpl; trivial;apply associativity.
+  Qed.
+
+
+End Error.
 
 Module Prod.
   Section Prod.
