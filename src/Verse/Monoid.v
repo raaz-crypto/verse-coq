@@ -384,8 +384,8 @@ Module Prod.
 End Prod.
 
 Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
-  := {| equiv        := Prod.eq;
-        setoid_equiv := {|
+  := {| SetoidClass.equiv        := Prod.eq;
+        SetoidClass.setoid_equiv := {|
                          Equivalence_Reflexive := Prod.refl;
                          Equivalence_Symmetric := Prod.symm;
                          Equivalence_Transitive := Prod.trans
