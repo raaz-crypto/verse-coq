@@ -118,7 +118,7 @@ Section FunctionEquivalence.
 End FunctionEquivalence.
 
 
-Instance point_setiod B `{Setoid B} A : Setoid (A -> B) | 1 :=
+Instance function_setoid B `{Setoid B} A : Setoid (A -> B) | 1 :=
   {| SetoidClass.equiv := equiv_function;
      setoid_equiv := function_equivalence
   |}.
@@ -138,7 +138,7 @@ End FunctionEquivalence.
 
 
 
-Program Instance point_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
+Program Instance function_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
   {| ε              := fun _ => ε;
      oper f g       := fun x => f x ** g x;
      proper_oper    := function_product_mor_Proper;
