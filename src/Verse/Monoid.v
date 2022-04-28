@@ -392,7 +392,29 @@ Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
                         |}
      |}.
 
-Notation action A B := (Hom A (Endo B)).
+Section Action.
+
+  Context A `{Monoid A}
+          B `{Monoid B}.
+
+  Class Action :=
+    { act                     : A -> B -> B;
+      proper_action           : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) act;
+      act_unit                : forall a : A, act a ε = ε;
+      act_preserve_product  : forall (a : A) (b1 b2 : B) , act a (b1 ** b2) = act a b1 ** act a b2;
+      act_compose           : forall (a1 a2 : A) (b : B) , act (a1 ** a2) b = act a1  (act a2 b)
+    }.
+(*
+Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) act.
+ *)
+End Action.
+
+
+Arguments act {A _ _ B _ _ _}.
+Arguments proper_action {A _ _ B _ _ _}.
+
+Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) (@act A _ _ B _ _ _)
+  := proper_action.
 
 Record SemiDirectProduct = SemiDirect
 Module SDP.
