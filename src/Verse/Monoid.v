@@ -35,6 +35,14 @@ Section MonoidClass.
 End MonoidClass.
 Arguments Monoid t {tsetoid}.
 
+Definition mconcat {t}`{mon: Monoid t} : list t -> t
+  := fun l => fold_left oper l ε.
+
+Definition mapMconcat {A}{t}`{mon : Monoid t}
+           (f : A -> t) (xs : list A)
+  : t
+  := mconcat (map f xs).
+
 Infix "**" := oper (right associativity, at level 60).
 
 (** It should be possible to rewrite with monoid equivalence and
@@ -244,14 +252,6 @@ elements in the monoid and multiplies them to get the results
 
  *)
 
-
-Definition mconcat {t}`{mon: Monoid t} : list t -> t
-  := fun l => fold_left oper l ε.
-
-Definition mapMconcat {A}{t}`{mon : Monoid t}
-           (f : A -> t) (xs : list A)
-  : t
-  := mconcat (map f xs).
 
 (**  * Monoid instance A + {E}.
 
