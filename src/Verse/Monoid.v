@@ -20,43 +20,47 @@ Require Export Relation_Definitions.
           dep_point_monoid
 *)
 
-Section MonoidClass.
-  Context {t : Type}{tsetoid : Setoid t}.
-  Class Monoid
-    := { ε  : t;
-         oper  : t -> t -> t;
-         proper_oper : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) oper;
-         left_identity  : forall x : t, (oper ε x) == x;
-         right_identity : forall x : t, (oper x ε) == x;
-         associativity  : forall x y z : t,
-             (oper x (oper y z)) == (oper (oper x y) z)
-       }.
+Class BinOp (t : Type) := binop : t -> t -> t.
+Infix "**" := binop (right associativity, at level 60).
 
-End MonoidClass.
-Arguments Monoid t {tsetoid}.
 
-Definition mconcat {t}`{mon: Monoid t} : list t -> t
-  := fun l => fold_left oper l ε.
 
-Definition mapMconcat {A}{t}`{mon : Monoid t}
-           (f : A -> t) (xs : list A)
-  : t
-  := mconcat (map f xs).
-
-Infix "**" := oper (right associativity, at level 60).
+Class Monoid t `{Setoid t} `{BinOp t}
+  := { ε  : t;
+       proper_oper    : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) binop;
+       left_identity  : forall x : t, (ε ** x) == x;
+       right_identity : forall x : t, (x ** ε) == x;
+       associativity  : forall x y z : t,
+           (x ** (y ** z)) == ((x ** y) ** z)
+     }.
 
 (** It should be possible to rewrite with monoid equivalence and
     operation. For this we register the underlying setoid equivalence
     and declare the monoid operation as a morphism *)
 
-Add Parametric Relation T  TSetoid `{@Monoid T TSetoid} : T  (SetoidClass.equiv)
-    reflexivity proved by (setoid_refl TSetoid)
-    symmetry proved by (setoid_sym (sa:=TSetoid) )
-    transitivity proved by (setoid_trans (sa:=TSetoid) ) as monoid_equivalence.
+Add Parametric Relation T  (tsetoid : Setoid T)(bop : BinOp T)`{ _ : @Monoid T tsetoid bop} : T  (SetoidClass.equiv)
+    reflexivity proved by (setoid_refl tsetoid)
+    symmetry proved by (setoid_sym (sa:=tsetoid) )
+    transitivity proved by (setoid_trans (sa:=tsetoid) ) as monoid_equivalence.
 
-Instance oper_proper T `{Monoid T}
-  : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) oper
+Add Parametric Morphism T `{Monoid T} : binop with signature
+    (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) as binop_mor.
+Proof.
+  exact proper_oper.
+Qed.
+(*Instance oper_proper T `{Monoid T}
+  : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) binop
   := proper_oper.
+*)
+
+
+Definition mconcat {t}`{mon: Monoid t} : list t -> t
+  := fun l => fold_left binop l ε.
+
+Definition mapMconcat {A}{t}`{mon : Monoid t}
+           (f : A -> t) (xs : list A)
+  : t
+  := mconcat (map f xs).
 
 (** ** State transition.
 
@@ -144,11 +148,11 @@ Section FunctionEquivalence.
 
 End FunctionEquivalence.
 
-
+Instance function_binop A B `{Monoid B} : BinOp (A -> B) :=
+  fun f g x => f x ** g x.
 
 Program Instance function_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
   {| ε              := fun _ => ε;
-     oper f g       := fun x => f x ** g x;
      proper_oper    := function_product_mor_Proper;
      left_identity  := _;
      right_identity := _;
@@ -299,11 +303,10 @@ Section Error.
 
   Instance error_setoid : Setoid (A + {E}) :=
     {| SetoidClass.equiv :=  eq_error;
-
        SetoidClass.setoid_equiv := error_equivalence
     |}.
 
-  Context `{@Monoid A asetoid}.
+  Context {bop : BinOp A}`{@Monoid A asetoid bop}.
   Definition error_prod (x y : A + {E}) : A + {E} :=
     match x, y with
     | {- a -}, {- b -}  => {- a ** b -}
@@ -311,9 +314,10 @@ Section Error.
     | _      , error e => error e
     end.
 
+
   Add Parametric Morphism : error_prod with signature
       (eq_error ==> eq_error ==> eq_error) as error_prod_mor.
-  Proof using.
+  Proof.
     repeat match goal with
            | [ |- _ + {_} -> _ ] => let x := fresh "x" in (intro x; destruct x; simpl)
            | [ |- _ -> _ ] => intro
@@ -324,10 +328,11 @@ Section Error.
     reflexivity.
   Qed.
 
+  Instance binop_error : BinOp (A + {E}) := error_prod.
+
   Program Instance error_monoid
   : Monoid (A + {E}) :=
   {| ε := {- ε -};
-     oper := error_prod;
      proper_oper := error_prod_mor_Proper;
      left_identity := _;
      right_identity := _;
@@ -392,28 +397,19 @@ Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
                         |}
      |}.
 
-Section Action.
 
-  Context A `{Monoid A}
-          B `{Monoid B}.
+Class ActionOp A B := act : A -> B -> B.
 
-  Class Action :=
-    { act                     : A -> B -> B;
-      proper_action           : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) act;
-      act_unit                : forall a : A, act a ε = ε;
-      act_preserve_product  : forall (a : A) (b1 b2 : B) , act a (b1 ** b2) = act a b1 ** act a b2;
-      act_compose           : forall (a1 a2 : A) (b : B) , act (a1 ** a2) b = act a1  (act a2 b)
-    }.
-(*
-Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) act.
- *)
-End Action.
+Infix "•" := (act) (right associativity, at level 59).
 
+Class Action A B `{Monoid A}`{Monoid B}`{ActionOp A B} :=
+  { proper_action           : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=B) ==> SetoidClass.equiv (A:=B)) act;
+    act_unit                : forall a : A, a • ε = ε;
+    act_preserve_product  : forall (a : A) (b1 b2 : B) , a • (b1 ** b2) = a • b1 ** a • b2;
+    act_compose           : forall (a1 a2 : A) (b : B) , (a1 ** a2) • b = a1 • (a2 • b)
+  }.
 
-Arguments act {A _ _ B _ _ _}.
-Arguments proper_action {A _ _ B _ _ _}.
-
-Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) (@act A _ _ B _ _ _)
+Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=B) ==> SetoidClass.equiv(A:=B)) act
   := proper_action.
 
 Record SemiDirectProduct = SemiDirect
