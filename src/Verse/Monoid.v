@@ -398,24 +398,125 @@ Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
      |}.
 
 
-Class ActionOp A B := act : A -> B -> B.
+Class RActionOp A G := ract : A -> G -> A.
+Infix "↑" := (ract) (left associativity, at level 59).
+(* For Right action the exponential notation is natural
+and hence we use the up arrow as the assoiciated infix operator *)
 
-Infix "•" := (act) (right associativity, at level 59).
+(* TODO MAYBE:
 
-Class Action A B `{Monoid A}`{Monoid B}`{ActionOp A B} :=
-  { proper_action           : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=B) ==> SetoidClass.equiv (A:=B)) act;
-    act_unit                : forall a : A, a • ε = ε;
-    act_preserve_product  : forall (a : A) (b1 b2 : B) , a • (b1 ** b2) = a • b1 ** a • b2;
-    act_compose           : forall (a1 a2 : A) (b : B) , (a1 ** a2) • b = a1 • (a2 • b)
+One can also capture left action but since our application is for
+transforms acting on state predicates, we only capture right actions
+as of now
+
+<<
+
+Class LActionOp A B := lact : A -> B -> B.
+Infix "•" := (lact) (right associativity, at level 59).
+
+>>
+
+ *)
+
+
+Class RAction A G `{Monoid A}`{Monoid G}`{RActionOp A G} :=
+  { proper_raction
+    : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A)) ract;
+    ract_unit                : forall g, ε ↑ g = ε;
+    ract_preserve_product  : forall a1 a2 g, (a1 ** a2) ↑ g = a1 ↑ g ** a2 ↑ g;
+    ract_compose           : forall a g1 g2, a ↑ (g1 ** g2) = a ↑ g1 ↑ g2
   }.
 
-Instance monoid_action_Proper A B `{Action A B} : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=B) ==> SetoidClass.equiv(A:=B)) act
-  := proper_action.
+Instance monoid_action_Proper A G `{RAction A G}
+  : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=G) ==> SetoidClass.equiv(A:=A)) ract
+  := proper_raction.
 
-Record SemiDirectProduct = SemiDirect
-Module SDP.
-  Section SDP.
-    Variable A B : Type.
+
+Inductive SemiR G A := semiR : G -> A -> SemiR G A.
+Infix "⋉" := SemiR (left associativity, at level 59).
+
+Arguments semiR {G A}.
+
+Section SemiDirectProduct.
+
+  Context {G A : Type}
+          `{RAction A G}.
+
+  (*
+    (a1, g1) [(a2, g2) (a3, g3)]
+
+=  (a1, g1) [ (a2 . a3g2, g2 g3) ]
+   (a1 . a2g1 . a3 g2 g1 )
+
+
+
+[(a1, g1) (a2, g2)] (a3,g3)
+
+(a1 a2 g1, g1 g2) (a3, g3)
+
+a1 . (a2 g1) a3 g1 g2
+
+(g1, a1) (g2, a2)
+
+
+   *)
+  Definition eqSemiR (s1 s2 : G ⋉ A) :=
+    match s1, s2 with
+    | semiR g1 a1, semiR g2 a2 =>
+      g1 == g2 /\ a1 == a2
+    end.
+
+  Ltac crush_semi_eq :=
+    repeat match goal with
+           | [ |- SemiR _ _ -> _ ] =>
+             let s := fresh "s" in (intro s; destruct s; simpl)
+           | [ _ : ?a == ?b,
+                   _ : ?b == ?c |- ?a == ?c ] => transitivity b
+           | [ |- _ /\ _  -> _ ] => let hypEq := fresh "hypEq" in (intro hypEq; destruct hypEq)
+           | _ => intuition
+           end.
+
+  Definition eqsemi_refl : Reflexive eqSemiR.
+    unfold Reflexive.
+    crush_semi_eq.
+  Qed.
+
+  Definition eqsemi_sym : Symmetric eqSemiR.
+    unfold Symmetric.
+    crush_semi_eq.
+  Qed.
+
+  Definition eqsemi_trans : Transitive eqSemiR.
+    unfold Transitive.
+    crush_semi_eq.
+  Qed.
+
+  Add Parametric Relation : (G ⋉ A) eqSemiR
+      reflexivity proved by eqsemi_refl
+      symmetry proved by eqsemi_sym
+      transitivity proved by eqsemi_trans as semiR_equiv.
+
+  Instance rsemi_direct_product : BinOp (G ⋉ A) :=
+    fun s1 s2 => match s1, s2 with
+              | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ↑ g2 ** a2)
+              end.
+
+  Program Instance semiRSetoid : Setoid (G ⋉ A) :=
+    {| SetoidClass.equiv := eqSemiR;
+       SetoidClass.setoid_equiv := semiR_equiv
+    |}.
+
+  Add Parametric Morphism : binop with signature
+      SetoidClass.equiv ==>
+                        SetoidClass.equiv  ==> SetoidClass.equiv
+        as rsemi_direct_product_mor.
+  Proof.
+    crush_semi_eq.
+    - rewrite H7; rewrite H9; reflexivity.
+    - rewrite H8. rewrite H9. rewrite H10; reflexivity.
+  Qed.
+
+
 
     Definition id `{Monoid A} `{Monoid B} : A*B := (ε, ε).
 
