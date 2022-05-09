@@ -424,9 +424,10 @@ Infix "•" := (lact) (right associativity, at level 59).
 Class RAction A G `{Monoid A}`{Monoid G}`{RActionOp A G} :=
   { proper_raction
     : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A)) ract;
-    ract_unit                : forall g, ε ↑ g = ε;
-    ract_preserve_product  : forall a1 a2 g, (a1 ** a2) ↑ g = a1 ↑ g ** a2 ↑ g;
-    ract_compose           : forall a g1 g2, a ↑ (g1 ** g2) = a ↑ g1 ↑ g2
+    ract_unit                : forall g, ε ↑ g == ε;
+    ract_preserve_product  : forall a1 a2 g, (a1 ** a2) ↑ g == a1 ↑ g ** a2 ↑ g;
+    ract_trivial           : forall a, a ↑ ε == a;
+    ract_compose           : forall a g1 g2, a ↑ (g1 ** g2) == a ↑ g1 ↑ g2
   }.
 
 Instance monoid_action_Proper A G `{RAction A G}
@@ -484,160 +485,41 @@ Section SemiDirectProduct.
       SetoidClass.equiv ==>
                         SetoidClass.equiv  ==> SetoidClass.equiv
         as rsemi_direct_product_mor.
-  Proof.
-    crush_semi_eq.
-    - rewrite H7; rewrite H9; reflexivity.
-    - rewrite H8. rewrite H9. rewrite H10; reflexivity.
+    crush_morph 2.
+  Qed.
+
+  Program Instance semiR_monoid : Monoid (G ⋉ A) :=
+    {| ε := semiR ε ε;
+     proper_oper := rsemi_direct_product_mor_Proper;
+     left_identity := _;
+     right_identity := _;
+     associativity := _;
+    |}.
+
+  Next Obligation.
+    destruct x as [g a] ; simpl;
+    intuition. apply @left_identity.
+    rewrite (ract_unit g); apply @left_identity.
+  Qed.
+
+  Next Obligation.
+    destruct x as [g a]; simpl;
+      intuition. apply @right_identity.
+    rewrite (ract_trivial a); apply @right_identity.
   Qed.
 
 
+  Next Obligation.
+    destruct x as [g a];
+      destruct y as [h b];
+      destruct z as [k c]; simpl.
+    intuition. apply @associativity; eauto.
+    rewrite (ract_compose a h k).
+    rewrite (ract_preserve_product (a ↑ h) b k).
+    apply @associativity; eauto.
+  Qed.
 
-    Definition id `{Monoid A} `{Monoid B} : A*B := (ε, ε).
-
-    Definition oper `{Monoid A} `{Monoid B} (h : action A B)
-      := fun (p q : A*B) => ((fst p) ** (fst q),
-                     (snd p) ** ((h (fst p)) (snd q))).
-
-    Definition welldefl `{Monoid A} `{Monoid B} h px py pz
-      : px == py -> oper h px pz == oper h py pz.
-      simpl.
-      unfold Prod.eq.
-      intuition.
-      now apply welldef_l.
-
-      simpl.
-      unfold Prod.eq.
-
-      intuition.
-
-      simpl.
-      apply welldef.
-      trivial.
-
-      enough (func (func h (fst px)) == func (func h (fst py))).
-      trivial.
-
-      enough (func h (fst px) == func h (fst py)).
-      trivial.
-
-      now apply (well_def (projT2 h)).
-    Defined.
-
-    Definition welldefr `{Monoid A} `{Monoid B} h px py pz
-      : px == py -> oper h pz px == oper h pz py.
-      simpl.
-      unfold Prod.eq.
-      intuition.
-      now apply welldef_r.
-
-      simpl.
-      apply welldef_r.
-      apply well_def.
-      destruct h.
-      simpl.
-      destruct (x a).
-      all: trivial.
-    Defined.
-
-    Definition left_identity `{Monoid A} `{Monoid B} h (x:A*B)
-      : oper h id x == x.
-      simpl.
-      unfold Prod.eq.
-      simpl.
-      apply conj.
-      apply left_identity.
-      rewrite left_identity.
-      pose (unit_map (projT2 h)).
-      simpl in e.
-      unfold End.eq in e.
-      simpl in e.
-      rewrite e.
-      now unfold Datatypes.id.
-    Defined.
-
-    Definition right_identity `{Monoid A} `{Monoid B} h x
-      : oper h x id == x.
-      simpl.
-      unfold Prod.eq.
-      simpl.
-      apply conj.
-      apply right_identity.
-      setoid_rewrite <- (right_identity (snd x)) at 2.
-      apply welldef.
-      reflexivity.
-      apply unit_map.
-      destruct h.
-      simpl.
-      destruct (x0 (fst x)).
-      now simpl.
-    Defined.
-
-    Definition associativity `{Monoid A} `{Monoid B} h x y z
-      : oper h x (oper h y z) == oper h (oper h x y) z.
-      simpl.
-      unfold Prod.eq.
-      simpl.
-      intuition.
-      simpl.
-      apply associativity.
-      simpl.
-      rewrite <- associativity.
-      apply welldef_r.
-      simpl End.eq.
-      rewrite (commute (projT2 (func h a))).
-      apply welldef_r.
-      pose (commute (projT2 h) a a0).
-      transitivity (func (func h a ** func h a0) b1).
-      now simpl.
-
-      enough (func h a ** func h a0 == func h (a ** a0)).
-      trivial.
-
-      now rewrite e.
-    Defined.
-
-  End SDP.
-End SDP.
-
-Instance semi_direct_prod A B `{Monoid A} `{Monoid B}
-         (h : action A B)
-  : Monoid (A * B)
-  := {| ε := SDP.id A B;
-        oper := SDP.oper _ _ h;
-        welldef_l := SDP.welldefl _ _ h;
-        welldef_r := SDP.welldefr _ _ h;
-        left_identity := SDP.left_identity _ _ h;
-        right_identity := SDP.right_identity _ _ h;
-        associativity := SDP.associativity _ _ h
-     |}.
-
-
-
-Definition twist {A B} `{Monoid B} (ea : A -> A) : End (A -> B).
-  refine (existT _ (fun m => ea >-> m)
-                {|
-                  well_def := _;
-                  unit_map := _;
-                  commute  := _
-                |}).
-  simpl in *.
-  now unfold compose.
-  reflexivity.
-  reflexivity.
-Defined.
-
-Definition halftwist {A B} `{Monoid B} (ea : A -> A) : End (A*A -> B).
-  refine (existT _ (fun m => (fun aa => (fst aa, ea (snd aa))) >->  m)
-                 {|
-                   well_def := _;
-                   unit_map := _;
-                   commute  := _
-                 |}).
-  simpl in *.
-  now unfold compose.
-  reflexivity.
-  reflexivity.
-Defined.
+End SemiDirectProduct.
 
 (** **
 
