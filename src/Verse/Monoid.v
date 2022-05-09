@@ -23,21 +23,6 @@ Require Export Relation_Definitions.
 Class BinOp (t : Type) := binop : t -> t -> t.
 Infix "**" := binop (right associativity, at level 60).
 
-Ltac intro_destruct := let x := fresh "x" in (intro x; destruct x; simpl).
-
-Ltac crush_equiv :=
-  repeat match goal with
-         | [ H1 : False |- _ ] => intuition
-         | [ _ :  _ = ?X,  _ : ?X = _ |- _ = _ ] => intros; transitivity X; eauto
-         | [ _ :  _ == ?X,  _ : ?X == _ |- _ == _ ] => intros; transitivity X; eauto
-         | [ H : ?X == _ |- context[?X] ] => rewrite H
-         | _ => intuition
-         end.
-
-Ltac crush_morph_tac n :=
-  do n (do 2 intro_destruct; let hyp := fresh "eqhyp" in intro hyp); crush_equiv.
-
-Tactic Notation "crush_morph" integer(n) := (crush_morph_tac n).
 
 
 Class Monoid t `{Setoid t} `{BinOp t}
@@ -48,6 +33,23 @@ Class Monoid t `{Setoid t} `{BinOp t}
        associativity  : forall x y z : t,
            (x ** (y ** z)) == ((x ** y) ** z)
      }.
+
+Ltac intro_destruct := let x := fresh "x" in (intro x; destruct x; simpl).
+
+Ltac crush_monoid :=
+  repeat match goal with
+         | [ H1 : False |- _ ] => intuition
+         | [ _ :  _ = ?X,  _ : ?X = _ |- _ = _ ] => intros; transitivity X; eauto
+         | [ _ :  _ == ?X,  _ : ?X == _ |- _ == _ ] => intros; transitivity X; eauto
+         | [ H : ?X == _ |- context[?X] ] => rewrite H
+         | [ |- context[ε] ] => try (rewrite left_identity); try (rewrite right_identity)
+         | _ => intuition; try (apply associativity)
+         end.
+
+Ltac crush_morph_tac n :=
+  do n (do 2 intro_destruct; let hyp := fresh "eqhyp" in intro hyp); crush_monoid.
+
+Tactic Notation "crush_morph" integer(n) := (crush_morph_tac n).
 
 (** It should be possible to rewrite with monoid equivalence and
     operation. For this we register the underlying setoid equivalence
@@ -302,7 +304,7 @@ Section Error.
 
   Lemma eq_error_trans : Transitive eq_error.
   Proof.
-    do 3 intro_destruct; crush_equiv.
+    do 3 intro_destruct; crush_monoid.
   Qed.
 
   Add Parametric Relation : (A + {E}) eq_error
@@ -335,7 +337,6 @@ Section Error.
   Program Instance error_monoid
   : Monoid (A + {E}) :=
   {| ε := {- ε -};
-     proper_oper := error_prod_mor_Proper;
      left_identity := _;
      right_identity := _;
      associativity := _;
@@ -354,52 +355,67 @@ Section Error.
     destruct x; destruct y; destruct z; simpl; trivial;apply associativity.
   Qed.
 
-
 End Error.
 
-Module Prod.
-  Section Prod.
+Section Prod.
 
-    Variable A B : Type.
-    Variable MA  : Setoid A.
-    Variable MB  : Setoid B.
+  Context (A B : Type)`{Monoid A} `{Monoid B}.
+  Definition eq_prod (x y : A * B) := (fst x == fst y) /\ (snd x == snd y).
 
-    Definition eq (x y : A * B) := (fst x == fst y) /\ (snd x == snd y).
-
-    Definition refl : Reflexive eq
+  Definition eq_prod_refl : Reflexive eq_prod
       := fun x => conj (Equivalence_Reflexive (fst x)) (Equivalence_Reflexive (snd x)).
 
-    Definition symm : Symmetric eq
+  Definition eq_prod_symm : Symmetric eq_prod
       := fun x y r => let (rf, rs) := r in
                       conj (Equivalence_Symmetric _ _ rf)
                            (Equivalence_Symmetric _ _ rs).
 
-    Definition trans : Transitive eq
+  Definition eq_prod_trans : Transitive eq_prod
       := fun x y z rxy ryz =>
                let (rxyf, rxys) := rxy in
                let (ryzf, ryzs) := ryz in
                conj (Equivalence_Transitive _ _ _ rxyf ryzf)
                     (Equivalence_Transitive _ _ _ rxys ryzs).
 
-  End Prod.
+  Add Parametric Relation : (A * B)%type  eq_prod
+      reflexivity proved by eq_prod_refl
+      symmetry proved by eq_prod_symm
+      transitivity proved by eq_prod_trans as prod_equivalence.
 
-  Arguments eq {A B MA MB}.
-  Arguments refl {A B MA MB}.
-  Arguments symm {A B MA MB}.
-  Arguments trans {A B MA MB}.
+  Instance prod_setoid  : Setoid (A * B)
+    := {| SetoidClass.equiv        := eq_prod; |}.
+
+
+
+  Instance prod_binop : BinOp (A * B) := fun x y => (fst x ** fst y, snd x ** snd y).
+
+  Add Parametric Morphism : binop with signature
+      eq_prod ==> eq_prod ==> eq_prod
+        as product_binop_mor.
+    unfold eq_prod.
+    crush_morph 2.
+  Qed.
+
+  Program Instance prod_monoid : Monoid (A * B) :=
+    {| ε := (ε, ε);
+       left_identity := _;
+       right_identity := _;
+       associativity := _
+    |}.
+  Next Obligation.
+    unfold eq_prod; simpl; crush_monoid.
+  Qed.
+
+  Next Obligation.
+    unfold eq_prod; simpl; crush_monoid.
+  Qed.
+
+  Next Obligation.
+    unfold eq_prod; simpl; crush_monoid.
+  Qed.
+
 
 End Prod.
-
-Instance prod_setoid A B `{Setoid A} `{Setoid B} : Setoid (A * B)
-  := {| SetoidClass.equiv        := Prod.eq;
-        SetoidClass.setoid_equiv := {|
-                         Equivalence_Reflexive := Prod.refl;
-                         Equivalence_Symmetric := Prod.symm;
-                         Equivalence_Transitive := Prod.trans
-                        |}
-     |}.
-
-
 Class RActionOp A G := ract : A -> G -> A.
 Infix "↑" := (ract) (left associativity, at level 59).
 (* For Right action the exponential notation is natural
@@ -453,17 +469,17 @@ Section SemiDirectProduct.
 
   Definition eqsemi_refl : Reflexive eqSemiR.
     unfold Reflexive.
-    intro_destruct. crush_equiv.
+    intro_destruct. crush_monoid.
   Qed.
 
   Definition eqsemi_sym : Symmetric eqSemiR.
     unfold Symmetric.
-    do 2 intro_destruct; crush_equiv.
+    do 2 intro_destruct; crush_monoid.
   Qed.
 
   Definition eqsemi_trans : Transitive eqSemiR.
     unfold Transitive.
-    do 3 intro_destruct; crush_equiv.
+    do 3 intro_destruct; crush_monoid.
   Qed.
 
   Add Parametric Relation : (G ⋉ A) eqSemiR
@@ -476,10 +492,9 @@ Section SemiDirectProduct.
               | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ↑ g2 ** a2)
               end.
 
-  Program Instance semiRSetoid : Setoid (G ⋉ A) :=
-    {| SetoidClass.equiv := eqSemiR;
-       SetoidClass.setoid_equiv := semiR_equiv
-    |}.
+
+  Instance semiRSetoid : Setoid (G ⋉ A) :=
+    {| SetoidClass.equiv := eqSemiR |}.
 
   Add Parametric Morphism : binop with signature
       SetoidClass.equiv ==>
@@ -490,33 +505,31 @@ Section SemiDirectProduct.
 
   Program Instance semiR_monoid : Monoid (G ⋉ A) :=
     {| ε := semiR ε ε;
-     proper_oper := rsemi_direct_product_mor_Proper;
-     left_identity := _;
-     right_identity := _;
-     associativity := _;
+       left_identity := _;
+       right_identity := _;
+       associativity := _;
     |}.
 
   Next Obligation.
-    destruct x as [g a] ; simpl;
-    intuition. apply @left_identity.
-    rewrite (ract_unit g); apply @left_identity.
+    destruct x as [g a];
+      simpl; crush_monoid;
+    rewrite (ract_unit g); crush_monoid.
   Qed.
 
   Next Obligation.
     destruct x as [g a]; simpl;
-      intuition. apply @right_identity.
-    rewrite (ract_trivial a); apply @right_identity.
+      crush_monoid;
+      rewrite (ract_trivial a); crush_monoid.
   Qed.
-
 
   Next Obligation.
     destruct x as [g a];
       destruct y as [h b];
       destruct z as [k c]; simpl.
-    intuition. apply @associativity; eauto.
+    crush_monoid.
     rewrite (ract_compose a h k).
     rewrite (ract_preserve_product (a ↑ h) b k).
-    apply @associativity; eauto.
+    crush_monoid.
   Qed.
 
 End SemiDirectProduct.
@@ -531,35 +544,27 @@ the eq_setoid and those that 'can'.
 Instance eq_setoid T : Setoid T | 10
   := { equiv := eq }.
 
+Instance list_append_binop (A : Type) : BinOp (list A) := List.app (A :=A).
+
 Instance list_is_monoid (A : Type)
-  : Monoid (list A).
-refine  {| ε  := nil;
-           oper  := List.app (A:=A);
-           welldef_l := fun _ _ _ _ => _;
-           welldef_r := fun _ _ _ _ => _;
-           left_identity  := app_nil_l (A:=A);
-           right_identity := app_nil_r (A:=A);
-           associativity  := app_assoc (A:=A)
-        |}.
-all : simpl in *; rewrite e; trivial.
-Defined.
+  : Monoid (list A) := {| ε  := nil;
+                          left_identity  := app_nil_l (A:=A);
+                          right_identity := app_nil_r (A:=A);
+                          associativity  := app_assoc (A:=A)
+                       |}.
 
-Instance transition_monoid (A : Type) : Monoid (A -> A) | 0.
-refine {| ε := @id A;
-          oper f g := f >-> g;
-          welldef_l := _ (*fun _ _ _ _ => _*);
-          welldef_r := _ (*fun _ _ _ _ => _*);
-          left_identity := _ (*fun _ _ => eq_refl left_identity_compose A*);
-          right_identity := _ (*fun _ _ => eq_refl right_identity_compose A*);
-          associativity   := _ (*assoc_compose A*)
-       |}.
-intros. simpl "==". unfold ">->". intro. f_equal. apply H.
-intros. simpl "==". unfold ">->". intro. f_equal.
-easy.
-easy.
-easy.
 
-Defined.
+Instance transition_binop (A : Type) : BinOp (A -> A) :=  fun (f g : A -> A) => compose g f.
+Instance transition_setoid (A : Type) : Setoid (A -> A) :=
+  {| SetoidClass.equiv := eq |}.
+Add Parametric Morphism A : binop with signature
+    SetoidClass.equiv (A:= A -> A)==> SetoidClass.equiv  ==> SetoidClass.equiv
+      as transition_mor.
+  crush_monoid.
+Qed.
+
+Program Instance transition_monoid (A : Type) : Monoid (A -> A) :=
+  {| ε := @id A |}.
 
 (* The following definitions are towards giving a monoid structure for
    the Abstract Machine.
@@ -571,6 +576,7 @@ Defined.
    to capture both the state transition and annotations on the state.
  *)
 
+(*
 Definition comp A B `{Monoid B} : action (A -> A) (A -> B).
   refine (existT _ twist
                  {|
@@ -622,3 +628,4 @@ Defined.
 
 Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
   := semi_direct_prod _ _ (halfcomp A B).
+*)
