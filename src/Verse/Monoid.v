@@ -23,6 +23,21 @@ Require Export Relation_Definitions.
 Class BinOp (t : Type) := binop : t -> t -> t.
 Infix "**" := binop (right associativity, at level 60).
 
+Ltac intro_destruct := let x := fresh "x" in (intro x; destruct x; simpl).
+
+Ltac crush_equiv :=
+  repeat match goal with
+         | [ H1 : False |- _ ] => intuition
+         | [ _ :  _ = ?X,  _ : ?X = _ |- _ = _ ] => intros; transitivity X; eauto
+         | [ _ :  _ == ?X,  _ : ?X == _ |- _ == _ ] => intros; transitivity X; eauto
+         | [ H : ?X == _ |- context[?X] ] => rewrite H
+         | _ => intuition
+         end.
+
+Ltac crush_morph_tac n :=
+  do n (do 2 intro_destruct; let hyp := fresh "eqhyp" in intro hyp); crush_equiv.
+
+Tactic Notation "crush_morph" integer(n) := (crush_morph_tac n).
 
 
 Class Monoid t `{Setoid t} `{BinOp t}
@@ -287,13 +302,7 @@ Section Error.
 
   Lemma eq_error_trans : Transitive eq_error.
   Proof.
-    intros x y z; destruct x; destruct y; destruct z; simpl; intros;
-      match goal with
-      | [ _ :  _ == ?X,  _ : ?X == _ |- _ == _ ] => intros; transitivity X; eauto
-      | [ _ :  _ = ?X,  _ : ?X = _ |- _ = _ ] => intros; transitivity X; eauto
-      | [ H1 : False |- _ ] => intuition
-      | _ => idtac
-      end.
+    do 3 intro_destruct; crush_equiv.
   Qed.
 
   Add Parametric Relation : (A + {E}) eq_error
@@ -318,14 +327,7 @@ Section Error.
   Add Parametric Morphism : error_prod with signature
       (eq_error ==> eq_error ==> eq_error) as error_prod_mor.
   Proof.
-    repeat match goal with
-           | [ |- _ + {_} -> _ ] => let x := fresh "x" in (intro x; destruct x; simpl)
-           | [ |- _ -> _ ] => intro
-           | [ H : False |- _] => inversion H
-           | [ H1 : _ == _, H2 : _ == _ |- _ ] => rewrite H1; rewrite H2
-           | _ => eauto; idtac
-           end.
-    reflexivity.
+    crush_morph 2.
   Qed.
 
   Instance binop_error : BinOp (A + {E}) := error_prod.
@@ -442,53 +444,25 @@ Section SemiDirectProduct.
   Context {G A : Type}
           `{RAction A G}.
 
-  (*
-    (a1, g1) [(a2, g2) (a3, g3)]
-
-=  (a1, g1) [ (a2 . a3g2, g2 g3) ]
-   (a1 . a2g1 . a3 g2 g1 )
-
-
-
-[(a1, g1) (a2, g2)] (a3,g3)
-
-(a1 a2 g1, g1 g2) (a3, g3)
-
-a1 . (a2 g1) a3 g1 g2
-
-(g1, a1) (g2, a2)
-
-
-   *)
   Definition eqSemiR (s1 s2 : G ⋉ A) :=
     match s1, s2 with
     | semiR g1 a1, semiR g2 a2 =>
       g1 == g2 /\ a1 == a2
     end.
 
-  Ltac crush_semi_eq :=
-    repeat match goal with
-           | [ |- SemiR _ _ -> _ ] =>
-             let s := fresh "s" in (intro s; destruct s; simpl)
-           | [ _ : ?a == ?b,
-                   _ : ?b == ?c |- ?a == ?c ] => transitivity b
-           | [ |- _ /\ _  -> _ ] => let hypEq := fresh "hypEq" in (intro hypEq; destruct hypEq)
-           | _ => intuition
-           end.
-
   Definition eqsemi_refl : Reflexive eqSemiR.
     unfold Reflexive.
-    crush_semi_eq.
+    intro_destruct. crush_equiv.
   Qed.
 
   Definition eqsemi_sym : Symmetric eqSemiR.
     unfold Symmetric.
-    crush_semi_eq.
+    do 2 intro_destruct; crush_equiv.
   Qed.
 
   Definition eqsemi_trans : Transitive eqSemiR.
     unfold Transitive.
-    crush_semi_eq.
+    do 3 intro_destruct; crush_equiv.
   Qed.
 
   Add Parametric Relation : (G ⋉ A) eqSemiR
