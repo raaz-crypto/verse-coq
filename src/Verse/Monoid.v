@@ -282,7 +282,7 @@ elements in the monoid and multiplies them to get the results
 Require Import Verse.Error.
 
 Section Error.
-  Context {E : Prop}{A : Type}{asetoid: Setoid A}.
+  Context {E : Prop}{A : Type}`{Monoid A}.
 
   Definition eq_error (x y : A + {E}) : Prop :=
     match x , y with
@@ -317,7 +317,6 @@ Section Error.
        SetoidClass.setoid_equiv := error_equivalence
     |}.
 
-  Context {bop : BinOp A}`{@Monoid A asetoid bop}.
   Definition error_prod (x y : A + {E}) : A + {E} :=
     match x, y with
     | {- a -}, {- b -}  => {- a ** b -}
