@@ -636,7 +636,13 @@ Goal [1 ; 2] ** [2 ; 3] = [1 ; 2 ; 2 ; 3].  (* This computes *)
   trivial.
 Qed.
 
+
+Compute ([1] , [1]) ** ([2] , [2]).
+Compute  {- [1] -} ** error I.
+
 (*
+
+Goal ([1] , [1]) ** ([2] , [2]) = ([1 ; 2] , [1; 2]).
 Goal {- [1] -} ** error I = error I. (* this leads to unresloved BinOp *)
 
 *)
