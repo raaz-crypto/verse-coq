@@ -307,12 +307,12 @@ Section Error.
     do 3 intro_destruct; crush_monoid.
   Qed.
 
-  Add Parametric Relation : (A + {E}) eq_error
+  Global Add Parametric Relation : (A + {E}) eq_error
       reflexivity proved by eq_error_refl
       symmetry proved by eq_error_sym
       transitivity proved by eq_error_trans as error_equivalence.
 
-  Instance error_setoid : Setoid (A + {E}) :=
+  Global Instance error_setoid : Setoid (A + {E}) :=
     {| SetoidClass.equiv :=  eq_error;
        SetoidClass.setoid_equiv := error_equivalence
     |}.
@@ -325,15 +325,15 @@ Section Error.
     end.
 
 
-  Add Parametric Morphism : error_prod with signature
+  Global Add Parametric Morphism : error_prod with signature
       (eq_error ==> eq_error ==> eq_error) as error_prod_mor.
   Proof.
     crush_morph 2.
   Qed.
 
-  Instance binop_error : BinOp (A + {E}) := error_prod.
+  Global Instance binop_error : BinOp (A + {E}) := error_prod.
 
-  Program Instance error_monoid
+  Global Program Instance error_monoid
   : Monoid (A + {E}) :=
   {| ε := {- ε -};
      left_identity := _;
@@ -381,21 +381,21 @@ Section Prod.
       symmetry proved by eq_prod_symm
       transitivity proved by eq_prod_trans as prod_equivalence.
 
-  Instance prod_setoid  : Setoid (A * B)
+  Global Instance prod_setoid  : Setoid (A * B)
     := {| SetoidClass.equiv        := eq_prod; |}.
 
 
 
-  Instance prod_binop : BinOp (A * B) := fun x y => (fst x ** fst y, snd x ** snd y).
+  Global Instance prod_binop : BinOp (A * B) := fun x y => (fst x ** fst y, snd x ** snd y).
 
-  Add Parametric Morphism : binop with signature
+  Global Add Parametric Morphism : binop with signature
       eq_prod ==> eq_prod ==> eq_prod
         as product_binop_mor.
     unfold eq_prod.
     crush_morph 2.
   Qed.
 
-  Program Instance prod_monoid : Monoid (A * B) :=
+  Global Program Instance prod_monoid : Monoid (A * B) :=
     {| ε := (ε, ε);
        left_identity := _;
        right_identity := _;
@@ -481,28 +481,28 @@ Section SemiDirectProduct.
     do 3 intro_destruct; crush_monoid.
   Qed.
 
-  Add Parametric Relation : (G ⋉ A) eqSemiR
+  Global Add Parametric Relation : (G ⋉ A) eqSemiR
       reflexivity proved by eqsemi_refl
       symmetry proved by eqsemi_sym
       transitivity proved by eqsemi_trans as semiR_equiv.
 
-  Instance rsemi_direct_product : BinOp (G ⋉ A) :=
+  Global Instance rsemi_direct_product : BinOp (G ⋉ A) :=
     fun s1 s2 => match s1, s2 with
               | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ↑ g2 ** a2)
               end.
 
 
-  Instance semiRSetoid : Setoid (G ⋉ A) :=
+  Global Instance semiRSetoid : Setoid (G ⋉ A) :=
     {| SetoidClass.equiv := eqSemiR |}.
 
-  Add Parametric Morphism : binop with signature
+  Global Add Parametric Morphism : binop with signature
       SetoidClass.equiv ==>
                         SetoidClass.equiv  ==> SetoidClass.equiv
         as rsemi_direct_product_mor.
     crush_morph 2.
   Qed.
 
-  Program Instance semiR_monoid : Monoid (G ⋉ A) :=
+  Global Program Instance semiR_monoid : Monoid (G ⋉ A) :=
     {| ε := semiR ε ε;
        left_identity := _;
        right_identity := _;
@@ -637,12 +637,10 @@ Goal [1 ; 2] ** [2 ; 3] = [1 ; 2 ; 2 ; 3].  (* This computes *)
 Qed.
 
 
-Compute ([1] , [1]) ** ([2] , [2]).
-Compute  {- [1] -} ** error I.
-
-(*
-
 Goal ([1] , [1]) ** ([2] , [2]) = ([1 ; 2] , [1; 2]).
-Goal {- [1] -} ** error I = error I. (* this leads to unresloved BinOp *)
+  trivial.
+Qed.
 
-*)
+Goal {- [1] -} ** error I = error I. (* this leads to unresloved BinOp *)
+  trivial.
+Qed.
