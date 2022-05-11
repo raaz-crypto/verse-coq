@@ -65,10 +65,6 @@ Add Parametric Morphism T `{Monoid T} : binop with signature
 Proof.
   exact proper_oper.
 Qed.
-(*Instance oper_proper T `{Monoid T}
-  : Proper (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) binop
-  := proper_oper.
-*)
 
 
 Definition mconcat {t}`{mon: Monoid t} : list t -> t
