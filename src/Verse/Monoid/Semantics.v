@@ -64,4 +64,4 @@ Definition linesDenote types mtypes
   : line (mvariables M)
   := mapMconcat (lineDenote _ _ _ _ sem) c.
 
-Arguments linesDenote [types mtypes] _ _ {_ _}.
+Arguments linesDenote [types mtypes] _ _ {_ _ _}.

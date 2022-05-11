@@ -4,7 +4,9 @@ Require Import Verse.Ast.
 Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
+Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
+
 
 Require Import PeanoNat.
 
@@ -110,6 +112,43 @@ and hence is also a state transformation.
 
   Definition assertion `{State}   := Pair str -> Prop.
 
+  Global Instance assertion_action_op `{State} : RActionOp assertion instruction :=
+    fun ap inst => fun oAn => ap (fst oAn, inst (snd oAn)).
+
+  Add Parametric Morphism `{State} : ract with signature
+      SetoidClass.equiv (A:=assertion)==> SetoidClass.equiv ==> SetoidClass.equiv as ract_morp.
+    unfold ract.
+    unfold assertion_action_op; simpl.
+    intros P Q.
+    intro  PEQ.
+    intros tr1 tr2.
+    intro trEq.
+    intro_destruct.
+    rewrite trEq.
+    apply PEQ.
+  Qed.
+
+  Global Program Instance assertion_action `{State} : RAction assertion instruction :=
+    {| ract_unit := _  |}.
+
+  Next Obligation.
+    intro_destruct; unfold ract. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct. unfold ract. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct; unfold ract; unfold assertion_action_op. intuition.
+  Qed.
+
+
+  Next Obligation.
+    intro_destruct; unfold ract; unfold assertion_action_op;
+    unfold binop; unfold transition_binop; unfold Basics.compose; simpl. intuition.
+  Qed.
+
 End Store.
 
 Arguments State [ts].
@@ -207,11 +246,11 @@ Section Machine.
   Variable tyD   : typeDenote ts.
 
   Definition mline :=
-    forall state : State v tyD, (instruction state * assertion state)%type.
+    forall state : State v tyD, instruction state ⋉ assertion state.
 
   Definition justInst
     : (forall state, instruction state) -> mline
-    := fun i => fun st => (i st, fun _ => True).
+    := fun i => fun st => semiR (i st) (fun _ => True).
 
   Instance store_interface
     : Interface (ltypes := ts) v store_machine
@@ -226,8 +265,8 @@ Section Machine.
                        >->
                        justInst);
 
-          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in
-                                          (mlinst, fun stp : _ * _ => let (_, new) := stp in
+          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in semiR  mlinst
+                                          (fun stp : _ * _ => let (_, new) := stp in
                                                                       mlannot (new, new)))
        |}.
 
