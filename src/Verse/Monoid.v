@@ -567,6 +567,21 @@ Qed.
 Program Instance transition_monoid (A : Type) : Monoid (A -> A) :=
   {| ε := @id A |}.
 
+Instance prop_prod : BinOp Prop := and.
+Program Instance prop_monoid : Monoid Prop :=
+  {| ε := True |}.
+Next Obligation.
+  unfold binop; unfold prop_prod. intuition.
+Qed.
+
+Next Obligation.
+  unfold binop; unfold prop_prod. intuition.
+Qed.
+
+Next Obligation.
+  unfold binop; unfold prop_prod. intuition.
+Qed.
+
 (* The following definitions are towards giving a monoid structure for
    the Abstract Machine.
 
@@ -634,7 +649,7 @@ Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
 Require List.
 Import List.ListNotations.
 
-Goal [1 ; 2] ** [2 ; 3] = [1 ; 2 ; 2 ; 3].  (* This computes *)
+Goal [1 ; 2] ** [2 ; 3] = [1 ; 2 ; 2 ; 3].
   trivial.
 Qed.
 
@@ -643,6 +658,6 @@ Goal ([1] , [1]) ** ([2] , [2]) = ([1 ; 2] , [1; 2]).
   trivial.
 Qed.
 
-Goal {- [1] -} ** error I = error I. (* this leads to unresloved BinOp *)
+Goal {- [1] -} ** error I = error I.
   trivial.
 Qed.
