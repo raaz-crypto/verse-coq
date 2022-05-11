@@ -138,7 +138,7 @@ Section FunctionEquivalence.
     intros f g h fEg gEh x; transitivity (g x); eauto.
   Qed.
 
-  Add Parametric Relation : (A -> B) equiv_function
+  Global Add Parametric Relation : (A -> B) equiv_function
     reflexivity proved by equiv_function_refl
     symmetry proved by equiv_function_symm
     transitivity proved by equiv_function_transitive
@@ -156,7 +156,7 @@ Section FunctionEquivalence.
   Context {B : Type}`{Monoid B}{A : Type}.
   Definition function_product (f g : A -> B) : A -> B := fun x => f x ** g x.
 
-  Add Parametric Morphism : function_product with signature
+  Global Add Parametric Morphism : function_product with signature
       (SetoidClass.equiv ==> SetoidClass.equiv ==> SetoidClass.equiv) as function_product_mor.
   Proof.
     intros f g fEQg fp gp fEQgP; intro.
@@ -189,11 +189,11 @@ Next Obligation.
   intros. apply associativity.
 Qed.
 
-(* TODO
+(* TODO *)
 Instance dep_point_setoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
   : Setoid (forall a, F a) | 2 :=
-  {| equiv f g := forall x, f x == g x;
+  {| SetoidClass.equiv f g := forall x, f x == g x;
      setoid_equiv := {|
                       Equivalence_Reflexive := fun f a =>
                                                  reflexivity (f a);
@@ -215,43 +215,49 @@ Instance dep_point_setoid A (F : A -> Type)
                     |}
   |}.
 
-Instance dep_point_monoid A (F : A -> Type)
+Instance dep_point_binop  A (F : A -> Type)
+         `{forall a, BinOp (F a)}
+  : BinOp (forall a, F a) := fun f g => fun a => f a ** g a.
+
+Add Parametric Morphism A (F : A -> Type)
+    `{forall a, Setoid (F a)}
+    `{forall a, BinOp (F a)}
+    `{forall a, Proper (SetoidClass.equiv (A := F a) ==> SetoidClass.equiv ==> SetoidClass.equiv) binop}
+
+  : binop  with signature
+    SetoidClass.equiv (A := forall a, F a) ==> SetoidClass.equiv ==> SetoidClass.equiv
+      as dep_point_binop_mor.
+  intros f g. simpl.
+  intro fEg.
+  intros h k. simpl.
+  intro hEk.
+  intro x. unfold binop. unfold dep_point_binop.
+  rewrite (fEg x).
+  rewrite (hEk x).
+  reflexivity.
+Qed.
+
+Program Instance dep_point_monoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
+         `{forall a, BinOp (F a)}
          `{forall a, Monoid (F a)}
-  : Monoid (forall a, F a) | 2.
-refine {| ε := fun _ => ε;
-          oper f g  := fun x => f x ** g x;
-          welldef_l := _;
-          welldef_r := _;
-          left_identity  := _;
-          right_identity := _;
-          associativity  := _;
-       |}.
+  : Monoid (forall a, F a) | 2
+                          := {| ε := fun _ => ε;
+                                left_identity  := _;
+                                right_identity := _;
+                                associativity  := _;
+                             |}.
+Next Obligation.
+  unfold binop. unfold dep_point_binop. crush_monoid.
+Qed.
 
-simpl in *.
-intros.
-apply (welldef_l (Monoid := H0 x0)).
-apply H1.
+Next Obligation.
+  unfold binop. unfold dep_point_binop. crush_monoid.
+Qed.
 
-simpl in *.
-intros.
-apply (welldef_r (Monoid := H0 x0)).
-apply H1.
-
-simpl.
-intros.
-apply (left_identity (Monoid := H0 x0)).
-
-simpl.
-intros.
-apply (right_identity (Monoid := H0 x0)).
-
-simpl.
-intros.
-apply (associativity (Monoid := H0 x0)).
-
-Defined.
- *)
+Next Obligation.
+  unfold binop. unfold dep_point_binop. crush_monoid.
+Qed.
 
 
 Class Hom [t1 t2]`{Monoid t1} `{Monoid t2} (f : t1 -> t2) : Prop
