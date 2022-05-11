@@ -629,3 +629,15 @@ Defined.
 Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
   := semi_direct_prod _ _ (halfcomp A B).
 *)
+
+Require List.
+Import List.ListNotations.
+
+Goal [1 ; 2] ** [2 ; 3] = [1 ; 2 ; 2 ; 3].  (* This computes *)
+  trivial.
+Qed.
+
+(*
+Goal {- [1] -} ** error I = error I. (* this leads to unresloved BinOp *)
+
+*)
