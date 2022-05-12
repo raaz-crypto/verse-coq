@@ -303,7 +303,7 @@ Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ v) (at level 50).
 Tactic Notation "annotated_verse" uconstr(B)
   := refine ((*fun _ =>*) B : lines _ (fun v => mline (v := v))); repeat verse_simplify; verse_print_mesg.
 
-Notation "'ASSERT' P" := (inline (fun _ => (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
+Notation "'ASSERT' P" := (inline (fun _ => semiR id (((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
 
 (** * Language Semantics.
 

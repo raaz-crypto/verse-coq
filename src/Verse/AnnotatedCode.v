@@ -4,6 +4,7 @@ Require Import Verse.Ast.
 Require Import Verse.Language.Pretty.
 Require Import Verse.AbstractMachine.
 Require Import Verse.Monoid.PList.
+Require Import Verse.Monoid.
 
 Import ListNotations.
 
@@ -126,8 +127,8 @@ Fixpoint denote1 tyD Rels v
   :=
     let anndenote [x] p := (inline
                               (fun state : State x tyD =>
-                                 (id,
-                                  ((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : Pair str -> Prop))) in
+                                 semiR id
+                                   (((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : Pair str -> Prop))) in
     match ann with
     | instruct _ _ _ s  => inst s
     | annot _ _ _ p     => anndenote p
