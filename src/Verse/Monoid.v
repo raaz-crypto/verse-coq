@@ -417,39 +417,38 @@ Section Prod.
 
 
 End Prod.
-Class RActionOp A G := ract : A -> G -> A.
-Infix "↑" := (ract) (left associativity, at level 59).
-(* For Right action the exponential notation is natural
-and hence we use the up arrow as the assoiciated infix operator *)
+Class LActionOp G A := lact : G -> A -> A.
+
+Infix "•" := (lact) (right associativity, at level 58).
 
 (* TODO MAYBE:
 
-One can also capture left action but since our application is for
-transforms acting on state predicates, we only capture right actions
+One can also capture right action but since our application is for
+transforms acting on state predicates, we only capture left actions
 as of now
 
 <<
 
-Class LActionOp A B := lact : A -> B -> B.
-Infix "•" := (lact) (right associativity, at level 59).
+Class RActionOp A G := ract : A -> G -> A.
+Infix "↑" := (ract) (left associativity, at level 59).
 
 >>
 
  *)
 
 
-Class RAction A G `{Monoid A}`{Monoid G}`{RActionOp A G} :=
-  { proper_raction
-    : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A)) ract;
-    ract_unit                : forall g, ε ↑ g == ε;
-    ract_preserve_product  : forall a1 a2 g, (a1 ** a2) ↑ g == a1 ↑ g ** a2 ↑ g;
-    ract_trivial           : forall a, a ↑ ε == a;
-    ract_compose           : forall a g1 g2, a ↑ (g1 ** g2) == a ↑ g1 ↑ g2
+Class LAction G A `{Monoid A}`{Monoid G}`{LActionOp G A} :=
+  { proper_laction
+    : Proper (SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=A)) lact;
+    lact_unit                : forall g, g•ε == ε;
+    lact_preserve_product  : forall g a1 a2, g•(a1 ** a2) == g•a1 ** g•a2;
+    lact_trivial           : forall a, ε•a == a;
+    lact_compose           : forall g1 g2 a, (g1 ** g2)•a  == g1•g2•a
   }.
 
-Instance monoid_action_Proper A G `{RAction A G}
-  : Proper (SetoidClass.equiv (A:=A) ==> SetoidClass.equiv (A:=G) ==> SetoidClass.equiv(A:=A)) ract
-  := proper_raction.
+Instance monoid_action_Proper G A `{LAction G A}
+  : Proper (SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A) ==> SetoidClass.equiv(A:=A)) lact
+  := proper_laction.
 
 
 Inductive SemiR G A := semiR : G -> A -> SemiR G A.
@@ -460,12 +459,12 @@ Arguments semiR {G A}.
 Section SemiDirectProduct.
 
   Context {G A : Type}
-          `{RAction A G}.
+          `{LAction G A}.
 
   Definition eqSemiR (s1 s2 : G ⋉ A) :=
     match s1, s2 with
     | semiR g1 a1, semiR g2 a2 =>
-      g1 == g2 /\ a1 == a2
+        g1 == g2 /\ a1 == a2
     end.
 
   Definition eqsemi_refl : Reflexive eqSemiR.
@@ -484,43 +483,42 @@ Section SemiDirectProduct.
   Qed.
 
   Global Add Parametric Relation : (G ⋉ A) eqSemiR
-      reflexivity proved by eqsemi_refl
-      symmetry proved by eqsemi_sym
-      transitivity proved by eqsemi_trans as semiR_equiv.
+         reflexivity proved by eqsemi_refl
+         symmetry proved by eqsemi_sym
+         transitivity proved by eqsemi_trans as semiR_equiv.
 
   Global Instance rsemi_direct_product : BinOp (G ⋉ A) :=
     fun s1 s2 => match s1, s2 with
-              | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ↑ g2 ** a2)
+              | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ** g1 • a2)
               end.
-
 
   Global Instance semiRSetoid : Setoid (G ⋉ A) :=
     {| SetoidClass.equiv := eqSemiR |}.
 
   Global Add Parametric Morphism : binop with signature
-      SetoidClass.equiv ==>
-                        SetoidClass.equiv  ==> SetoidClass.equiv
-        as rsemi_direct_product_mor.
-    crush_morph 2.
+         SetoidClass.equiv ==>
+                           SetoidClass.equiv  ==> SetoidClass.equiv
+           as rsemi_direct_product_mor.
+  crush_morph 2.
   Qed.
 
   Global Program Instance semiR_monoid : Monoid (G ⋉ A) :=
     {| ε := semiR ε ε;
-       left_identity := _;
-       right_identity := _;
-       associativity := _;
+      left_identity := _;
+      right_identity := _;
+      associativity := _;
     |}.
 
   Next Obligation.
     destruct x as [g a];
       simpl; crush_monoid;
-    rewrite (ract_unit g); crush_monoid.
+      rewrite (lact_trivial a); crush_monoid.
   Qed.
 
   Next Obligation.
     destruct x as [g a]; simpl;
       crush_monoid;
-      rewrite (ract_trivial a); crush_monoid.
+      rewrite (lact_unit g); crush_monoid.
   Qed.
 
   Next Obligation.
@@ -528,8 +526,8 @@ Section SemiDirectProduct.
       destruct y as [h b];
       destruct z as [k c]; simpl.
     crush_monoid.
-    rewrite (ract_compose a h k).
-    rewrite (ract_preserve_product (a ↑ h) b k).
+    rewrite (lact_compose g h c).
+    rewrite (lact_preserve_product g b (h•c)).
     crush_monoid.
   Qed.
 
@@ -540,7 +538,7 @@ End SemiDirectProduct.
 This marks the separator between definitions that should not be using
 the eq_setoid and those that 'can'.
 
-*)
+ *)
 
 Instance eq_setoid T : Setoid T | 10
   := { equiv := eq }.
