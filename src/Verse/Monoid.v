@@ -554,7 +554,7 @@ Instance list_is_monoid (A : Type)
 
 
 Print compose.
-Instance transition_binop (A : Type) : BinOp (A -> A) :=  fun (f g : A -> A) => compose f g.
+Instance transition_binop (A : Type) : BinOp (A -> A) :=  fun (f g : A -> A) => compose g f.
 Instance transition_setoid (A : Type) : Setoid (A -> A) :=
   {| SetoidClass.equiv := eq |}.
 Add Parametric Morphism A : binop with signature
