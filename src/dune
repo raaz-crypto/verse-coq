@@ -3,7 +3,7 @@
  (package verse)
  (synopsis "A EDSL to write crypto primitives")
  (modules Verse
-          Verse.Abstract.Language
+          ; Verse.Abstract.Language
 	  Verse.Abstract.Machine
           Verse.Ast
           Verse.AbstractMachine
