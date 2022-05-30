@@ -4,7 +4,9 @@ Require Import Verse.Ast.
 Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
+Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
+
 
 Require Import PeanoNat.
 
@@ -110,6 +112,43 @@ and hence is also a state transformation.
 
   Definition assertion `{State}   := Pair str -> Prop.
 
+  Global Instance assertion_action_op `{State} : LActionOp instruction assertion :=
+    fun inst ap => fun oAn => ap (fst oAn, inst (snd oAn)).
+
+  Add Parametric Morphism `{State} : lact with signature
+      SetoidClass.equiv (A:=instruction) ==> SetoidClass.equiv (A:=assertion) ==> SetoidClass.equiv (A:=assertion) as lact_morp.
+    unfold lact.
+    unfold assertion_action_op; simpl.
+    intros P Q.
+    intro  PEQ.
+    intros tr1 tr2.
+    intro trEq.
+    intro_destruct.
+    rewrite (trEq (s, P s0)).
+    now rewrite PEQ.
+  Qed.
+
+  Global Program Instance assertion_action `{State} : LAction instruction assertion :=
+    {| lact_unit := _  |}.
+
+  Next Obligation.
+    intro_destruct; unfold lact. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct. unfold lact. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct; unfold lact; unfold assertion_action_op. intuition.
+  Qed.
+
+
+  Next Obligation.
+    intro_destruct; unfold lact; unfold assertion_action_op;
+    unfold binop; unfold transition_binop; unfold Basics.compose; simpl. intuition.
+  Qed.
+
 End Store.
 
 Arguments State [ts].
@@ -207,11 +246,11 @@ Section Machine.
   Variable tyD   : typeDenote ts.
 
   Definition mline :=
-    forall state : State v tyD, (instruction state * assertion state)%type.
+    forall state : State v tyD, instruction state ⋉ assertion state.
 
   Definition justInst
     : (forall state, instruction state) -> mline
-    := fun i => fun st => (i st, fun _ => True).
+    := fun i => fun st => semiR (i st) (fun _ => True).
 
   Instance store_interface
     : Interface (ltypes := ts) v store_machine
@@ -226,8 +265,8 @@ Section Machine.
                        >->
                        justInst);
 
-          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in
-                                          (mlinst, fun stp : _ * _ => let (_, new) := stp in
+          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in semiR  mlinst
+                                          (fun stp : _ * _ => let (_, new) := stp in
                                                                       mlannot (new, new)))
        |}.
 
@@ -264,7 +303,7 @@ Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ v) (at level 50).
 Tactic Notation "annotated_verse" uconstr(B)
   := refine ((*fun _ =>*) B : lines _ (fun v => mline (v := v))); repeat verse_simplify; verse_print_mesg.
 
-Notation "'ASSERT' P" := (inline (fun _ => (id , ((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
+Notation "'ASSERT' P" := (inline (fun _ => semiR id (((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
 
 (** * Language Semantics.
 

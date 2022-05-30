@@ -30,9 +30,10 @@ Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
         inliner      : line -> line
      }.
 
-Arguments inliner [types mtypes] [M line] {_ _}.
-Arguments denote  [types mtypes] [M line] {_ _}.
+Arguments inliner [types mtypes] [M line] {_ _ _}.
+Arguments denote  [types mtypes] [M line] {_ _ _}.
 
+Print denote.
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
                       line `{Monoid line}
@@ -63,4 +64,4 @@ Definition linesDenote types mtypes
   : line (mvariables M)
   := mapMconcat (lineDenote _ _ _ _ sem) c.
 
-Arguments linesDenote [types mtypes] _ _ {_ _}.
+Arguments linesDenote [types mtypes] _ _ {_ _ _}.

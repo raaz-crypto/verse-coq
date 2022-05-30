@@ -66,8 +66,8 @@ Section CodeGen.
              (ml : @mline _ (memV sc) tyD)
     := forall (st : str), pc st
                           ->
-                          snd (ml (HlistMem _ _))
-                              (st, st).
+                          let (i,a) := (ml (HlistMem _ _)) in
+                          a (st, st).
 
   Definition tpt := getProp (fun _ => True) cp.
 (*
