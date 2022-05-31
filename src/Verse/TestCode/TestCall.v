@@ -22,9 +22,9 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v (existT _ _ Word8).
+  Variable A B : Word8 FROM v.
 
-  Definition f (w : VariableT) (a b : w (existT _ _ Word8))
+  Definition f (w : VariableT) (a b : Word8 FROM w)
     : specified bvDenote noRels w AnnotatedCode.
 
     verse (CODE [code| a := b + `2` |]

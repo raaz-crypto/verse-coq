@@ -15,8 +15,8 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v (existT _ _ Word8).
-  Variable C   : v (existT _ _ Word16).
+  Variable A B : Word8 FROM v.
+  Variable C   : Word16 FROM v.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
