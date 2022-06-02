@@ -258,10 +258,10 @@ Module Internal.
 
        *)
 
-      Variable LastBlock : Block FROM progvar.
-      Variable AArray    : ElemArray FROM progvar.
-      Variable RArray    : Array128 FROM progvar.
-      Variable SArray    : Array128 FROM progvar.
+      Variable LastBlock : progvar of type Block.
+      Variable AArray    : progvar of type ElemArray.
+      Variable RArray    : progvar of type Array128.
+      Variable SArray    : progvar of type Array128.
 
       Section Locals.
         (** ** Registers.
@@ -280,13 +280,13 @@ Module Internal.
 
          *)
 
-        Variables a0 a1 a2 a3 a4 : Limb FROM progvar.
-        Variables r0 r1 r2 r3    : Limb FROM progvar.
+        Variables a0 a1 a2 a3 a4 : progvar of type Limb.
+        Variables r0 r1 r2 r3    : progvar of type Limb.
         (** The limbs that capture the result of product *)
-        Variable p1 p2 p3 p4 : Limb FROM progvar.
+        Variable p1 p2 p3 p4 : progvar of type Limb.
 
         (** Temporary variables that is used often *)
-        Variable T0 T1 : Limb FROM progvar.
+        Variable T0 T1 : progvar of type Limb.
 
         Definition A : VarIndex progvar 5 Limb := varIndex [a0; a1; a2; a3; a4].
         Definition R : VarIndex progvar 4 Limb := varIndex [r0; r1; r2; r3].
@@ -296,7 +296,7 @@ Module Internal.
           Variable e     : endian.
           Variable Arr   : progvar (existT _ _ (Array bound e Limb)).
           Variable i     : nat.
-          Variable x0 x1 : Limb FROM progvar.
+          Variable x0 x1 : progvar of type Limb.
           Variable bpf   : i < bound.
           Definition Load64 : code progvar.
             verse [code|
@@ -383,7 +383,7 @@ Module Internal.
             )%list.
         Defined.
 
-        Definition AddFullBlock (blk : Block FROM progvar) : code progvar
+        Definition AddFullBlock (blk : progvar of type Block) : code progvar
           := (Add128 blk ++ [code| a4 += `1` |])%list.
 
         (** ** Computing [A := A * R]
@@ -646,12 +646,12 @@ Module Internal.
       block is full or partial.
          *)
 
-        Definition ProcessBlock (AddC : Block FROM progvar -> code progvar)(blk : Block FROM progvar)
+        Definition ProcessBlock (AddC : progvar of type Block -> code progvar)(blk : progvar of type Block)
           : code progvar
           := (AddC blk ++ MulR ++ AdjustBits)%list.
 
-        Definition ProcessFullBlock : Block FROM progvar -> code progvar  := ProcessBlock AddFullBlock.
-        Definition ProcessLastBlock : Block FROM progvar -> code progvar  := ProcessBlock Add128.
+        Definition ProcessFullBlock : progvar of type Block -> code progvar  := ProcessBlock AddFullBlock.
+        Definition ProcessLastBlock : progvar of type Block -> code progvar  := ProcessBlock Add128.
 
         (** * The exported functions and iterators.
 
@@ -724,7 +724,7 @@ Module Internal.
 
          *)
 
-        Definition clamp (blk : Array128 FROM progvar) : code progvar.
+        Definition clamp (blk : progvar of type Array128) : code progvar.
           verse [code|
 
                  T0 := blk[ `0` ];

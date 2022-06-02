@@ -35,12 +35,12 @@ Module Internal.
 
        *)
 
-      Variable key      : Key FROM progvar.
-      Variable iv       : IV FROM progvar.
+      Variable key      : progvar of type Key.
+      Variable iv       : progvar of type IV.
       Variable ctrRef   : progvar (existT _ _ (Array 1 hostE Counter)).
 
       (** IV for hchacha20 *)
-      Variable hiv0 hiv1 hiv2 hiv3 : Word FROM progvar.
+      Variable hiv0 hiv1 hiv2 hiv3 : progvar of type Word.
 
       Section Locals.
 
@@ -57,12 +57,12 @@ Module Internal.
 
          *)
 
-        Variable Temp            : Word FROM progvar.
-        Variable ctr             : Counter FROM progvar.
+        Variable Temp            : progvar of type Word.
+        Variable ctr             : progvar of type Counter.
         Variable x0  x1  x2  x3
                  x4  x5  x6  x7
                  x8  x9  x10 x11
-                 x12 x13 x14 x15 : Word FROM progvar.
+                 x12 x13 x14 x15 : progvar of type Word.
 
         (**
         Let us make some auxiliary definitions that simplify some of
@@ -118,7 +118,7 @@ Module Internal.
 
          *)
 
-        Definition QRound (a b c d : Word FROM progvar) : code progvar
+        Definition QRound (a b c d : progvar of type Word) : code progvar
           := [code|
                a += b; d ⊕= a; d := d ⋘ `16`;
                c += d; b ⊕= c; b := b ⋘ `12`;

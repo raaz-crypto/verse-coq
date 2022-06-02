@@ -21,7 +21,7 @@ Module Internal.
      *)
 
 
-    Definition clamp (T : Limb FROM progvar)(scalA : Scalar FROM progvar) : code progvar.
+    Definition clamp (T : progvar of type Limb) (scalA : progvar of type Scalar) : code progvar.
       verse [code|
           T := scalA[ `0` ];
           T &= `Ox "ff:ff:ff:ff ff:ff:ff:f8"`;
@@ -34,7 +34,7 @@ Module Internal.
         |].
     Defined.
 
-    Definition clampIter (T : Limb FROM progvar) : iterator progvar Scalar
+    Definition clampIter (T : progvar of type Limb) : iterator progvar Scalar
       := {| setup    := [];
             process  := clamp T;
             finalise := []

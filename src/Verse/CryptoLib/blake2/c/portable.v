@@ -110,12 +110,12 @@ Module Blake2 (C : CONFIG).
 
     Variable UpperRef LowerRef : progvar (existT _ _ (Ref Word)).
 
-    Variable LastBlock : Block FROM progvar.
-    Variable NBytes    : Word FROM progvar.
-    Variable Upper Lower : Word FROM progvar.
-    Variable f0 f1: Word FROM progvar.
+    Variable LastBlock : progvar of type Block.
+    Variable NBytes    : progvar of type Word.
+    Variable Upper Lower : progvar of type Word.
+    Variable f0 f1: progvar of type Word.
 
-    Variable hash : Hash FROM progvar.
+    Variable hash : progvar of type Hash.
 
 
     Section Locals.
@@ -128,9 +128,9 @@ Module Blake2 (C : CONFIG).
         fast.
 
        *)
-      Variable h0 h1 h2 h3 h4 h5 h6 h7 : Word FROM progvar.
+      Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar of type Word.
       Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
-      Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : Word FROM progvar.
+      Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : progvar of type Word.
       Definition message_variables
         := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15].
 
@@ -146,7 +146,7 @@ Module Blake2 (C : CONFIG).
       Variable v0 v4 v8  v12
                v1 v5 v9  v13
                v2 v6 v10 v14
-               v3 v7 v11 v15 : Word FROM progvar.
+               v3 v7 v11 v15 : progvar of type Word.
 
       Definition state := [ v0 ; v4 ; v8  ; v12;
                             v1 ; v5 ; v9  ; v13;
@@ -180,8 +180,8 @@ Module Blake2 (C : CONFIG).
 
        *)
 
-      Variable C LMSB : Word FROM progvar.
-      Variable U L    : Word FROM progvar.
+      Variable C LMSB : progvar of type Word.
+      Variable U L    : progvar of type Word.
 
       (** ** Updating the count.
 
@@ -223,7 +223,7 @@ Module Blake2 (C : CONFIG).
       Variable byteCount : A.
 
 
-      Definition UPDATE_COUNTER (u l : Word FROM progvar) : code progvar :=
+      Definition UPDATE_COUNTER (u l : progvar of type Word) : code progvar :=
         [code| (* We first ensure that the variable C gets the carry that overflows
              when l is added bsize. For this we first need to get the msb of l
              into the lsb position
@@ -276,7 +276,7 @@ Module Blake2 (C : CONFIG).
 
      *)
 
-    Definition G (a b c d m0 m1 : Word FROM progvar) : code progvar :=
+    Definition G (a b c d m0 m1 : progvar of type Word) : code progvar :=
       [code|
         a += b; a += m0; d ⊕= a; d := d ⋙ R0;
         c += d;          b ⊕= c; b := b ⋙ R1;
@@ -420,11 +420,11 @@ Module Blake2 (C : CONFIG).
 
      *)
     Definition W : VarIndex progvar BLOCK_SIZE Word := varIndex message_variables.
-    Definition LOAD_MESSAGE_I (blk : Block FROM progvar) (i : nat) (pf : i < BLOCK_SIZE)
+    Definition LOAD_MESSAGE_I (blk : progvar of type Block) (i : nat) (pf : i < BLOCK_SIZE)
       : code progvar.
       verse [code| `W i _` := blk [ i ] |].
     Defined.
-    Definition LOAD_MESSAGE (blk : Block FROM progvar)
+    Definition LOAD_MESSAGE (blk : progvar of type Block)
       := foreach (indices blk) (LOAD_MESSAGE_I blk).
 
 
