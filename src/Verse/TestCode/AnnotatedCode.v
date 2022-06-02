@@ -15,8 +15,8 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : Word8 FROM v.
-  Variable C   : Word16 FROM v.
+  Variable A B : v of type Word8.
+  Variable C   : v of type Word16.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (

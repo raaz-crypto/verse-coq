@@ -15,7 +15,7 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : Word8 FROM v.
+  Variable A B : v of type Word8.
 
   Definition test : IntAnnotatedCode v bvDenote.
     annotated_verse
