@@ -165,7 +165,10 @@ Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (v (existT _ _ (array b e ty)))
   := fun a ix =>  deref a ix.
 
-
+Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < b}
+                                                                       (v ty)
+                                                                       (Vector.t (v ty) b)
+  := fun va ix => Vector.nth_order va (proj2_sig ix).
 
 Declare Scope verse_scope.
 Delimit Scope verse_scope with verse.
