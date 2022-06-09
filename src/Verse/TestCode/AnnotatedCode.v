@@ -39,7 +39,6 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.HlistMachine.
 Require Import Verse.ProofTac.
 
-Set Typeclasses Debug.
 Definition toProve : Prop.
   getProp test.
 Defined.
