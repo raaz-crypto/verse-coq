@@ -295,3 +295,46 @@ Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
   := {| inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
                                  (ty :: sc, i)
      |}.
+
+Section Currying.
+
+  Context {s : Type} (B : Type).
+
+  Fixpoint lamn n : Type :=
+    match n with
+    | 0   => B
+    | S n => s -> lamn n
+    end.
+
+  Fixpoint curryV [n]
+    : (Vector.t s n -> B) -> lamn n :=
+    match n as n0 return (Vector.t _ n0 -> B) -> lamn n0 with
+    | 0   => fun func => func (Vector.nil _)
+    | S n => fun func => fun x => curryV (fun vs : Vector.t s n => func (Vector.cons _ x _ vs))
+    end.
+
+  Class CURRY_VEC t := { curry_type : Type;
+                         curry_vec  : t -> curry_type
+                       }.
+
+  Global Instance curry_undelimited : CURRY_VEC B | 3
+    := {| curry_type := B;
+         curry_vec  := id
+       |}.
+
+  Global Instance expand_vec n : CURRY_VEC (Vector.t s n -> B) | 0
+    := {| curry_type := lamn n;
+          curry_vec  := fun x => curryV x
+       |}.
+
+  Global Instance curry_delimited : CURRY_VEC (delimit B) | 2
+    := {| curry_type := delimit B;
+          curry_vec  := id
+       |}.
+
+  Global Instance curry_arrow A (_ : CURRY_VEC B) : CURRY_VEC (A -> B) | 1
+    := {| curry_type := A -> curry_type (t := B);
+          curry_vec  := fun x => fun a => curry_vec (x a)
+       |}.
+
+End Currying.
