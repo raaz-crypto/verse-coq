@@ -16,13 +16,13 @@ Section Code.
   Variable v : VariableT.
 
   Variable A B : v of type Word8.
-  Variable C   : v of type Word16.
+  Variable C   : Vector.t (v of type (Array 1 bigE Word16)) 1.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
           CODE [code| A := B;
                       B := `5`;
-                      C := `8`
+                      C[`0`][`0`] := `8`
                |]
           ++
           ANNOT [code| A = `OLD B` |]
@@ -39,6 +39,7 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.HlistMachine.
 Require Import Verse.ProofTac.
 
+Set Typeclasses Debug.
 Definition toProve : Prop.
   getProp test.
 Defined.
