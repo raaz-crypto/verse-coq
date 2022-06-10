@@ -128,13 +128,9 @@ Module Blake2 (C : CONFIG).
         fast.
 
        *)
-      Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar of type Word.
-      Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
-      Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : progvar of type Word.
-      Definition message_variables
-        := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15].
 
-
+      Variable H : Vector.t (progvar of type Word) 8.
+      Variable message_variables : Vector.t (progvar of type Word) 16.
 
     (** *** The state variables
 
@@ -371,15 +367,14 @@ Module Blake2 (C : CONFIG).
     Definition INIT_STATE : code progvar.
       verse
         [code|
-
-          v0 := h0;
-	  v1 := h1;
-	  v2 := h2;
-	  v3 := h3;
-	  v4 := h4;
-	  v5 := h5;
-	  v6 := h6;
-	  v7 := h7;
+          v0 := H[`0`];
+	  v1 := H[`1`];
+	  v2 := H[`2`];
+	  v3 := H[`3`];
+	  v4 := H[`4`];
+	  v5 := H[`5`];
+	  v6 := H[`6`];
+	  v7 := H[`7`];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _` ;
 	  v10 := `IV 2 _`;
@@ -393,14 +388,15 @@ Module Blake2 (C : CONFIG).
 
     Definition INIT_STATE_LAST : code progvar.
       verse
-        [code| v0 := h0;
-	  v1 := h1;
-	  v2 := h2;
-	  v3 := h3;
-	  v4 := h4;
-	  v5 := h5;
-	  v6 := h6;
-	  v7 := h7;
+        [code|
+          v0 := H[`0`];
+	  v1 := H[`1`];
+	  v2 := H[`2`];
+	  v3 := H[`3`];
+	  v4 := H[`4`];
+	  v5 := H[`5`];
+	  v6 := H[`6`];
+	  v7 := H[`7`];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _`;
 	  v10 := `IV 2 _`;
@@ -433,17 +429,19 @@ Module Blake2 (C : CONFIG).
         After performing the rounds of blake, the hash gets updated as follows.
 
      *)
-    Definition UPDATE_HASH : code progvar :=
+    Definition UPDATE_HASH : code progvar.
+      verse
       [code|
-        h0 ⊕= v0 ; h0 ⊕= v8;
-        h1 ⊕= v1 ; h1 ⊕= v9;
-        h2 ⊕= v2 ; h2 ⊕= v10;
-        h3 ⊕= v3 ; h3 ⊕= v11;
-        h4 ⊕= v4 ; h4 ⊕= v12;
-        h5 ⊕= v5 ; h5 ⊕= v13;
-        h6 ⊕= v6 ; h6 ⊕= v14;
-        h7 ⊕= v7 ; h7 ⊕= v15
+        H[`0`] ⊕= v0 ; H[`0`] ⊕= v8;
+        H[`1`] ⊕= v1 ; H[`1`] ⊕= v9;
+        H[`2`] ⊕= v2 ; H[`2`] ⊕= v10;
+        H[`3`] ⊕= v3 ; H[`3`] ⊕= v11;
+        H[`4`] ⊕= v4 ; H[`4`] ⊕= v12;
+        H[`5`] ⊕= v5 ; H[`5`] ⊕= v13;
+        H[`6`] ⊕= v6 ; H[`6`] ⊕= v14;
+        H[`7`] ⊕= v7 ; H[`7`] ⊕= v15
       |].
+      Defined.
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)

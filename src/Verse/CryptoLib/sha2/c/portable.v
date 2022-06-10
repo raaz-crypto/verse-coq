@@ -88,12 +88,8 @@ Module SHA2 (C : CONFIG).
 
          *)
 
-        Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : v of type Word.
+        Variable W : Vector.t (v of type Word) BLOCK_SIZE.
 
-        Definition message_variables
-          := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-
-        Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
         Definition LOAD_BLOCK (blk : v of type Block) := loadCache blk W.
 
         (** * Message scheduling *)
@@ -109,13 +105,12 @@ Module SHA2 (C : CONFIG).
         Variable a b c d e f g h : v of type Word.
         Variable t               : v of type Word.
 
-        Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
+        Definition STATE := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
         Definition registers : Declaration :=
-          Vector.map (fun x => Var x) (Vector.append state_variables [ t ]%vector).
+          Vector.map (fun x => Var x) (Vector.append STATE [ t ]%vector).
 
 
-        Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.
         Definition LOAD_STATE : code v := loadCache hash STATE.
 
 
