@@ -58,7 +58,8 @@ Require Import Verse.Error.
 Import Scope.
 
 Ltac Function name func
-  := ( let level0 := constr:(Scope.Cookup.specialise func) in
+  := ( let cfunc := constr:(Scope.curry_vec func) in
+       let level0 := constr:(Scope.Cookup.specialise cfunc) in
        let level0break := (eval hnf in (inferNesting level0)) in
        let pvs := constr:(fst level0break) in
        let level1 := constr:(snd level0break) in
@@ -71,7 +72,7 @@ Ltac Function name func
                  (Compile.function name pvs lvs
                                    cpvs clvs
                                    pfpvt pflvt
-                                   pA lA func)
+                                   pA lA cfunc)
                    (** TODO: This can be a normal function application if
                              inferNesting carries around correctness proofs
                     *)
@@ -81,11 +82,11 @@ Ltac Function name func
                 eq_refl eq_refl)
      ).
 
-
 Ltac Iterator name memty ifunc
-  := ( let memtyTgt
+  := ( let cifunc := constr:(Scope.curry_vec ifunc) in
+       let memtyTgt
            := constr:(recover (TypeSystem.Types.compile Compile.Config.typeCompiler memty)) in
-       let level0       := constr:(Cookup.specialise ifunc) in
+       let level0       := constr:(Cookup.specialise cifunc) in
        let level0break  := (eval hnf in (inferNesting level0)) in
        let pvs          := constr:(fst level0break) in
        let level1       := constr:(snd level0break) in
@@ -103,7 +104,7 @@ Ltac Iterator name memty ifunc
                                            pvt     lvt
                                            pfpvt   pflvt
                                            pA      lA
-             ) eq_refl eq_refl ifunc
+             ) eq_refl eq_refl cifunc
      )).
 
 Require Export Verse.Target.C.Ast.
