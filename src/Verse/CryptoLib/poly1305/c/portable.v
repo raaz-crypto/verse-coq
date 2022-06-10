@@ -294,7 +294,7 @@ Module Internal.
         Section LoadStore64.
           Variable bound : nat.
           Variable e     : endian.
-          Variable Arr   : progvar (existT _ _ (Array bound e Limb)).
+          Variable Arr   : progvar of type (Array bound e Limb).
           Variable i     : nat.
           Variable x0 x1 : progvar of type Limb.
           Variable bpf   : i < bound.
@@ -368,7 +368,7 @@ Module Internal.
          *)
 
 
-        Definition Add128 {e : endian}(blk : progvar (existT _ _ (Array 2 e Word64))) : code progvar.
+        Definition Add128 {e : endian}(blk : progvar of type (Array 2 e Word64)) : code progvar.
           verse (
               Load64 blk 0 T0 T1 _
                      ++ [code|

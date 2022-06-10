@@ -37,7 +37,7 @@ Module Internal.
 
       Variable key      : progvar of type Key.
       Variable iv       : progvar of type IV.
-      Variable ctrRef   : progvar (existT _ _ (Array 1 hostE Counter)).
+      Variable ctrRef   : progvar of type (Array 1 hostE Counter)).
 
       (** IV for hchacha20 *)
       Variable hiv0 hiv1 hiv2 hiv3 : progvar of type Word.
@@ -205,12 +205,12 @@ Module Internal.
 
          *)
 
-        Definition XorBlock (B : progvar (existT _ _ (Block littleE)))(i : nat) (_ : i < 16)
+        Definition XorBlock (B : progvar of type (Block littleE))(i : nat) (_ : i < 16)
           : code progvar.
           verse [code| Temp := B[ i ]; Temp ⊕= X [ i ]; B[ i ] <- Temp |].
         Defined.
 
-        Definition EmitStream (B : progvar (existT _ _ (Block hostE)))(i : nat) (_ : i < 16)
+        Definition EmitStream (B : progvar of type (Block hostE))(i : nat) (_ : i < 16)
           : code progvar.
           verse [code| B[ i ] <-  `X i _` |].
         Defined.

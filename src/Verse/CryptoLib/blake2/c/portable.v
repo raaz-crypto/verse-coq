@@ -108,7 +108,7 @@ Module Blake2 (C : CONFIG).
 
        *)
 
-    Variable UpperRef LowerRef : progvar (existT _ _ (Ref Word)).
+    Variable UpperRef LowerRef : progvar of type (Ref Word).
 
     Variable LastBlock : progvar of type Block.
     Variable NBytes    : progvar of type Word.
