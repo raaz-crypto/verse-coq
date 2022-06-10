@@ -59,6 +59,9 @@ Module Internal.
 
         Variable Temp            : progvar of type Word.
         Variable ctr             : progvar of type Counter.
+        (* NOTE : The following variables haven't been declared as a
+        variable array because of the way `ROUNDS` is written
+        below. We remark there about a possible fix *)
         Variable x0  x1  x2  x3
                  x4  x5  x6  x7
                  x8  x9  x10 x11
@@ -137,6 +140,11 @@ Module Internal.
 
          *)
 
+        (* NOTE : Since the following usage of x_i's is naked (not in
+        custom syntax code), we have deferred use of a variable array
+        for the x's. Duplicating the custom syntax indexing notation
+        outside it too, and wrapping the following in the `verse`
+        tactic might be a solution *)
         Definition Rounds : code progvar :=
           let colRound := List.concat [ QRound x0 x4 x8   x12;
                                         QRound x1 x5 x9   x13;
@@ -212,7 +220,7 @@ Module Internal.
 
         Definition EmitStream (B : progvar of type (Block hostE))(i : nat) (_ : i < 16)
           : code progvar.
-          verse [code| B[ i ] <-  `X i _` |].
+          verse [code| B[ i ] <-  X [ i ] |].
         Defined.
 
         Definition Encrypt blk
