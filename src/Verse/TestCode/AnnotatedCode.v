@@ -22,7 +22,7 @@ Section Code.
     verse (
           CODE [code| A := B;
                       B := `5`;
-                      C[`0`][`0`] := `8`
+                      C[0][0] := `8`
                |]
           ++
           ANNOT [code| A = `OLD B` |]
