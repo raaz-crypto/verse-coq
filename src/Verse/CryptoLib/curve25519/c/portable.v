@@ -23,14 +23,14 @@ Module Internal.
 
     Definition clamp (T : progvar of type Limb) (scalA : progvar of type Scalar) : code progvar.
       verse [code|
-          T := scalA[ `0` ];
+          T := scalA[ 0 ];
           T &= `Ox "ff:ff:ff:ff ff:ff:ff:f8"`;
-          scalA[ `0` ] <- T;
+          scalA[ 0 ] <- T;
 
-          T := scalA[ `3` ];
+          T := scalA[ 3 ];
           T &= `Ox "7f:ff:ff:ff ff:ff:ff:ff"`;
           T |= `Ox "40:00:00:00 00:00:00:00"`;
-          scalA[ `3` ] <- T
+          scalA[ 3 ] <- T
         |].
     Defined.
 

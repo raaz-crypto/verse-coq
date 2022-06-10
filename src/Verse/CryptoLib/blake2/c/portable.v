@@ -353,7 +353,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [code| U := UpperRef [ `0` ]; L := LowerRef [ `0` ] |] ++ loadCache hash H )%list.
+      verse ( [code| U := UpperRef [ 0 ]; L := LowerRef [ 0 ] |] ++ loadCache hash H )%list.
     Defined.
 
     (** ** The initialisation of state.
@@ -367,14 +367,14 @@ Module Blake2 (C : CONFIG).
     Definition INIT_STATE : code progvar.
       verse
         [code|
-          v0 := H[`0`];
-	  v1 := H[`1`];
-	  v2 := H[`2`];
-	  v3 := H[`3`];
-	  v4 := H[`4`];
-	  v5 := H[`5`];
-	  v6 := H[`6`];
-	  v7 := H[`7`];
+          v0 := H[0];
+	  v1 := H[1];
+	  v2 := H[2];
+	  v3 := H[3];
+	  v4 := H[4];
+	  v5 := H[5];
+	  v6 := H[6];
+	  v7 := H[7];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _` ;
 	  v10 := `IV 2 _`;
@@ -389,14 +389,14 @@ Module Blake2 (C : CONFIG).
     Definition INIT_STATE_LAST : code progvar.
       verse
         [code|
-          v0 := H[`0`];
-	  v1 := H[`1`];
-	  v2 := H[`2`];
-	  v3 := H[`3`];
-	  v4 := H[`4`];
-	  v5 := H[`5`];
-	  v6 := H[`6`];
-	  v7 := H[`7`];
+          v0 := H[0];
+	  v1 := H[1];
+	  v2 := H[2];
+	  v3 := H[3];
+	  v4 := H[4];
+	  v5 := H[5];
+	  v6 := H[6];
+	  v7 := H[7];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _`;
 	  v10 := `IV 2 _`;
@@ -432,21 +432,21 @@ Module Blake2 (C : CONFIG).
     Definition UPDATE_HASH : code progvar.
       verse
       [code|
-        H[`0`] ⊕= v0 ; H[`0`] ⊕= v8;
-        H[`1`] ⊕= v1 ; H[`1`] ⊕= v9;
-        H[`2`] ⊕= v2 ; H[`2`] ⊕= v10;
-        H[`3`] ⊕= v3 ; H[`3`] ⊕= v11;
-        H[`4`] ⊕= v4 ; H[`4`] ⊕= v12;
-        H[`5`] ⊕= v5 ; H[`5`] ⊕= v13;
-        H[`6`] ⊕= v6 ; H[`6`] ⊕= v14;
-        H[`7`] ⊕= v7 ; H[`7`] ⊕= v15
+        H[0] ⊕= v0 ; H[0] ⊕= v8;
+        H[1] ⊕= v1 ; H[1] ⊕= v9;
+        H[2] ⊕= v2 ; H[2] ⊕= v10;
+        H[3] ⊕= v3 ; H[3] ⊕= v11;
+        H[4] ⊕= v4 ; H[4] ⊕= v12;
+        H[5] ⊕= v5 ; H[5] ⊕= v13;
+        H[6] ⊕= v6 ; H[6] ⊕= v14;
+        H[7] ⊕= v7 ; H[7] ⊕= v15
       |].
       Defined.
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
     Definition FINALISE : code progvar.
-      verse ([code| UpperRef [ `0` ] <- U ; LowerRef [ `0` ] <- L |] ++ moveBackCache hash H )%list.
+      verse ([code| UpperRef [ 0 ] <- U ; LowerRef [ 0 ] <- L |] ++ moveBackCache hash H )%list.
     Defined.
 
 

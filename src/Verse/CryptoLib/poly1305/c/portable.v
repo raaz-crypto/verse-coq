@@ -320,7 +320,7 @@ Module Internal.
           verse (
               Load64 AArray 0 a0 a1 _
                      ++ Load64 AArray 1 a2 a3 _
-                     ++ [code| a4 := AArray[ `2` ] |]
+                     ++ [code| a4 := AArray[ 2 ] |]
             )%list.
         Defined.
 
@@ -335,7 +335,7 @@ Module Internal.
           verse (
               Mov64 AArray 0 a0 a1 _
                     ++ Mov64 AArray 1 a2 a3 _
-                    ++ [code| AArray[ `2` ] <- a4 |]
+                    ++ [code| AArray[ 2 ] <- a4 |]
             )%list.
         Defined.
 
@@ -538,7 +538,7 @@ Module Internal.
         Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
           verse [code| T0             := A [ i ] >> `32`;
                        A [ i ]        &= Select32;
-                       A [ `1 + i` ]  += T0
+                       A [ 1 + i ]  += T0
                 |].
         Defined.
 
@@ -727,13 +727,13 @@ Module Internal.
         Definition clamp (blk : progvar of type Array128) : code progvar.
           verse [code|
 
-                 T0 := blk[ `0` ];
+                 T0 := blk[ 0 ];
                  T0 &= `Ox "0f:ff:ff:fc 0f:ff:ff:ff"`;
-                 blk[ `0` ] <- T0;
+                 blk[ 0 ] <- T0;
 
-                 T0 := blk[ `1` ];
+                 T0 := blk[ 1 ];
                  T0 &= `Ox "0f:ff:ff:fc 0f:ff:ff:fc"`;
-                 blk[ `1` ] <- T0
+                 blk[ 1 ] <- T0
             |].
         Defined.
 

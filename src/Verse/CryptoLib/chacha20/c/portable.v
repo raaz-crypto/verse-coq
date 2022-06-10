@@ -37,7 +37,7 @@ Module Internal.
 
       Variable key      : progvar of type Key.
       Variable iv       : progvar of type IV.
-      Variable ctrRef   : progvar of type (Array 1 hostE Counter)).
+      Variable ctrRef   : progvar of type (Array 1 hostE Counter).
 
       (** IV for hchacha20 *)
       Variable hiv0 hiv1 hiv2 hiv3 : progvar of type Word.
@@ -108,9 +108,9 @@ Module Internal.
         Definition Init : code progvar.
           verse [code|
               x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
-              x4  := key[ `0` ] ; x5  := key[ `1` ] ; x6  := key[ `2` ] ; x7 := key[ `3` ];
-              x8  := key[ `4` ] ; x9  := key[ `5` ] ; x10 := key[ `6` ] ; x11 := key[ `7` ];
-              x12 := ctr        ; x13 := iv [ `0` ] ; x14 := iv[ `1` ]  ; x15 := iv[ `2` ]
+              x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
+              x8  := key[ 4 ] ; x9  := key[ 5 ] ; x10 := key[ 6 ] ; x11 := key[ 7 ];
+              x12 := ctr      ; x13 := iv [ 0 ] ; x14 := iv[ 1 ]  ; x15 := iv[ 2 ]
             |].
         Defined.
 
@@ -168,9 +168,9 @@ Module Internal.
         Definition Update : code progvar.
           verse [code|
               x0  += C0         ; x1  += C1         ; x2  += C2         ; x3  += C3;
-              x4  += key[ `0` ] ; x5  += key[ `1` ] ; x6  += key[ `2` ] ; x7  += key[ `3` ];
-              x8  += key[ `4` ] ; x9  += key[ `5` ] ; x10 += key[ `6` ] ; x11 += key[ `7` ];
-              x12 += ctr        ; x13 += iv [ `0` ] ; x14 += iv[ `1` ]  ; x15 += iv[ `2` ]
+              x4  += key[ 0 ] ; x5  += key[ 1 ] ; x6  += key[ 2 ] ; x7  += key[ 3 ];
+              x8  += key[ 4 ] ; x9  += key[ 5 ] ; x10 += key[ 6 ] ; x11 += key[ 7 ];
+              x12 += ctr      ; x13 += iv [ 0 ] ; x14 += iv[ 1 ]  ; x15 += iv[ 2 ]
             |].
 
         Defined.
@@ -247,23 +247,23 @@ Module Internal.
          *)
         Definition HInit : code progvar.
           verse [code|
-              x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
-              x4  := key[ `0` ] ; x5  := key[ `1` ] ; x6  := key[ `2` ] ; x7 := key[ `3` ];
-              x8  := key[ `4` ] ; x9  := key[ `5` ] ; x10 := key[ `6` ] ; x11 := key[ `7` ];
-              x12 := hiv0       ; x13 := hiv1       ; x14 := hiv2       ; x15 := hiv3
+              x0  := C0       ; x1  := C1       ; x2  := C2       ; x3  := C3;
+              x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
+              x8  := key[ 4 ] ; x9  := key[ 5 ] ; x10 := key[ 6 ] ; x11 := key[ 7 ];
+              x12 := hiv0     ; x13 := hiv1     ; x14 := hiv2     ; x15 := hiv3
             |].
         Defined.
 
         Definition HUpdateKey : code progvar.
           verse [code|
-                  key [ `0` ] <- x0;
-                  key [ `1` ] <- x1;
-                  key [ `2` ] <- x2;
-                  key [ `3` ] <- x3;
-                  key [ `4` ] <- x12;
-                  key [ `5` ] <- x13;
-                  key [ `6` ] <- x14;
-                  key [ `7` ] <- x15
+                  key [ 0 ] <- x0;
+                  key [ 1 ] <- x1;
+                  key [ 2 ] <- x2;
+                  key [ 3 ] <- x3;
+                  key [ 4 ] <- x12;
+                  key [ 5 ] <- x13;
+                  key [ 6 ] <- x14;
+                  key [ 7 ] <- x15
                 |].
         Defined.
 
@@ -276,10 +276,10 @@ Module Internal.
 
          *)
         Definition LoadCounter : code progvar.
-          verse [code| ctr := ctrRef[ `0` ] |].
+          verse [code| ctr := ctrRef[ 0 ] |].
         Defined.
         Definition StoreCounter : code progvar.
-          verse [code| ctrRef[ `0` ] <- ctr |].
+          verse [code| ctrRef[ 0 ] <- ctr |].
         Defined.
 
         Definition encryptIterator : iterator progvar (Block littleE) :=

@@ -155,7 +155,7 @@ Module SHA2 (C : CONFIG).
 
           (** We capture m(idx - j) using this variable *)
           Definition MM (j : nat) : v of type Word.
-            verse ([verse| W [ ` (idx + 16 - j) mod BLOCK_SIZE` ] |]).
+            verse ([verse| W [ (idx + 16 - j) mod BLOCK_SIZE ] |]).
           Defined.
 
 
