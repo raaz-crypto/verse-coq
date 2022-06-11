@@ -43,3 +43,9 @@ jobs:
             startGroup "Build using dune"
               dune build
             endGroup
+            startGroup "Extract the C code into libverse"
+              make -C crypto-lib all
+            endGroup
+            startGroup "Compile the resulting c code and check"
+              make -C crypto-lib test
+            endGroup
