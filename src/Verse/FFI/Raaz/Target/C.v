@@ -38,7 +38,8 @@ Definition function {Name} (name : Name)
            {_ : Scope.Infer (t Scope.Cookup.var)}
            (func : forall v : Variables.U verse_type_system, t v)
   : Raaz.line
-  := let (ps, _) := Scope.inferNesting (Scope.Cookup.specialise func) in
+  := let cfunc := Scope.curry_vec func in
+     let (ps, _) := Scope.inferNesting (Scope.Cookup.specialise cfunc) in
      ccall name (args (fromDecl ps)).
 
 (** Generate the Haskell FFI stub for an iterator *)
@@ -50,6 +51,7 @@ Definition iterator
            (func : forall v : Variables.U verse_type_system, t v)
            {_ : Scope.Infer (t Scope.Cookup.var)}
   : Raaz.line :=
-  let ps    := (fst (Scope.inferNesting (Scope.Cookup.specialise func))) in
+  let cfunc := Scope.curry_vec func in
+  let ps    := (fst (Scope.inferNesting (Scope.Cookup.specialise cfunc))) in
   let block := translate memty in
   ccall name (args (block :: counterType :: (fromDecl ps)))%list.
