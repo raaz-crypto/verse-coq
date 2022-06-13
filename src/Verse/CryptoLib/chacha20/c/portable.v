@@ -35,12 +35,12 @@ Module Internal.
 
        *)
 
-      Variable key      : progvar (existT _ _ Key).
-      Variable iv       : progvar (existT _ _ IV).
-      Variable ctrRef   : progvar (existT _ _ (Array 1 hostE Counter)).
+      Variable key      : progvar of type Key.
+      Variable iv       : progvar of type IV.
+      Variable ctrRef   : progvar of type (Array 1 hostE Counter).
 
       (** IV for hchacha20 *)
-      Variable hiv0 hiv1 hiv2 hiv3 : progvar (existT _ _ Word).
+      Variable hiv0 hiv1 hiv2 hiv3 : progvar of type Word.
 
       Section Locals.
 
@@ -57,12 +57,15 @@ Module Internal.
 
          *)
 
-        Variable Temp            : progvar (existT _ _ Word).
-        Variable ctr             : progvar (existT _ _ Counter).
+        Variable Temp            : progvar of type Word.
+        Variable ctr             : progvar of type Counter.
+        (* NOTE : The following variables haven't been declared as a
+        variable array because of the way `ROUNDS` is written
+        below. We remark there about a possible fix *)
         Variable x0  x1  x2  x3
                  x4  x5  x6  x7
                  x8  x9  x10 x11
-                 x12 x13 x14 x15 : progvar (existT _ _ Word).
+                 x12 x13 x14 x15 : progvar of type Word.
 
         (**
         Let us make some auxiliary definitions that simplify some of
@@ -105,9 +108,9 @@ Module Internal.
         Definition Init : code progvar.
           verse [code|
               x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
-              x4  := key[ `0` ] ; x5  := key[ `1` ] ; x6  := key[ `2` ] ; x7 := key[ `3` ];
-              x8  := key[ `4` ] ; x9  := key[ `5` ] ; x10 := key[ `6` ] ; x11 := key[ `7` ];
-              x12 := ctr        ; x13 := iv [ `0` ] ; x14 := iv[ `1` ]  ; x15 := iv[ `2` ]
+              x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
+              x8  := key[ 4 ] ; x9  := key[ 5 ] ; x10 := key[ 6 ] ; x11 := key[ 7 ];
+              x12 := ctr      ; x13 := iv [ 0 ] ; x14 := iv[ 1 ]  ; x15 := iv[ 2 ]
             |].
         Defined.
 
@@ -118,7 +121,7 @@ Module Internal.
 
          *)
 
-        Definition QRound (a b c d : progvar (existT _ _ Word)) : code progvar
+        Definition QRound (a b c d : progvar of type Word) : code progvar
           := [code|
                a += b; d ⊕= a; d := d ⋘ `16`;
                c += d; b ⊕= c; b := b ⋘ `12`;
@@ -137,6 +140,11 @@ Module Internal.
 
          *)
 
+        (* NOTE : Since the following usage of x_i's is naked (not in
+        custom syntax code), we have deferred use of a variable array
+        for the x's. Duplicating the custom syntax indexing notation
+        outside it too, and wrapping the following in the `verse`
+        tactic might be a solution *)
         Definition Rounds : code progvar :=
           let colRound := List.concat [ QRound x0 x4 x8   x12;
                                         QRound x1 x5 x9   x13;
@@ -160,9 +168,9 @@ Module Internal.
         Definition Update : code progvar.
           verse [code|
               x0  += C0         ; x1  += C1         ; x2  += C2         ; x3  += C3;
-              x4  += key[ `0` ] ; x5  += key[ `1` ] ; x6  += key[ `2` ] ; x7  += key[ `3` ];
-              x8  += key[ `4` ] ; x9  += key[ `5` ] ; x10 += key[ `6` ] ; x11 += key[ `7` ];
-              x12 += ctr        ; x13 += iv [ `0` ] ; x14 += iv[ `1` ]  ; x15 += iv[ `2` ]
+              x4  += key[ 0 ] ; x5  += key[ 1 ] ; x6  += key[ 2 ] ; x7  += key[ 3 ];
+              x8  += key[ 4 ] ; x9  += key[ 5 ] ; x10 += key[ 6 ] ; x11 += key[ 7 ];
+              x12 += ctr      ; x13 += iv [ 0 ] ; x14 += iv[ 1 ]  ; x15 += iv[ 2 ]
             |].
 
         Defined.
@@ -205,14 +213,14 @@ Module Internal.
 
          *)
 
-        Definition XorBlock (B : progvar (existT _ _ (Block littleE)))(i : nat) (_ : i < 16)
+        Definition XorBlock (B : progvar of type (Block littleE))(i : nat) (_ : i < 16)
           : code progvar.
           verse [code| Temp := B[ i ]; Temp ⊕= X [ i ]; B[ i ] <- Temp |].
         Defined.
 
-        Definition EmitStream (B : progvar (existT _ _ (Block hostE)))(i : nat) (_ : i < 16)
+        Definition EmitStream (B : progvar of type (Block hostE))(i : nat) (_ : i < 16)
           : code progvar.
-          verse [code| B[ i ] <-  `X i _` |].
+          verse [code| B[ i ] <-  X [ i ] |].
         Defined.
 
         Definition Encrypt blk
@@ -239,23 +247,23 @@ Module Internal.
          *)
         Definition HInit : code progvar.
           verse [code|
-              x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
-              x4  := key[ `0` ] ; x5  := key[ `1` ] ; x6  := key[ `2` ] ; x7 := key[ `3` ];
-              x8  := key[ `4` ] ; x9  := key[ `5` ] ; x10 := key[ `6` ] ; x11 := key[ `7` ];
-              x12 := hiv0       ; x13 := hiv1       ; x14 := hiv2       ; x15 := hiv3
+              x0  := C0       ; x1  := C1       ; x2  := C2       ; x3  := C3;
+              x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
+              x8  := key[ 4 ] ; x9  := key[ 5 ] ; x10 := key[ 6 ] ; x11 := key[ 7 ];
+              x12 := hiv0     ; x13 := hiv1     ; x14 := hiv2     ; x15 := hiv3
             |].
         Defined.
 
         Definition HUpdateKey : code progvar.
           verse [code|
-                  key [ `0` ] <- x0;
-                  key [ `1` ] <- x1;
-                  key [ `2` ] <- x2;
-                  key [ `3` ] <- x3;
-                  key [ `4` ] <- x12;
-                  key [ `5` ] <- x13;
-                  key [ `6` ] <- x14;
-                  key [ `7` ] <- x15
+                  key [ 0 ] <- x0;
+                  key [ 1 ] <- x1;
+                  key [ 2 ] <- x2;
+                  key [ 3 ] <- x3;
+                  key [ 4 ] <- x12;
+                  key [ 5 ] <- x13;
+                  key [ 6 ] <- x14;
+                  key [ 7 ] <- x15
                 |].
         Defined.
 
@@ -268,10 +276,10 @@ Module Internal.
 
          *)
         Definition LoadCounter : code progvar.
-          verse [code| ctr := ctrRef[ `0` ] |].
+          verse [code| ctr := ctrRef[ 0 ] |].
         Defined.
         Definition StoreCounter : code progvar.
-          verse [code| ctrRef[ `0` ] <- ctr |].
+          verse [code| ctrRef[ 0 ] <- ctr |].
         Defined.
 
         Definition encryptIterator : iterator progvar (Block littleE) :=

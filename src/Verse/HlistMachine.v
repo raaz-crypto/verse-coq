@@ -89,9 +89,10 @@ Arguments tpt sc [tyD Rels].
 (* Extracting Prop object from annotated code *)
 
 Ltac getProp func
-  := (let level0 := constr:(Scope.Cookup.specialise func) in
+  := (let cv := constr:(fun v => curry_vec (func v)) in
+      let level0 := constr:(Scope.Cookup.specialise cv) in
       let level0break := (eval hnf in (Scope.inferNesting level0)) in
       let pvs := constr:(fst level0break) in
       let level1 := constr:(snd level0break) in
       let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (tpt (pvs ++ lvs)%list func)).
+      exact (tpt (pvs ++ lvs)%list cv)).

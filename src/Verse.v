@@ -27,6 +27,9 @@ Coercion Vector.to_list : Vector.t >-> list.
 (** Some definitions that are need for code generation *)
 
 Definition VariableT := Variables.U verse_type_system.
+
+Notation "V 'of' 'type' T" := (V (existT _ _ T)) (at level 50).
+
 Definition constant ty := const ty.
 Definition Declaration := Verse.Scope.type verse_type_system.
 Definition Var (v : VariableT) ty : v ty -> some (typeOf verse_type_system)

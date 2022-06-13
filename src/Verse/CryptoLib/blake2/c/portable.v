@@ -108,14 +108,14 @@ Module Blake2 (C : CONFIG).
 
        *)
 
-    Variable UpperRef LowerRef : progvar (existT _ _ (Ref Word)).
+    Variable UpperRef LowerRef : progvar of type (Ref Word).
 
-    Variable LastBlock : progvar (existT _ _ Block).
-    Variable NBytes    : progvar (existT _ _ Word).
-    Variable Upper Lower : progvar (existT _ _ Word).
-    Variable f0 f1: progvar (existT _ _ Word).
+    Variable LastBlock : progvar of type Block.
+    Variable NBytes    : progvar of type Word.
+    Variable Upper Lower : progvar of type Word.
+    Variable f0 f1: progvar of type Word.
 
-    Variable hash : progvar (existT _ _ Hash).
+    Variable hash : progvar of type Hash.
 
 
     Section Locals.
@@ -128,13 +128,9 @@ Module Blake2 (C : CONFIG).
         fast.
 
        *)
-      Variable h0 h1 h2 h3 h4 h5 h6 h7 : progvar (existT _ _ Word).
-      Definition H  : VarIndex progvar 8 Word := varIndex [h0; h1; h2; h3; h4; h5; h6; h7].
-      Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : progvar (existT _ _ Word).
-      Definition message_variables
-        := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15].
 
-
+      Variable H : Vector.t (progvar of type Word) 8.
+      Variable message_variables : Vector.t (progvar of type Word) 16.
 
     (** *** The state variables
 
@@ -146,7 +142,7 @@ Module Blake2 (C : CONFIG).
       Variable v0 v4 v8  v12
                v1 v5 v9  v13
                v2 v6 v10 v14
-               v3 v7 v11 v15 : progvar (existT _ _ Word).
+               v3 v7 v11 v15 : progvar of type Word.
 
       Definition state := [ v0 ; v4 ; v8  ; v12;
                             v1 ; v5 ; v9  ; v13;
@@ -180,8 +176,8 @@ Module Blake2 (C : CONFIG).
 
        *)
 
-      Variable C LMSB : progvar (existT _ _ Word).
-      Variable U L    : progvar (existT _ _ Word).
+      Variable C LMSB : progvar of type Word.
+      Variable U L    : progvar of type Word.
 
       (** ** Updating the count.
 
@@ -223,7 +219,7 @@ Module Blake2 (C : CONFIG).
       Variable byteCount : A.
 
 
-      Definition UPDATE_COUNTER (u l : progvar (existT _ _ Word)) : code progvar :=
+      Definition UPDATE_COUNTER (u l : progvar of type Word) : code progvar :=
         [code| (* We first ensure that the variable C gets the carry that overflows
              when l is added bsize. For this we first need to get the msb of l
              into the lsb position
@@ -276,7 +272,7 @@ Module Blake2 (C : CONFIG).
 
      *)
 
-    Definition G (a b c d m0 m1 : progvar (existT _ _ Word)) : code progvar :=
+    Definition G (a b c d m0 m1 : progvar of type Word) : code progvar :=
       [code|
         a += b; a += m0; d ⊕= a; d := d ⋙ R0;
         c += d;          b ⊕= c; b := b ⋙ R1;
@@ -357,7 +353,7 @@ Module Blake2 (C : CONFIG).
 
 
     Definition SETUP : code progvar.
-      verse ( [code| U := UpperRef [ `0` ]; L := LowerRef [ `0` ] |] ++ loadCache hash H )%list.
+      verse ( [code| U := UpperRef [ 0 ]; L := LowerRef [ 0 ] |] ++ loadCache hash H )%list.
     Defined.
 
     (** ** The initialisation of state.
@@ -371,15 +367,14 @@ Module Blake2 (C : CONFIG).
     Definition INIT_STATE : code progvar.
       verse
         [code|
-
-          v0 := h0;
-	  v1 := h1;
-	  v2 := h2;
-	  v3 := h3;
-	  v4 := h4;
-	  v5 := h5;
-	  v6 := h6;
-	  v7 := h7;
+          v0 := H[0];
+	  v1 := H[1];
+	  v2 := H[2];
+	  v3 := H[3];
+	  v4 := H[4];
+	  v5 := H[5];
+	  v6 := H[6];
+	  v7 := H[7];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _` ;
 	  v10 := `IV 2 _`;
@@ -393,14 +388,15 @@ Module Blake2 (C : CONFIG).
 
     Definition INIT_STATE_LAST : code progvar.
       verse
-        [code| v0 := h0;
-	  v1 := h1;
-	  v2 := h2;
-	  v3 := h3;
-	  v4 := h4;
-	  v5 := h5;
-	  v6 := h6;
-	  v7 := h7;
+        [code|
+          v0 := H[0];
+	  v1 := H[1];
+	  v2 := H[2];
+	  v3 := H[3];
+	  v4 := H[4];
+	  v5 := H[5];
+	  v6 := H[6];
+	  v7 := H[7];
 	  v8  := `IV 0 _`;
 	  v9  := `IV 1 _`;
 	  v10 := `IV 2 _`;
@@ -420,11 +416,11 @@ Module Blake2 (C : CONFIG).
 
      *)
     Definition W : VarIndex progvar BLOCK_SIZE Word := varIndex message_variables.
-    Definition LOAD_MESSAGE_I (blk : progvar (existT _ _ Block)) (i : nat) (pf : i < BLOCK_SIZE)
+    Definition LOAD_MESSAGE_I (blk : progvar of type Block) (i : nat) (pf : i < BLOCK_SIZE)
       : code progvar.
       verse [code| `W i _` := blk [ i ] |].
     Defined.
-    Definition LOAD_MESSAGE (blk : progvar (existT _ _ Block))
+    Definition LOAD_MESSAGE (blk : progvar of type Block)
       := foreach (indices blk) (LOAD_MESSAGE_I blk).
 
 
@@ -433,22 +429,24 @@ Module Blake2 (C : CONFIG).
         After performing the rounds of blake, the hash gets updated as follows.
 
      *)
-    Definition UPDATE_HASH : code progvar :=
+    Definition UPDATE_HASH : code progvar.
+      verse
       [code|
-        h0 ⊕= v0 ; h0 ⊕= v8;
-        h1 ⊕= v1 ; h1 ⊕= v9;
-        h2 ⊕= v2 ; h2 ⊕= v10;
-        h3 ⊕= v3 ; h3 ⊕= v11;
-        h4 ⊕= v4 ; h4 ⊕= v12;
-        h5 ⊕= v5 ; h5 ⊕= v13;
-        h6 ⊕= v6 ; h6 ⊕= v14;
-        h7 ⊕= v7 ; h7 ⊕= v15
+        H[0] ⊕= v0 ; H[0] ⊕= v8;
+        H[1] ⊕= v1 ; H[1] ⊕= v9;
+        H[2] ⊕= v2 ; H[2] ⊕= v10;
+        H[3] ⊕= v3 ; H[3] ⊕= v11;
+        H[4] ⊕= v4 ; H[4] ⊕= v12;
+        H[5] ⊕= v5 ; H[5] ⊕= v13;
+        H[6] ⊕= v6 ; H[6] ⊕= v14;
+        H[7] ⊕= v7 ; H[7] ⊕= v15
       |].
+      Defined.
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
     Definition FINALISE : code progvar.
-      verse ([code| UpperRef [ `0` ] <- U ; LowerRef [ `0` ] <- L |] ++ moveBackCache hash H )%list.
+      verse ([code| UpperRef [ 0 ] <- U ; LowerRef [ 0 ] <- L |] ++ moveBackCache hash H )%list.
     Defined.
 
 

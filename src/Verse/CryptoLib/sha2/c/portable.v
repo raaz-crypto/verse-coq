@@ -76,7 +76,7 @@ Module SHA2 (C : CONFIG).
         for the hash function namely the hash of the previous block.
        *)
 
-      Variable hash : v (existT _ _ Hash).
+      Variable hash : v of type Hash.
 
       Section Locals.
         (** *** Local variables.
@@ -88,13 +88,9 @@ Module SHA2 (C : CONFIG).
 
          *)
 
-        Variable w0 w1 w2 w3 w4 w5 w6 w7 w8 w9 w10 w11 w12 w13 w14 w15 : v (existT _ _ Word).
+        Variable W : Vector.t (v of type Word) BLOCK_SIZE.
 
-        Definition message_variables
-          := [w0; w1; w2; w3; w4; w5; w6; w7; w8; w9; w10; w11; w12; w13; w14; w15]%vector.
-
-        Definition W : VarIndex v BLOCK_SIZE Word := varIndex message_variables.
-        Definition LOAD_BLOCK (blk : v (existT _ _ Block)) := loadCache blk W.
+        Definition LOAD_BLOCK (blk : v of type Block) := loadCache blk W.
 
         (** * Message scheduling *)
 
@@ -106,16 +102,15 @@ Module SHA2 (C : CONFIG).
          *)
 
 
-        Variable a b c d e f g h : v (existT _ _ Word).
-        Variable t               : v (existT _ _ Word).
+        Variable a b c d e f g h : v of type Word.
+        Variable t               : v of type Word.
 
-        Definition state_variables := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
+        Definition STATE := [ a ; b ; c ; d ; e ; f ; g ; h ]%vector.
 
         Definition registers : Declaration :=
-          Vector.map (fun x => Var x) (Vector.append state_variables [ t ]%vector).
+          Vector.map (fun x => Var x) (Vector.append STATE [ t ]%vector).
 
 
-        Definition STATE : VarIndex v HASH_SIZE Word := varIndex state_variables.
         Definition LOAD_STATE : code v := loadCache hash STATE.
 
 
@@ -153,14 +148,14 @@ Module SHA2 (C : CONFIG).
                         (sIdx mod BLOCK_SIZE)
                         (PeanoNat.Nat.mod_upper_bound sIdx BLOCK_SIZE nonZeroBlockSize).
 
-          Definition M  : v (existT _ _ Word).
+          Definition M  : v of type Word.
             verse ([verse| W[ idx ] |]).
           Defined.
 
 
           (** We capture m(idx - j) using this variable *)
-          Definition MM (j : nat) : v (existT _ _ Word).
-            verse ([verse| W [ ` (idx + 16 - j) mod BLOCK_SIZE` ] |]).
+          Definition MM (j : nat) : v of type Word.
+            verse ([verse| W [ (idx + 16 - j) mod BLOCK_SIZE ] |]).
           Defined.
 
 
@@ -168,7 +163,7 @@ Module SHA2 (C : CONFIG).
           of the appropriate sigma function.
            *)
 
-          Definition sigma (r0 r1 s : nat)(x : v (existT _ _ Word)) : expr v (existT _ _ Word) :=
+          Definition sigma (r0 r1 s : nat)(x : v of type Word) : expr v (existT _ _ Word) :=
             [verse| (x ⋙ r1) ⊕ (x ⋙ r0) ⊕ (x >> s) |].
 
           Definition SCHEDULE :=
@@ -213,14 +208,14 @@ Module SHA2 (C : CONFIG).
 
          *)
 
-        Record State := { A : v (existT _ _ Word);
-                          B : v (existT _ _ Word);
-                          C : v (existT _ _ Word);
-                          D : v (existT _ _ Word);
-                          E : v (existT _ _ Word);
-                          F : v (existT _ _ Word);
-                          G : v (existT _ _ Word);
-                          H : v (existT _ _ Word);
+        Record State := { A : v of type Word;
+                          B : v of type Word;
+                          C : v of type Word;
+                          D : v of type Word;
+                          E : v of type Word;
+                          F : v of type Word;
+                          G : v of type Word;
+                          H : v of type Word
                         }.
 
         (** The starting state *)
@@ -252,7 +247,7 @@ Module SHA2 (C : CONFIG).
             H := G s
           |}.
 
-        Definition Sigma r0 r1 r2 (x : v (existT _ _ Word)) : expr v (existT _ _ Word) :=
+        Definition Sigma r0 r1 r2 (x : v of type Word) : expr v (existT _ _ Word) :=
           [verse| (x ⋙ r2) ⊕ (x ⋙ r1) ⊕ (x ⋙ r0) |].
 
         Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
@@ -263,10 +258,10 @@ Module SHA2 (C : CONFIG).
         into the temp variable temp
          *)
 
-        Definition CH (B C D : v (existT _ _ Word)) : expr v (existT _ _ Word) :=
+        Definition CH (B C D : v of type Word) : expr v (existT _ _ Word) :=
           [verse| (D ⊕ (B & (C ⊕ D))) |].
 
-        Definition MAJ (B C D : v (existT _ _ Word)) : expr v (existT _ _ Word) :=
+        Definition MAJ (B C D : v of type Word) : expr v (existT _ _ Word) :=
           [verse| (B & C) | (D & (C | B)) |]. (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
 
 
@@ -276,7 +271,7 @@ Module SHA2 (C : CONFIG).
         applicable for that round computed the message schedule, and
         the round constant [K].
          *)
-        Definition STEP (s : State)(M : v (existT _ _ Word))(K : constant Word) : code v :=
+        Definition STEP (s : State)(M : v of type Word)(K : constant Word) : code v :=
           [code|
              t := `H s` + K + M + `CH (E s) (F s) (G s)` + `Sigma1 s`;
             `D s` += t;

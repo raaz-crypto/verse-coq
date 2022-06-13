@@ -15,14 +15,14 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v (existT _ _ Word8).
-  Variable C   : v (existT _ _ Word16).
+  Variable A B : v of type Word8.
+  Variable C   : Vector.t (v of type (Array 1 bigE Word16)) 1.
 
   Definition test : AnnotatedCode bvDenote noRels v.
     verse (
           CODE [code| A := B;
                       B := `5`;
-                      C := `8`
+                      C[0][0] := `8`
                |]
           ++
           ANNOT [code| A = `OLD B` |]

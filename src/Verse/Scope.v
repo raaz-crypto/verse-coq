@@ -295,3 +295,58 @@ Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
   := {| inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
                                  (ty :: sc, i)
      |}.
+
+Section Currying.
+
+  Context {s : Type}.
+
+  Fixpoint lamn n B : Type :=
+    match n with
+    | 0   => B
+    | S n => s -> lamn n B
+    end.
+
+  Fixpoint map_lamn [n A B] (f : A -> B) : lamn n A -> lamn n B :=
+    match n with
+    | 0   => f
+    | S n => fun la s1 => map_lamn f (la s1)
+    end.
+
+  Fixpoint curryV [n B]
+    : (Vector.t s n -> B) -> lamn n B :=
+    match n as n0 return (Vector.t _ n0 -> B) -> lamn n0 B with
+    | 0   => fun func => func (Vector.nil _)
+    | S n => fun func => fun x => curryV (fun vs : Vector.t s n => func (Vector.cons _ x _ vs))
+    end.
+
+  Class CURRY_VEC t := { curry_type : Type;
+                         curry_vec  : t -> curry_type
+                       }.
+
+  Global Instance curry_undelimited B : CURRY_VEC B | 3
+    := {| curry_type := B;
+         curry_vec  := id
+       |}.
+
+  Global Instance curry_delimited B `{CURRY_VEC B} : CURRY_VEC (delimit B) | 2
+    := {| curry_type := delimit (curry_type (t := B));
+          curry_vec  := fun x => let 'body b := x in body (curry_vec b)
+       |}.
+
+  Global Instance curry_forall A (B : A -> Type) `{forall a, CURRY_VEC (B a)}
+    : CURRY_VEC (forall a, B a) | 1
+    := {| curry_type := forall a, curry_type (t := B a);
+          curry_vec  := fun x => fun a => curry_vec (x a)
+       |}.
+
+  Global Instance curry_arrow A B `{CURRY_VEC B} : CURRY_VEC (A -> B) | 1
+    := {| curry_type := A -> curry_type (t := B);
+          curry_vec  := fun x => fun a => curry_vec (x a)
+       |}.
+
+  Global Instance expand_vec n B `{CURRY_VEC B}: CURRY_VEC (Vector.t s n -> B) | 0
+    := {| curry_type := lamn n (curry_type (t := B));
+          curry_vec  := fun x : Vector.t s n -> B => map_lamn curry_vec (curryV x)
+       |}.
+
+End Currying.

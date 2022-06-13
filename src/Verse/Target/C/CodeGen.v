@@ -66,10 +66,10 @@ Module Internals.
              return variables (existT _ k0 ty0) -> list declaration
        with
        | ptrToArray _ _
-         => fun u => [ declare (ty:=existT _ _ ty)       (blockPtr u);
-                   declare (ty:=existT _ _ uint64_t) (counter u)
+         => fun u => [ declare (ty:=ty)       (blockPtr u);
+                   declare (ty:=uint64_t) (counter u)
              ]
-       | _ => fun u =>  [ declare (ty:=existT _ _ ty) u]
+       | _ => fun u =>  [ declare (ty:=ty) u]
        end%list.
 
   (* begin hide *)
