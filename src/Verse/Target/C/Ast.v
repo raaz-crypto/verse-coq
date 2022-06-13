@@ -104,9 +104,9 @@ Coercion Expr.cvar2exp : cvar >-> Expr.expr.
 Import Expr.
 
 Inductive declaration :=
-| declare_variable : forall (ty : some type), expr -> declaration.
+| declare_variable : forall [k] (ty : type k), expr -> declaration.
 
-Definition declare ty := declare_variable ty.
+Definition declare [k] (ty : type k) := declare_variable ty.
 
 Inductive parameters := params : list declaration -> parameters.
 
@@ -131,7 +131,7 @@ Inductive program :=
 (* begin hide *)
 Arguments update _ [n].
 
-Arguments declare [ty].
+Arguments declare [k ty].
 Arguments function [FN].
 Arguments include [FileName].
 
