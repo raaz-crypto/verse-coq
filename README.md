@@ -55,7 +55,7 @@ target code is represented as an inductive type in Coq. This EDSL is
 use to implement actual primitives, the source of which are available
 in the directory `src/Verse/CryptoLib`. The extracted low level code
 is distributed as a separate library called [libverse], a library that
-that can be embedded in other high level libraries. A snapshot of
+can be embedded in other high level libraries. A snapshot of
 [libverse] is built from the coq source using the helper scripts
 present in the directory `crypto-lib`.
 
