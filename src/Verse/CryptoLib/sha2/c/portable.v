@@ -164,7 +164,7 @@ Module SHA2 (C : CONFIG).
            *)
 
           Definition sigma (r0 r1 s : nat)(x : v of type Word) : expr v (existT _ _ Word) :=
-            [verse| (x ⋙ r1) ⊕ (x ⋙ r0) ⊕ (x >> s) |].
+            [verse| (x ⋙ r1) ⊕ (x ⋙ r0) ⊕ (x ≫ s) |].
 
           Definition SCHEDULE :=
             let sigma0 := sigma r00 r01 s0 (MM 15) in

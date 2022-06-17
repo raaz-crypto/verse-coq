@@ -232,7 +232,7 @@ Module Blake2 (C : CONFIG).
           `toTopBitsUpdate 1 C`;         (* move it to the lsb *)
 
           C  += LMSB; (* the second now has the carry of the addition    *)
-          C  >>= `1`;   (* move it to the lsb so that it can be added to u *)
+          C  ≫= `1`;   (* move it to the lsb so that it can be added to u *)
 
           (* increment the u:l byte count. u gets added the carry and
              l the bsize
@@ -367,22 +367,22 @@ Module Blake2 (C : CONFIG).
     Definition INIT_STATE : code progvar.
       verse
         [code|
-          v0 := H[0];
-	  v1 := H[1];
-	  v2 := H[2];
-	  v3 := H[3];
-	  v4 := H[4];
-	  v5 := H[5];
-	  v6 := H[6];
-	  v7 := H[7];
-	  v8  := `IV 0 _`;
-	  v9  := `IV 1 _` ;
-	  v10 := `IV 2 _`;
-	  v11 := `IV 3 _`;
-	  v12 := `IV 4 _` ⊕ L;
-	  v13 := `IV 5 _` ⊕ U;
-	  v14 := `IV 6 _`;
-	  v15 := `IV 7 _`
+          v0  := H[0];
+	  v1  := H[1];
+	  v2  := H[2];
+	  v3  := H[3];
+	  v4  := H[4];
+	  v5  := H[5];
+	  v6  := H[6];
+	  v7  := H[7];
+          v8  := IV[0];
+	  v9  := IV[1];
+	  v10 := IV[2];
+	  v11 := IV[3];
+	  v12 := IV[4] ⊕ L;
+	  v13 := IV[5] ⊕ U;
+	  v14 := IV[6];
+	  v15 := IV[7]
         |].
     Defined.
 
@@ -397,14 +397,14 @@ Module Blake2 (C : CONFIG).
 	  v5 := H[5];
 	  v6 := H[6];
 	  v7 := H[7];
-	  v8  := `IV 0 _`;
-	  v9  := `IV 1 _`;
-	  v10 := `IV 2 _`;
-	  v11 := `IV 3 _`;
-	  v12 := `IV 4 _` ⊕ Lower;
-	  v13 := `IV 5 _` ⊕ Upper;
-	  v14 := `IV 6 _` ⊕ f0;
-	  v15 := `IV 7 _` ⊕ f1
+	  v8  := IV[0];
+	  v9  := IV[1];
+	  v10 := IV[2];
+	  v11 := IV[3];
+	  v12 := IV[4] ⊕ Lower;
+	  v13 := IV[5] ⊕ Upper;
+	  v14 := IV[6] ⊕ f0;
+	  v15 := IV[7] ⊕ f1
         |].
       Defined.
 
