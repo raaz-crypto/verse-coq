@@ -54,6 +54,7 @@
           Verse.CryptoLib.sha2.c.portable
           Verse.CryptoLib.sha256.c.portable
           Verse.CryptoLib.sha512.c.portable
+          Verse.CryptoLib.curve25519.c.field
           Verse.CryptoLib.curve25519.c.portable
           Verse.Utils.hlist
           ))
