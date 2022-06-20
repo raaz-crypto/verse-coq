@@ -109,6 +109,15 @@ Section ForAll.
   Definition clearOnlyLower       n (e:E) := [verse| e & `Internals.clearL n ty` |].
   Definition clearOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.clearL n ty`|].
 
+  Definition keepAt pos len (e : E)   := [verse| e & `Internals.selAt pos len ty` |].
+  Definition bitsAt pos len (e : E) :=
+    if pos =? 0 then  keepOnlyLower len e
+    else
+      [verse| `keepAt pos len e` ≫ pos |].
+
+  Definition bitsTo pos len (e : E) :=
+    if pos =? 0 then keepOnlyLower len e
+    else [verse| `keepOnlyLower len e` ≪ pos |].
 
   Definition keepOnlyUpper       n (e:E) := [verse| e &  `Internals.selU n ty` |].
   Definition keepOnlyUpperUpdate n (l:L) := [verse| l &= `Internals.selU n ty` |].
@@ -145,6 +154,10 @@ Arguments clearOnlyLowerUpdate [v ty L L_is_Lexpr].
 
 Arguments keepOnlyUpper       [v ty E E_is_Expr].
 Arguments keepOnlyUpperUpdate [v ty L L_is_Lexpr].
+Arguments keepAt              [v ty E E_is_Expr].
+Arguments bitsAt            [v ty E E_is_Expr].
+Arguments bitsTo            [v ty E E_is_Expr].
+
 Arguments toTopBits           [v ty E E_is_Expr].
 Arguments toTopBitsUpdate     [v ty L L_is_Lexpr].
 
