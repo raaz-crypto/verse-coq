@@ -178,10 +178,12 @@ Declare Custom Entry verse.
 (* Notation "'[code|' e  '|]'" := e (e custom verse). *)
 Notation "A [ N ] " := (idx A (@exist _ _ N%nat _)) (in custom verse at level 29, N constr).
 Notation "[verse| e |]" := e (e custom verse).
-Notation "[code| x ; .. ; y |]":= (cons x .. (cons y nil) ..) (x custom verse, y custom verse).
+Notation "[code| x ; .. ; y |]":= (cons x .. (cons y nil) ..) (x custom verse, y custom verse,
+                                      format "[code| '[    '  '//' x ; '//' .. ; '//' y '//' ']' '//' '|]'"
+                                    ).
 Notation "x" := x (in custom verse at level 0, x global).
 Notation "( x )" := x  (in custom verse at level 0).
-Notation "` x `" := x  (in custom verse at level 0, x constr).
+Notation "` x `" := x  (in custom verse at level 0, x constr, format "` x `").
 
 
 (** Notation for operators.
