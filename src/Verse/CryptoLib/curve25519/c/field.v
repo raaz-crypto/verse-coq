@@ -191,8 +191,8 @@ Module Internal.
       let limb := [verse| limb[j] |] in
       let trTo tr := match tr with
                      | FullT p l => if p =? 0 then [verse| w := limb |]  (* supplies the first bits so assign *)
-                                   else [verse| w |= `bitsTo p l limb` |] (* Not the first bits so or it *)
-                     | LowerT n => [verse| w |= limb ≪ `64 - n`  |]
+                                   else [verse| w |= `bitsTo p l limb` |] (* Not the first bits so OR it *)
+                     | LowerT n => [verse| w |= limb ≪ `64 - n`  |]        (* The last few bits so OR it *)
                      | UpperT n => [verse| w := `toTopBits n limb` |]
                      end
       in match transfer i j with
@@ -229,11 +229,12 @@ Goal to_print (Internal.loadAll W T L ).
   unfold foreachWord;
   unfold iterate;
     unfold foreach;
-  simpl;
-    unfold bitsAt; unfold len; simpl;
+    simpl;
+    unfold len; unfold pos; simpl;
+    dumpgoal.
+    (*unfold bitsAt; unfold len; simpl;
     unfold keepOnlyLower; simpl;
-    unfold keepAt; simpl.
-  dumpgoal.
+    unfold keepAt; simpl.*)
 Abort.
 
 Goal to_print (Internal.storeAll W T L).
@@ -242,7 +243,7 @@ Goal to_print (Internal.storeAll W T L).
   unfold iterate;
     unfold foreach;
   simpl ; unfold len; simpl;
-    unfold bitsAt; unfold len; simpl.
+    (* unfold bitsAt; unfold len; *) simpl.
   dumpgoal.
 Abort.
 
