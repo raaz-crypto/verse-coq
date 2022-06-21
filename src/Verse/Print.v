@@ -2,9 +2,11 @@
 Definition to_print {A}(a : A) := False.
 Global Opaque to_print.
 
-Ltac print := cbv; match goal with
+Ltac dumpgoal :=  match goal with
                    | [ |- _ ?G ] => idtac G
                    end; trivial.
+
+Ltac print := cbv; dumpgoal.
 
 (* end hide *)
 
