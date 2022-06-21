@@ -65,37 +65,71 @@ Qed.
 
 Module Internal.
 
+  (** One could generate the instructions for load and store directly,
+      however we do it in two steps so that we can prove (more like
+      test) some of the basic functions here.
+
+      In the packed form, the bits are treated as 4 × little endian
+      64bit quantities which amounts to 256 bits of which only 255
+      bits are actually relevant when it comes to reduced from. In the
+      computation representation, each limb is either 25 or 26
+      bits. For each limb xⱼ, we have the following situations
+      (mutually exclusive situations)
+
+      * all the bits of xⱼ are within some word wᵢ
+
+      * The bits of xⱼ are split across two consecutive words wᵢ and
+        wᵢ₊₁ in which case the lower bits xⱼ come from (the higher
+        bits of) wᵢ and the higher bits of xⱼ come from (the lower
+        bits of) wᵢ₊₁
+
+        We define an auxiliary data which gives the transfer
+        instructions between the ith word wᵢ and jth limb xⱼ. The
+        constructors are
+
+        * [FullT pos len]: all [len] bits of the limb come from the
+        the given word starting at position [pos]
+
+        * [Lower n]: The lower [n] bits of the limb comes from the upper [n] bits
+        of the word.
+
+        * [Upper n]: The upper [n] bits of the limb comes from the upper [l] bits
+
+  *)
   Inductive Transfer :=
   | FullT  : nat -> nat -> Transfer
   | LowerT : nat -> Transfer
   | UpperT : nat -> Transfer.
 
 
+  (** This computes the transfer size associated to a single transfer instruction *)
   Definition transferSize (t : Transfer) :=
     match t with
     | FullT _ l | LowerT l | UpperT l => l
     end.
 
+  (** Computing the transfer between wᵢ and xⱼ *)
   Section Transfer.
     (* The entire limb comes from this word *)
-
     Context (i j : nat).
 
+    (** Starting bit positions of the wᵢ and wᵢ₊₁ *)
     Definition this := i * 64.
     Definition next := S i * 64.
 
 
+    (** Starting bit positions of xⱼ and xⱼ₊₁ *)
     Definition thisL := pos j.
     Definition nextL := pos (S j).
-    Definition endL  := nextL - 1.
+    Definition endL  := nextL - 1.  (** ending bit position of xⱼ *)
 
+    (** Checks whether a given bit position is within the range of wᵢ *)
     Definition inRangeB m : bool :=
        (this <=? m) && (m <? next).
 
-    Definition fullTB  : bool := inRangeB thisL && inRangeB endL.
-    Definition lowerTB : bool := inRangeB thisL && negb (inRangeB endL).
-    Definition upperTB : bool := negb (inRangeB thisL) && inRangeB endL.
-
+    (** Compute the transfer instruction associated with wᵢ and
+        xⱼ. The result is optional as it is possible that none of the
+        bits of xⱼ is from wᵢ.  *)
     Definition transfer : option Transfer :=
       (if inRangeB thisL && inRangeB endL then Some (FullT (thisL - this) (len j))
        else if inRangeB thisL then Some (LowerT (next - thisL))
@@ -110,12 +144,13 @@ Module Internal.
   End Transfer.
 
   (* begin hide *)
+  (* We now prove some small properties of the transfer instructions thus computed *)
   Definition allLoads (i : nat) := foreachLimb (fun j _  => toList (transfer i j)).
 
   Definition trSizes (i : nat) := List.list_sum (List.map transferSize (allLoads i)).
 
   Goal trSizes 0 = 64 /\ trSizes 1 = 64 /\
-    trSizes 2 = 64.
+    trSizes 2 = 64 /\ trSizes 3 = 63.
     compute. intuition.
   Qed.
 
@@ -125,31 +160,40 @@ Module Internal.
   Qed.
   (* end hide *)
 
-  Section Load.
+  (** We now generate the actual verse instruction from the transfer instructions *)
+  Section InstructionGenerate.
     Context {progvar : VariableT}.
-    Context (packed : progvar of type Packed).
-    Context (temp : progvar of type Word64).
-    Context (x : fe progvar).
+    Context (word    : progvar of type Packed).
+    Context (w       : progvar of type Word64).
+    Context (limb    : fe progvar).
+
+    (** The instructions to load appropriate bits into the jth
+       limb. We assume that the ith word is already loaded into the
+       word [w]. The order matters as we do it first in the lower
+       words and then the higher words. Note the difference in the way the
+       upper bits are handled.
+     *)
 
     Program Definition load (i j : nat)(_ : j < nLimbs) : code progvar :=
       let trTo tr := match tr with
-                     | FullT p l => [verse| x[j] := `bitsAt p l temp` |]
-                     | LowerT n  => [verse| x[j] := `toTopBits n temp` |]
+                     | FullT p l => [verse| limb[j] := `bitsAt p l w` |]
+                     | LowerT n  => [verse| limb[j] := `toTopBits n w` |]
                      | UpperT n  => let lBits := len j - n in
-                                   [verse| x[j] |= `keepOnlyLower n temp` ≪ lBits |]
+                                   [verse| limb[j] |= `keepOnlyLower n w` ≪ lBits |]
                      end in
       match transfer i j  with
       | Some tr => [trTo tr]
       | None => []
       end.
 
+    (* Store the bits in the jth limb into the word w *)
     Program Definition store (i j : nat)(_ : j < nLimbs) : code progvar :=
-      let xj := [verse| x[j] |] in
+      let limb := [verse| limb[j] |] in
       let trTo tr := match tr with
-                     | FullT p l => if p =? 0 then [verse| temp := xj |]
-                                   else [verse| temp |= `bitsTo p l xj` |]
-                     | LowerT n => [verse| temp |= x[j] ≪ `64 - n`  |]
-                     | UpperT n => [verse| temp := `toTopBits n xj` |]
+                     | FullT p l => if p =? 0 then [verse| w := limb |]  (* supplies the first bits so assign *)
+                                   else [verse| w |= `bitsTo p l limb` |] (* Not the first bits so or it *)
+                     | LowerT n => [verse| w |= limb ≪ `64 - n`  |]
+                     | UpperT n => [verse| w := `toTopBits n limb` |]
                      end
       in match transfer i j with
          | Some tr => [trTo tr]
@@ -157,30 +201,30 @@ Module Internal.
          end.
 
     Program Definition loadAll : code progvar := foreachWord (fun i _ =>
-                                                                [code| temp := packed [ i ] |] ++
+                                                                [code| w := word[ i ] |] ++
                                                                   foreachLimb (load i)
                                                    )%list.
     Program Definition storeAll : code progvar := foreachWord (fun i _ =>
                                                                  foreachLimb (store i) ++
-                                                                   [code| packed[i] := temp |]
+                                                                   [code| word[i] := w |]
                                                     )%list.
-  End Load.
+  End InstructionGenerate.
 
 
 End Internal.
 
 (* begin hide *)
 
-
+(* Just to display stuff for easy visualisation *)
 Require Import Verse.Print.
 Require Import Verse.Target.C.Pretty.
 
 
 Axiom MyVar :VariableT.
-Axiom P : MyVar of type Packed.
+Axiom W : MyVar of type Packed.
 Axiom T : MyVar of type Word64.
-Axiom X : fe MyVar.
-Goal to_print (Internal.loadAll P T X ).
+Axiom L : fe MyVar.
+Goal to_print (Internal.loadAll W T L ).
   unfold Internal.loadAll;
   unfold foreachWord;
   unfold iterate;
@@ -189,15 +233,17 @@ Goal to_print (Internal.loadAll P T X ).
     unfold bitsAt; unfold len; simpl;
     unfold keepOnlyLower; simpl;
     unfold keepAt; simpl.
+  dumpgoal.
 Abort.
 
-Goal to_print (Internal.storeAll P T X).
+Goal to_print (Internal.storeAll W T L).
   unfold Internal.storeAll;
   unfold foreachWord;
   unfold iterate;
     unfold foreach;
   simpl ; unfold len; simpl;
-  unfold bitsAt; unfold len; simpl.
+    unfold bitsAt; unfold len; simpl.
+  dumpgoal.
 Abort.
 
 (* end hide *)
