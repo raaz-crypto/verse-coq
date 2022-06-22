@@ -182,10 +182,10 @@ Module Internal.
       Program Definition  L := [verse| limb[j] |].
 
       Definition fullLoad p l   := [verse| L := `bitsAt p l W` |].
-      Definition fullStore p l :=
+      Definition fullStore (p : nat) :=
         match p with
-        | 0  => [verse| W := L |] (* First bits to the current word *)
-        | _ =>  [verse| W |= `bitsTo p l L` |] (* Not the first bits so OR it *)
+        | 0  => [verse| W := L      |] (* First bits to the current word *)
+        | _ =>  [verse| W |=  L ≪ p |] (* Not the first bits so OR it *)
         end.
 
 
@@ -197,7 +197,8 @@ Module Internal.
         let lBits := len j - n  in (* already has bits from the previous word *)
         [verse| L |= `keepOnlyLower n W` ≪ lBits |].
 
-      Definition upperStore n:= [verse| W := `toTopBits n L` |].
+      Definition upperStore n := let lowerBits := len j - n in
+        [verse| W := L ≫ lowerBits |].
 
       Definition toLoad (tr : Transfer) : statement progvar :=
         match tr with
@@ -208,7 +209,7 @@ Module Internal.
 
       Definition toStore (tr : Transfer) : statement progvar :=
         match tr with
-        | FullT p l => fullStore p l
+        | FullT p l => fullStore p
         | LowerT n  => lowerStore n
         | UpperT n  => upperStore n
         end.
@@ -244,6 +245,8 @@ Goal to_print (Internal.loadAll W L ).
   unfold Internal.fullLoad;
     unfold Internal.lowerLoad;
     unfold Internal.upperLoad;
+    unfold len;
+    unfold bitsAt;
     unfold Internal.L;
     unfold Internal.W;
     simpl.
