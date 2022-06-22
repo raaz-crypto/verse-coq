@@ -324,4 +324,5 @@ Ltac verse_print_mesg :=  match goal with
                           | _                    => verse_warn; idtac "please handle these obligations yourself"
                           end.
 
-Tactic Notation "verse" uconstr(B) := refine B; repeat verse_simplify; verse_print_mesg.
+Ltac verse_crush := repeat verse_simplify; verse_print_mesg.
+Tactic Notation "verse" uconstr(B) := refine B; verse_crush.
