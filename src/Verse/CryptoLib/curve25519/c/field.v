@@ -164,52 +164,63 @@ Module Internal.
   Section InstructionGenerate.
     Context {progvar : VariableT}.
     Context (word    : progvar of type Packed).
-    Context (w       : progvar of type Word64).
     Context (limb    : fe progvar).
 
     (** The instructions to load appropriate bits into the jth
        limb. We assume that the ith word is already loaded into the
-       word [w]. The order matters as we do it first in the lower
-       words and then the higher words. Note the difference in the way the
-       upper bits are handled.
+       word [w].
      *)
 
-    Program Definition load (i j : nat)(_ : j < nLimbs) : code progvar :=
-      let trTo tr := match tr with
-                     | FullT p l => [verse| limb[j] := `bitsAt p l w` |]
-                     | LowerT n  => [verse| limb[j] := `toTopBits n w` |]
-                     | UpperT n  => let lBits := len j - n in
-                                   [verse| limb[j] |= `keepOnlyLower n w` ≪ lBits |]
-                     end in
-      match transfer i j  with
-      | Some tr => [trTo tr]
-      | None => []
-      end.
+    Section ForEachIJ.
+      (* We assume that all loads happen from lower bits (and
+         therefore lower words) to upper words. Also the ith word is
+         available in the temporary word [w] *)
 
-    (* Store the bits in the jth limb into the word w *)
-    Program Definition store (i j : nat)(_ : j < nLimbs) : code progvar :=
-      let limb := [verse| limb[j] |] in
-      let trTo tr := match tr with
-                     | FullT p l => if p =? 0 then [verse| w := limb |]  (* supplies the first bits so assign *)
-                                   else [verse| w |= `bitsTo p l limb` |] (* Not the first bits so OR it *)
-                     | LowerT n => [verse| w |= limb ≪ `64 - n`  |]        (* The last few bits so OR it *)
-                     | UpperT n => [verse| w := `toTopBits n limb` |]
-                     end
-      in match transfer i j with
-         | Some tr => [trTo tr]
-         | None    => []
-         end.
+      Context (i : nat)`(i < nWord).
+      Context (j : nat)`(j < nLimbs).
+      Program Definition  W    := [verse| word[i] |].
+      Program Definition  L := [verse| limb[j] |].
 
-    Program Definition loadAll : code progvar := foreachWord (fun i _ =>
-                                                                [code| w := word[ i ] |] ++
-                                                                  foreachLimb (load i)
-                                                   )%list.
-    Program Definition storeAll : code progvar := foreachWord (fun i _ =>
-                                                                 foreachLimb (store i) ++
-                                                                   [code| word[i] := w |]
-                                                    )%list.
+      Definition fullLoad p l   := [verse| L := `bitsAt p l W` |].
+      Definition fullStore p l :=
+        match p with
+        | 0  => [verse| W := L |] (* First bits to the current word *)
+        | _ =>  [verse| W |= `bitsTo p l L` |] (* Not the first bits so OR it *)
+        end.
+
+
+      Definition lowerLoad n  := [verse| L := `toTopBits n W` |].
+      Definition lowerStore n := [verse| W |= L ≪ `64 - n` |].
+
+
+      Definition upperLoad n  :=
+        let lBits := len j - n  in (* already has bits from the previous word *)
+        [verse| L |= `keepOnlyLower n W` ≪ lBits |].
+
+      Definition upperStore n:= [verse| W := `toTopBits n L` |].
+
+      Definition toLoad (tr : Transfer) : statement progvar :=
+        match tr with
+        | FullT p l => fullLoad p l
+        | LowerT n  => lowerLoad n
+        | UpperT n  => upperLoad n
+        end.
+
+      Definition toStore (tr : Transfer) : statement progvar :=
+        match tr with
+        | FullT p l => fullStore p l
+        | LowerT n  => lowerStore n
+        | UpperT n  => upperStore n
+        end.
+
+      Definition load : code progvar := toList (option_map toLoad (transfer i j)).
+      Definition store : code progvar := toList (option_map toStore (transfer i j)).
+    End ForEachIJ.
+
+    Definition loadAll  : code progvar := foreachWord (fun i pf => foreachLimb (load  i pf)).
+    Definition storeAll : code progvar := foreachWord (fun i pf => foreachLimb (store i pf)).
+
   End InstructionGenerate.
-
 
 End Internal.
 
@@ -224,27 +235,35 @@ Axiom MyVar :VariableT.
 Axiom W : MyVar of type Packed.
 Axiom T : MyVar of type Word64.
 Axiom L : fe MyVar.
-Goal to_print (Internal.loadAll W T L ).
+Goal to_print (Internal.loadAll W L ).
   unfold Internal.loadAll;
-  unfold foreachWord;
-  unfold iterate;
-    unfold foreach;
-    simpl;
-    unfold len; unfold pos; simpl;
+    unfold foreachWord;
+    unfold foreachLimb;
+    unfold iterate;
+    unfold foreach; simpl;
+  unfold Internal.fullLoad;
+    unfold Internal.lowerLoad;
+    unfold Internal.upperLoad;
+    unfold Internal.L;
+    unfold Internal.W;
+    simpl.
     dumpgoal.
-    (*unfold bitsAt; unfold len; simpl;
-    unfold keepOnlyLower; simpl;
-    unfold keepAt; simpl.*)
+
 Abort.
 
-Goal to_print (Internal.storeAll W T L).
+Goal to_print (Internal.storeAll W L).
   unfold Internal.storeAll;
   unfold foreachWord;
-  unfold iterate;
-    unfold foreach;
-  simpl ; unfold len; simpl;
-    (* unfold bitsAt; unfold len; *) simpl.
-  dumpgoal.
+    unfold iterate;
+    unfold foreach; simpl;
+  unfold Internal.fullStore;
+    unfold Internal.lowerStore;
+    unfold Internal.upperStore;
+    unfold len;
+      unfold Internal.W;
+    unfold Internal.L;
+    simpl;
+    dumpgoal.
 Abort.
 
 (* end hide *)
