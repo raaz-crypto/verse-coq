@@ -51,7 +51,7 @@ Definition foreachWord {A : Type}(f : forall i, i < nWord  -> list A) : list A :
 
 Definition Packed := Array 4 littleE Word64.
 (** Field element *)
-Definition fe (v : VariableT) := Vector.t (v of type Word64) 10.
+Definition fe (v : VariableT) := Vector.t (v of type Word64) nLimbs.
 
 (* begin hide *)
 (* NOTE: These are inline tests *)
@@ -249,24 +249,65 @@ Goal to_print (Internal.loadAll W L ).
     unfold bitsAt;
     unfold Internal.L;
     unfold Internal.W;
-    simpl.
+    simpl;
+    idtac "Loading of field elements:";
     dumpgoal.
 
 Abort.
 
 Goal to_print (Internal.storeAll W L).
   unfold Internal.storeAll;
-  unfold foreachWord;
+    unfold foreachWord;
     unfold iterate;
     unfold foreach; simpl;
-  unfold Internal.fullStore;
+    unfold Internal.fullStore;
     unfold Internal.lowerStore;
     unfold Internal.upperStore;
     unfold len;
-      unfold Internal.W;
+    unfold Internal.W;
     unfold Internal.L;
     simpl;
+    idtac "Storing of field elements:";
     dumpgoal.
 Abort.
 
+(* end hide *)
+
+(** * Carry propagation.
+
+During arithmetic operations, limbs can contain more that their
+designated number of bits. In such cases we propagate the bits the
+next limb (cycling when we reach the last limb *)
+
+
+
+Section CarryPropagation.
+
+  Context {progvar : VariableT}.
+  Variable limb    : fe progvar.
+
+  Program Definition carryFrom (i : nat)`(i < nLimbs) :=
+    if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
+    else [verse| limb[ i ]  ≫ `len i` |].
+
+
+  Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
+    verse ([code| limb[i] += `carryFrom ((i + nLimbs - 1) mod nLimbs) _` |]).
+  Defined.
+
+  (* We perform a full cycle of propagation by starting at the highest limb *)
+  Definition propagate := foreachLimb propagateTo.
+
+End CarryPropagation.
+
+(* begin hide *)
+Goal to_print (propagate L).
+  unfold propagate.
+  unfold foreachLimb;
+    unfold iterate;
+    unfold foreach.
+  simpl; unfold carryFrom; unfold len; simpl.
+    idtac "Carry propagation:";
+    dumpgoal.
+Abort.
 (* end hide *)
