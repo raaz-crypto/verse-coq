@@ -286,13 +286,13 @@ Section CarryPropagation.
   Context {progvar : VariableT}.
   Variable limb    : fe progvar.
 
-  Program Definition carryFrom (i : nat)`(i < nLimbs) :=
+  Program Definition carryFrom (i : nat)`{i < nLimbs} :=
     if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
     else [verse| limb[ i ]  ≫ `len i` |].
 
 
   Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
-    verse ([code| limb[i] += `carryFrom ((i + nLimbs - 1) mod nLimbs) _` |]).
+    verse ([code| limb[i] += `carryFrom ((i + nLimbs - 1) mod nLimbs)` |]).
   Defined.
 
   (* We perform a full cycle of propagation by starting at the highest limb *)
