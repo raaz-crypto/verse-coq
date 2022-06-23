@@ -300,6 +300,50 @@ Section CarryPropagation.
 
 End CarryPropagation.
 
+
+(** ** How many progagations ?
+
+Firstly checking whether any of the carry is actually zero is not such
+a good idea (branching based on secret). So the answer is that we run
+the propagate one two many times. In the standard representation, we
+want to ensure that the ith limb contains [len i] many bits (rest
+needs to be propagated further on. We allow for an additional bit at
+the top most limb x₉ which will be adjusted after the end of all
+operations. Consider the following arithmetic operations
+
+* _Addition:_ Here there is at most one additional bit generated. So
+  the carry from xᵢ to xᵢ₊₁ bit. What this means is that if xᵢ₊₁ was
+  already of length len (i + 1) at most an additional bit is added to
+  it which then is propagated further up.
+
+* _Multiplication:_ If we think of the limbs as forming a polynomial
+  over the indeterminate X then the coefficients cₖ (∑ aᵢ Xⁱ)(∑ bᵢ Xʲ)
+  will be of the form cₖ = 10 terms of the form aᵢ bⱼ * 2 * 19. Which
+  is bounded by 2⁵² * 380 = 2⁶¹ and hence are of 61 bits each.
+
+  Now consider the first round of propagation from c₉ to c₀, c₀ to c₁
+  ...  c₈ to c₉.  When we started each cᵢ's had 61 bits at most and
+  hence they propagate at most 62 - 25 = 37 bits in each stage. After
+  one cycle of propagation c₀ to c₈ have their correct number of bits
+  but c₉ is a 25-bit number + a 37 bit number = 38 bit number. What
+  this means is in the next round we will be propagating 38 - 25 = 11
+  bits from c₉ to c₀ but then on will only be propagating at most 1
+  bit; adding a 11-bit carry to a 25 or 26 bit number will result in
+  at most have an additional 1 bit carry. As a result after the end of
+  the second round of propagation all limbs c₀ ... c₈ will have the
+  correct number of bits but c₉ might have one addition bit (i.e 26
+  bits instead of 25 bits). Although this is not the standard
+  representation, we do not need to perform any further propagation
+  until the final result is desired for, with this bit counts, none of
+  our arithmetic operations will overflow.
+
+NOTE: Instead of starting from the largest limb, we could start from
+any of the limb but then that particular limb will have an additional
+bit (so better to make it one of the 25 bit limb) so that our 61 bit
+bound holds.
+
+*)
+
 (* begin hide *)
 Goal to_print (propagate L).
   unfold propagate.
