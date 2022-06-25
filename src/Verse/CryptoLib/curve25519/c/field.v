@@ -339,8 +339,8 @@ operations. Consider the following arithmetic operations
 
 NOTE: Instead of starting from the largest limb, we could start from
 any of the limb but then that particular limb will have an additional
-bit (so better to make it one of the 25 bit limb) so that our 61 bit
-bound holds.
+bit. It is better to therefore start the propagation from one of the
+25 bit making it 26 bit and our 61 bit bound holds.
 
 *)
 
