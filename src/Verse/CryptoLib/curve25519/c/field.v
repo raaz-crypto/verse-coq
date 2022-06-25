@@ -355,3 +355,35 @@ Goal to_print (propagate L).
     dumpgoal.
 Abort.
 (* end hide *)
+
+
+(** ** Field arithmetic operations.
+
+We implement the following operations for field elements.
+
+1. A := B + C or A += B + C.
+
+2. A := B * C of A *= B.
+
+
+No explicit propagation is done because as remarked above, the number
+of propagations that is to be done depends on the operations that we
+are performing and the context.
+
+We start with addition which is more or less straight forward.
+
+ *)
+
+Section Addition.
+
+  Context {progvar : VariableT}.
+
+  Variable A B C : fe progvar.
+
+  Program Definition add : code progvar :=
+    foreachLimb (fun i _ => [code| A[i] := B[i] + C[i]  |]).
+
+  Program Definition addAssign : code progvar :=
+    foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
+
+End Addition.
