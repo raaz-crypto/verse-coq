@@ -467,21 +467,12 @@ Section Multiplication.
      May be there are other faster ways to
      *)
 
+    Definition sqFactor := if i <? j then termFactor * 2
+                           else if i =? j then termFactor
+                                else 0.
+    Program Definition sqTerm := multBy sqFactor [verse| B[i] * B[j] |].
 
   End Term.
-
-  (* begin hide *)
-  Goal to_print (foreachLimb (fun i pfi => (foreachLimb (fun j pfj => term i pfi j pfj)))).
-    unfold foreachLimb;
-    unfold iterate;
-      unfold foreach.
-    unfold term.
-    time simpl.
-    (*
-    Tactic call ran for 0.146 secs (0.146u,0.s) (success)
-    When using the slower version it is more than 2.85 secs.
-     *)
-  Abort.
 
   (*
   Goal to_print (foreachLimb (fun i pfi => (foreachLimb (fun j pfj => termP i pfi j pfj)))).
@@ -502,30 +493,52 @@ Section Multiplication.
       refine (term i _ ((k + nLimbs - i)  mod nLimbs) _); verse_crush.
     Defined.
 
-    Definition termsFor := foreachLimb termFrom.
+    Definition sqTermFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)).
+      refine (sqTerm i _ ((k + nLimbs - i)  mod nLimbs) _); verse_crush.
+    Defined.
 
-    Program Definition update : code progvar :=
-      match termsFor with
+    Definition termsFor := foreachLimb termFrom.
+    Definition sqTermFor := foreachLimb sqTermFrom.
+
+    Program Definition update exps : code progvar :=
+      match exps with
       | (x :: xs) => [code| A[k] := `List.fold_left (fun e1 e2 => [verse| e1 + e2 |]) xs x` |]
       | _ => []
       end%list.
 
+    Definition multUpdate := update termsFor.
+    Definition sqUpdate  := update sqTermFor.
   End Update.
 
-  Definition mult := foreachLimb update.
+  Definition mult   := foreachLimb multUpdate.
+  Definition square := foreachLimb sqUpdate.
 End Multiplication.
 
 (* begin hide *)
 Axiom A B C : fe MyVar.
 
 Goal to_print (mult A B C).
-  unfold mult.
+  unfold mult;
   unfold foreachLimb;
     unfold iterate;
     unfold foreach;
     unfold update;
-    simpl.
-  unfold termFactor. simpl.
+    time simpl;
+  unfold termFactor; simpl;
+  idtac "Code for multiplication:";
+  dumpgoal.
+Abort.
 
+
+Goal to_print (square A B).
+  unfold square;
+  unfold foreachLimb;
+    unfold iterate;
+    unfold foreach;
+    unfold update;
+    time simpl;
+    unfold sqFactor;
+    unfold termFactor; simpl;
+    idtac "Code for squaring:".
   dumpgoal.
 Abort.
