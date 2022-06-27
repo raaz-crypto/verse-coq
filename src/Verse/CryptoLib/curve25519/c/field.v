@@ -418,34 +418,88 @@ being 19 * 2 (because 2²⁵⁵ = 19 int the field).
 *)
 
 Section Multiplication.
-
   Context {progvar : VariableT}.
-  Variable A B C : fe progvar.
+  Context (A B C : fe progvar).
+
 
   (** Compute the term Tᵢⱼ suitably scaled *)
   Section Term.
-
     Context (i : nat)`(i < nLimbs).
     Context (j : nat)`(j < nLimbs).
 
 
-    Program Definition term :=
-      if pos (i + j) =? pos i + pos j
-      then
-        [verse| B[i] * C[j] |]
-      else
-        if i + j <? 10 then
-          [verse| B[i] * C[j] ≪ `1` |]  (* 2 * B[i] * C[j] *)
-        else
-          [verse| B[i] * C[i] * `2 * 19`|].
+    Definition multBy (n : nat) (e : expr progvar (existT _ _ Word64)) : list (expr progvar (existT _ _ Word64)) :=
+      match n with
+       | 0 => []
+       | 1 => [e]
+       | 2 => [ [verse| e ≪ `1` |] ]
+       | 4 => [ [verse| e ≪ `2` |] ]
+       | _ => [ [verse| e * `n` |] ]
+      end.
+
+    (* If the power is greater than 2²⁵⁵ then we reduce we multiply with 19 instead which *)
+    Definition modularFactor :=
+      if i + j <? 10 then 1 else 19.
+
+    (* The additional power of 2 that needs to be adjusted for. Recall
+       that the term B[i] * C[j] contributs to A[i+j `mod` 10] but
+       needs to be adjusted by a factor of 2 if pos i + pos j > pos (i
+       + j).
+
+       Recall that pos i = ⌈25.5 i ⌉ therefore for even i pos i = 25.5
+       i and for odd i pos i = 25.5 i + 0.5. Doing the case by case
+       analysis of i and j we see that pos i + pos j > pos (i + j)
+       only when both i and j are odd.
+
+       We could have directly written this condition but that makes code generation
+       slower. (alternatively may be we can work with binary nats.
+     *)
+    Definition adjustFactor :=
+      let odd n := n mod 2 =? 1 in
+      if (odd i && odd j)%bool then 2 else 1.
+
+    Definition termFactor := modularFactor * adjustFactor. (* If we use it directly the code generation
+                                                              is slower *)
+
+    Program Definition term := multBy termFactor [verse| B[i] * C[j] |].
+
+  (* Code generation is slower here by a factor of 6. So makes sense to avoid this.
+     May be there are other faster ways to
+     *)
+
 
   End Term.
 
+  (* begin hide *)
+  Goal to_print (foreachLimb (fun i pfi => (foreachLimb (fun j pfj => term i pfi j pfj)))).
+    unfold foreachLimb;
+    unfold iterate;
+      unfold foreach.
+    unfold term.
+    time simpl.
+    (*
+    Tactic call ran for 0.146 secs (0.146u,0.s) (success)
+    When using the slower version it is more than 2.85 secs.
+     *)
+  Abort.
+
+  (*
+  Goal to_print (foreachLimb (fun i pfi => (foreachLimb (fun j pfj => termP i pfi j pfj)))).
+    unfold foreachLimb;
+    unfold iterate;
+      unfold foreach.
+    unfold term.
+    time simpl.
+    (* Tactic call ran for 2.846 secs (2.846u,0.s) (success) *)
+    (* Tactic call ran for 13.399 secs (13.398u,0.s) (success) *)
+  Abort.
+
+   *)
   (** Compute the terms Tᵢⱼ that contribute for the limb k *)
   Section Update.
     Context (k : nat)`(k < nLimbs).
-    Definition termFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)) .
-      refine [term i _ ((i + nLimbs - k) mod nLimbs ) _]; verse_crush.
+    Definition termFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)).
+      refine (term i _ ((k + nLimbs - i)  mod nLimbs) _); verse_crush.
     Defined.
 
     Definition termsFor := foreachLimb termFrom.
@@ -469,7 +523,9 @@ Goal to_print (mult A B C).
   unfold foreachLimb;
     unfold iterate;
     unfold foreach;
-    simpl;
-    unfold term; simpl.
-    dumpgoal.
+    unfold update;
+    simpl.
+  unfold termFactor. simpl.
+
+  dumpgoal.
 Abort.
