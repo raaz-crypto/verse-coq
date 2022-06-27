@@ -28,13 +28,22 @@ There are two possible representations of elements in this field
 
 
 The packed representation is the standard representation and is in
-particular used to storing and transmitting values of the latter and
-is thus canonical.  The computational representation should be treated
-as an implementation dependent internal format and is designed to make
-the implementation of the field operation efficient.
+particular used to storing and transmitting values and is thus
+canonical.  The computational representation should be treated as an
+implementation dependent internal format and is designed to make the
+implementation of the field operation efficient.
 
  *)
 
+(**
+
+In the computable representation, [pos i] represent gives the bit
+position from which the ith limb start. The function [pos i]
+completely determine the computation presentation. For the finite
+field GF(2²⁵⁵ - 19), computational representation associated with the
+position function [pos i = ⌈25.5 i⌉] is used.
+
+ *)
 
 Definition pos (i : nat) :=
   let j := i / 2 in
