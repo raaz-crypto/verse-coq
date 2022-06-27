@@ -396,3 +396,80 @@ Section Addition.
     foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
 
 End Addition.
+
+(** ** Multiplication
+
+Given two elements a and b with limbs aᵢ and bⱼ respectively consider
+the associated field element [∑ aᵢ 2ᵖᵒˢ ⁱ] and [∑ bⱼ 2ᵖᵒˢ ʲ]. The
+product is the sum of terms Tᵢⱼ of the form [aᵢ * bⱼ 2ᵖᵒˢ ⁱ ⁺ ᵖᵒˢ ʲ].
+Each of these terms contribute so some limb, in fact exactly one of
+the limbs, in the final product as should be clear from the analysis
+below.
+
+For a moment assume that [i + j < 10]. Since [pos i = ⌈25.5 i⌉], we
+have [pos (i + j) ≤ pos i + pos j ≤ pos (i + j) + 1]. We make use of
+the inequality ⌈x + y⌉ ≤ ⌈x⌉ + ⌈y⌉ ≤ ⌈x + y⌉ + 1. What this means is
+that the term Tᵢⱼ contributes only to the limb [i + j] possibly with
+an additional multiplicative factor of 2 (when the second part of the
+inequality is actually an equality. When [i+j >= 10] then Tᵢⱼ similarly
+contributes to the limb [i + j mod 10] with the multiplicative factor
+being 19 * 2 (because 2²⁵⁵ = 19 int the field).
+
+*)
+
+Section Multiplication.
+
+  Context {progvar : VariableT}.
+  Variable A B C : fe progvar.
+
+  (** Compute the term Tᵢⱼ suitably scaled *)
+  Section Term.
+
+    Context (i : nat)`(i < nLimbs).
+    Context (j : nat)`(j < nLimbs).
+
+
+    Program Definition term :=
+      if pos (i + j) =? pos i + pos j
+      then
+        [verse| B[i] * C[j] |]
+      else
+        if i + j <? 10 then
+          [verse| B[i] * C[j] ≪ `1` |]  (* 2 * B[i] * C[j] *)
+        else
+          [verse| B[i] * C[i] * `2 * 19`|].
+
+  End Term.
+
+  (** Compute the terms Tᵢⱼ that contribute for the limb k *)
+  Section Update.
+    Context (k : nat)`(k < nLimbs).
+    Definition termFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)) .
+      refine [term i _ ((i + nLimbs - k) mod nLimbs ) _]; verse_crush.
+    Defined.
+
+    Definition termsFor := foreachLimb termFrom.
+
+    Program Definition update : code progvar :=
+      match termsFor with
+      | (x :: xs) => [code| A[k] := `List.fold_left (fun e1 e2 => [verse| e1 + e2 |]) xs x` |]
+      | _ => []
+      end%list.
+
+  End Update.
+
+  Definition mult := foreachLimb update.
+End Multiplication.
+
+(* begin hide *)
+Axiom A B C : fe MyVar.
+
+Goal to_print (mult A B C).
+  unfold mult.
+  unfold foreachLimb;
+    unfold iterate;
+    unfold foreach;
+    simpl;
+    unfold term; simpl.
+    dumpgoal.
+Abort.
