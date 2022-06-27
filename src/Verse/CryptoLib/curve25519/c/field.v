@@ -1,4 +1,5 @@
 (* begin hide *)
+Require Import NArith.
 Require Import Arith.
 Require Import Verse.
 (* end hide *)
@@ -45,12 +46,29 @@ position function [pos i = ⌈25.5 i⌉] is used.
 
  *)
 
+(*
 Definition pos (i : nat) :=
   let j := i / 2 in
   let k := i mod 2 in
   j * 51 + k * 26.
+*)
+Definition posP (p : positive) :=
+  match p with
+  | pp~0 => 51 * pp
+  | pp~1 => 51 * pp + 26
+  | 1 => 26
+  end%positive.
 
-Definition len (i : nat) := pos (S i) - pos i.
+Definition posN (n : N) :=
+  match n with
+  | N0 => 0%N
+  | Npos p => Npos (posP p)
+  end.
+
+
+Definition pos (n : nat) := N.to_nat (posN (N.of_nat n)).
+Definition len (i : nat) := N.to_nat (let iN := N.of_nat i in
+                                    posN (iN + 1) - posN iN)%N.
 
 Definition nLimbs := 10.
 Definition nWord  := 4.
@@ -358,8 +376,8 @@ Goal to_print (propagate L).
   unfold propagate.
   unfold foreachLimb;
     unfold iterate;
-    unfold foreach.
-  simpl; unfold carryFrom; unfold len; simpl.
+    unfold foreach;
+  simpl; unfold carryFrom; unfold len; simpl;
     idtac "Carry propagation:";
     dumpgoal.
 Abort.
@@ -454,9 +472,14 @@ Section Multiplication.
        We could have directly written this condition but that makes code generation
        slower. (alternatively may be we can work with binary nats.
      *)
-    Definition adjustFactor :=
+
+    Definition shouldAdjust u v : bool:=
       let odd n := n mod 2 =? 1 in
-      if (odd i && odd j)%bool then 2 else 1.
+      odd u && odd v.
+    Definition adjustFactor :=
+      if shouldAdjust i j then 2 else 1.
+
+    Definition oddN (n : N) := exists q, n = (2 * q + 1)%N.
 
     Definition termFactor := modularFactor * adjustFactor. (* If we use it directly the code generation
                                                               is slower *)
@@ -540,5 +563,5 @@ Goal to_print (square A B).
     unfold sqFactor;
     unfold termFactor; simpl;
     idtac "Code for squaring:".
-  dumpgoal.
+  time dumpgoal.
 Abort.
