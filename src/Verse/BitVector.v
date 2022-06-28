@@ -97,6 +97,15 @@ Definition lower_ones sz n : Bvector sz
 Definition upper_ones sz n : Bvector sz
   := BVcomp sz (lower_ones sz (sz - n)).
 
+(** Generate a bit vector with 1 in all bits between m and n
+    (inclusive) and zero otherwise. Used to select a particular range
+    of values.
+
+*)
+
+Definition onesAt sz (pos : nat) (len : nat): Bvector sz
+  := BVxor sz (lower_ones sz (len+pos)) (lower_ones sz pos).
+
 (* begin hide *)
 Arguments BVplus   [sz].
 Arguments BVminus  [sz].
@@ -117,7 +126,7 @@ Arguments BVrotL   [sz].
 
 Arguments lower_ones [sz].
 Arguments upper_ones [sz].
-
+Arguments onesAt     [sz].
 Arguments BVzeros {sz}.
 Arguments BVones  {sz}.
 (* end hide *)

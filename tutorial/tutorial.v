@@ -4,8 +4,8 @@
 (** printing wi9 $w_{i+9}$ #w<sub>i+9</sub>#  *)
 (** printing wi1 $w_{i+1}$ #w<sub>i+1</sub>#  *)
 
+Require Import Nat.
 (** * The Verse EDSL.
-
 Implementing cryptographic primitives in a High level language is
 problematic for two reasons.
 
@@ -110,125 +110,91 @@ wrap this code inside a module to preserve namespaces.
 
 Module SHA2.
 
-
   (** The standard idiom for writing a Verse program is to define a
       Coq [Section] which contains definitions of the program
       variables, Verse code, and other auxiliary information.
    *)
 
-  Section SCHEDULE.
+  (** The message schedule of SHA512 and SHA256 involves the same
+      message indices. In our simplified variant, the only
+      difference between the two is that the former uses words of
+      64-bit whereas the latter uses words of 32-bit. By making the
+      [word] a [Variable] of this section, our code effectively
+      becomes polymorphic on the [word] type.  *)
 
-    (** The message schedule of SHA512 and SHA256 involves the same
-        message indices. In our simplified variant, the only
-        difference between the two is that the former uses words of
-        64-bit whereas the latter uses words of 32-bit. By making the
-        [word] a [Variable] of this section, our code effectively
-        becomes polymorphic on the [word] type.  *)
+  Variable word : type direct.
 
-    Variable word : type direct.
+  (** The [type direct] in the above definition is the type of all
+      direct types, i.e. types that fit into machine registers, which
+      includes the word and multi-word types. See
+      Section%~\ref{sec-type-system}% for more details on types
+      and kinds in Verse.
 
-    (** The [type direct] in the above definition is the type of all
-        direct types, i.e. types that fit into machine registers, which
-        includes the word and multi-word types. See
-        Section%~\ref{sec-type-system}% for more details on types
-        and kinds in Verse.
-
-     *)
-    (** A SHA2 block is a 16 length array of this word type encoded
-       in big endian.
+   *)
+  (** A SHA2 block is a 16 length array of this word type encoded
+      in big endian.
 
      *)
-    Definition SIZE  := 16.
-    Definition BLOCK := Array SIZE bigE word.
+  Definition SIZE  := 16.
+  Definition BLOCK := Array SIZE bigE word.
 
-    (**
+  (**
 
-       Generic variants of code are _parameterised_ over the program
-       variables which will eventually be instantiated from the
-       architecture specific register set during code generation. In
-       Verse the type [VariableT] is the universe of all possible program
-       variable types.
+Generic variants of code are _parameterised_ over the program
+variables which will eventually be instantiated from the
+architecture specific register set during code generation. In
+Verse the type [VariableT] is the universe of all possible program
+variable types.
 
-     *)
+   *)
 
-    Variable progvar     : VariableT.
-    (* begin hide *)
-    Arguments progvar [k] _.
-    (* end hide *)
+  Variable progvar     : VariableT.
+  (* begin hide *)
+  (* end hide *)
 
-      (** What follows is the Verse program for message scheduling. First we
-          "declare" the program variables, the variable [W], [S], and [T] followed
-          by the actual message schedule.
-       *)
+  (** What follows is the Verse program for message scheduling. First we
+      "declare" the program variables, the variable [W], [S], and [T] followed
+      by the actual message schedule.
+   *)
 
-    Variable W       : progvar BLOCK.
-    Variable S T     : progvar word.
+  Variable W       : progvar of type BLOCK.
+  Variable S T     : progvar of type word.
 
-    (**
+  (**
 
-        We can index the [i]-th elements of the array [W] by using the
-        notation [W[i]].  However, for safety verse does not allow
-        such indexing without an accompanying proof of the fact that
-        [i] is less than the bound. Instead of using the notation
-        directly, we instead use a tactic also called `verse` whos
-        joub is to complete such bounds. In the Definition below
-        notice its use.
+     We can index the [i]-th elements of the array [W] by using the
+     notation [W[i]].  However, for safety verse does not allow
+     such indexing without an accompanying proof of the fact that
+     [i] is less than the bound. Instead of using the notation
+     directly, we instead use a tactic also called `verse` whos
+     joub is to complete such bounds. In the Definition below
+     notice its use.
 
-     *)
-    Definition WordSchedule i  (boundPf : i < SIZE) :  code progvar.
-      verse [ S  ::=  W[- i -];
-              T  ::=  W[- (i + 14) mod SIZE -];
-              S  ::=+ T;
-              T  ::=  W[- (i + 9) mod SIZE  -];
-              S  ::=+ T;
-              T  ::= W[- (i + 1) mod SIZE -];
-              S  ::=+ T;
-              MOVE S TO W[- i -]
-            ].
+   *)
+
+  Section Schedule.
+    Context (i : nat)(pf : i < SIZE).
+    Definition WordSchedule  :  code progvar.
+      verse ([code|
+                 S  :=  W[ i ] ;
+                 T  :=  W[ (i + 14) mod SIZE ] ;
+                 S  += T;
+                 T  :=  W[ (i + 9) mod SIZE  ] ;
+                 S  += T;
+                 T  := W[ (i + 1) mod SIZE ];
+                 S  += T;
+                 W[ i ] := S
+            |]).
     Defined.
+  End Schedule.
 
+  (** Having defined the code segment for scheduling a single word
+      in the message, we use the [foreach] function to generate an
+      unrolled loop performing the [WordSchedule] for every index of
+      [W].
+   *)
 
-    (** Having defined the code segment for scheduling a single word
-        in the message, we use the [foreach] function to generate an
-        unrolled loop performing the [WordSchedule] for every index of
-        [W].
-     *)
-
-    Definition Schedule := iterate WordSchedule.
-
-    (** This completes the Verse code for word scheduling. An an
-        exercise try removing the [mod SIZE] portion in the
-        [WordSchedule] and look at the error message thrown out.
-
-     *)
-
-    (** ** Parameters, stack and register variables
-
-       Notice that we have started the section by parameterising of
-       over the program variables [progvar] and the variables [W],
-       [S], and [T] of type [progvar t] for some appropriate type
-       [t]. In the case of message scheduling, we would want [W] to be
-       the parameter of the generated C function and [S] and [T] to be
-       register variables in the architecture. We need some additional
-       definitions (of type [Declaration]) here which will be used at
-       the time of code generation.  *)
-
-
-    Definition parameters : Declaration := [Var W].
-    Definition stack      : Declaration := [].
-    Definition registers  : Declaration := [Var S ; Var T].
-
-
-    (** There is indeed some adhocness here arising out of the use of
-        Coq sections.  Code generators expect the parameters to be
-        listed first, followed by the stack variables, and finally the
-        register variables. The order within the lists needs to be
-        consistent with the listing in the section as well. Having
-        made these extra declarations we are done with this section
-        and we move on to code generation.
-     *)
-
-  End SCHEDULE.
+  Definition Schedule := iterate WordSchedule.
 
 End SHA2.
 

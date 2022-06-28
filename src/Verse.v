@@ -43,3 +43,7 @@ Notation "(--)"             := ([]%hlist).
 Notation "(- x -)"          := ([x]%hlist).
 Notation "(- x , y , .. , z -)" := (hcons x (hcons y .. (hcons z hnil) ..)).
 Notation "'do' B 'end'"     := (Scope.body B).
+
+
+Require Import NArith.
+Coercion N.to_nat : N >-> nat.

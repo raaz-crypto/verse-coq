@@ -1,5 +1,5 @@
 (* begin hide *)
-Require Verse.BitVector.
+Require Import Verse.BitVector.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
@@ -11,41 +11,35 @@ Require Import Verse.Language.Types.
 
 Module Internals.
 
-  Definition selL (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := BitVector.lower_ones n in
-       match ty with
-       | word sz         => mask sz
-       | multiword m sz  => Vector.const (mask sz) (2^m)
-       end.
-
-  Definition selU (ty : type direct) n : const ty
-    := let mask sz : const (word sz) := BitVector.upper_ones n in
-       match ty with
-       | word sz         => mask sz
-       | multiword m sz  => Vector.const (mask sz) (2^m)
-       end.
+  Definition makeMask (mask : forall sz : nat,  Bvector sz) ty  : const ty :=
+    let maskWord sz : const (word sz) := mask _ in
+    match ty with
+    | word sz => maskWord sz
+    | multiword m sz => Vector.const (maskWord sz) (2^m)
+    end.
 
 
-  Definition clearL (ty : type direct) n : const ty
-    := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in BitVector.upper_ones (bsz - n)
-       in
-       match ty with
-       | word sz         => mask sz
-       | multiword m sz  => Vector.const (mask sz) (2^m)
-       end.
+  Definition selL n : forall ty : type direct, const ty :=
+    makeMask (fun _ => BitVector.lower_ones  n).
+
+  Definition selU n : forall ty : type direct, const ty :=
+    makeMask (fun _ => BitVector.upper_ones  n).
+
+  Definition selAt (pos : nat)(len : nat) : forall ty, const ty
+    := makeMask (fun _ => BitVector.onesAt pos len).
 
 
-  Definition clearU (ty : type direct) n : const ty
-    := let mask sz : const (word sz) :=
-           let bsz := bitSize sz in BitVector.lower_ones (bsz - n)
-       in
-       match ty with
-       | word sz         => mask sz
-       | multiword m sz  => Vector.const (mask sz) (2^m)
-       end.
+  Definition clearL n : forall ty, const ty
+    := makeMask (fun sz => let bsz := bitSize sz in
+                        BitVector.upper_ones (bsz - n)).
 
-  Definition selShiftR (ty : type direct) n : nat
+
+  Definition clearU n : forall ty, const ty
+    := makeMask (fun sz => let bsz := bitSize sz in
+                        BitVector.lower_ones (bsz - n)).
+
+
+  Definition selShiftR  n (ty : type direct) : nat
     := match ty with
        | word sz | multiword _ sz => bitSize sz - n
        end.
@@ -109,20 +103,29 @@ Section ForAll.
   Variable L_is_Lexpr : Pretty.LEXPR v ty L.
 
 
-  Definition keepOnlyLower       n (e:E) := [verse| e & `Internals.selL ty n`  |].
-  Definition keepOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.selL ty n` |].
+  Definition keepOnlyLower       n (e:E) := [verse| e & `Internals.selL n ty`  |].
+  Definition keepOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.selL n ty` |].
 
-  Definition clearOnlyLower       n (e:E) := [verse| e & `Internals.clearL ty n` |].
-  Definition clearOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.clearL ty n`|].
+  Definition clearOnlyLower       n (e:E) := [verse| e & `Internals.clearL n ty` |].
+  Definition clearOnlyLowerUpdate n (l:L) := [verse| l &= `Internals.clearL n ty`|].
 
+  Definition keepAt pos len (e : E)   := [verse| e & `Internals.selAt pos len ty` |].
+  Definition bitsAt pos len (e : E) :=
+    if pos =? 0 then  keepOnlyLower len e
+    else
+      [verse| `keepAt pos len e` ≫ pos |].
 
-  Definition keepOnlyUpper       n (e:E) := [verse| e &  `Internals.selU ty n` |].
-  Definition keepOnlyUpperUpdate n (l:L) := [verse| l &= `Internals.selU ty n` |].
-  Definition toTopBits           n (e:E) := [verse| e >>  `Internals.selShiftR ty n`|].
-  Definition toTopBitsUpdate     n (l:L) := [verse| l >>= `Internals.selShiftR ty n` |].
+  Definition bitsTo pos len (e : E) :=
+    if pos =? 0 then keepOnlyLower len e
+    else [verse| `keepOnlyLower len e` ≪ pos |].
 
-  Definition clearOnlyUpper       n (e:E) := [verse| e & `Internals.clearU ty n` |].
-  Definition clearOnlyUpperUpdate n(l: L) := [verse| l &= `Internals.clearU ty n` |].
+  Definition keepOnlyUpper       n (e:E) := [verse| e &  `Internals.selU n ty` |].
+  Definition keepOnlyUpperUpdate n (l:L) := [verse| l &= `Internals.selU n ty` |].
+  Definition toTopBits           n (e:E) := [verse| e >>  `Internals.selShiftR n ty`|].
+  Definition toTopBitsUpdate     n (l:L) := [verse| l >>= `Internals.selShiftR n ty` |].
+
+  Definition clearOnlyUpper       n (e:E) := [verse| e & `Internals.clearU n ty` |].
+  Definition clearOnlyUpperUpdate n(l: L) := [verse| l &= `Internals.clearU n ty` |].
 
 
 
@@ -151,6 +154,10 @@ Arguments clearOnlyLowerUpdate [v ty L L_is_Lexpr].
 
 Arguments keepOnlyUpper       [v ty E E_is_Expr].
 Arguments keepOnlyUpperUpdate [v ty L L_is_Lexpr].
+Arguments keepAt              [v ty E E_is_Expr].
+Arguments bitsAt            [v ty E E_is_Expr].
+Arguments bitsTo            [v ty E E_is_Expr].
+
 Arguments toTopBits           [v ty E E_is_Expr].
 Arguments toTopBitsUpdate     [v ty L L_is_Lexpr].
 
