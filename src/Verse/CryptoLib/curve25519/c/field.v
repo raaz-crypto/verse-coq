@@ -453,7 +453,7 @@ Section Multiplication.
        | 2 => [ [verse| e ≪ `1` |] ]
        | 4 => [ [verse| e ≪ `2` |] ]
        | _ => [ [verse| e * `n` |] ]
-      end.
+      end%nat.
 
     (* If the power is greater than 2²⁵⁵ then we reduce we multiply with 19 instead which *)
     Definition modularFactor :=
