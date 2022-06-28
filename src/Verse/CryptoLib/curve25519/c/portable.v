@@ -1,10 +1,12 @@
 Require Import Verse.
 Import VerseNotations.
+(** * Curve 25519 and its parameters *)
 
 
-Definition Limb      := Word64.
-Definition Element   := (Array 4 littleE Limb).
-Definition Scalar    := (Array 4 littleE Limb).
+
+Definition Word      := Word64.
+Definition Element   := (Array 4 littleE Word).
+Definition Scalar    := (Array 4 littleE Word).
 
 Module Internal.
 
@@ -21,7 +23,7 @@ Module Internal.
      *)
 
 
-    Definition clamp (T : progvar of type Limb) (scalA : progvar of type Scalar) : code progvar.
+    Definition clamp (T : progvar of type Word) (scalA : progvar of type Scalar) : code progvar.
       verse [code|
           T := scalA[ 0 ];
           T &= `Ox "ff:ff:ff:ff ff:ff:ff:f8"`;
@@ -34,7 +36,7 @@ Module Internal.
         |].
     Defined.
 
-    Definition clampIter (T : progvar of type Limb) : iterator progvar Scalar
+    Definition clampIter (T : progvar of type Word) : iterator progvar Scalar
       := {| setup    := [];
             process  := clamp T;
             finalise := []
