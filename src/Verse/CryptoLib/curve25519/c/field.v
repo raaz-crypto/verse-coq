@@ -456,7 +456,7 @@ Section Multiplication.
       end%nat.
 
     (* If the power is greater than 2²⁵⁵ then we reduce we multiply with 19 instead which *)
-    Definition modularFactor :=
+    Definition modularFactor : nat :=
       if i + j <? 10 then 1 else 19.
 
     (* The additional power of 2 that needs to be adjusted for. Recall
@@ -476,12 +476,12 @@ Section Multiplication.
     Definition shouldAdjust u v : bool:=
       let odd n := n mod 2 =? 1 in
       odd u && odd v.
-    Definition adjustFactor :=
+    Definition adjustFactor : nat :=
       if shouldAdjust i j then 2 else 1.
 
     Definition oddN (n : N) := exists q, n = (2 * q + 1)%N.
 
-    Definition termFactor := modularFactor * adjustFactor. (* If we use it directly the code generation
+    Definition termFactor : nat := modularFactor * adjustFactor. (* If we use it directly the code generation
                                                               is slower *)
 
     Program Definition term := multBy termFactor [verse| B[i] * C[j] |].
@@ -490,9 +490,9 @@ Section Multiplication.
      May be there are other faster ways to
      *)
 
-    Definition sqFactor := if i <? j then termFactor * 2
-                           else if i =? j then termFactor
-                                else 0.
+    Definition sqFactor : nat := if i <? j then termFactor * 2
+                              else if i =? j then termFactor
+                                   else 0.
     Program Definition sqTerm := multBy sqFactor [verse| B[i] * B[j] |].
 
   End Term.
