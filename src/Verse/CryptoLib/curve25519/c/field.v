@@ -446,7 +446,7 @@ Section Multiplication.
     Context (j : nat)`(j < nLimbs).
 
 
-    Definition multBy (n : nat) (e : expr progvar (existT _ _ Word64)) : list (expr progvar (existT _ _ Word64)) :=
+    Definition multBy (n : nat) (e : expr progvar of type Word64) : list (expr progvar of type Word64) :=
       match n with
        | 0 => []
        | 1 => [e]
@@ -512,11 +512,11 @@ Section Multiplication.
   (** Compute the terms Tᵢⱼ that contribute for the limb k *)
   Section Update.
     Context (k : nat)`(k < nLimbs).
-    Definition termFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)).
+    Definition termFrom (i : nat)`(i < nLimbs) : list (expr progvar of type Word64).
       refine (term i _ ((k + nLimbs - i)  mod nLimbs) _); verse_crush.
     Defined.
 
-    Definition sqTermFrom (i : nat)`(i < nLimbs) : list (expr progvar (existT _ _ Word64)).
+    Definition sqTermFrom (i : nat)`(i < nLimbs) : list (expr progvar of type Word64).
       refine (sqTerm i _ ((k + nLimbs - i)  mod nLimbs) _); verse_crush.
     Defined.
 

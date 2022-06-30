@@ -163,7 +163,7 @@ Module SHA2 (C : CONFIG).
           of the appropriate sigma function.
            *)
 
-          Definition sigma (r0 r1 s : nat)(x : v of type Word) : expr v (existT _ _ Word) :=
+          Definition sigma (r0 r1 s : nat)(x : v of type Word) : expr v of type Word :=
             [verse| (x ⋙ r1) ⊕ (x ⋙ r0) ⊕ (x ≫ s) |].
 
           Definition SCHEDULE :=
@@ -247,7 +247,7 @@ Module SHA2 (C : CONFIG).
             H := G s
           |}.
 
-        Definition Sigma r0 r1 r2 (x : v of type Word) : expr v (existT _ _ Word) :=
+        Definition Sigma r0 r1 r2 (x : v of type Word) : expr v of type Word :=
           [verse| (x ⋙ r2) ⊕ (x ⋙ r1) ⊕ (x ⋙ r0) |].
 
         Definition Sigma0 (s : State) := Sigma R00 R01 R02 (A s).
@@ -258,10 +258,10 @@ Module SHA2 (C : CONFIG).
         into the temp variable temp
          *)
 
-        Definition CH (B C D : v of type Word) : expr v (existT _ _ Word) :=
+        Definition CH (B C D : v of type Word) : expr v of type Word :=
           [verse| (D ⊕ (B & (C ⊕ D))) |].
 
-        Definition MAJ (B C D : v of type Word) : expr v (existT _ _ Word) :=
+        Definition MAJ (B C D : v of type Word) : expr v of type Word :=
           [verse| (B & C) | (D & (C | B)) |]. (* ==== (B AND C) OR (C AND D) OR (B AND D) *)
 
 
