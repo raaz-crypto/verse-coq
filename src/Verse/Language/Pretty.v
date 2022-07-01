@@ -277,7 +277,7 @@ Notation "A ::=>>> N"  := (inst (uniOpUpdate (rotR N)   A))   (at level 70) : co
 Notation "'CLOBBER' A" := (inst (existT _ _ (clobber A)))     (at level 70) : code_scope.
 
 Notation "'MOVE' B 'TO' A [- N -]"
-  := (inst (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A ident) : code_scope.
+  := (inst (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A name) : code_scope.
 
 
 (** * The verse tactic.
@@ -299,7 +299,8 @@ Ltac  verse_warn :=
 Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
-Global Hint Resolve PeanoNat.Nat.mod_upper_bound.
+(* The following doesn't seem to be used any more. Retained to bugfix a later realization. *)
+(*Global Hint Resolve PeanoNat.Nat.mod_upper_bound.*)
 
 (* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
 

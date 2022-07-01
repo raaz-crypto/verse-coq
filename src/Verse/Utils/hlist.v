@@ -195,7 +195,7 @@ Section EqBool.
 
   Lemma heqb_eqSigT s1 s2 L (pf1 : s1 ∈ L) (pf2 : s2 ∈ L)
     : heqb pf1 pf2 = true -> pf1 ≡ pf2.
-    Local Hint Resolve heq_next_cong.
+    Hint Resolve heq_next_cong : heq.
     induction L;
       dependent destruction pf1; dependent destruction pf2; simpl; intuition.
   Qed.
@@ -287,11 +287,11 @@ Section Indexing.
   Proof.
     (* TODO : Not sure this can be written without dependent induction *)
     intro.
-    Hint Resolve hneq_next_inv.
+    Hint Resolve hneq_next_inv : heq.
     induction hl;
     dependent induction idx0;
     dependent induction idx1; simpl;
-    try contradiction;eauto.
+    try contradiction; eauto with heq.
   Qed.
 
   Check index.

@@ -95,7 +95,6 @@ Section Machine.
   Lemma notIn_tl {fam out : family}{s s0}(outslice : slice fam (s0 :: out))
         : forall  (idx : s ∈ fam), notIn idx outslice -> notIn idx (tl outslice).
     intros.
-    Hint Resolve index_tl.
     intros t i.
     rewrite index_tl.
     eauto.
@@ -106,7 +105,6 @@ Section Machine.
       notIn idx outslice ->
       forall v, forall u, get idx (puts outslice u v) = get idx v.
     intros s idx ineq.
-    Hint Unfold get put.
     intro v.
     unfold puts.
     unfold puts_hlist.
@@ -114,9 +112,9 @@ Section Machine.
     unfold put.
     unfold get.
     intro u.
-    Local Hint Resolve notIn_tl notIn_hd.
+    Local Hint Resolve notIn_tl notIn_hd : slice.
     rewrite update_other_index;
-    eauto.
+    eauto with slice.
   Qed.
 
   (** ** Linear slice.
@@ -172,8 +170,8 @@ Section Machine.
     * rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
       now apply vcprf.
     * unfold local_update.
-      Hint Resolve noupdate_lemma.
-      eauto.
+      Hint Resolve noupdate_lemma : noupdate.
+      eauto with noupdate.
   Qed.
 
   Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.

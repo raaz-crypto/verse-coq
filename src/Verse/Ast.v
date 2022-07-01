@@ -296,7 +296,7 @@ Module Expr.
   Arguments extract [tgt v ty].
 
 
-  Fixpoint compile src tgt
+  Definition compile src tgt
            (cr : TypeSystem.compiler src tgt)
            (v  : Variables.U tgt)
            (ty : some (typeOf src))
