@@ -19,6 +19,7 @@
           Verse.Language.Macros.Loops
           Verse.Language.Pretty
           Verse.Language.Types
+          Verse.Modular
           Verse.Machine.BitVector
           Verse.Monad
           Verse.BitVector
