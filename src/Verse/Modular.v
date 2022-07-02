@@ -21,9 +21,6 @@ the kind X ≡ Y mod M.
 Definition eqMod (X Y M : N) : Prop := (X mod M = Y mod M)%N.
 Notation "X ≡ Y [mod M ]"  := (eqMod X Y M) (at level 70).
 
-(** A rewrite with a mod equation *)
-Ltac modrewrite H := unfold eqMod; rewrite H; trivial.
-
 (** As with all reflection based tactics, we have an AST to
     reify actual expressions. It consists of addition, multiplication
     and modulo computation. The expression type is parametrised by the
@@ -97,30 +94,74 @@ Ltac semantic_rewrite X eX
 
 When trying to prove modular equation of the kind X ≡ Y [mod M] the
 common strategy is to first get X and Y into some sort of a normal
-form. The proof then follows either directly or largely based on
-either ring tactics or rewrites with modular equality hypothesis that
-we have as premise. The normal forms that we need in both these cases
-differ and we give two names
+form. The proof then follows either directly or largely based on one
+of the two cases.
 
-1. A _ring normal form_ where X (and Y) are converted to expressions
-   which do not involve the mod operator. (i.e X and Y are pure
-   arithmetic expression.
-
-2. The _leaf normal form_ where all the leafs (Const). We can the
-   use the premises of the kind Xᵢ ≡ Yᵢ [mod M] to do the rewrites.
+- Essentially the ring tactics on the underlying ring N. The [modring]
+  tactic is given for this purpose which disposes of equation of the
+  kind X ≡ Y [mod M] by essentially proving the stronger claim X = Y
+  using the ring tactic on N
 
 *)
 
+Ltac modring M := apply (f_equal (fun y => N.modulo y M)); ring.
 
-(** ** The ring nomal form
+(*
 
-Getting to this form is easy. We write a function that will just wipe out
-all the mod operators.
+- Rewriting using equations of the kind A ≡ B [mod M]. We give a tactic
+  to rewrite with equations of the kind A ≡ B [mod M].
+
+ *)
+
+Ltac modrewrite H := unfold eqMod; rewrite H; trivial.
+Ltac automodrewrite := repeat match goal with
+                         | [ H : _ ≡ _ [mod ?M] |- _ ] => modrewrite H; trivial
+                         end.
+
+
+(** * Generalised normalisation.
+
+A generalised normalisation is by a normalisation function and
+its correctness theorem.
+
+ *)
+
+Record normalisation := { nf :> forall M, Exp M -> Exp M;
+                          nf_spec : forall M (e : Exp M), M <>0%N -> eval e ≡ eval (nf M e) [mod M]
+  }.
+
+
+(** We now give a reflection based normalisation of expression *)
+
+(*
+Ltac ringnf_rewrite eX M :=
+  let H := fresh "HNormalise" in
+  assert (H : M <> 0%N -> eval (M:=M) eX ≡ eval (M:=M) (unmod eX) [mod M])
+    by (intro HmNz; apply unmod_spec; trivial);
+  modrewrite H; simpl.
+*)
+Ltac nf_rewrite norm eX M := modrewrite (nf_spec norm M eX); simpl.
+
+Ltac nf norm X M :=
+  let eX := reify X M in
+  semantic_rewrite X eX;
+  nf_rewrite norm eX M.
+
+Ltac normalise norm := match goal with
+                       |  [ |- ?X ≡ ?Y [mod ?M] ]
+                          =>  nf norm X M;
+                             nf norm Y M; trivial
+                       end.
+
+(** ** The ring nomal form.
+
+The ring normal for is obtained by removing any intermediate mod
+operations in the equation X ≡ Y [mod N] equation.
 
  *)
 
 
-Fixpoint unmod {M}(e : Exp M) : Exp M :=
+Fixpoint unmod {M} (e : Exp M) : Exp M :=
   match e with
   | Const x   => Const x
   | Add e1 e2 => let e1p := unmod e1 in
@@ -132,12 +173,13 @@ Fixpoint unmod {M}(e : Exp M) : Exp M :=
   | Mod ep => unmod ep
   end.
 
-(** Its correctness follows from the following lemma *)
+(** We have the following correctness theory for the above
+transformation *)
 
-Lemma unmod_spec M : M <> 0%N -> forall e : Exp M, eval e ≡ eval (unmod e) [mod M].
+Lemma unmod_spec (M : N) : forall (e : Exp M), M <> 0%N -> eval e ≡ eval (unmod e) [mod M].
 Proof.
-  intro HmNz.
   intro e.
+  intro HmNz.
   unfold eqMod.
   induction e as [ |M e1 IH1 e2 IH2|M e1 IH1 e2 IH2| M e IH ]; simpl.
   - trivial.
@@ -146,26 +188,62 @@ Proof.
   - ReW IH; ReW N.mod_mod.
 Qed.
 
+Definition RingN : normalisation := {| nf := @unmod;
+                                       nf_spec := unmod_spec
+                                    |}.
+
+
+Ltac ringnf := nf RingN.
+Ltac ringmod := normalise RingN.
+
+(** ** The leaf normal form
+
+In this normal form the terms in the modular equation have their mod
+operations on the leaves.
+
+*)
+
+Fixpoint modleaf {M}(e : Exp M) : Exp M :=
+  match e with
+  | Const x => Mod (Const x)
+  | Add e1 e2 => let e1p := modleaf e1 in
+                let e2p := modleaf e2 in
+                Add e1p e2p
+  | Mul e1 e2 => let e1p := modleaf e1 in
+                let e2p := modleaf e2 in
+                Mul e1p e2p
+  | Mod ep => modleaf ep
+  end.
+
+#[local] Hint Resolve N.mod_mod : localdb.
+Lemma modleaf_spec M :  forall e : Exp M, M <> 0%N -> eval e ≡ eval (modleaf e) [mod M].
+Proof.
+  intro e.
+  intro HmNz.
+  induction e as [ |M e1 IH1 e2 IH2|M e1 IH1 e2 IH2| M e IH ]; simpl.
+  - unfold eqMod. trivial; ReW N.mod_mod.
+  - modrewrite N.add_mod; modrewrite IH1; modrewrite IH2; ReW <- N.add_mod.
+  - modrewrite N.mul_mod; modrewrite IH1; modrewrite IH2. ReW <- N.mul_mod; eauto with localdb.
+  - modrewrite IH; ReW N.mod_mod.
+Qed.
+
+Definition LeafN : normalisation := {| nf := @modleaf;
+                                       nf_spec := modleaf_spec
+                                    |}.
+
+Ltac leafnf := nf LeafN.
+Ltac leafmod := normalise LeafN.
+
+(** ** Tactics for normalisation.
+
+We give general tactics that can be used with both the normalisations.
+
+*)
+
+(**
+
+*)
 (** The [ringnf] tactic converts the given term to is ring normal form *)
-
-Ltac ringnf_rewrite eX M :=
-  let H := fresh "HNormalise" in
-  assert (H : M <> 0%N -> eval (M:=M) eX ≡ eval (M:=M) (unmod eX) [mod M])
-    by (intro HmNz; apply unmod_spec; trivial);
-  modrewrite H; simpl.
-
-Ltac ringnf X M :=
-  let eX := reify X M in
-  semantic_rewrite X eX;
-  ringnf_rewrite eX M.
-
-
-
-Ltac ringmod := match goal with
-                | [ |- ?X ≡ ?Y [mod ?M] ] =>
-                    ringnf X M; ringnf Y M;
-                    apply (f_equal (fun y => N.modulo y M)); ring
-                end.
 
 Goal forall x M, M <> 0%N -> ((x mod M) ≡ x [mod M])%N.
   intros x M H.
@@ -173,5 +251,14 @@ Goal forall x M, M <> 0%N -> ((x mod M) ≡ x [mod M])%N.
 Qed.
 Goal forall x y z M : N, M <> 0%N -> ((x mod M + (y + z) mod M) ≡ (x + y + z) [mod M])%N.
   intros x y z M H.
-  ringmod.
+  ringmod; modring M.
+Qed.
+
+Goal forall x1 x2  y1 y2 M, M <> 0%N
+                       ->  (x1 ≡ x2 [mod M])
+                       ->  (y1 ≡ y2 [mod M])
+                       ->  ((x1 + y1 mod M) ≡ (x2 + y2) [mod M])%N.
+  intros x1 x2 y1 y2 M HmNz H1 H2.
+  leafmod.
+  automodrewrite.
 Qed.
