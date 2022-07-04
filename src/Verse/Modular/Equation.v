@@ -21,7 +21,15 @@ the kind X ≡ Y mod M.
 Definition eqMod (X Y M : N) : Prop := (X mod M = Y mod M)%N.
 Notation "X ≡ Y [mod M ]"  := (eqMod X Y M) (at level 70).
 
-Ltac modring M := apply (f_equal (fun y => N.modulo y M)); ring.
+
+Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod M = y mod M)%N.
+  trivial.
+Qed.
+
+Ltac modring M := match goal with
+                  | [ |- ?X ≡ ?Y [mod ?M] ] =>
+                      apply (f_equal (fun y => N.modulo y M)); ring
+                  end.
 
 (*
 
@@ -30,7 +38,20 @@ Ltac modring M := apply (f_equal (fun y => N.modulo y M)); ring.
 
  *)
 
-Ltac modrewrite H := unfold eqMod; rewrite H; trivial.
+Tactic Notation "modrewrite" constr(H) := unfold eqMod; rewrite H; apply mod_eqMod.
+Tactic Notation "modrewrite" "<-" constr(H) := unfold eqMod; rewrite <- H; apply mod_eqMod.
+
+
 Ltac automodrewrite := repeat match goal with
-                         | [ H : _ ≡ _ [mod ?M] |- _ ] => modrewrite H; trivial
+                         | [ H : _ ≡ _ [mod ?M] |- _ ] => modrewrite H ; trivial
                          end.
+
+(*
+Goal forall x1 x2 y1 y2 M, x1 ≡ x2 [mod M] -> y1 ≡ y2 [mod M] -> x1 mod M + y1 mod M ≡ x2 + y2 [mod M].
+  intros.
+  modrewrite H.
+  modrewrite H0.
+  modrewrite <- H.
+  modrewrite <- H0.
+Abort.
+ *)
