@@ -18,12 +18,17 @@ the kind X ≡ Y mod M.
 
  *)
 
-Definition eqMod (X Y M : N) : Prop := (X mod M = Y mod M)%N.
-Notation "X ≡ Y [mod M ]"  := (eqMod X Y M) (at level 70).
+Definition eqMod (M X Y : N) : Prop := (X mod M = Y mod M)%N.
+Notation "X ≡ Y [mod M ]"  := (eqMod M X Y) (at level 70).
 
 
 Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod M = y mod M)%N.
   trivial.
+Qed.
+
+Lemma eqMod_refl : forall M x, x ≡ x [mod M].
+  intros.
+  unfold eqMod; trivial.
 Qed.
 
 Ltac modring M := match goal with
@@ -43,15 +48,21 @@ Tactic Notation "modrewrite" "<-" constr(H) := unfold eqMod; rewrite <- H; apply
 
 
 Ltac automodrewrite := repeat match goal with
-                         | [ H : _ ≡ _ [mod ?M] |- _ ] => modrewrite H ; trivial
+                         | [ H : _ ≡ _ [mod ?M] |- _ ] => modrewrite H
                          end.
 
-(*
-Goal forall x1 x2 y1 y2 M, x1 ≡ x2 [mod M] -> y1 ≡ y2 [mod M] -> x1 mod M + y1 mod M ≡ x2 + y2 [mod M].
-  intros.
-  modrewrite H.
-  modrewrite H0.
-  modrewrite <- H.
-  modrewrite <- H0.
-Abort.
- *)
+Lemma eqMod_sym : forall M x y, x ≡ y [mod M] -> y ≡ x [mod M].
+  intros x y M hxEqy.
+  automodrewrite; apply eqMod_refl.
+Qed.
+
+Lemma eqMod_trans : forall M x y z, x ≡ y [mod M] -> y ≡ z [mod M] -> x ≡ z [mod M].
+  intros x y z M hxEqy.
+  automodrewrite; apply eqMod_refl.
+Qed.
+
+
+Add Parametric Relation M : N (@eqMod M)
+    reflexivity proved by (eqMod_refl M)
+    symmetry proved by  (eqMod_sym M)
+    transitivity proved by (eqMod_trans M) as eqmod_rel.
