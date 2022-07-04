@@ -20,6 +20,7 @@
           Verse.Language.Pretty
           Verse.Language.Types
           Verse.Modular
+          Verse.Modular.Equation
           Verse.Machine.BitVector
           Verse.Monad
           Verse.BitVector
