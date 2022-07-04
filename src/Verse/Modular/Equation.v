@@ -2,6 +2,8 @@
 Require Import ZArith.
 Require Import NArith.
 Require  List.
+Require Import Setoid.
+Require Export Relation_Definitions.
 Import List.ListNotations.
 
 
@@ -18,8 +20,8 @@ the kind X ≡ Y mod M.
 
  *)
 
-Definition eqMod (M X Y : N) : Prop := (X mod M = Y mod M)%N.
-Notation "X ≡ Y [mod M ]"  := (eqMod M X Y) (at level 70).
+Definition eqMod (M : N) : relation N := fun X Y => (X mod M = Y mod M)%N.
+Notation "X ≡ Y [mod M ]"  := (eqMod M X Y) (at level 70, format "X  ≡  Y  [mod  M ]").
 
 
 Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod M = y mod M)%N.
@@ -43,8 +45,8 @@ Ltac modring M := match goal with
 
  *)
 
-Tactic Notation "modrewrite" constr(H) := unfold eqMod; rewrite H; apply mod_eqMod.
-Tactic Notation "modrewrite" "<-" constr(H) := unfold eqMod; rewrite <- H; apply mod_eqMod.
+Tactic Notation  modrewrite H := unfold eqMod; rewrite H; try (apply mod_eqMod); trivial.
+Tactic Notation "modrewrite" "<-" constr(H) := unfold eqMod; rewrite <- H; try (apply mod_eqMod); trivial.
 
 
 Ltac automodrewrite := repeat match goal with
@@ -52,7 +54,7 @@ Ltac automodrewrite := repeat match goal with
                          end.
 
 Lemma eqMod_sym : forall M x y, x ≡ y [mod M] -> y ≡ x [mod M].
-  intros x y M hxEqy.
+  intros M x y hxEqy;
   automodrewrite; apply eqMod_refl.
 Qed.
 
@@ -61,8 +63,63 @@ Lemma eqMod_trans : forall M x y z, x ≡ y [mod M] -> y ≡ z [mod M] -> x ≡ 
   automodrewrite; apply eqMod_refl.
 Qed.
 
+Definition addMod (M x y : N)   := ((x + y) mod M)%N.
+Definition mulMod (M x y : N)   := ((x * y) mod M)%N.
+Definition oppMod (M x : N)     := (M - (x mod M))%N.
+Definition minusMod M (x y : N) := addMod M x (oppMod M y)%N.
 
-Add Parametric Relation M : N (@eqMod M)
+Add Parametric Relation M : N (eqMod M)
     reflexivity proved by (eqMod_refl M)
     symmetry proved by  (eqMod_sym M)
-    transitivity proved by (eqMod_trans M) as eqmod_rel.
+    transitivity proved by (eqMod_trans M) as eqMod_rel.
+
+Add Parametric Morphism M (pf : M <> 0%N) : N.add
+    with signature (eqMod M) ==> eqMod M ==> eqMod M as add_mor.
+  intros x1 x2 Hx y1 y2 Hy.
+  modrewrite N.add_mod.
+  rewrite Hx. rewrite Hy. modrewrite <- N.add_mod.
+  reflexivity.
+Qed.
+
+Add Parametric Morphism M  (pf : M <> 0%N) : N.mul
+    with signature (eqMod M) ==> eqMod M ==> eqMod M as mul_mor.
+  intros x1 x2 Hx y1 y2 Hy.
+  modrewrite N.mul_mod.
+  modrewrite Hx.
+  rewrite Hy.
+  modrewrite <- N.mul_mod.
+  reflexivity.
+Qed.
+
+
+
+Add Parametric Morphism M  (pf : M <> 0%N) : (mulMod M)
+    with signature (eqMod M) ==> eqMod M ==> eqMod M as mulMod_mor.
+  intros x1 x2 Hx y1 y2 Hy.
+  unfold mulMod.
+  modrewrite N.mul_mod.
+  fold mulMod;
+    rewrite Hx.
+  rewrite Hy.
+  modrewrite <- N.mul_mod.
+  reflexivity.
+Qed.
+
+Add Parametric Morphism M  (pf : M <> 0%N) : (oppMod M)
+    with signature (eqMod M) ==> eqMod M as opMod_mor.
+  intros x y H.
+  unfold oppMod.
+  rewrite H. reflexivity.
+Qed.
+
+Add Parametric Morphism M  (pf : M <> 0%N) : (minusMod M)
+    with signature eqMod M ==> eqMod M ==> eqMod M as minusMod_mor.
+  unfold minusMod.
+  intros x1 x2 Hx y1 y2 Hy.
+  unfold oppMod.
+  unfold addMod.
+
+  rewrite N.add_mod; trivial.
+  rewrite Hx; trivial.
+  rewrite Hy; trivial. modrewrite <- N.add_mod;  reflexivity.
+Qed.
