@@ -204,7 +204,9 @@ Proof.
   intro HmNz.
   induction e as [ |M e1 IH1 e2 IH2|M e1 IH1 e2 IH2| M e IH ]; simpl.
   - unfold eqMod. trivial; ReW N.mod_mod.
-  - modrewrite N.add_mod; modrewrite IH1; modrewrite IH2; ReW <- N.add_mod.
+  - modrewrite N.add_mod; modrewrite IH1; modrewrite IH2. modrewrite <- N.add_mod.
+
+    modrewrite IH1; modrewrite IH2 modrewrite N.add_mod.
   - modrewrite N.mul_mod; modrewrite IH1; modrewrite IH2. ReW <- N.mul_mod; eauto with localdb.
   - modrewrite IH; ReW N.mod_mod.
 Qed.
