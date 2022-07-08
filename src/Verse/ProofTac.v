@@ -1,17 +1,10 @@
-
-(* TODO : While the following two tactics are fairly generic, they
-          don't work without specific BitVector functions. Needs to be
-          organized better.
- *)
-
-
 (** Tactics for proof goal presentation *)
 
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.BitVector.ArithRing.
 Require Import Verse.Utils.hlist.
-Require Import Verse.HlistMachine.
+Require Import Verse.AnnotatedCode.
 Require Import List.
 Import List.ListNotations.
 
@@ -56,6 +49,11 @@ Ltac breakStore :=
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
                end; autounfold with Wrapper; simpl.
+
+(* TODO : While the following two tactics are fairly generic, they
+          don't work without specific BitVector functions. Needs to be
+          organized better.
+ *)
 
 Ltac simplify := unfold getProp;
                  breakStore;
