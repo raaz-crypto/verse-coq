@@ -17,6 +17,7 @@ syntax of these code values palatable to the user.
 Require Import NArith.
 Require Import Nat.
 Require Import Verse.Ast.
+Require Import Verse.AnnotatedCode.
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
 Require        Vector.
@@ -248,7 +249,6 @@ Notation "A >>>= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 7
 Notation "A ⋙= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
 
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 70).
-
 (*
 Notation "'MOVE' B 'to' A [ N ]"
   := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (in custom verse at level 200, A ident).
@@ -278,7 +278,6 @@ Notation "'CLOBBER' A" := (inst (existT _ _ (clobber A)))     (at level 70) : co
 
 Notation "'MOVE' B 'TO' A [- N -]"
   := (inst (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A name) : code_scope.
-
 
 (** * The verse tactic.
 
