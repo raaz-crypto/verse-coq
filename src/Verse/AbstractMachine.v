@@ -1,12 +1,10 @@
 (* begin hide *)
 
 Require Import Verse.Ast.
-Require Import Verse.Language.Pretty.
 Require Import Verse.TypeSystem.
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.
 Require Import Verse.Monoid.Semantics.
-
 
 Require Import PeanoNat.
 
@@ -228,126 +226,28 @@ Module Internals.
 
 End Internals.
 
-Require Import Verse.Monoid.
-Require Import Verse.Monoid.Semantics.
-Require Import Verse.Monoid.Interface.
-
 Section Machine.
 
   Variable ts : typeSystem.
   Variable v  : Variables.U ts.
 
-  Definition store_machine
-    : mSpecs ts ts
-    := {| mvariables   := v;
-          mtypeCompiler := injector ts;
-       |}.
-
   Variable tyD   : typeDenote ts.
 
-  Definition mline :=
-    forall state : State v tyD, instruction state ⋉ assertion state.
+  Definition mline `{State ts v tyD} := instruction _ ⋉ assertion _.
 
-  Definition justInst
-    : (forall state, instruction state) -> mline
-    := fun i => fun st => semiR (i st) (fun _ => True).
+  Definition justInst `{State ts v tyD}
+    : (instruction _) -> mline
+    := fun i => semiR i (fun _ => True).
 
-  Instance store_interface
-    : Interface (ltypes := ts) v store_machine
-    := Build_Interface _ _ _ store_machine
-                       (@Variables.embed ts v).
-
-  Definition store_semantics
-    : Semantics store_machine mline
-    := {| denote := ((fun s => fun state =>
-                                 Internals.denoteStmt ts
-                                                      (mvariables store_machine) tyD state s)
-                       >->
-                       justInst);
-
-          inliner := fun ml => (fun st => let (mlinst, mlannot) := ml st in semiR  mlinst
-                                          (fun stp : _ * _ => let (_, new) := stp in
-                                                                      mlannot (new, new)))
-       |}.
+  Definition justAssert `{State ts v tyD}
+    : (assertion _) -> mline
+    := fun a => semiR id a.
 
 End Machine.
 
-Arguments mline {ts v tyD}.
-Arguments justInst [ts v tyD].
-Arguments store_machine [ts].
-Arguments store_interface {ts v}.
-Arguments store_semantics {ts v tyD}.
-
-(* These following definitions are not meant to be exposed
-   to the user coding in Verse.
-   Thence the prefix 'Int' for 'internal'
-*)
-Definition IntAnnotation (cv : Variables.U verse_type_system) tyD
-  := (*forall `(State verse_type_system cv tyD),*)
-    line cv (fun v => @mline _ v tyD).
-
-Definition IntAnnotatedCode (cv : Variables.U verse_type_system) tyD
-  := (*forall `(State verse_type_system cv tyD),*)
-    lines cv (fun v => @mline _ v tyD).
-(* TODO - Why does this not work without the backtick?
-          Does not work with '_ : State ..' but does with 'x : State ...'!
-*)
-
-(* Notations for annotations *)
-
-Notation "'OLDVAL' v" := (@val _ _ _ _ (fst oldAndNew) _ v) (at level 50).
-(* TODO - VAL level has to be changed to be stronger than that of '='
-          and of b itvector arithmetic notations *)
-Notation "'VAL' v" := (@val _ _ _ _ (snd oldAndNew) _ v) (at level 50).
-
-Tactic Notation "annotated_verse" uconstr(B)
-  := refine ((*fun _ =>*) B : lines _ (fun v => mline (v := v))); repeat verse_simplify; verse_print_mesg.
-
-Notation "'ASSERT' P" := (inline (fun _ => semiR id (((fun (_ : StoreP str) => P) : StoreP str -> Prop) : Pair str -> Prop))) (at level 100).
-
-(** * Language Semantics.
-
-Language semantics is now by translating programs to instructions of
-the abstract machine. In our case, we have a family of languages that
-are parameterised by the underlying type system.  Any member in this
-associated with a structure [ts : typeSystem]. To give meanings to
-straight line programs in that language, we only need to specify how
-the types in that language is mapped into the types of the abstract
-machine system. In other words, all we need is a type translator from
-the source language to the [abstract_type_system].
-
- *)
-
-
-
-(**
-
-Much like the case of translating into target language, we can follow
-a two stage process for translating programs in the source language to
-instructions of the abstract machine. First we type translate to get
-the same program but in the type system of the abstract machine. Then
-we use the machine semantics to compile the code to instructions in
-the abstract machine.
-
- *)
-
-
-Section ForAllCxt.
-
-  Variable   v : Variables.U verse_type_system.
-  Variable tyD : typeDenote verse_type_system.
-
-  Variable state : State v tyD.
-
-  Definition interpret (prog : Ast.lines v (fun v => @mline _ v tyD))
-    := linesDenote (store_machine v)
-                   (fun v => @mline _ v tyD)
-                   store_semantics
-                   prog.
-
-End ForAllCxt.
-
-Arguments interpret [v tyD].
+Arguments mline [ts].
+Arguments justInst [ts v tyD] {_}.
+Arguments justAssert [ts v tyD] {_}.
 
 Require Import Verse.Language.Types.
 
