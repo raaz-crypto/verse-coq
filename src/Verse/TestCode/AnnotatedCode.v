@@ -1,13 +1,9 @@
 Require Import Verse.BitVector.
-Require Import Verse.Monoid.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
 Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
-
-
-Open Scope annotation_scope.
 
 Set Implicit Arguments.
 
@@ -18,18 +14,18 @@ Section Code.
   Variable A B : v of type Word8.
   Variable C   : Vector.t (v of type (Array 1 bigE Word16)) 1.
 
-  Definition test : AnnotatedCode bvDenote noRels v.
+  Definition test : lines bvDenote v.
     verse (
-          CODE [code| A := B;
-                      B := `5`;
-                      C[0][0] := `8`
-               |]
+        CODE [code| A := B;
+                    B := `5`;
+                    C[0][0] := `8`
+             |]
           ++
-          ANNOT [code| A = `OLD B` |]
+          [ ASSERT VAL A = OLDVAL B ]
           ++
           CODE [code| B := A; A := `6` |]
           ++
-          ANNOT [code| B = `OLD B` |]
+          [ ASSERT VAL B = OLDVAL B ]
       )%list%verse.
   Defined.
 

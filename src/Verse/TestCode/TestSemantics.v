@@ -1,9 +1,9 @@
 Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
-Require Import Verse.Monoid.
 
 Require Import Verse.
 
+Require Import Verse.AnnotatedCode.
 Require Import Verse.AbstractMachine.
 
 Require Import List.
@@ -17,14 +17,13 @@ Section Code.
 
   Variable A B : v of type Word8.
 
-  Definition test : IntAnnotatedCode v bvDenote.
-    annotated_verse
+  Definition test : lines bvDenote v.
+    refine
       ([A ::= B;
-        ASSERT (VAL A = OLDVAL A);
+        ASSERT (VAL A = VAL B);
         A ::= B;
         ASSERT (OLDVAL B = VAL A + 1);
-        A ::= B]
-      )%list%code.
+        A ::= B])%list%code.
   Defined.
 
 End Code.
@@ -33,12 +32,13 @@ End Code.
           AnnotatedCode. The name IntAnnotatedCode also needs
           change.
  *)
-(*
+
 Definition toProve : Prop.
   getProp test.
 Defined.
 
+Require Import Verse.ProofTac.
+
 Definition proof : toProve.
-  simplify.
+  realize.
 Abort.
-*)
