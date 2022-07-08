@@ -33,35 +33,9 @@ Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
 Arguments inliner [types mtypes] [M line] {_ _ _}.
 Arguments denote  [types mtypes] [M line] {_ _ _}.
 
-Print denote.
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
   := mapMconcat (denote sem).
-
-Fixpoint lineDenote types mtypes
-         (M : mSpecs types mtypes)
-         line `{Monoid (line (mvariables M))}
-         (sem : Semantics M (line (mvariables M)))
-         (c : Ast.line (mvariables M) line)
-  : line (mvariables M)
-  := match c with
-     | inst   i => denote sem i
-     | inline i => i
-     | call f a => inliner sem
-                     (mapMconcat
-                                 (lineDenote _ _ M _ sem)
-                                 (f (mvariables M) a))
-     end.
-
-Definition linesDenote types mtypes
-         (M : mSpecs types mtypes)
-         line `{Monoid (line (mvariables M))}
-         (sem : Semantics M (line (mvariables M)))
-         (c : Ast.lines (mvariables M) line)
-  : line (mvariables M)
-  := mapMconcat (lineDenote _ _ _ _ sem) c.
-
-Arguments linesDenote [types mtypes] _ _ {_ _ _}.
