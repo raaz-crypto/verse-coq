@@ -8,6 +8,7 @@ Require Export Bvector.
 Require Import BinNat.
 Require Import Arith.
 Require Import NArith.
+Require Import ZArith.
 Require Import Nat.
 
 Declare Scope bitvector_scope.
@@ -185,6 +186,14 @@ Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
 Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
 
 (* end hide *)
+Definition of_Z {sz} (z :  Z) : Bvector sz:=
+  match z with
+  | Z0 => zero
+  | Zpos zp => of_N (Npos zp)
+  | Zneg zp => BVnegative (of_N (Npos zp))
+  end.
+
+Definition to_Z {sz}(bv : Bvector sz) := Z.of_N (to_N bv).
 
 Fixpoint pow {sz}(eta : Bvector sz)(n : nat) : Bvector sz :=
   match n with
@@ -197,16 +206,28 @@ Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
 Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* begin hide *)
 
-Notation "A & B" := (BVand A B) (only printing, at level 100) : bitvector_scope.
-Notation "A | B" := (BVor A B)  (only printing, at level 100) : bitvector_scope.
-Notation "~ A"
-  := (BVcomp A)
-       (only printing, at level 75, right associativity) : bitvector_scope.
-Notation "A ⊕ B" := (BVxor A B) (only printing, at level 57, left associativity) : bitvector_scope.
-Notation "A ≫ m" := (BVshiftR m A) (only printing, at level 100) : bitvector_scope.
-Notation "A ≪ m" := (BVshiftL m A) (only printing, at level 100) : bitvector_scope.
-Notation "A ⋘ m" := (BVrotL m A) (only printing, at level 100) : bitvector_scope.
-Notation "A ⋙ m" := (BVrotR m A) (only printing, at level 100) : bitvector_scope.
-Notation "⟦ A ⟧"  := (@Bv2N _ A)    (only printing) : bitvector_scope.
+Declare Custom Entry bits.
 
+Notation "[bits| e |]" := e (e custom bits).
+Notation "( x )" := x  (in custom bits at level 0).
+Notation "` x `" := x  (in custom bits at level 0, x constr, format "` x `").
+
+Infix "*"           := BVmul            (in custom bits at level 40, left associativity).
+
+Infix "/"           := BVquot           (in custom bits at level 40, left associativity).
+Infix "%"           := BVrem            (in custom bits at level 40, left associativity).
+
+Infix "+"           := BVplus           (in custom bits at level 50, left associativity).
+Infix "-"           := BVminus          (in custom bits at level 50, left associativity).
+
+
+Notation "~ E"      := (BVcomp E)  (in custom bits at level 30, right associativity).
+Infix "&"         := BVand         (in custom bits at level 56, left associativity).
+Infix "⊕"         := BVxor         (in custom bits at level 57, left associativity).
+Infix "|"         := BVor          (in custom bits at level 59, left associativity).
+Notation "A ≫ m" := (BVshiftR m A) (in custom bits at level 54, left associativity).
+Notation "A ≪ m" := (BVshiftL m A) (in custom bits at level 54, left associativity).
+Notation "A ⋘ m" := (BVrotL m A)   (in custom bits at level 54, left associativity).
+Notation "A ⋙ m" := (BVrotR m A)   (in custom bits at level 54, left associativity).
+Notation "⟦ A ⟧"  := (@Bv2N _ A)   (in custom bits).
 (* end hide *)
