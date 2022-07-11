@@ -1,58 +1,83 @@
 Require Import NArith.
 Require Import Verse.Modular.Equation.
+Require Export setoid_ring.Algebra_syntax.
 
-Create HintDb localdb.
+Class Rep (r : Type)
+  `{Zero r}
+  `{One  r}
+  `{Addition r}
+  `{Multiplication r r}
+  `{Subtraction r}
+  `{Opposite r}
+  := { denote          : r -> N;
+       const           : N -> r;
+       characteristic  : N;
+       const_spec  : forall n : N, denote (const n) ≡ n [mod characteristic]
+  }.
 
-Module Type Rep.
-  Parameter rep : N -> Type.
-  Parameter denote      : forall m : N, rep m -> N.
-  Parameter normalise   : forall m : N, rep m -> rep m.
-  Parameter normalise_spec : forall (M : N) (r : rep M), denote M r ≡ denote M (normalise M r) [mod M].
-  Parameter const : forall m : N, N -> rep m.
-  Parameter add : forall m : N, rep m -> rep m -> rep m.
-  Parameter mul : forall m : N, rep m -> rep m -> rep m.
-  Parameter modulo : forall m : N, rep m -> rep m.
-  Parameter opp : forall m : N, rep m -> rep m.
-  Parameter minus : forall m : N, rep m -> rep m -> rep m.
-End Rep.
+Class Normalise (r : Type)`{Rep r}
+  := { normalise : r -> r;
+       normalise_spec : forall r, denote r ≡ denote (normalise r) [mod characteristic]
+  }.
 
-Module Reflect (R : Rep).
+Ltac semantic_rewrite X eX
+  := let H := fresh "HSem" in
+     assert (H: X = denote eX) by (simpl; trivial);
+     rewrite H.
 
-  Ltac reify e M :=
-    match e with
-    | (?e1 + ?e2)%N => let e1p := reify constr:(e1) M in
-                      let e2p := reify constr:(e2) M in
-                      constr:(R.add e1p e2p)
-    | (?e1 * ?e2)%N => let e1p := reify constr:(e1) M in
-                      let e2p := reify constr:(e2) M in
-                      constr:(R.mul e1p e2p)
-    | (?ep mod ?M)%N => let epp := reify ep M in
-                       constr:(R.modulo M epp)
-    | (oppMod ?M ?ep)  => let eq := reify ep M in
-                        constr:(R.opp M eq)
-    | (minusMod ?M ?e1 ?e2) => let e1p := reify constr:(e1) M in
-                              let e2p := reify constr:(e2) M in
-                              constr:(R.minus M e1p e2p)
-    | _  => constr:(R.const M e)
+Ltac nf_rewrite eX := modrewrite (normalise_spec eX); simpl.
 
-    end.
+Ltac nf reify X :=
+  let eX := reify X in
+  semantic_rewrite X eX;
+  nf_rewrite eX.
+
+Ltac normalise reify norm := match goal with
+                             |  [ |- ?X ≡ ?Y [mod ?M] ]
+                                =>  nf X M;
+                                   nf Y M; trivial
+                             end.
 
 
-  Ltac semantic_rewrite X eX
-    := let H := fresh "HSem" in
-       assert (H: X = R.denote _ eX) by (simpl; trivial);
-       rewrite H.
 
-  Ltac nf_rewrite eX M := modrewrite (R.normalise_spec M eX); simpl.
 
-  Ltac nf X M :=
-    let eX := reify X M in
-    semantic_rewrite X eX;
-    nf_rewrite eX M.
 
-  Ltac normalise norm := match goal with
-                         |  [ |- ?X ≡ ?Y [mod ?M] ]
-                            =>  nf X M;
-                               nf Y M; trivial
-                         end.
-End Reflect.
+(*
+Inductive Exp :=
+| Const : N -> Exp
+| Add   : Exp -> Exp -> Exp
+| Mul   : Exp -> Exp -> Exp
+| Sub   : Exp -> Exp -> Exp
+| Mod   : Exp
+| Opp   : Exp -> Exp.
+
+Fixpoint expDenote {r : Type} `{Rep r}(e : Exp) : r :=
+  match e with
+  | Const n => const n
+  | Add   e1 e2  => addition (expDenote e1) (expDenote e2)
+  | Mul   e1 e2  => multiplication (expDenote e1)(expDenote e2)
+  | Sub   e1 e2  => subtraction (expDenote e1) (expDenote e2)
+  | Opp   ep     => opposite (expDenote ep)
+  end.
+
+Instance add_exp : Addition Exp := Add.
+Instance mul_exp : Multiplication (A:=Exp)(B:=Exp) := Mul.
+Instance opp_exp : Opposite
+
+Ltac reify e r :=
+  match e with
+  | (addition ?e1 ?e2) => let e1p := reify constr:(e1) in
+                         let e2p := reify constr:(e2) in
+                         constr:(addition (A:=r) e1p e2p)
+  | (multiplication ?e1 ?e2)%N => let e1p := reify constr:(e1) in
+                                 let e2p := reify constr:(e2) in
+                                 constr:(multiplication (A:=r)(B:=r) e1p e2p)
+  | (opposite ?ep)  => let eq := reify ep in
+                      constr:(opposite (A:=r) eq)
+  | (subtraction ?e1 ?e2) => let e1p := reify constr:(e1) in
+                            let e2p := reify constr:(e2) in
+                            constr:(subtraction (A:=r) e1p e2p)
+  | _  => constr:(const e)
+  end.
+
+ *)
