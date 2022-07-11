@@ -45,7 +45,8 @@ Ltac modring M := match goal with
 
  *)
 
-Tactic Notation  modrewrite H := unfold eqMod; rewrite H; try (apply mod_eqMod); trivial.
+
+Tactic Notation "modrewrite" constr(H) := unfold eqMod; rewrite H; try (apply mod_eqMod); trivial.
 Tactic Notation "modrewrite" "<-" constr(H) := unfold eqMod; rewrite <- H; try (apply mod_eqMod); trivial.
 
 
