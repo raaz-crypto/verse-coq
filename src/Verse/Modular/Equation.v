@@ -68,6 +68,7 @@ Definition addMod (M x y : N)   := ((x + y) mod M)%N.
 Definition mulMod (M x y : N)   := ((x * y) mod M)%N.
 Definition oppMod (M x : N)     := (M - (x mod M))%N.
 Definition minusMod M (x y : N) := addMod M x (oppMod M y)%N.
+Definition modMod M (x : N) := (x mod M)%N.
 
 Add Parametric Relation M : N (eqMod M)
     reflexivity proved by (eqMod_refl M)
@@ -77,6 +78,15 @@ Add Parametric Relation M : N (eqMod M)
 Add Parametric Morphism M (pf : M <> 0%N) : N.add
     with signature (eqMod M) ==> eqMod M ==> eqMod M as add_mor.
   intros x1 x2 Hx y1 y2 Hy.
+  modrewrite N.add_mod.
+  rewrite Hx. rewrite Hy. modrewrite <- N.add_mod.
+  reflexivity.
+Qed.
+
+Add Parametric Morphism M (pf : M <> 0%N) : (addMod M)
+    with signature (eqMod M) ==> eqMod M ==> eqMod M as addMod_mor.
+  intros x1 x2 Hx y1 y2 Hy.
+  unfold addMod.
   modrewrite N.add_mod.
   rewrite Hx. rewrite Hy. modrewrite <- N.add_mod.
   reflexivity.
@@ -110,6 +120,13 @@ Add Parametric Morphism M  (pf : M <> 0%N) : (oppMod M)
     with signature (eqMod M) ==> eqMod M as opMod_mor.
   intros x y H.
   unfold oppMod.
+  rewrite H. reflexivity.
+Qed.
+
+Add Parametric Morphism M  (pf : M <> 0%N) : (modMod M)
+    with signature (eqMod M) ==> eqMod M as modMod_mor.
+  intros x y H.
+  unfold modMod.
   rewrite H. reflexivity.
 Qed.
 
