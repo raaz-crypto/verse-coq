@@ -20,8 +20,28 @@ the kind X ≡ Y mod M.
 
  *)
 
-Definition eqMod (M : N) : relation N := fun X Y => (X mod M = Y mod M)%N.
+Definition eqMod (M : N) : relation N  := fun X Y => (X mod M = Y mod M)%N.
+Definition redMod (M : N) : relation N := fun X Y => (X = Y mod M)%N.
+
+#[export] Instance redSubEqMod (M : N)(pf : M <> 0%N) : subrelation (redMod M) (eqMod M).
+intros x y.
+intro Hxy.
+rewrite Hxy.
+apply N.mod_mod; trivial.
+Show Proof.
+Qed.
+
+
 Notation "X ≡ Y [mod M ]"  := (eqMod M X Y) (at level 70, format "X  ≡  Y  [mod  M ]").
+Notation "X <==[mod M ] Y"  := (redMod M X Y) (at level 70, format "X  <==[mod M ]  Y").
+
+Lemma red_eq_mod : forall M x y z,  y ≡ z [mod M] -> x <==[mod M] y  -> x <==[mod M] z.
+  intros M x y z.
+  intros HyEz.
+  unfold redMod.
+  rewrite HyEz; trivial.
+Qed.
+
 
 
 Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod M = y mod M)%N.
@@ -64,6 +84,17 @@ Lemma eqMod_trans : forall M x y z, x ≡ y [mod M] -> y ≡ z [mod M] -> x ≡ 
   automodrewrite; apply eqMod_refl.
 Qed.
 
+
+Lemma redMod_trans M (pf : M <> 0%N) : transitive N (redMod M).
+Proof.
+  intros x y z.
+  unfold redMod.
+  intros Hxy Hyz.
+  rewrite Hxy.
+  rewrite Hyz.
+  rewrite N.mod_mod; trivial.
+Qed.
+
 Definition addMod (M x y : N)   := ((x + y) mod M)%N.
 Definition mulMod (M x y : N)   := ((x * y) mod M)%N.
 Definition oppMod (M x : N)     := (M - (x mod M))%N.
@@ -74,6 +105,9 @@ Add Parametric Relation M : N (eqMod M)
     reflexivity proved by (eqMod_refl M)
     symmetry proved by  (eqMod_sym M)
     transitivity proved by (eqMod_trans M) as eqMod_rel.
+
+Add Parametric Relation M (pf : M <> 0%N): N (redMod M)
+    transitivity proved by (redMod_trans M pf) as redMod_rel.
 
 Add Parametric Morphism M (pf : M <> 0%N) : N.add
     with signature (eqMod M) ==> eqMod M ==> eqMod M as add_mor.
