@@ -17,8 +17,7 @@ Class Rep (r : Type)
        const_spec      : forall n : N, (denote (const n) <==[mod characteristic ] n)
   }.
 
-
-
+Definition convert r1 `{Rep r1} r2 `{Rep r2} : r1 -> r2 := fun x1 => const (denote x1).
 
 #[export] Program Instance bitvector_rep (sz : nat) : Rep (Bvector sz)
   := {|
