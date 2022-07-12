@@ -88,7 +88,7 @@ Ltac crush := repeat (
                       let h := fresh "h" in
                       let t := fresh "t" in
                       (generalize (Vector.hd v) as h;
-                       generalize (Vector.tl v) as tl; intros h t)
+                       generalize (Vector.tl v) as t; intros h t)
                   | [ b : bool |- _ ] => destruct b
                   | _ => idtac
                   end
@@ -552,10 +552,13 @@ Module ArithmInternals.
     auto using N.bit0_odd.
   Qed.
 
-  Lemma Bv2N_N2Bv_sized_mod  : forall sz x, Bv2N (N2Bv_sized sz x) = (x mod 2^N.of_nat sz)%N.
-  Proof.
-    Hint Rewrite
-         N2Bv_sized_0 N2Bv_sized_succ
+End ArithmInternals.
+Import ArithmInternals.
+
+Lemma Bv2N_N2Bv_sized_mod  : forall sz x, Bv2N (N2Bv_sized sz x) = (x mod 2^N.of_nat sz)%N.
+Proof.
+  Hint Rewrite
+    N2Bv_sized_0 N2Bv_sized_succ
          N.mod_1_r Bv2N_cons
          N.div2_div
          N.pow_succ_r
@@ -563,74 +566,72 @@ Module ArithmInternals.
          Nat2N.inj_succ
     : bitvector.
 
-    Hint Resolve Nb2n_mod N.le_0_l : bitvector.
-    intro sz.
-    induction sz as [|n IHsz]. intro x; crush.
-    intro x; autorewrite with bitvector; try (rewrite IHsz; rewrite N.add_cancel_r); crush.
+  Hint Resolve Nb2n_mod N.le_0_l : bitvector.
+  intro sz.
+  induction sz as [|n IHsz]. intro x; crush.
+  intro x; autorewrite with bitvector; try (rewrite IHsz; rewrite N.add_cancel_r); crush.
 
-  Qed.
+Qed.
 
-  Lemma Bv2N_N2Bv_sized  : forall sz x, N.size_nat x <= sz -> Bv2N (N2Bv_sized sz x) = x.
-  Proof.
-    intros.
-    Hint Resolve Nsize_nat_pow_2 : bitvector.
-    Hint Rewrite N.mod_small     : bitvector.
-    Hint Rewrite Bv2N_N2Bv_sized_mod : bitvector.
-    crush.
-  Qed.
+Lemma Bv2N_N2Bv_sized  : forall sz x, N.size_nat x <= sz -> Bv2N (N2Bv_sized sz x) = x.
+Proof.
+  intros.
+  Hint Resolve Nsize_nat_pow_2 : bitvector.
+  Hint Rewrite N.mod_small     : bitvector.
+  Hint Rewrite Bv2N_N2Bv_sized_mod : bitvector.
+  crush.
+Qed.
 
 
-  Lemma Bv2N_lt_pow_2_size : forall sz (v : Bvector sz), (Bv2N v < 2^(N.of_nat sz))%N.
-  Proof.
+Lemma Bv2N_lt_pow_2_size : forall sz (v : Bvector sz), (Bv2N v < 2^(N.of_nat sz))%N.
+Proof.
     intros sz v.
     apply Nsize_nat_pow_2.
     (*   N.size_nat (Bv2N v) <= sz *)
     apply Bv2N_Nsize.
-  Qed.
-  Hint Resolve Bv2N_lt_pow_2_size : bitvector.
+Qed.
+Hint Resolve Bv2N_lt_pow_2_size : bitvector.
 
-  Lemma Bv2N_mod_2_size  : forall sz (v : Bvector sz), (Bv2N v mod 2^(N.of_nat sz) = Bv2N v)%N.
-  Proof.
-    intros.
-    rewrite N.mod_small; trivial.
-    apply Bv2N_lt_pow_2_size.
-  Qed.
+Lemma Bv2N_mod_2_size  : forall sz (v : Bvector sz), (Bv2N v mod 2^(N.of_nat sz) = Bv2N v)%N.
+Proof.
+  intros.
+  rewrite N.mod_small; trivial.
+  apply Bv2N_lt_pow_2_size.
+Qed.
 
-  Lemma Bv2N_true : forall m : nat, Bv2N (Bvect_true m) = N.ones (N.of_nat m).
-  Proof.
-    intro m.
-    unfold Bvect_true.
-    induction m; trivial.
-    simpl Vector.const.
-    simpl Bv2N.
-    rewrite IHm.
-    rewrite Nat2N.inj_succ.
-    rewrite <- N.add_1_l.
-    rewrite N.ones_add.
-    rewrite N.pow_1_r.
-    rewrite N.succ_double_spec.
-    assert (nones:N.ones 1 = 1%N) by (compute; trivial).
-    rewrite nones; trivial.
-  Qed.
-
-
-  Lemma N_ones_size : forall n, N.size_nat (N.ones (N.of_nat n)) <= n.
-    intro.
-    rewrite <- Bv2N_true.
-    apply Bv2N_Nsize.
-  Qed.
+Lemma Bv2N_true : forall m : nat, Bv2N (Bvect_true m) = N.ones (N.of_nat m).
+Proof.
+  intro m.
+  unfold Bvect_true.
+  induction m; trivial.
+  simpl Vector.const.
+  simpl Bv2N.
+  rewrite IHm.
+  rewrite Nat2N.inj_succ.
+  rewrite <- N.add_1_l.
+  rewrite N.ones_add.
+  rewrite N.pow_1_r.
+  rewrite N.succ_double_spec.
+  assert (nones:N.ones 1 = 1%N) by (compute; trivial).
+  rewrite nones; trivial.
+Qed.
 
 
-  Lemma N_ones_size_gen : forall sz n, n <= sz -> N.size_nat (N.ones (N.of_nat n)) <= sz.
-  Proof.
-    Hint Resolve Nat.le_trans : bitvector.
-    Hint Resolve N_ones_size : bitvector.
-    intros sz n pfSzLeN.
-    crush.
-  Qed.
+Lemma N_ones_size : forall n, N.size_nat (N.ones (N.of_nat n)) <= n.
+  intro.
+  rewrite <- Bv2N_true.
+  apply Bv2N_Nsize.
+Qed.
 
-End ArithmInternals.
-Import ArithmInternals.
+
+Lemma N_ones_size_gen : forall sz n, n <= sz -> N.size_nat (N.ones (N.of_nat n)) <= sz.
+Proof.
+  Hint Resolve Nat.le_trans : bitvector.
+  Hint Resolve N_ones_size : bitvector.
+  intros sz n pfSzLeN.
+  crush.
+Qed.
+
 Hint Resolve Bv2N_N2Bv_sized_mod : bitvector.
 
 (* end hide *)
