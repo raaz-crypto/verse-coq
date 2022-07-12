@@ -1,7 +1,9 @@
 Require Import NArith.
-Require Import Verse.Modular.Equation.
 Require Export setoid_ring.Algebra_syntax.
-
+Require Import Verse.Modular.Equation.
+Require Import Verse.BitVector.
+Require Import Verse.BitVector.Facts.
+Require Import Verse.Modular.ModRing.
 Class Rep (r : Type)
   `{Zero r}
   `{One  r}
@@ -12,8 +14,35 @@ Class Rep (r : Type)
   := { denote          : r -> N;
        const           : N -> r;
        characteristic  : N;
-       const_spec  : forall n : N, denote (const n) ≡ n [mod characteristic]
+       const_spec      : forall n : N, (denote (const n) <==[mod characteristic ] n)
   }.
+
+
+
+
+#[export] Program Instance bitvector_rep (sz : nat) : Rep (Bvector sz)
+  := {|
+    denote := @Bv2N sz;
+    const  := N2Bv_sized sz;
+    characteristic := 2^(N.of_nat sz);
+    const_spec := _
+  |}.
+
+Next Obligation.
+  apply Bv2N_N2Bv_sized_mod.
+Qed.
+
+#[export] Program Instance modring_rep (M : positive) : Rep (Zmod M):= {|
+    denote := @to_N M;
+    const  := @of_N M;
+    characteristic := Npos M;
+
+    const_spec := _
+  |}.
+
+Next Obligation.
+  unfold redMod; trivial.
+Qed.
 
 Class Normalise (r : Type)`{Rep r}
   := { normalise : r -> r;
@@ -34,22 +63,34 @@ Ltac nf reify X :=
 
 Ltac normalise reify norm := match goal with
                              |  [ |- ?X ≡ ?Y [mod ?M] ]
-                                =>  nf X M;
-                                   nf Y M; trivial
+                                =>  nf reify X;
+                                   nf reify Y; trivial
                              end.
 
-
-
-
-
-(*
 Inductive Exp :=
 | Const : N -> Exp
 | Add   : Exp -> Exp -> Exp
 | Mul   : Exp -> Exp -> Exp
 | Sub   : Exp -> Exp -> Exp
-| Mod   : Exp
-| Opp   : Exp -> Exp.
+| Opp   : Exp -> Exp
+| Mod   : Exp.
+
+Instance add_exp : Addition Exp := Add.
+Instance mul_exp : Multiplication (A:=Exp)(B:=Exp) := Mul.
+Instance opp_exp : Opposite Exp := Opp.
+Instance sub_exp : Subtraction Exp := Sub.
+
+(*
+
+We have an rexp
+
+We want to write it as (n such that const n = rexp
+expDenote r e = rexp
+
+denote e : N.
+
+
+
 
 Fixpoint expDenote {r : Type} `{Rep r}(e : Exp) : r :=
   match e with
@@ -60,9 +101,6 @@ Fixpoint expDenote {r : Type} `{Rep r}(e : Exp) : r :=
   | Opp   ep     => opposite (expDenote ep)
   end.
 
-Instance add_exp : Addition Exp := Add.
-Instance mul_exp : Multiplication (A:=Exp)(B:=Exp) := Mul.
-Instance opp_exp : Opposite
 
 Ltac reify e r :=
   match e with
