@@ -59,10 +59,10 @@ Lemma eqMod_refl : forall M x, x ≡ x [mod M].
   unfold eqMod; trivial.
 Qed.
 
-Ltac modring M := match goal with
-                  | [ |- ?X ≡ ?Y [mod ?M] ] =>
-                      apply (f_equal (fun y => N.modulo y M)); ring; eauto with modular
-                  end.
+Ltac modring := match goal with
+                | [ |- ?X ≡ ?Y [mod ?M] ] =>
+                    apply (f_equal (fun y => N.modulo y _)); ring; eauto with modular
+                end.
 
 (*
 
@@ -175,4 +175,56 @@ Add Parametric Morphism M  : (minusMod M)
   intros x1 x2 Hx y1 y2 Hy.
   rewrite Hx.
   rewrite Hy; reflexivity.
+Qed.
+
+
+Lemma modMod_idemp : forall M x, modMod M x ≡ x [mod M].
+  intros M x.
+  unfold modMod.
+  unfold eqMod.
+  rewrite N.mod_mod; eauto with modular.
+Qed.
+Lemma modMod_le_M : forall M x, (modMod M x <= Npos M)%N.
+  intros.
+  unfold modMod.
+  apply N.lt_le_incl.
+  apply N.mod_lt. eauto with modular.
+Qed.
+Lemma modMod_le : forall M x, (modMod M x <= x)%N.
+  intros.
+  unfold modMod.
+  apply N.mod_le; eauto with modular.
+Qed.
+Lemma zero_mod : forall M, Npos M ≡ 0%N [mod M].
+  intros.
+  unfold eqMod.
+  rewrite N.mod_0_l; eauto with modular.
+  rewrite N.mod_same; eauto with modular.
+Qed.
+
+Lemma mul_M_zero : forall M x, Npos M * x ≡ 0 [mod M]%N.
+  intros.
+  unfold eqMod.
+  rewrite N.mul_mod; eauto with modular.
+  rewrite N.mod_same; eauto with modular.
+Qed.
+
+
+Lemma modMod_0 : forall M x, (x - modMod M x ≡ 0 [mod M])%N.
+  intros M x.
+  unfold modMod.
+  modrewrite (N.div_mod x (Npos M)).
+  modrewrite N.add_mod.
+  rewrite mul_M_zero.
+  modrewrite <- N.add_mod.
+  modrewrite N.add_0_l.
+  modrewrite N.mod_mod.
+  modrewrite N.add_sub.
+  rewrite mul_M_zero.
+  reflexivity.
+Qed.
+
+Lemma mod_eq_inv : forall a b, (b <> 0 -> a - b * (a / b) = a mod b)%N.
+  intros.
+  rewrite (N.mod_eq); eauto.
 Qed.
