@@ -10,6 +10,8 @@ Require Import Arith.
 Require Import NArith.
 Require Import ZArith.
 Require Import Nat.
+Require Import SetoidClass.
+
 
 Declare Scope bitvector_scope.
 Delimit Scope bitvector_scope with bitvector.
@@ -184,6 +186,8 @@ Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
 Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
 Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
 Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+
+Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
 
 (* end hide *)
 Definition of_Z {sz} (z :  Z) : Bvector sz:=
