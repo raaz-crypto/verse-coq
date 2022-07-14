@@ -25,12 +25,12 @@ the kind X ≡ Y mod M.
 
  *)
 
-Definition eqMod (M : positive) : relation N  := fun X Y => (X mod (Npos M) = Y mod (Npos M))%N.
-Definition redMod (M : positive) : relation N := fun X Y => (X = Y mod (Npos M))%N.
+Definition eqMod M  : relation N := fun X Y => (X mod M = Y mod M)%N.
+Definition redMod M : relation N := fun X Y => (X = Y mod  M)%N.
 
 
 
-#[export] Instance redSubEqMod M : subrelation (redMod M) (eqMod M).
+#[export] Instance redSubEqMod M (pf : M <> 0%N): subrelation (redMod M) (eqMod M).
 intros x y.
 intro Hxy.
 rewrite Hxy.
@@ -50,7 +50,7 @@ Qed.
 
 
 
-Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod (Npos M) = y mod (Npos M))%N.
+Lemma mod_eqMod : forall M x y, x ≡ y [mod M] -> (x mod  M = y mod M)%N.
   trivial.
 Qed.
 
@@ -91,7 +91,7 @@ Lemma eqMod_trans : forall M x y z, x ≡ y [mod M] -> y ≡ z [mod M] -> x ≡ 
 Qed.
 
 
-Lemma redMod_trans M : transitive N (redMod M).
+Lemma redMod_trans M (pf : M <> 0%N) : transitive N (redMod M).
 Proof.
   intros x y z;
   unfold redMod;
@@ -101,15 +101,15 @@ Proof.
   modrewrite N.mod_mod; reflexivity.
 Qed.
 
-Definition modMod M (x : N)    : N  := (x mod (Npos M))%N.
+Definition modMod M (x : N)    : N  := (x mod  M)%N.
 Definition addMod M (x y : N)  : N  := modMod M (x + y)%N.
 Definition mulMod M (x y : N)  : N  := modMod M (x * y) %N.
-Definition oppMod M (x : N)    : N  := (Npos M - modMod M x)%N.
+Definition oppMod M (x : N)    : N  := (M - modMod M x)%N.
 Definition minusMod M (x y : N) : N := addMod M x (oppMod M y)%N.
 
 
-Add Parametric Relation M : N (redMod M)
-    transitivity proved by (redMod_trans M) as redMod_rel.
+Add Parametric Relation M (pf : M <> 0%N) : N (redMod M)
+    transitivity proved by (redMod_trans M pf) as redMod_rel.
 
 
 Add Parametric Relation M : N (eqMod M)
@@ -121,44 +121,43 @@ Add Parametric Morphism M  : (modMod M)
     with signature (eqMod M) ==> (eqMod M) as modMod_mor.
   intros x y H.
   unfold modMod.
-  rewrite H. reflexivity.
+  rewrite H.
+  reflexivity.
 Qed.
 
-Add Parametric Morphism M  : N.add
+Add Parametric Morphism M (pf : M <> 0%N) : N.add
     with signature (eqMod M) ==> eqMod M ==> eqMod M as add_mor.
   intros x1 x2 Hx y1 y2 Hy.
   unfold eqMod.
   modrewrite N.add_mod.
-  rewrite Hx. rewrite Hy. modrewrite <- N.add_mod; reflexivity.
+  rewrite Hx. rewrite Hy. modrewrite <- N.add_mod. reflexivity.
 Qed.
 
-Add Parametric Morphism M : N.mul
+Add Parametric Morphism M (pf : M <> 0%N): N.mul
     with signature (eqMod M) ==> eqMod M ==> eqMod M as mul_mor.
   intros x1 x2 Hx y1 y2 Hy.
   unfold eqMod.
-  modrewrite N.mul_mod;
+   modrewrite N.mul_mod;
   modrewrite Hx.
   modrewrite Hy.
   modrewrite <- N.mul_mod.
   reflexivity.
 Qed.
 
-
-Add Parametric Morphism M  : (addMod M)
+Add Parametric Morphism M (pf : M <> 0%N) : (addMod M)
     with signature (eqMod M) ==> eqMod M ==> eqMod M as addMod_mor.
   intros x1 x2 Hx y1 y2 Hy.
   unfold addMod.
-  rewrite Hx; rewrite Hy; reflexivity.
+  apply modMod_mor; trivial.
+  apply add_mor; trivial.
 Qed.
 
-
-
-
-Add Parametric Morphism M  : (mulMod M)
+Add Parametric Morphism M (pf : M <> 0%N) : (mulMod M)
     with signature (eqMod M) ==> eqMod M ==> eqMod M as mulMod_mor.
   intros x1 x2 Hx y1 y2 Hy.
   unfold mulMod;
-  rewrite Hx; rewrite Hy; reflexivity.
+    apply modMod_mor; eauto.
+  apply mul_mor; eauto.
 Qed.
 
 Add Parametric Morphism M : (oppMod M)
@@ -169,40 +168,41 @@ Add Parametric Morphism M : (oppMod M)
   rewrite H. reflexivity.
 Qed.
 
-Add Parametric Morphism M  : (minusMod M)
+Add Parametric Morphism M  (pf : M <> 0%N): (minusMod M)
     with signature eqMod M ==> eqMod M ==> eqMod M as minusMod_mor.
   unfold minusMod.
   intros x1 x2 Hx y1 y2 Hy.
-  rewrite Hx.
-  rewrite Hy; reflexivity.
+  apply addMod_mor; eauto.
+  apply opMod_mor; eauto.
 Qed.
 
 
-Lemma modMod_idemp : forall M x, modMod M x ≡ x [mod M].
-  intros M x.
+Lemma modMod_idemp : forall M, M <> 0%N -> forall x, modMod M x ≡ x [mod M].
+  intros M pf x.
   unfold modMod.
   unfold eqMod.
   rewrite N.mod_mod; eauto with modular.
 Qed.
-Lemma modMod_le_M : forall M x, (modMod M x <= Npos M)%N.
+
+Lemma modMod_le_M : forall M, M <> 0%N -> forall x, (modMod M x <=  M)%N.
   intros.
   unfold modMod.
   apply N.lt_le_incl.
   apply N.mod_lt. eauto with modular.
 Qed.
-Lemma modMod_le : forall M x, (modMod M x <= x)%N.
+Lemma modMod_le : forall M, M<> 0%N -> forall x, (modMod M x <= x)%N.
   intros.
   unfold modMod.
   apply N.mod_le; eauto with modular.
 Qed.
-Lemma zero_mod : forall M, Npos M ≡ 0%N [mod M].
+Lemma zero_mod : forall M, M<>0%N -> M ≡ 0%N [mod M].
   intros.
   unfold eqMod.
   rewrite N.mod_0_l; eauto with modular.
   rewrite N.mod_same; eauto with modular.
 Qed.
 
-Lemma mul_M_zero : forall M x, Npos M * x ≡ 0 [mod M]%N.
+Lemma mul_M_zero : forall M, M <> 0%N -> forall x, M * x ≡ 0 [mod M]%N.
   intros.
   unfold eqMod.
   rewrite N.mul_mod; eauto with modular.
@@ -210,17 +210,17 @@ Lemma mul_M_zero : forall M x, Npos M * x ≡ 0 [mod M]%N.
 Qed.
 
 
-Lemma modMod_0 : forall M x, (x - modMod M x ≡ 0 [mod M])%N.
-  intros M x.
+Lemma modMod_0 : forall M, (M <> 0%N) -> forall x, (x - modMod M x ≡ 0 [mod M])%N.
+  intros M pf x.
   unfold modMod.
-  modrewrite (N.div_mod x (Npos M)).
+  modrewrite (N.div_mod x M).
   modrewrite N.add_mod.
-  rewrite mul_M_zero.
+  rewrite mul_M_zero; eauto.
   modrewrite <- N.add_mod.
   modrewrite N.add_0_l.
   modrewrite N.mod_mod.
   modrewrite N.add_sub.
-  rewrite mul_M_zero.
+  rewrite mul_M_zero; eauto.
   reflexivity.
 Qed.
 
