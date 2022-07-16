@@ -109,3 +109,13 @@ Notation "'CALL' f 'WITH' a" := (inline f a) (at level 60).
 Notation "F 'DOES' Post" := ({| block := F;
                                 postC := fun _ : StoreP (Str _ _) => Post (*((fun (_ : StoreP str) => Post) : StoreP str -> Prop) : Pair str -> Prop*) |})
                               (at level 60).
+
+Ltac Pack f :=     refine (let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
+                       {| inTy   := fun sc => forall w, Scope.allocation w sc
+                                              -> specBlock _ w;
+                          inLine := fun w => Scope.uncurry
+                                            (st := sc)
+                                            (f%function w);
+                          inSc   := sc;
+                          vsub   := _;
+                          eqprf  := call _ _ |}).
