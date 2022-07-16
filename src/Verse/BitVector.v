@@ -180,7 +180,7 @@ coqdoc's pdf generation does not get stuck.
 (* begin hide *)
 Require Export setoid_ring.Algebra_syntax.
 
-Instance zero_Bvector sz : Zero (Bvector sz)     := @Bvect_false sz.
+Instance zero_Bvector sz : Zero (Bvector sz)     := N2Bv_sized sz 0.
 Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
 Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
 Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
