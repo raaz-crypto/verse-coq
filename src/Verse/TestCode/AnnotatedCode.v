@@ -5,6 +5,8 @@ Require Import Verse.
 Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
 
+Import AnnotatedCode.
+
 Set Implicit Arguments.
 
 Section Code.

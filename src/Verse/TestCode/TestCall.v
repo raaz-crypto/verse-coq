@@ -12,9 +12,10 @@ Require Import Verse.
  *)
 Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
+Require Import Verse.ModularCode.
+Require Import Verse.ProofTac.
 
-
-Open Scope annotation_scope.
+Import ModularCode.
 
 Set Implicit Arguments.
 
@@ -25,28 +26,33 @@ Section Code.
   Variable A B : v of type Word8.
 
   Definition f (w : VariableT) (a b : w of type Word8)
-    : specified bvDenote noRels w AnnotatedCode.
+    : specBlock bvDenote w.
 
-    verse (CODE [code| a := b + `2` |]
+    verse (CODE [code| a := b + b |]
                 DOES
-           [verse| a = `OLD b` + `2` |]
+           (VAL a = OLDVAL b + OLDVAL b)
           )%list%verse.
   Defined.
 
-  Definition test : AnnotatedCode bvDenote noRels v.
+  Definition verF : verFun bvDenote.
+    Pack f.
+    realize.
+  Defined.
+
+  Definition test : list (modular bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
         CODE [code| A := A; B := B |]
         ++
-        CALL f WITH (- A, B -)
+        [ CALL verF WITH (- A, B -) ]
         ++
-        ANNOT [code| A = `OLD B` + `2` |]
+        (ASSERT VAL A = OLDVAL B + OLDVAL B)
         ++
         CODE [code| B := A; A := `6` |]
         ++
-        CALL f WITH (- A, B -)
+        [ CALL verF WITH (- A, B -) ]
         ++
-        ANNOT [code| A = `OLD B` + `4` |]
+        (ASSERT VAL A = OLDVAL B + OLDVAL B + OLDVAL B + OLDVAL B)
       )%list%verse.
   Defined.
 
