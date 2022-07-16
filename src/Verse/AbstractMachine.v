@@ -106,15 +106,15 @@ and hence is also a state transformation.
 
 *)
 
-  Definition instruction `{State} := str -> str.
+  Definition transformation `{State} := str -> str.
 
   Definition assertion `{State}   := Pair str -> Prop.
 
-  Global Instance assertion_action_op `{State} : LActionOp instruction assertion :=
+  Global Instance assertion_action_op `{State} : LActionOp transformation assertion :=
     fun inst ap => fun oAn => ap (fst oAn, inst (snd oAn)).
 
   Add Parametric Morphism `{State} : lact with signature
-      SetoidClass.equiv (A:=instruction) ==> SetoidClass.equiv (A:=assertion) ==> SetoidClass.equiv (A:=assertion) as lact_morp.
+      SetoidClass.equiv (A:=transformation) ==> SetoidClass.equiv (A:=assertion) ==> SetoidClass.equiv (A:=assertion) as lact_morp.
     unfold lact.
     unfold assertion_action_op; simpl.
     intros P Q.
@@ -126,7 +126,7 @@ and hence is also a state transformation.
     now rewrite PEQ.
   Qed.
 
-  Global Program Instance assertion_action `{State} : LAction instruction assertion :=
+  Global Program Instance assertion_action `{State} : LAction transformation assertion :=
     {| lact_unit := _  |}.
 
   Next Obligation.
@@ -153,8 +153,8 @@ Arguments State [ts].
 Arguments str {ts v tyD State}.
 Arguments val [ts v tyD] {State} _ [ty].
 Arguments storeUpdate [ts v tyD] {State} [ty].
-Arguments instruction [ts v tyD].
-Arguments assertion [ts v tyD].
+Arguments transformation {ts v tyD _}.
+Arguments assertion {ts v tyD _}.
 
 Require Import Verse.TypeSystem.
 
@@ -210,7 +210,7 @@ Module Internals.
       | deref _ _ as l1 => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
       end r.
 
-    Definition denoteInst {T}(inst : Ast.instruction v  T) : instruction state
+    Definition denoteInst {T}(inst : Ast.instruction v  T) : transformation
       := match inst with
          | Ast.assign l e => assign l e
          | Ast.moveTo l r => move   l r
@@ -219,7 +219,7 @@ Module Internals.
          | Ast.clobber _     => fun x => x
          end.
 
-    Definition denoteStmt (stmt : Ast.statement v) : instruction state
+    Definition denoteStmt (stmt : Ast.statement v) : transformation
       := denoteInst (projT2 stmt).
 
   End MachineType.
@@ -233,14 +233,14 @@ Section Machine.
 
   Variable tyD   : typeDenote ts.
 
-  Definition mline `{State ts v tyD} := instruction _ ⋉ assertion _.
+  Definition mline `{State ts v tyD} := transformation ⋉ assertion.
 
   Definition justInst `{State ts v tyD}
-    : (instruction _) -> mline
+    : transformation -> mline
     := fun i => semiR i (fun _ => True).
 
   Definition justAssert `{State ts v tyD}
-    : (assertion _) -> mline
+    : assertion -> mline
     := fun a => semiR id a.
 
 End Machine.

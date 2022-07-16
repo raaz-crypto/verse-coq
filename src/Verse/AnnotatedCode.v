@@ -6,37 +6,45 @@ Require Import Verse.Monoid.
 Require Import Verse.AbstractMachine.
 Require Import Verse.HlistMachine.
 
+Require Import List.
+Import List.ListNotations.
+
 Section AnnotatedCode.
 
   Variable tyD : typeDenote verse_type_system.
 
   Definition Str v := Variables.renaming v (Variables.sigParam tyD).
-  Definition annot v := StoreP (Str v) -> Prop.
+  Definition ann v := StoreP (Str v) -> Prop.
 
   Inductive line (v : Variables.U verse_type_system) :=
   | inst      : statement v -> line v
-  | inline    : annot v -> line v
+  | annot     : ann v -> line v
   .
 
   Definition lines v := list (line v).
 
-  Definition lineDenote sc (l : line (memV sc))
+  Definition lineDenote [sc] (l : line (memV sc))
     : mline (memV sc) tyD (HlistMem sc tyD)
     := match l with
        | inst _ s   => justInst (Internals.denoteStmt _ _ _ _ s)
-       | inline _ a => justAssert (fun sp => a ((val (fst sp), val (snd sp)) : Pair _))
+       | annot _ a => justAssert (fun sp => a ((val (fst sp), val (snd sp)) : Pair _))
        end.
 
-  Definition linesDenote sc (ls : forall v, Scope.scoped v sc (lines v))
+  Definition linesDenote [sc] (ls : lines (memV sc))
+    := mapMconcat (@lineDenote _) ls.
+
+  Definition codeDenote sc (ls : forall v, Scope.scoped v sc (lines v))
     : mline (memV sc) tyD (HlistMem sc tyD)
-    := let sls := fillMemV ls in mapMconcat (lineDenote _) sls.
+    := let sls := fillMemV ls in linesDenote sls.
 
 End AnnotatedCode.
 
 Arguments inst [tyD v].
-Arguments inline [tyD v].
+Arguments annot [tyD v].
 Arguments lineDenote [tyD sc].
 Arguments linesDenote [tyD sc].
+Arguments codeDenote [tyD sc].
+
 
 Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 59).
 (* Notations for annotations *)
@@ -58,7 +66,7 @@ Section CodeGen.
 
   Variable ac : forall v, Scope.scoped v sc (lines tyD v).
 
-  Definition cp := linesDenote ac.
+  Definition cp := codeDenote ac.
 
   (* We allow `getProp` to take a precondition to prefix to the
      extracted Prop. This is never exposed to the user, but is used in
