@@ -420,7 +420,7 @@ End Addition.
 Given two elements a and b with limbs aᵢ and bⱼ respectively consider
 the associated field element [∑ aᵢ 2ᵖᵒˢ ⁱ] and [∑ bⱼ 2ᵖᵒˢ ʲ]. The
 product is the sum of terms Tᵢⱼ of the form [aᵢ * bⱼ 2ᵖᵒˢ ⁱ ⁺ ᵖᵒˢ ʲ].
-Each of these terms contribute so some limb, in fact exactly one of
+Each of these terms contribute to some limb, in fact exactly one of
 the limbs, in the final product as should be clear from the analysis
 below.
 
@@ -478,6 +478,7 @@ Section Multiplication.
       odd u && odd v.
     Definition adjustFactor : nat :=
       if shouldAdjust i j then 2 else 1.
+
 
     Definition oddN (n : N) := exists q, n = (2 * q + 1)%N.
 
