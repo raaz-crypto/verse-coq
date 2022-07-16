@@ -89,3 +89,23 @@ End Call.
 Arguments specBlock tyD w : clear implicits.
 Arguments modular tyD v : clear implicits.
 Arguments verFun tyD : clear implicits.
+
+Require Import Verse.Language.Pretty.
+Require Verse.Ast.
+
+Module ModularCode.
+
+  Instance statement_modular tyD (v : VariableT)
+    : AST_maps (list (Ast.statement v)) (modular tyD v)
+    := {| CODE := map (Basics.compose (@instruction _ _) (@inst _ _)) |}.
+
+  Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
+    := {| CODE := fun an => [ instruction (annot an) ] |}.
+
+End ModularCode.
+
+Notation "'CALL' f 'WITH' a" := (inline f a) (at level 60).
+
+Notation "F 'DOES' Post" := ({| block := F;
+                                postC := fun _ : StoreP (Str _ _) => Post (*((fun (_ : StoreP str) => Post) : StoreP str -> Prop) : Pair str -> Prop*) |})
+                              (at level 60).
