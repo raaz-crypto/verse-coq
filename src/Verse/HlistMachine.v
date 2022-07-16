@@ -32,6 +32,8 @@ Section Hlist.
   apply updated_index.
   Defined.
 
+  Definition denotation := mline memV tyD HlistMem.
+
 End Hlist.
 
 Arguments fillMemV [ts sc CODE].

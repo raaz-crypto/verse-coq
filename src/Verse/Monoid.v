@@ -454,6 +454,9 @@ Instance monoid_action_Proper G A `{LAction G A}
 Inductive SemiR G A := semiR : G -> A -> SemiR G A.
 Infix "⋉" := SemiR (left associativity, at level 59).
 
+Definition srFst [G A] (sr : SemiR G A) := let (g, _) := sr in g.
+Definition srSnd [G A] (sr : SemiR G A) := let (_, a) := sr in a.
+
 Arguments semiR {G A}.
 
 Section SemiDirectProduct.
