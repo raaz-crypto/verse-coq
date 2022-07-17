@@ -718,3 +718,12 @@ Proof.
     by now apply Nmul_bound_nat.
   eauto with Nfacts.
 Qed.
+
+
+Lemma BVN_bound sz : forall v : Bvector sz, (BVN_size v <= N.of_nat sz)%N.
+  intros v.
+  unfold BVN_size.
+  rewrite <- inj_size.
+  apply of_nat_le_mono.
+  apply Bv2N_Nsize.
+Qed.
