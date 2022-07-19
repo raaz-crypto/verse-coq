@@ -538,11 +538,6 @@ Module ArithmInternals.
     destruct (Bv2N vec); trivial.
   Qed.
 
-  Lemma Bv2N_false : forall m, Bv2N (Bvect_false m) = 0%N.
-  Proof.
-    intro m.
-    induct_on m.
-  Qed.
 
   Lemma Nb2n_mod : forall x, (N.b2n(N.odd x) = x mod 2)%N.
   Proof.
@@ -554,6 +549,29 @@ Module ArithmInternals.
 
 End ArithmInternals.
 Import ArithmInternals.
+
+Lemma Bv2N_false : forall m, Bv2N (Bvect_false m) = 0%N.
+Proof.
+  intro m.
+  induct_on m.
+Qed.
+
+Lemma Bv2N_zero : forall m, Bv2N (zero : Bvector m) = 0%N.
+Proof.
+  unfold zero.
+  intro m.
+  induction m.
+  - simpl; trivial.
+  - simpl. rewrite Bv2N_false; simpl; trivial.
+Qed.
+
+Lemma Bv2N_one : forall m, Bv2N (one : Bvector (S m)) = 1%N.
+  unfold one.
+  intro m.
+  induction m.
+  - simpl; trivial.
+  - simpl. rewrite Bv2N_false; simpl; trivial.
+Qed.
 
 Lemma Bv2N_N2Bv_sized_mod  : forall sz x, Bv2N (N2Bv_sized sz x) = (x mod 2^N.of_nat sz)%N.
 Proof.
