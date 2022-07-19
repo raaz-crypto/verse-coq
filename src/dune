@@ -28,6 +28,7 @@
           Verse.BitVector.Facts
           Verse.BitVector.ArithRing
           Verse.BitVector.Reflection
+          Verse.BitVector.Bounded
           Verse.Monoid
           Verse.Monoid.Interface
           Verse.Monoid.Semantics
