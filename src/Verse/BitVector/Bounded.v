@@ -1,32 +1,11 @@
 Require Import NArith.
-Require Import NFacts.
-Require Import BinNat.
 Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
-Require Import Verse.Modular.Equation.
 Require Import Psatz.
 
-Inductive BBvector sz :=
-| bounded : forall (vec : Bvector sz)(n : N), (Bv2N vec <= n)%N -> BBvector sz.
-
-Arguments bounded {sz}.
-
-Definition bound {sz}(vec : Bvector sz) : BBvector sz := bounded vec (Bv2N vec) (N.le_refl (Bv2N vec)).
-
-Definition unbound {sz}(bv : BBvector sz) : Bvector sz :=
-  match bv with
-  | bounded vec _ _ => vec
-  end.
-
-Definition boundOf {sz}(bv : BBvector sz) : N :=
-  match bv with
-  | bounded _ n _ => n
-  end.
-
-Definition BBv2N {sz}(bv : BBvector sz) := Bv2N (unbound bv).
-
-Coercion bound : Bvector >-> BBvector.
-
+Require Import Verse.Bounded.
+(* Bounded bitvector *)
+Definition BBvector sz := Bounded (Bvector sz) (@Bv2N sz).
 
 Lemma plus_bound {sz} (v1 v2 : Bvector sz)(n1 n2 : N) : (Bv2N v1 <= n1 -> Bv2N v2 <= n2 -> Bv2N (addition v1 v2) <= n1+n2)%N.
   intros.
