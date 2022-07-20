@@ -73,3 +73,8 @@ Qed.
 Next Obligation.
   eauto with Nfacts.
 Qed.
+
+#[export] Instance zero_N : Zero N := 0%N.
+#[export] Instance one_N  : One N := 1%N.
+#[export] Instance add_N  : Addition N := N.add.
+#[export] Instance mul_N  : Multiplication := N.mul.
