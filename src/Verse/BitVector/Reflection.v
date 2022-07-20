@@ -4,6 +4,10 @@ Require Import BinNat.
 Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
 Require Import Verse.Modular.Equation.
+Require Import Verse.Bounded.
+Require Import Verse.BitVector.Bounded.
+Require Import Psatz.
+
 Create HintDb bitvector_reflection.
 Lemma two_power_non_zero : forall n : N, (2^n)%N <> 0%N.
   intro n.
@@ -13,6 +17,7 @@ Qed.
 #[local] Hint Resolve two_power_non_zero @Bv2N_N2Bv_sized_mod : bitvector_reflection.
 
 (* end hide *)
+
 (** * Bitvectors operations without overflows
 
 The basic idea here is that bitvector arithmetic is the same as the
@@ -29,176 +34,221 @@ The proof strategy
 
  *)
 
-(** ** Sum of product polynomials.
 
-The main idea behind the bit size of F(x₁,....,xₙ) in terms of the bit
-sizes the individual xᵢ's is the following two rules
-
-1. bitsize(a * b) ≤ bitsize (a) + bitsize (b)
-
-2. bitsize (a + b) ≤ max( bitsize(a) , bitsize(b)) + 1
-
-While the inequality 1 is the best we can do when it comes to
-multiplication, in terms of addition the inequality 2 leads to too
-loose a bound. The inequality will give bitsize( ∑ᵢⁿ aᵢ ) ≤ maxᵢ
-(bitsize (aᵢ)) + n where as we know that ∑ᵢⁿ aᵢ ≤ n max(aᵢ) and hence
-bitsize ( ∑ᵢⁿ aᵢ) ≤ bitsize (n . max(aᵢ) ) ≤ N.size n +
-max(bitsize(aᵢ)), which is much better.
-
-Therefore we would like our summations to be as flat as
-possible. Henceforth, we only consider sum of product form for our
-polynomial. We will represent this using ATerm.
+(** * Reified expressions of a
 
 *)
 
-Definition Term A := list A.
-Definition ATerm A := Term (Term A).
+Module Exp.
 
-(** The map function for ATerms. For terms it is just the list map *)
-Definition mapAterm {A B}(f : A -> B) : ATerm A -> ATerm B
-  := List.map (List.map f).
+  Inductive t A :=
+  | Const : A -> t A
+  | Plus  : t A -> t A -> t A
+  | Mul   : t A -> t A -> t A.
 
-
-Definition termDenote {A} (u : A) (f : A -> A -> A) : Term A -> A
-  := List.fold_right f u.
-
-Definition bvTermDenote {sz} : Term (Bvector sz) -> Bvector sz
-  := termDenote 1 multiplication.
-
-Definition NTermDenote : Term N -> N := termDenote 1%N N.mul.
-Hint Unfold termDenote bvTermDenote NTermDenote N.pow Pos.pow : bitvector_reflection.
+  Arguments Const {A}.
+  Arguments Plus {A}.
+  Arguments Mul {A}.
 
 
-Definition bvDenote {sz} (atrm : ATerm (Bvector sz)): Bvector sz
-  := termDenote 0 addition (List.map bvTermDenote atrm).
+  Fixpoint map {A B}(f : A -> B)(e : t A) : t B :=
+    match e with
+    | Const a      => Const (f a)
+    | Plus  e1 e2  => Plus (map f e1) (map f e2)
+    | Mul e1 e2 => Mul (map f e1) (map f e2)
+    end.
 
-Definition NDenote (atrm : ATerm N) : N
-  := termDenote 0%N N.add (List.map NTermDenote atrm).
+  Fixpoint denote {A}`{Addition A}`{@Multiplication A A} (e : t A) : A :=
+    match e with
+    | Const a => a
+    | Plus e1 e2 => denote e1 + denote e2
+    | Mul e1 e2 => denote e1 * denote e2
+    end.
 
-Hint Unfold bvDenote NDenote : bitvector_reflection.
+  (*
+  Fixpoint denoteN (e : t N) : N :=
+    match e with
+    | Const a => a
+    | Plus e1 e2 => denoteN e1 + denoteN e2
+    | Mul  e1 e2 => denoteN e1 * denoteN e2
+    end.
 
+*)
+  #[export] Instance add_exp A : Addition (t A) := Plus.
+  #[export] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
 
-Lemma termDenote_spec {sz} : forall t : Term (Bvector sz), Bv2N (bvTermDenote  t) <==[mod 2^N.of_nat sz ] NTermDenote (List.map (@Bv2N sz) t).
-  intro t.
-  unfold redMod.
-  unfold bvTermDenote.
-  unfold NTermDenote.
-  unfold multiplication.
-  induction t as [|x xs IHt]; simpl; eauto with bitvector_reflection.
-  - rewrite Bv2N_mul_mod;
-      rewrite IHt;
-      rewrite N.mul_mod_idemp_r; eauto with bitvector_reflection.
+End Exp.
+Import Exp.
+
+Lemma forget_denote_comm  : forall e : t BN, denote (map forget e) = forget (denote e).
+  intros.
+  induction e as [|e1 IHe1 e2 IHe2|e1 IHe1 e2 IHe2 ]; simpl; trivial.
+  - rewrite IHe1.
+    rewrite IHe2.
+    set (de1:=denote e1). set (de2:=denote e2).
+    destruct de1.
+    destruct de2.
+    simpl; trivial.
+  - rewrite IHe1.
+    rewrite IHe2.
+    set (de1 := denote e1); set (de2:= denote e2);
+      destruct de1; destruct de2; simpl; trivial.
 Qed.
 
-Lemma denote_spec {sz} : forall atrm : ATerm (Bvector sz), Bv2N (bvDenote  atrm) <==[mod 2^N.of_nat sz ] NDenote (mapAterm (@Bv2N sz)  atrm).
-  intro atrm.
-  unfold redMod.
-  unfold bvDenote.
-  unfold NDenote.
-  unfold addition.
-  induction atrm as [|x xs IH] ; simpl; eauto with bitvector_reflection.
-  - rewrite Bv2N_plus_mod.
-    rewrite IH.
-    rewrite termDenote_spec.
-    rewrite <- N.add_mod; eauto with bitvector_reflection.
+Lemma Bv2N_denote_map_comm_mod {sz} : forall e : t (Bvector sz), Bv2N (denote e) = (denote (map (@Bv2N sz) e) mod 2^N.of_nat sz)%N.
+Proof.
+  intros e.
+  induction e as [|e1 IH1 e2 IH2| e1 IH1 e2 IH2]; simpl.
+  - rewrite N.mod_small; eauto with bitvector.
+  - unfold addition; rewrite Bv2N_plus_mod; rewrite IH1; rewrite IH2; simpl;
+      rewrite <- N.add_mod; eauto with bitvector. eauto with Nfacts.
+  - unfold multiplication; rewrite Bv2N_mul_mod; rewrite IH1; rewrite IH2; simpl;
+      rewrite <- N.mul_mod; eauto with bitvector; eauto with Nfacts.
 Qed.
 
 
-
-Ltac reifyTerm sz e :=
-  match e with
-  | multiplication ?e1 ?e2 => let e1p := reifyTerm sz e1 in
-                             let e2p := reifyTerm sz e2 in
-                             constr:((e1p ++ e2p)%list : Term (Bvector sz) )
-  | _ => constr:(cons e  nil)
-  end.
-
-Ltac reify sz e :=
-  match e with
-  | ?e1 + ?e2 => let e1p := reify sz e1 in
-                let e2p := reify sz e2 in
-                constr:((e1p ++ e2p)%list : ATerm (Bvector sz) )
-  | _ => let ep := reifyTerm sz e in constr:(cons ep nil)
-  end.
-
-Require Verse.BitVector.ArithRing.
-Ltac simplify sz e := let atrm := reify sz e in
-                      let H := fresh "HReify" in
-                      assert (H:e = bvDenote atrm) by (
-                          try (autounfold with bitvector_reflection; simpl; ring);
-                          fail "Bitvector ring for size " sz "probably not in scope;"
-                            "use Add Ring foo : " "ArithRing.bit_arithm_ring ..."
-                            "(cf Verse.BitVector.ArithRing)"
-                        );
-                      rewrite H.
-
-
-
-
-(** ** Bounded quantities.
-
-To prove the size inequality, we would need to additionally keep track
-of the sizes. For this we have the bounded variants BBvector and BN of
-Bvector and N respectively.
-
- *)
-
-Module Bounded.
-
-  Inductive t A (sizeFn : A -> N) :=
-  | bounded   : forall a n, (sizeFn a <= n)%N -> t A sizeFn
-  | unbounded : A -> t A sizeFn.
-
-  Arguments bounded {A sizeFn}.
-  Arguments unbounded {A sizeFn}.
-
-  Definition BBvector sz := t (Bvector sz) BVN_size.
-
-  Definition BN := t N N.size.
-
-  Definition BBv2N {sz} (bv : BBvector sz) : BN :=
-    match bv with
-    | bounded vec n pf => bounded (Bv2N vec) n pf
-    | unbounded vec    => let n := Bv2N vec in
-                       bounded n (N.size n) (N.le_refl (N.size n))
-    end.
-
-  Ltac reifyTerm sz e :=
+Module Tactics.
+  (** The generalised reification tactic that reifies to a give type B
+      We want Addition and Multiplication instances to be defined for the
+      type B. The const is a tactic that deals with the base case.
+   *)
+  Ltac reifyTo B const e :=
     match e with
-    | multiplication ?e1 ?e2 => let e1p := reifyTerm sz e1 in
-                               let e2p := reifyTerm sz e2 in
-                               constr:((e1p ++ e2p)%list : Term (BBvector sz) )
-    | _ => match goal with
-          | [ pf : BVN_size e < ?n |-  _ ] => let ep := constr:(bounded e n pf) in
-                                        constr:(cons ep nil)
-          | _ => constr:(cons (unbounded e)  nil)
-          end
+    | (?e1 + ?e2) =>
+        let e1p := reifyTo B const e1 in
+        let e2p := reifyTo B const e2 in
+        constr:(e1p + e2p : B)
+
+    | (?e1 * ?e2) =>
+        let e1p := reifyTo B const e1 in
+        let e2p := reifyTo B const e2 in
+        constr:(e1p * e2p : B)
+    | _ => const e
     end.
 
-  Ltac reify sz e :=
+  (*
+  Ltac reifyToN const e:=
     match e with
-    | ?e1 + ?e2 => let e1p := reify sz e1 in
-                  let e2p := reify sz e2 in
-                  constr:((e1p ++ e2p)%list : ATerm (BBvector sz) )
-    | _ => let ep := reifyTerm sz e in constr:(cons ep nil)
+    | (?e1 + ?e2) =>
+        let e1p := reifyToN const e1 in
+        let e2p := reifyToN const e2 in
+        constr:((e1p + e2p)%N)
+
+    | (?e1 * ?e2) =>
+        let e1p := reifyToN const e1 in
+        let e2p := reifyToN const e2 in
+        constr:((e1p * e2p)%N)
+    | _ => const e
+    end.
+    *)
+  (** This tactic creates the arithmetic version of a given expression *)
+  Ltac arithm e :=
+    let const e := constr:(Bv2N e) in
+    reifyTo N const e.
+
+  (** This tactic creates the bounded arithmetic version of a given expression *)
+  Ltac reifyBNE e :=
+    let const e := match goal with
+                   | [ H : (e < ?bnd)%N |- _ ] => constr:(Const (Bounded.bounded e bnd H : BN ) )
+                   | _ => constr:(Const (Bounded.injB e : BN))
+                   end in
+    reifyTo (Exp.t BN) const e.
+
+  (** This reifies a given expression into the expression tree *)
+  Ltac reify e sz :=
+    let const x := constr:(Const x) in
+    reifyTo (Exp.t (Bvector sz)) const e.
+
+  (** Overall approach
+
+  Given the expression Bv2N poly(v₁...,vₙ), the arithmetic version of
+  it is poly(Bv2N v₁,....,Bv2N vₙ).  The arithmetic assertion
+  essentially proves Bv2N poly(v₁,....,vₙ) = poly (Bv2N v₁,.., Bv2N
+  vₙ).
+
+  The overall method is as follows.
+
+
+  - Goal e = ae  (where ae is the arithmetic version of e)
+    + Goal e = ae mod 2ˢᶻ
+      - Goal e = denote (Re) (where Re is the reified expression)
+             ae = denote (map Bv2N Re)
+        And use the lemma denote (Re) = denote (map (Bv2N Re) mod 2ˢᶻ
+
+
+    + Goal ae = ae mod 2ˢᶻ
+      - Goal ae = forget (denote (RAe)) where RAE is the reified expression
+                       associated with
+
+   *)
+
+  Ltac crush_modular e eA sz :=
+    let HR := fresh "HReify" in
+    let HA := fresh "HReifyA" in
+    let Re := reify e sz in
+    assert (HR: e = denote Re) by (simpl; trivial);
+    assert (HA: eA = denote (map (@Bv2N sz) Re)) by (simpl; trivial);
+    rewrite HR; rewrite HA; try apply Bv2N_denote_map_comm_mod.
+
+  Ltac crush_ineq :=
+    match goal with
+    |  [ |- (?E < ?M)%N  ] =>
+         let HR    := fresh "HReify" in
+         let Hineq := fresh "Hineq" in
+         let Re := reifyBNE E in
+         let bExp  := constr:(denote Re) in
+         assert (HR: E = forget (bExp)) by (simpl; trivial);
+         assert (Hineq: (E < boundOf(bExp))%N) by (rewrite HR; exact (boundProof bExp));
+         apply (N.lt_trans _ _ _ Hineq); simpl; lia
     end.
 
-End Bounded.
+  Ltac assert_arithmetic e sz :=
+    let eA := arithm e in
+    let HArithm := fresh "HArithm" in
+    assert(HArithm:Bv2N e = eA) by
+      let HM := fresh "HM" in
+      assert (HM: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz;
+      rewrite HM; apply N.mod_small;
+      crush_ineq.
 
-(** * Testing and illustration here *)
 
 
-Add Ring bit_arith_ring : (ArithRing.bit_arithm_ring 1).
-Print Rings.
-Goal forall x y : Bvector 2, Bv2N (x + y) = Bv2N (y + x).
-  intros x y.
-  simplify 2 (x + y).
-  simplify 2 (y + x).
-  repeat (rewrite denote_spec).
-  autounfold with bitvector_reflection; simpl.
-  match goal with
-  | [ |- (?X mod _ = ?Y mod _)%N ] => assert (X = Y)
-  end.
+
+End Tactics.
+
+
+
+Definition base : N := 65536.
+
+Definition toN3 {sz} (a b c : Bvector sz) : N :=
+  (Bv2N a + base * Bv2N b + base * base * Bv2N c)%N.
+
+Definition toN2 {sz}  (a b : Bvector sz) : N :=
+  (Bv2N a + base * Bv2N b)%N.
+
+(*
+Goal forall x y : N,  (x < 2^16)%N -> (y < 2^16)%N -> (x * y < 2^32)%N.
+  intros.
+  apply (N.mul_lt_mono x (2^16) y (2^16)); trivial.
+Qed.
+*)
+
+
+Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^16)%N -> (Bv2N a1 < 2^16)%N ->
+                                 (Bv2N b0 < 2^16)%N -> (Bv2N b1 < 2^16)%N ->
+    (toN2 a0 a1 * toN2 b0 b1)%N = toN3 (a0 * b0) (a0 * b1 + a1 * b0) (a1 * b1).
+
+  intros.
+  Unset Ltac Debug.
+  Tactics.assert_arithmetic (a0 * b0) 64.
+  Tactics.assert_arithmetic (a0 * b1 + a1 * b0) 64.
+  Tactics.assert_arithmetic (a1 * b1) 64.
+  unfold toN2.
+  unfold toN3.
+  rewrite HArithm.
+  rewrite HArithm0.
+  rewrite HArithm1.
+  (* TODO: unfortunate clash of notation *)
+  unfold multiplication; unfold addition. unfold mul_N; unfold add_N.
   ring.
-  rewrite H; trivial.
 Qed.
