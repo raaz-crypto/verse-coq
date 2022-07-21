@@ -4,30 +4,39 @@ Require Import Verse.BitVector.Facts.
 Require Import Psatz.
 
 Require Import Verse.Bounded.
+Create HintDb localdb.
 (* Bounded bitvector *)
 Definition BBvector sz := Bounded (Bvector sz) (@Bv2N sz).
 
-Lemma plus_bound {sz} (v1 v2 : Bvector sz)(n1 n2 : N) : (Bv2N v1 <= n1 -> Bv2N v2 <= n2 -> Bv2N (addition v1 v2) <= n1+n2)%N.
-  intros.
-  unfold addition.
-  rewrite Bv2N_plus_mod.
-  rewrite N.mod_le; eauto with Nfacts.
-  Show Proof.
+Hint Unfold addition multiplication : localdb.
+Hint Rewrite Bv2N_plus_mod Bv2N_mul_mod : localdb.
+Ltac local_crush :=
+  autounfold with localdb;
+  autorewrite with localdb;
+  intros;
+  let Hmod := fresh "Hmod" in
+  let HltRhs := fresh "HltRhs" in
+  match goal with
+  | [ |- (?E mod ?M < ?RHS)%N ] => assert (Hmod: (E mod M <= E)%N) by (rewrite N.mod_le; eauto with Nfacts);
+                                 assert (HltRhs: (E < RHS)%N) by eauto with Nfacts;
+                                 apply (N.le_lt_trans _ _ _ Hmod HltRhs)
+
+  end.
+
+Lemma plus_bound {sz} (v1 v2 : Bvector sz)(n1 n2 : N) : (Bv2N v1 < n1 -> Bv2N v2 < n2 -> Bv2N (addition v1 v2) < n1+n2)%N.
+  local_crush.
 Qed.
 
-Lemma mul_bound {sz} (v1 v2 : Bvector sz)(n1 n2 : N) : (Bv2N v1 <= n1 -> Bv2N v2 <= n2 -> Bv2N (multiplication v1 v2) <= n1*n2)%N.
-  intros.
-  unfold multiplication.
-  rewrite Bv2N_mul_mod.
-  rewrite N.mod_le; eauto with Nfacts.
+Lemma mul_bound {sz} (v1 v2 : Bvector sz)(n1 n2 : N) : (Bv2N v1 < n1 -> Bv2N v2 < n2 -> Bv2N (multiplication v1 v2) < n1*n2)%N.
+  local_crush.
 Qed.
 
-#[export] Program Instance zero_bbvector sz : Zero (BBvector sz) := bounded zero 0 _.
+#[export] Program Instance zero_bbvector sz : Zero (BBvector sz) := bounded zero 1 _.
 Next Obligation.
   rewrite Bv2N_zero; lia.
 Qed.
 
-#[export] Program Instance one_bbvector sz : One (BBvector (S sz)) := bounded one 1 _.
+#[export] Program Instance one_bbvector sz : One (BBvector (S sz)) := bounded one 2 _.
 Next Obligation.
   rewrite Bv2N_false; lia.
 Qed.
