@@ -1,5 +1,5 @@
 Require Import NArith.
-
+Require Import Psatz.
 
 (* * Types with bounds.
 
@@ -9,20 +9,24 @@ N). This type captures values with a bound on their measure.
  *)
 
 Inductive Bounded A (mu : A -> N) :=
-| bounded : forall (a : A)(n : N), (mu a <= n)%N -> Bounded A mu.
+| bounded : forall (a : A)(n : N), (mu a < n)%N -> Bounded A mu.
 
 Arguments bounded {A mu}.
 
 (** There is a natural injection of A into its bounded counterpart *)
-Definition injB {A mu}(a : A) : Bounded A mu :=
-  bounded a (mu a) (N.le_refl (mu a)).
+Program Definition injB {A mu}(a : A) : Bounded A mu :=
+  bounded a (N.succ (mu a)) _.
+
+Next Obligation.
+  lia.
+Qed.
 
 (** Forget the bound *)
 Definition forget {A mu}(ba : Bounded A mu) : A :=
   match ba with
   | bounded a _ _ => a
   end.
-
+Search ( _ <= _ -> _ < _ )%N.
 (** Get the bound on the value *)
 
 Definition boundOf {A mu}(ba : Bounded A mu) : N :=
@@ -31,7 +35,7 @@ Definition boundOf {A mu}(ba : Bounded A mu) : N :=
   end.
 
 (** Get the bound proof *)
-Definition boundProof {A mu}(ba : Bounded A mu) : (mu (forget ba) <= boundOf ba)%N
+Definition boundProof {A mu}(ba : Bounded A mu) : (mu (forget ba) < boundOf ba)%N
   := match ba with
      | bounded _ _ pf => pf
      end.
