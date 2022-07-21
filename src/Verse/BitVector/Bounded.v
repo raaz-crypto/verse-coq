@@ -42,3 +42,27 @@ Qed.
   fun bv1 bv2 => match bv1, bv2 with
               | bounded v1 n1 pf1 , bounded v2 n2 pf2 => bounded (v1 * v2) (n1 * n2)%N (mul_bound v1 v2 n1 n2 pf1 pf2)
               end.
+
+
+
+  (** We have the following function diagrams which commutes. *)
+
+(**
+
+ <<
+     BBvector  ----- toBN ---> BN
+       |                        |
+       | forget               forget
+       |                        |
+       v                        v
+     Bvector ------- Bv2N-----> N
+
+>>
+
+*)
+
+Lemma forget_Bv2N_comm {sz} : forall bv : BBvector sz, Bv2N (forget bv) = forget (toBN bv).
+  intros.
+  simpl.
+  trivial.
+Qed.
