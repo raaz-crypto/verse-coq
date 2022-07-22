@@ -293,12 +293,23 @@ Module Tactics.
        try (rewrite HM; apply N.mod_small);
        try (crush_ineq)).
 
-
+  Ltac arithmetise sz :=
+    match goal with
+    | [ |- context[Bv2N ?E] ] =>
+        match E with
+        | _ + _ => let H := fresh "HA" in
+                  try (assert_arithmetic H E sz; rewrite H)
+        | _ * _ => let H := fresh "HA" in
+                  try (assert_arithmetic H E sz; rewrite H)
+        end
+    end.
 
 
 End Tactics.
 
-
+Ltac crush sz := repeat Tactics.arithmetise sz;
+                 unfold multiplication; unfold addition;
+                 unfold mul_N; unfold add_N; ring.
 
 Definition base : N := 65536.
 
@@ -314,16 +325,7 @@ Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^32)%N -> (Bv2N a1 < 2^16)%N -
     (toN2 a0 a1 * toN2 b0 b1)%N = toN3 (a0 * b0) (a0 * b1 + a1 * b0) (a1 * b1).
 
   intros.
-  Unset Ltac Debug.
   unfold toN2.
   unfold toN3.
-  Tactics.assert_arithmetic HA0 (a0 * b0) 64.
-  Tactics.assert_arithmetic HA1 (a0 * b1 + a1 * b0) 64.
-  Tactics.assert_arithmetic HA2 (a1 * b1) 64.
-  rewrite HA0.
-  rewrite HA1.
-  rewrite HA2.
-  (* TODO: unfortunate clash of notation *)
-  unfold multiplication; unfold addition; unfold mul_N; unfold add_N.
-  ring.
+  crush 64.
 Qed.
