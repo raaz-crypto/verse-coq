@@ -4,9 +4,7 @@ Require Import BinNat.
 Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
 Require Import Verse.Modular.Equation.
-Require Import Verse.Bounded.
-Require Import Verse.BitVector.Bounded.
-Require Import Psatz.
+
 
 Create HintDb bitvector_reflection.
 Lemma two_power_non_zero : forall n : N, (2^n)%N <> 0%N.
@@ -22,20 +20,129 @@ Qed.
 
 The basic idea here is that bitvector arithmetic is the same as the
 corresponding N arithmetic as long as there are no overflows. Given
-the equation v = F(v₁,...,vₙ), where v and vᵢ's are bit vectors of
-size s and F is a polynomial, we want to prove that Bv2N v = F ( Bv2N
-v₁ , ..., Bv2N vₙ). We are actually given bounds on Bv2N vᵢ.
+the equation [v = F(v₁,...,vₙ)], where [v] and [vᵢ]'s are bit vectors
+of size [s] and [F], a polynomial, we want to prove that [Bv2N v = F
+(Bv2N v₁ , ..., Bv2N vₙ)]. This is not in general true due to
+overflows and the best we can do is to prove the following modular
+equation.
 
-The proof strategy
+* [Bv2N v = F (Bv2N vᵢ,..., Bv2N vₙ) mod 2ˢ].
 
-1. Prove that Bv2N v = F (Bv2N vᵢ,..., Bv2N vₙ) mod 2ˢ.
+However, if the individual [vᵢ]'s are such that the quantities [Bv2N
+vᵢ] are sufficiently upper bounded, we can prove the following bound
+as well
 
-2. Prove that F(Bv2N vᵢ ..., Bv2N vₙ) < 2ˢ.
+* [F(Bv2N v₁ ..., Bv2N vₙ) < 2ˢ].
+
+This together with the above modular equation gives us the desired
+arithmetic identity
+
+* [Bv2N v = F (Bv2N vᵢ,..., Bv2N vₙ)].
+
+This module gives reflection based tactics for proving such
+identities. These identities are required to prove the correctness of
+bignum multiplications where the total bits are broken up in to limbs
+of appropriate sizes.
 
  *)
 
 
+(** ** Binary Nats with bounds
+
+An important ingredient in our tactics is arithmetic expressions
+involving binary nats with bounds. We capture them here.
+
+ *)
+
+(* begin hide *)
+Require Import Psatz.
+
+(* end hide *)
+
+Inductive BN :=
+| bounded : forall (n bnd : N), (n < bnd)%N -> BN.
+
+
+Program Definition injB (n : N) : BN :=
+  bounded n (N.succ n) _.
+
+Next Obligation.
+  lia.
+Qed.
+
+(** Forget the bound *)
+Definition forget (bn : BN) : N :=
+  match bn with
+  | bounded n _ _ => n
+  end.
+
+(** Get the bound on the value *)
+
+Definition boundOf (bn : BN) : N :=
+  match bn with
+  | bounded _ bnd _ => bnd
+  end.
+
+(** Get the bound proof *)
+Definition boundProof (bn : BN) : (forget bn < boundOf bn)%N
+  := match bn with
+     | bounded _ _ pf => pf
+     end.
+
+Require Import NFacts.
+Require Import setoid_ring.Algebra_syntax.
+
+
+#[export] Instance zero_BN : Zero BN := injB 0%N.
+#[export] Instance one_BN : One BN := injB 1%N.
+
+#[export] Program Instance add_BN : Addition BN :=
+  fun x y => match x, y with
+          | bounded a n pfx, bounded b m pfy => bounded (a+b)%N (n+m)%N _
+          end.
+
+Next Obligation.
+  eauto with Nfacts.
+Qed.
+
+#[export] Program Instance mul_BN : @Multiplication BN BN :=
+  fun x y => match x, y with
+          | bounded a n pfx, bounded b m pfy => bounded (a*b)%N (n*m)%N _
+          end%N.
+
+Next Obligation.
+  eauto with Nfacts.
+Qed.
+
+(** Finally, we define algebra syntax for N which will make some of
+    our reification code easier
+
+TODO: We may want to make the exports of this local if the tactics
+work in other modules that import this one.
+
+ *)
+
+#[export] Instance zero_N : Zero N := 0%N.
+#[export] Instance one_N  : One N := 1%N.
+#[export] Instance add_N  : Addition N := N.add.
+#[export] Instance mul_N  : Multiplication := N.mul.
+
+
 (** * Reified expressions of a
+
+As with all reflection based proofs, we need a ast to which terms have
+to be reified. In our case it is a simple expression ast with only
+addition an multiplication involved. A point to note here is that we
+do not have subtraction in the structure; this is because subtraction
+can easily make all the bounds of the individual bitvectors irrelevant
+and hence cannot be handled by our tactics. We can still use these
+tactics by the following method.
+
+Let v = F(v₁....,vₙ) be the desired equation that we want to work
+with. We first prove that [F(x₁...,xₙ) = G(x₁,...,xₙ)] for all
+bitvectors x₁,...,xₙ where the polynomial [G] does not involve
+substraction. We then use G instead of F for carrying out our
+computation.
 
 *)
 
@@ -125,8 +232,8 @@ Module Tactics.
   (** This tactic creates the bounded arithmetic version of a given expression *)
   Ltac reifyBNE e :=
     let const e := match goal with
-                   | [ H : (e < ?bnd)%N |- _ ] => constr:(Const (Bounded.bounded e bnd H : BN ) )
-                   | _ => constr:(Const (Bounded.injB e : BN))
+                   | [ H : (e < ?bnd)%N |- _ ] => constr:(Const (bounded e bnd H : BN ) )
+                   | _ => constr:(Const (injB e : BN))
                    end in
     reifyTo (Exp.t BN) const e.
 
