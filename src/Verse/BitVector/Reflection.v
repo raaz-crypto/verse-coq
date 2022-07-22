@@ -65,15 +65,6 @@ Module Exp.
     | Mul e1 e2 => denote e1 * denote e2
     end.
 
-  (*
-  Fixpoint denoteN (e : t N) : N :=
-    match e with
-    | Const a => a
-    | Plus e1 e2 => denoteN e1 + denoteN e2
-    | Mul  e1 e2 => denoteN e1 * denoteN e2
-    end.
-
-*)
   #[export] Instance add_exp A : Addition (t A) := Plus.
   #[export] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
 
@@ -126,21 +117,6 @@ Module Tactics.
     | _ => const e
     end.
 
-  (*
-  Ltac reifyToN const e:=
-    match e with
-    | (?e1 + ?e2) =>
-        let e1p := reifyToN const e1 in
-        let e2p := reifyToN const e2 in
-        constr:((e1p + e2p)%N)
-
-    | (?e1 * ?e2) =>
-        let e1p := reifyToN const e1 in
-        let e2p := reifyToN const e2 in
-        constr:((e1p * e2p)%N)
-    | _ => const e
-    end.
-    *)
   (** This tactic creates the arithmetic version of a given expression *)
   Ltac arithm e :=
     let const e := constr:(Bv2N e) in
@@ -225,13 +201,6 @@ Definition toN3 {sz} (a b c : Bvector sz) : N :=
 
 Definition toN2 {sz}  (a b : Bvector sz) : N :=
   (Bv2N a + base * Bv2N b)%N.
-
-(*
-Goal forall x y : N,  (x < 2^16)%N -> (y < 2^16)%N -> (x * y < 2^32)%N.
-  intros.
-  apply (N.mul_lt_mono x (2^16) y (2^16)); trivial.
-Qed.
-*)
 
 
 Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^16)%N -> (Bv2N a1 < 2^16)%N ->
