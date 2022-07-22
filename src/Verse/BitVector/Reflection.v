@@ -320,12 +320,43 @@ Definition toN2 {sz}  (a b : Bvector sz) : N :=
   (Bv2N a + base * Bv2N b)%N.
 
 
-Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^32)%N -> (Bv2N a1 < 2^16)%N ->
-                                 (Bv2N b0 < 2^31)%N -> (Bv2N b1 < 2^16)%N ->
+Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^32)%N -> (Bv2N a1 < 2^31)%N ->
+                                 (Bv2N b0 < 2^31)%N -> (Bv2N b1 < 2^31)%N ->
     (toN2 a0 a1 * toN2 b0 b1)%N = toN3 (a0 * b0) (a0 * b1 + a1 * b0) (a1 * b1).
 
   intros.
   unfold toN2.
   unfold toN3.
+  crush 64.
+Qed.
+
+(*
+
+This is an example of a proof (that comes up in the correctness of
+Karatsuba multiplication) where the expressions involved has
+subtraction. We rewrite the bitvector expression for c1 into one which
+involves only addition and multiplication. For this we use the ring
+tactic for bitvectors. We then proceed as before.
+
+ *)
+
+Require Import Verse.BitVector.ArithRing.
+Add Ring bit_arith_ring : (bit_arithm_ring 63).
+Goal forall (a0 a1 b0 b1 : Bvector 64),
+    (Bv2N a0 < 2^32)%N -> (Bv2N a1 < 2^31)%N ->
+    (Bv2N b0 < 2^31)%N -> (Bv2N b1 < 2^31)%N ->
+    let c0 := a0 * b0 in
+    let c2 := a1 * b1 in
+    let c1 := (a0 + a1) * (b0 + b1) - c0 - c2 in
+    (toN2 a0 a1 * toN2 b0 b1)%N = toN3 c0 c1 c2.
+Proof.
+  intros.
+  assert (Hc1 : c1 = a0 * b1 + a1 * b0)
+    by (unfold c1;
+        unfold c0;
+        unfold c2;
+        ring).
+  rewrite Hc1; unfold c0; unfold c1; unfold c2;
+    unfold toN2; unfold toN3.
   crush 64.
 Qed.
