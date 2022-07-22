@@ -89,9 +89,11 @@ Definition boundProof (bn : BN) : (forget bn < boundOf bn)%N
      | bounded _ _ pf => pf
      end.
 
+(* begin hide *)
 Require Import NFacts.
 Require Import setoid_ring.Algebra_syntax.
 
+(* end hide *)
 
 #[export] Instance zero_BN : Zero BN := injB 0%N.
 #[export] Instance one_BN : One BN := injB 1%N.
@@ -242,26 +244,24 @@ Module Tactics.
     let const x := constr:(Const x) in
     reifyTo (Exp.t (Bvector sz)) const e.
 
-  (** Overall approach
+  (* Overall approach
 
-  Given the expression Bv2N poly(v₁...,vₙ), the arithmetic version of
-  it is poly(Bv2N v₁,....,Bv2N vₙ).  The arithmetic assertion
-  essentially proves Bv2N poly(v₁,....,vₙ) = poly (Bv2N v₁,.., Bv2N
-  vₙ).
-
-  The overall method is as follows.
+   We document the overall approach.
 
 
   - Goal e = ae  (where ae is the arithmetic version of e)
+
     + Goal e = ae mod 2ˢᶻ
-      - Goal e = denote (Re) (where Re is the reified expression)
+      - Goal e  = denote (Re) (where Re is the reified expression)
              ae = denote (map Bv2N Re)
         And use the lemma denote (Re) = denote (map (Bv2N Re) mod 2ˢᶻ
 
 
     + Goal ae = ae mod 2ˢᶻ
       - Goal ae = forget (denote (RAe)) where RAE is the reified expression
-                       associated with
+        of bounded nats associated with ae
+      - Prove ae < boundOf (denote RAe). If everything is okey then boundOf(denote RAe)
+        should be smaller than 2ˢᶻ and we are then fine.
 
    *)
 
@@ -285,14 +285,13 @@ Module Tactics.
          apply (N.lt_trans _ _ _ Hineq); simpl; lia
     end.
 
-  Ltac assert_arithmetic e sz :=
+  Ltac assert_arithmetic H e sz :=
     let eA := arithm e in
-    let HArithm := fresh "HArithm" in
-    assert(HArithm:Bv2N e = eA) by
-      let HM := fresh "HM" in
-      assert (HM: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz;
-      rewrite HM; apply N.mod_small;
-      crush_ineq.
+    assert(H:Bv2N e = eA) by
+     ( let HM := fresh "HM" in
+       assert (HM: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz;
+       try (rewrite HM; apply N.mod_small);
+       try (crush_ineq)).
 
 
 
@@ -310,21 +309,21 @@ Definition toN2 {sz}  (a b : Bvector sz) : N :=
   (Bv2N a + base * Bv2N b)%N.
 
 
-Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^16)%N -> (Bv2N a1 < 2^16)%N ->
-                                 (Bv2N b0 < 2^16)%N -> (Bv2N b1 < 2^16)%N ->
+Goal forall a0 a1 b0 b1 : Bvector 64, (Bv2N a0 < 2^32)%N -> (Bv2N a1 < 2^16)%N ->
+                                 (Bv2N b0 < 2^31)%N -> (Bv2N b1 < 2^16)%N ->
     (toN2 a0 a1 * toN2 b0 b1)%N = toN3 (a0 * b0) (a0 * b1 + a1 * b0) (a1 * b1).
 
   intros.
   Unset Ltac Debug.
-  Tactics.assert_arithmetic (a0 * b0) 64.
-  Tactics.assert_arithmetic (a0 * b1 + a1 * b0) 64.
-  Tactics.assert_arithmetic (a1 * b1) 64.
   unfold toN2.
   unfold toN3.
-  rewrite HArithm.
-  rewrite HArithm0.
-  rewrite HArithm1.
+  Tactics.assert_arithmetic HA0 (a0 * b0) 64.
+  Tactics.assert_arithmetic HA1 (a0 * b1 + a1 * b0) 64.
+  Tactics.assert_arithmetic HA2 (a1 * b1) 64.
+  rewrite HA0.
+  rewrite HA1.
+  rewrite HA2.
   (* TODO: unfortunate clash of notation *)
-  unfold multiplication; unfold addition. unfold mul_N; unfold add_N.
+  unfold multiplication; unfold addition; unfold mul_N; unfold add_N.
   ring.
 Qed.
