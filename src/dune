@@ -19,11 +19,14 @@
           Verse.Language.Macros.Loops
           Verse.Language.Pretty
           Verse.Language.Types
+          Verse.Modular.Equation
+          Verse.Modular.ModRing
           Verse.Machine.BitVector
           Verse.Monad
           Verse.BitVector
           Verse.BitVector.Facts
           Verse.BitVector.ArithRing
+          Verse.BitVector.Reflection
           Verse.Monoid
           Verse.Monoid.Interface
           Verse.Monoid.Semantics
@@ -54,6 +57,7 @@
           Verse.CryptoLib.sha2.c.portable
           Verse.CryptoLib.sha256.c.portable
           Verse.CryptoLib.sha512.c.portable
+          Verse.CryptoLib.curve25519.c.field
           Verse.CryptoLib.curve25519.c.portable
           Verse.Utils.hlist
           ))

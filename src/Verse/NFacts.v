@@ -14,6 +14,10 @@ Hint Resolve N.le_refl
        N.le_lt_trans
        N.le_0_l
        N.pow_nonzero
+       N.add_le_mono
+       N.add_lt_mono
+       N.mul_le_mono
+       N.mul_lt_mono
        N.pow_le_mono_r  : Nfacts.
 
 Hint Rewrite

@@ -8,9 +8,8 @@ Import List.ListNotations.
 
 Section EndianConversion.
   Variable variable : VariableT.
-  Arguments variable [k] _.
-  Variable src     : variable (array 10 bigE Word16).
-  Variable dest    : variable (array 10 littleE Word16).
+  Variable src     : variable of type Array 10 bigE Word16.
+  Variable dest    : variable of type Array 10 littleE Word16.
   Definition copy i (_ : i < 10) : code variable.
     verse [code| dest[ i ] := src [ i ]  |].
   Defined.
@@ -29,4 +28,7 @@ Defined.
 Require Import Verse.Error.
 Definition convC := recover convCE.
 
-Compute convC.
+Require Import Verse.Print.
+Goal to_print convC.
+  print.
+Abort.
