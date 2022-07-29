@@ -18,12 +18,16 @@ Section Code.
   Variable A B : v of type Word8.
 
   Definition test : lines bvDenote v.
-    refine
-      ([A ::= B;
-        ASSERT (VAL A = VAL B);
-        A ::= B;
-        ASSERT (OLDVAL B = VAL A + 1);
-        A ::= B])%list%code.
+    verse
+      (CODE [code| A := B |]
+         ++
+         (ASSERT VAL A = VAL B)
+         ++
+         CODE [code| A := B |]
+         ++
+         (ASSERT OLDVAL B = VAL A + 1)
+         ++
+         CODE [code| A := B |])%list%verse.
   Defined.
 
 End Code.

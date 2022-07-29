@@ -21,11 +21,11 @@ Section Code.
                     C[0][0] := `8`
              |]
           ++
-          [ ASSERT VAL A = OLDVAL B ]
+          (ASSERT VAL A = OLDVAL B)
           ++
           CODE [code| B := A; A := `6` |]
           ++
-          [ ASSERT VAL B = OLDVAL B ]
+          (ASSERT VAL B = OLDVAL B)
       )%list%verse.
   Defined.
 
