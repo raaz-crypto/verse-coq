@@ -77,3 +77,17 @@ Require Import ProofTac.
 Definition proof : toProve.
   time mrealize.
 Abort.
+
+(** Timing notes -
+    mrealize
+    repeat 5  - 21 sec
+    repeat 6  - 38 sec
+    repeat 7  - 45 sec
+    repeat 8  - 75 sec
+    repeat 9  - 101 sec
+    repeat 10 - 133 sec
+
+    Realize
+    repeat 5  - .3 sec
+    repeat 13 - 81 sec
+*)
