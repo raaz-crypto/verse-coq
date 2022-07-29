@@ -10,24 +10,24 @@ instructions to package target specific instructions with intended
 state transformations and guarantees will allow for proofs with such
 instructions.  *)
 
-Require Import Verse.Abstract.Machine.
 Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
+Require Import Verse.Ast.
 Require Import Verse.HlistMachine.
 Require Import Verse.Language.Types.
 Require Import Verse.Monoid.
 Require Verse.Scope.
 Require Import Verse.TypeSystem.
+Require Import Verse.Abstract.Machine.
 Require Import Verse.Utils.hlist.
 
 Require Import PList.
 Import ListNotations.
 
-
 Section Call.
 
   Context [tyD : typeDenote verse_type_system]
-          [v   : Variables.U verse_type_system].
+          [ v  : VariableT ].
 
   Record specBlock w := { block   : lines tyD w;
                           postC   : ann tyD w    }.
@@ -48,7 +48,7 @@ Section Call.
   (* Specifying the type of `funSub` explicitly as `sub (scp fc)` doesn't work.
      Even if we use `HlistMachine.tyd` instead of `tyd` in the definition of sub! *)
   Definition funSub sc (fc : func sc)
-    := let (bl, pc)   := (fc) (memV (sc)) (all_membership (sc)) in
+    := let (bl, pc)   := fc (memV sc) (all_membership sc) in
        {| requirement := fun _ => True;
           transform   := srFst (linesDenote bl);
           guarantee   := srSnd (lineDenote (annot pc))
@@ -68,24 +68,32 @@ Section Call.
   | instruction   : line tyD v -> modular
   | inline        : forall vfun, Scope.allocation v (inSc vfun) -> modular.
 
-  Definition stripAnn (ls : lines tyD v)
+  (* We consider the default interpretation of a `call` to be an
+  inlining of the text of the function while stripping it of its
+  annotations. We do this to avoid inadvertant errors and confusion
+  arising from the intended meaning of `INIT` values in annotations
+  inside functions.
+   *)
+
+  Definition stripAnn [v] (ls : lines tyD v)
     := concat (map (fun l => match l with
                              | inst _ as l0 => [ l0 ]
                              | _            => []
                              end)
                  ls).
 
-  Definition inline_text (la : list modular) : lines tyD v
-    := concat (map (fun a => match a with
-                             | instruction i => [i]
-                             | inline sl all => match eqprf sl with
-                                                | call fc vc => fun all0 => stripAnn (block (fc v all0))
-                                                end all
-                             end)
-                 la).
+  Definition inline_call (a : modular) : lines tyD v
+    := match a with
+       | instruction i => [i]
+       | inline sl all => match eqprf sl with
+                          | call fc vc => fun all0 => stripAnn (block (fc v all0))
+                          end all
+       end.
 
+  Definition inline_calls := mapMconcat inline_call.
 End Call.
 
+Arguments postC [tyD w].
 Arguments specBlock tyD w : clear implicits.
 Arguments modular tyD v : clear implicits.
 Arguments verFun tyD : clear implicits.
@@ -107,7 +115,7 @@ End ModularCode.
 Notation "'CALL' f 'WITH' a" := (inline f a) (at level 60).
 
 Notation "F 'DOES' Post" := ({| block := F;
-                                postC := fun _ : StoreP (Str _ _) => Post (*((fun (_ : StoreP str) => Post) : StoreP str -> Prop) : Pair str -> Prop*) |})
+                                postC := fun _ : StoreP (Str _ _) => Post |})
                               (at level 60).
 
 Ltac Pack f :=     refine (let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
