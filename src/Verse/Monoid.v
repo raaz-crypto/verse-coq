@@ -44,6 +44,7 @@ Ltac crush_monoid :=
          | [ H : ?X == _ |- context[?X] ] => rewrite H
          | [ |- context[ε] ] => try (rewrite left_identity); try (rewrite right_identity)
          | _ => intuition; try (apply associativity)
+         | [ |- _ == _ ] => try (rewrite symmetry)
          end.
 
 Ltac crush_morph_tac n :=
@@ -66,14 +67,63 @@ Proof.
   exact proper_oper.
 Qed.
 
-
 Definition mconcat {t}`{mon: Monoid t} : list t -> t
   := fun l => fold_left binop l ε.
+
+Add Parametric Morphism {t} `{Monoid t} (l : list t) : (fold_left binop l)
+    with signature (SetoidClass.equiv ==> SetoidClass.equiv) as foldleft_mor.
+Proof.
+  induction l; intros x y eqxy.
+  * trivial.
+  * apply IHl.
+    crush_monoid.
+Qed.
 
 Definition mapMconcat {A}{t}`{mon : Monoid t}
            (f : A -> t) (xs : list A)
   : t
   := mconcat (map f xs).
+
+Lemma foldleft_init {t}`{mon: Monoid t} l i1 i2 :
+  fold_left binop l (i1 ** i2) == i1 ** fold_left binop l i2.
+Proof.
+  revert i1 i2.
+  induction l; intro i.
+  * simpl.
+    crush_monoid.
+  * simpl.
+    intro.
+    rewrite <- associativity.
+    apply IHl.
+Qed.
+
+Lemma mapMconcat_app {A}{t}`{mon : Monoid t}
+      (f : A -> t) l1 l2
+  : mapMconcat f (l1 ++ l2) == mapMconcat f l1 ** mapMconcat f l2.
+Proof.
+  unfold mapMconcat, mconcat.
+  rewrite map_app.
+  rewrite fold_left_app.
+  induction l2.
+  * simpl.
+    now crush_monoid.
+  * simpl.
+    rewrite left_identity.
+    apply foldleft_init.
+Qed.
+
+Lemma mapMconcat_cons {A}{t}`{mon : Monoid t}
+      (f : A -> t) a l
+  : mapMconcat f (a :: l) == f a ** mapMconcat f l.
+Proof.
+  unfold mapMconcat, mconcat.
+  rewrite map_cons.
+  simpl.
+  rewrite left_identity.
+  rewrite <- (right_identity (f a)).
+  rewrite foldleft_init.
+  now rewrite right_identity.
+Qed.
 
 (** ** State transition.
 

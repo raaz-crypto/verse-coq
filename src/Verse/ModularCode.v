@@ -91,6 +91,18 @@ Section Call.
        end.
 
   Definition inline_calls := mapMconcat inline_call.
+
+  Lemma inline_instructions (ls : lines tyD v)
+    : inline_calls (map instruction ls) = ls.
+  Proof.
+    induction ls.
+    * trivial.
+    * unfold inline_calls.
+      rewrite map_cons, mapMconcat_cons.
+      fold inline_calls.
+      now rewrite IHls.
+  Qed.
+
 End Call.
 
 Arguments postC [tyD w].
@@ -274,3 +286,67 @@ Section ModProof.
 End ModProof.
 
 Arguments getCode [tyD sc].
+
+(* We need a way to abstract a basic modular code block into a
+`modCode` struct so as to be able to use our modular proof. *)
+
+Fixpoint splitAux [tyD]
+         [sc : Scope.type verse_type_system]
+         (l1 l2 : list (modular _ (memV sc))) {struct l2}
+  : option (modCode tyD sc)
+  := match l2 with
+     | []       => None
+     | ac :: tl => match ac with
+                   | inline f all => Some {| preB    := l1;
+                                             procC   := f;
+                                             procAll := all;
+                                             postB   := tl
+                                          |}
+                   | _            => splitAux (l1 ++ [ac]) tl
+                   end
+     end.
+
+Definition split [tyD]
+           [sc : Scope.type verse_type_system]
+           (l : list (modular _ (memV sc)))
+  : option (modCode tyD sc)
+  :=  splitAux [] l.
+
+(* Lastly we relate the abstraction created to the original object to
+be able to use it at all *)
+Lemma splitEq  [tyD] [sc : Scope.type verse_type_system]
+      (l : list (modular tyD (memV sc)))
+  : match split l with
+    | Some mc => inline_calls l = inline_calls (getCode mc)
+    | None    => True (* TODO : could be eq_refl l *)
+    end.
+Proof.
+  assert (cons_app : forall T t (l : list T), t :: l = [t] ++ l).
+  easy.
+  unfold split.
+  enough (H : forall l2 l1 : list (modular tyD (memV sc)),
+             match splitAux l1 l2 with
+             | Some mc => inline_calls (l1 ++ l2) = inline_calls (mc : list (modular _ _))
+             | None    => True
+             end).
+  apply H.
+
+  induction l2.
+  * easy.
+  * induction a.
+  + rewrite (cons_app _ (instruction l0) l2).
+    intro.
+    rewrite (app_assoc l1 [instruction l0] l2).
+    apply IHl2.
+  + unfold getCode.
+    simpl.
+    rewrite (cons_app _ _ l2).
+    unfold inline_calls.
+    intro.
+    repeat rewrite mapMconcat_app.
+    apply f_equal.
+    apply (f_equal (fun ls => ls ** mapMconcat _ _)).
+    pose (ii := inline_instructions).
+    unfold inline_calls in ii.
+    now rewrite ii.
+Qed.
