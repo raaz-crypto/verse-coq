@@ -127,3 +127,150 @@ Ltac Pack f :=     refine (let sc := fst (Scope.inferNesting (Scope.Cookup.speci
                           inSc   := sc;
                           vsub   := _;
                           eqprf  := call _ _ |}).
+
+(* TODO : Might be present in some standard library *)
+Fixpoint distinctL [T] (l : list T)
+  := let fix distH t l :=
+         match l with
+         | []         => True
+         | (hd :: tl) => hd <> t /\ distH t tl
+         end
+     in
+     match l with
+     | []         => True
+     | (hd :: tl) => distH hd tl /\ distinctL tl
+     end.
+
+Definition qualV [ts] (v : Variables.U ts) := sigT v.
+
+Definition qualify [ts] [v : Variables.U ts] [ty] (x : v ty)
+  : qualV v
+  := existT _ ty x.
+
+Definition distinctAll [ts] [sc : Scope.type ts]
+           [v : Variables.U ts]
+           (a : Scope.allocation v sc)
+  : Prop
+  := distinctL
+       ((fix alltolist [ts] [sc : Scope.type ts]
+             [v : Variables.U ts]
+             (a : Scope.allocation v sc) :=
+           match sc as sc0 return
+                 Scope.allocation _ sc0 -> list _ with
+           | []        => fun _  => []
+           | ty :: tsc => fun an => (qualify (hlist.hd an))
+                                    ::
+                                    (alltolist (hlist.tl an))
+           end a) ts sc v a).
+
+Import AnnotatedCode.
+
+Section ModProof.
+
+  Variable tyD : typeDenote verse_type_system.
+
+  Let tyd ty := typeTrans tyD (projT2 ty).
+
+  (* We want to avoid symbolic expression explosion by leveraging the
+  already packaged verified function calls we provide. Instead of
+  actually computing/inlining the transformation of a function body,
+  we replace it with an abstraction that esesntially clobbers all the
+  variables passed to the function and assigns to them brand new
+  symbolic values.
+
+  We will later fix it so that the post-condition of the function is
+  available on these new values. These will facilitate proofs of
+  assertions at the call site.
+  *)
+
+  Definition dummyProc [v] [sc : Scope.type verse_type_system]
+           (alloc : Scope.allocation v sc)
+           (dummyvals : memory tyd sc)
+    : transformation sc tyD
+    := fun _ => dummyvals.
+
+  Variable sc : Scope.type verse_type_system.
+
+  Let scv := memV sc.
+
+  (* We write our modular proof axiom for `modCode` instead of for a
+     syntactic shape - block ++ proc call ++ block
+
+     It just makes for cleaner code than massaging user code with a
+     lot of rewrites with associativity-like theorems from the List
+     module.
+
+     Later we write a function that processes code to look for a
+     `proc` and generate a `modCode` object from it. That opens up
+     application of our meta theorem.
+  *)
+
+  Record modCode := { preB   : list (modular tyD scv);
+
+                      procC  : verFun tyD;
+
+                      procAll : Scope.allocation scv (inSc procC);
+
+                      postB  : list (modular tyD scv)
+                    }.
+
+  Coercion getCode (mc : modCode) : list (modular tyD scv)
+    := preB mc
+            ++ map (@instruction _ _)
+                   (inline_call (inline (procC mc) (procAll mc)))
+            ++ postB mc.
+
+  Let Str := str (State := HlistMem sc tyD).
+
+  Local Definition pc (vf : verFun tyD) : ann tyD (memV (inSc vf))
+    := match eqprf vf with
+       | call f _ => postC (f _ (all_membership _))
+       end.
+
+  (* We will be providing a way to prove the de facto verification
+     condition of annotated code with calls -
+
+     `getProp (linesDenote (inline_calls <modCode>))`
+
+     Since we do this one call at a time, successive rewrites would
+     prepend both a precondition and an already computed
+     transformation/intruction to the next such `getProp`.
+   *)
+
+  Variable cpre : Str -> Prop. (* precondition from previous lemma applications *)
+  Variable dpre : mline scv tyD (HlistMem _ _). (* semantic machine line corresponding to previous lemma applications *)
+  Variable f : verFun tyD.
+  Variable alloc : Scope.allocation scv (inSc f).
+  Variable preb postb : list (modular tyD scv).
+
+  Let fSpec dummyVals := {| requirement := fun _ => True;
+                            transform   := dummyProc alloc dummyVals;
+                            guarantee   := srSnd (lineDenote (annot (pc f)))
+                         |}.
+
+  Let lDummyProc dummyVals := transform (lift (fSpec dummyVals) alloc alloc).
+
+  (* `spec` basically encapsulates the post-condition of the function
+  for the abstraction we replace it with
+  *)
+  Let spec dummyVals i := VCi (fSpec dummyVals) i.
+
+
+  Axiom modularProof
+    :forall (linear : distinctAll alloc)
+            (modP : forall dummyVals,
+                let mpre := linesDenote (inline_calls preb) in
+                getProp (fun str => cpre str /\ spec dummyVals (gets alloc (srFst (dpre ** mpre) str)))
+                        ((mpre
+                           ** justInst (H := HlistMem _ _) (lDummyProc dummyVals))
+                           ** linesDenote (inline_calls postb)))
+
+    ,
+      getProp cpre (dpre ** linesDenote (inline_calls ({| preB := preb;
+                                                         procC := f;
+                                                         procAll := alloc;
+                                                         postB := postb |}))).
+
+End ModProof.
+
+Arguments getCode [tyD sc].

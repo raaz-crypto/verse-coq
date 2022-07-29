@@ -140,6 +140,12 @@ Section Machine.
   Definition VC {inp out}(sr : subroutine inp out) : Prop
     := forall i : memory inp, requirement sr i -> guarantee sr (i, transform sr i).
 
+  (* We define an alternative version of VC that is composable with
+  other conditions on the initial state *)
+  Definition VCi {inp out}(sr : subroutine inp out) (i : memory inp)
+    : Prop
+    := requirement sr i -> guarantee sr (i, transform sr i).
+
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
   Definition local_update {fam out : family} (outslice : slice fam out)
@@ -202,8 +208,13 @@ Section Machine.
 
 End Machine.
 
+Arguments gets [type A fam fam'].
+Arguments puts [type A fam fam'].
+Arguments transform [type A inp out].
 Arguments lift [type A fam inp out].
 Arguments VC [type A inp out].
+Arguments VCi [type A inp out].
+Arguments local_update [type A fam out].
 
 
 Notation "[machine| e |]" := e (e custom machine).
