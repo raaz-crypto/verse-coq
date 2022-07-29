@@ -115,11 +115,11 @@ Require Verse.Ast.
 
 Module ModularCode.
 
-  Instance statement_modular tyD (v : VariableT)
+  #[export] Instance statement_modular tyD (v : VariableT)
     : AST_maps (list (Ast.statement v)) (modular tyD v)
     := {| CODE := map (Basics.compose (@instruction _ _) (@inst _ _)) |}.
 
-  Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
+  #[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
     := {| CODE := fun an => [ instruction (annot an) ] |}.
 
 End ModularCode.

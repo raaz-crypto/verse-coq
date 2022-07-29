@@ -15,6 +15,7 @@ Require Import Verse.AnnotatedCode.
 Require Import Verse.ModularCode.
 Require Import Verse.ProofTac.
 
+Import AnnotatedCode.
 Import ModularCode.
 
 Set Implicit Arguments.

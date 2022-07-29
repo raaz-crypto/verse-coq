@@ -48,12 +48,12 @@ Arguments codeDenote [tyD sc].
 
 Module AnnotatedCode.
 
-  Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+  #[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
     := {|
          CODE := List.map (@inst _ _)
        |}.
 
-  Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+  #[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
     := {| CODE := fun an => [ annot an ] |}.
 
 End AnnotatedCode.
