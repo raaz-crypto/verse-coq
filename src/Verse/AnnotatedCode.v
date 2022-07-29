@@ -1,4 +1,5 @@
 Require Import Verse.TypeSystem.
+Require Import Verse.Language.Pretty.
 Require Import Verse.Language.Types.
 Require Import Verse.Ast.
 Require Scope.
@@ -45,8 +46,20 @@ Arguments lineDenote [tyD sc].
 Arguments linesDenote [tyD sc].
 Arguments codeDenote [tyD sc].
 
+Module AnnotatedCode.
 
-Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 59).
+  Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+    := {|
+         CODE := List.map (@inst _ _)
+       |}.
+
+  Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+    := {| CODE := fun an => [ annot an ] |}.
+
+End AnnotatedCode.
+
+
+(*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
 (* Notations for annotations *)
 
 Notation "'OLDVAL' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
@@ -54,7 +67,7 @@ Notation "'OLDVAL' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
           and of b itvector arithmetic notations *)
 Notation "'VAL' v" := (snd (oldAndNew (str := Str _ _)) _ v) (at level 50).
 
-Notation "'ASSERT' P" := (inline (fun _ : StoreP (Str _ _) => P)) (at level 100).
+Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at level 100).
 
 Require Import Verse.Scope.
 Section CodeGen.

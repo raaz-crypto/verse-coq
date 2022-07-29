@@ -253,6 +253,7 @@ Notation "'MOVE' B 'to' A [ N ]"
   := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (in custom verse at level 200, A ident).
  *)
 
+Class AST_maps (A B : Type) := { CODE : A -> list B }.
 
 (** * The verse tactic.
 
