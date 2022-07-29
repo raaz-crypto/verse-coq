@@ -23,14 +23,14 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v of type Word8.
+  Variable A B C : v of type Word8.
 
   Definition f (w : VariableT) (a b : w of type Word8)
     : specBlock bvDenote w.
 
     verse (CODE [code| a := b + b |]
                 DOES
-           (VAL a = OLDVAL b + OLDVAL b)
+          (VAL a = OLDVAL b + OLDVAL b)
           )%list%verse.
   Defined.
 
@@ -39,20 +39,30 @@ Section Code.
     realize.
   Defined.
 
+  Fixpoint repeat (n : nat) : list (modular bvDenote v).
+    exact match n with
+          | 0 => []
+          | S n => (CODE [code| B := A; A := `6` |]
+                    ++
+                    (ASSERT VAL B = OLDVAL A)
+                    ++
+                    [ CALL verF WITH (- A, B -) ])%verse
+                                                  ++ repeat n
+          end%list.
+    Defined.
+
   Definition test : list (modular bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
-        CODE [code| A := A; B := B |]
+        CODE [code| A := A; B := B; C := `0` |]
         ++
         [ CALL verF WITH (- A, B -) ]
         ++
-        (ASSERT VAL A = OLDVAL B + OLDVAL B)
-        ++
-        CODE [code| B := A; A := `6` |]
-        ++
-        [ CALL verF WITH (- A, B -) ]
+        repeat 1
         ++
         (ASSERT VAL A = OLDVAL B + OLDVAL B + OLDVAL B + OLDVAL B)
+        ++
+        (ASSERT VAL A = VAL C)
       )%list%verse.
   Defined.
 
@@ -62,10 +72,8 @@ Definition toProve : Prop.
   getProp test.
 Defined.
 
-(*Require Import CoarseMeta.*)
 Require Import ProofTac.
+
 Definition proof : toProve.
-
-  realize.
-
+  time mrealize.
 Abort.
