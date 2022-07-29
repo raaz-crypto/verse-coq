@@ -273,7 +273,7 @@ Section ModProof.
             (modP : forall dummyVals,
                 let mpre := linesDenote (inline_calls preb) in
                 getProp (fun str => cpre str /\ spec dummyVals (gets alloc (srFst (dpre ** mpre) str)))
-                        ((mpre
+                        ((dpre ** mpre
                            ** justInst (H := HlistMem _ _) (lDummyProc dummyVals))
                            ** linesDenote (inline_calls postb)))
 
