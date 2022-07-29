@@ -350,3 +350,37 @@ Proof.
     unfold inline_calls in ii.
     now rewrite ii.
 Qed.
+
+(* Extracting Prop object from annotated code *)
+
+Require Import Verse.Scope.
+
+Section CodeGen.
+
+  Variable sc : Scope.type verse_type_system.
+
+  Variable tyD : typeDenote verse_type_system.
+
+  Variable ac : forall v, Scope.scoped v sc (list (modular tyD v)).
+
+  Definition cp := linesDenote (inline_calls (fillMemV ac)).
+
+  Definition tpt := getProp (fun _ => True) cp.
+
+End CodeGen.
+
+Global Hint Unfold tpt : Wrapper.
+Global Hint Unfold cp  : Wrapper.
+
+Arguments cp sc [tyD].
+Arguments getProp [sc tyD].
+Arguments tpt sc [tyD].
+
+Ltac getProp func
+  := (let cv := constr:(fun v => Scope.curry_vec (func v)) in
+      let level0 := constr:(Scope.Cookup.specialise cv) in
+      let level0break := (eval hnf in (Scope.inferNesting level0)) in
+      let pvs := constr:(fst level0break) in
+      let level1 := constr:(snd level0break) in
+      let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
+      exact (tpt (pvs ++ lvs)%list cv)).

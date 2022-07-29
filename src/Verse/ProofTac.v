@@ -1,10 +1,12 @@
 (** Tactics for proof goal presentation *)
-
-Require Import Verse.BitVector.
-Require Import Verse.Machine.BitVector.
-Require Import Verse.BitVector.ArithRing.
-Require Import Verse.Utils.hlist.
 Require Import Verse.AnnotatedCode.
+Require Import Verse.BitVector.
+Require Import Verse.BitVector.ArithRing.
+Require Import Verse.Machine.BitVector.
+Require Import Verse.ModularCode.
+Require Import Verse.Monoid.
+Require Import Verse.Utils.hlist.
+
 Require Import List.
 Import List.ListNotations.
 
@@ -97,3 +99,19 @@ Ltac simplify := unfold getProp;
 (*| |- context f [ ?F _ ] => unfold F*)
 
 Ltac realize := unwrap; simplify.
+
+Ltac modProof :=
+  let rec inner := try match goal with
+                       | |- context [getProp _ (linesDenote (inline_calls ?l))]
+                         => rewrite <- (left_identity (linesDenote (inline_calls l))); inner
+                       | |- context [getProp _ (_ ** linesDenote (inline_calls ?l))]
+                         => rewrite (splitEq l); apply modularProof;
+                            [> unfold distinctAll; simpl; easy
+                            | breakStore; simpl; inner
+                            ]
+                       end
+
+  in inner.
+
+Ltac mrealize := unwrap; modProof;
+                 try simplify.

@@ -216,6 +216,7 @@ Arguments VC [type A inp out].
 Arguments VCi [type A inp out].
 Arguments local_update [type A fam out].
 
+#[global] Hint Unfold VC : Wrapper.
 
 Notation "[machine| e |]" := e (e custom machine).
 Notation "x" := x     (in custom machine at level 0, x global).
