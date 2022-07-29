@@ -32,6 +32,8 @@ Section Hlist.
   apply updated_index.
   Defined.
 
+  Definition annotation := AbstractMachine.assertion (H := HlistMem).
+  Definition transformation := AbstractMachine.instruction (H := HlistMem).
   Definition denotation := mline memV tyD HlistMem.
 
 End Hlist.
