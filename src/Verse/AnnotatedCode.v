@@ -72,7 +72,6 @@ Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at 
 Require Import Verse.Scope.
 Section CodeGen.
 
-  Variable n : nat.
   Variable sc : Scope.type verse_type_system.
 
   Variable tyD : typeDenote verse_type_system.
@@ -94,14 +93,27 @@ Section CodeGen.
                           let (i,a) := ml in
                           a (st, st).
 
-  Definition tpt := getProp (fun _ => True) cp.
-(*
-  Definition getProp (ml : @mline _ (Scope.scopeVar sc) tyD)
-    := forall (st : str), snd (ml (scopeStore _ _))
-                              ({| store := st |}, {| store := st |}).
+  (* Note that getProp acts on `mline`s and the setoid equivalence for
+  `mline` is not the Leibniz equality. We frequently prefer to do
+  rewrites with monoidal laws inside a `getProp` and prove those
+  resulting conditions. The following provides the facility for the
+  same.
+  *)
+  Global Add Parametric Morphism pc : (getProp pc) with signature
+      (SetoidClass.equiv ==> Basics.flip Basics.impl) as getProper.
+  Proof.
+    destruct x, y.
+    unfold Basics.impl.
+    intro mlEq.
+    destruct mlEq as [iEq aEq].
+    rewrite iEq.
+    unfold getProp.
+    intros P0 st pcst.
+    now apply aEq, P0.
+  Defined.
 
-  Definition tpt := getProp cp.
-*)
+  Definition tpt := getProp (fun _ => True) cp.
+
 End CodeGen.
 
 Global Hint Unfold tpt : Wrapper.
@@ -110,6 +122,8 @@ Global Hint Unfold cp  : Wrapper.
 Arguments cp sc [tyD].
 Arguments getProp [sc tyD].
 Arguments tpt sc [tyD].
+
+
 
 (* Extracting Prop object from annotated code *)
 
