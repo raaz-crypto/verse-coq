@@ -48,7 +48,7 @@ Section Code.
                     (ASSERT VAL B = OLDVAL A)
                     ++
                     [ CALL verF WITH (- A, B -) ])%verse
-                                                  ++ repeat n
+                    ++ repeat n
           end%list.
     Defined.
 
@@ -81,12 +81,12 @@ Abort.
 
 (** Timing notes -
     mrealize
-    repeat 5  - 21 sec
+    repeat 5  - 21 sec  1 sec
     repeat 6  - 38 sec
-    repeat 7  - 45 sec
-    repeat 8  - 75 sec
-    repeat 9  - 101 sec
-    repeat 10 - 133 sec
+    repeat 7  - 45 sec  8 sec
+    repeat 8  - 75 sec  11 sec
+    repeat 9  - 101 sec 13 sec
+    repeat 10 - 133 sec 18 sec
 
     Realize
     repeat 5  - .3 sec
