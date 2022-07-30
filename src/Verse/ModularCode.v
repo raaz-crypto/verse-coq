@@ -274,67 +274,115 @@ End ModProof.
 Arguments getCode [tyD sc].
 
 (* We need a way to abstract a basic modular code block into a
-`modCode` struct so as to be able to use our modular proof. *)
-
+   `modCode` struct so as to be able to use our modular proof. *)
 Fixpoint splitAux [tyD]
-         [sc : Scope.type verse_type_system]
-         (l1 l2 : list (modular _ (memV sc))) {struct l2}
-  : option (modCode tyD sc)
-  := match l2 with
-     | []       => None
-     | ac :: tl => match ac with
-                   | inline f all => Some {| preB    := l1;
-                                             procC   := f;
-                                             procAll := all;
-                                             postB   := tl
-                                          |}
-                   | _            => splitAux (l1 ++ [ac]) tl
-                   end
+  [sc : Scope.type verse_type_system]
+  (l1 : list (modular _ (memV sc)))
+  (l2 : lines tyD (memV sc))
+  : modCode tyD sc
+  := match l1 with
+     | []       => ([], l2)
+     | ac :: tl =>
+         match ac with
+         | inline f all  => let x := splitAux tl [] in
+                            ({| preB := l2;
+                                procC := f;
+                                procAll := all |}
+                               :: fst x
+                              , snd x)
+         | instruction i => splitAux tl (l2 ++ [i])
+         end
      end.
 
 Definition split [tyD]
            [sc : Scope.type verse_type_system]
            (l : list (modular _ (memV sc)))
-  : option (modCode tyD sc)
-  :=  splitAux [] l.
+  : modCode tyD sc
+  :=  splitAux l [].
 
 (* Lastly we relate the abstraction created to the original object to
 be able to use it at all *)
 Lemma splitEq  [tyD] [sc : Scope.type verse_type_system]
       (l : list (modular tyD (memV sc)))
-  : match split l with
-    | Some mc => inline_calls l = inline_calls (getCode mc)
-    | None    => True (* TODO : could be eq_refl l *)
-    end.
-Proof.
-  assert (cons_app : forall T t (l : list T), t :: l = [t] ++ l).
-  easy.
-  unfold split.
-  enough (H : forall l2 l1 : list (modular tyD (memV sc)),
-             match splitAux l1 l2 with
-             | Some mc => inline_calls (l1 ++ l2) = inline_calls (mc : list (modular _ _))
-             | None    => True
-             end).
-  apply H.
+  : inline_calls l = inline_calls (getCode (split l)).
 
-  induction l2.
-  * easy.
-  * induction a.
-  + rewrite (cons_app _ (instruction l0) l2).
-    intro.
-    rewrite (app_assoc l1 [instruction l0] l2).
-    apply IHl2.
-  + unfold getCode.
+Proof.
+  (*Lemma*)
+  assert (inline_inst : forall v (l : lines tyD v),
+             inline_calls (map (@instruction tyD v) l) = l).
+  (*Proof*)
+  intros v0 l0.
+  induction l0.
+    easy.
+
+    simpl. unfold inline_calls.
+    rewrite mapMconcat_cons.
     simpl.
-    rewrite (cons_app _ _ l2).
-    unfold inline_calls.
-    intro.
-    repeat rewrite mapMconcat_app.
-    apply f_equal.
-    apply (f_equal (fun ls => ls ** mapMconcat _ _)).
-    pose (ii := inline_instructions).
-    unfold inline_calls in ii.
-    now rewrite ii.
+    rewrite <- IHl0 at 2.
+    trivial.
+  (*Qed*)
+
+  (*Lemma*)
+  assert (inline_nil : forall v, @inline_calls tyD v [] = []).
+  (*Proof*)
+  trivial.
+  (*Qed*)
+
+  (*Lemma*)
+  assert (splitAuxCall : forall f all l1 (l2 : lines tyD (memV sc)),
+             splitAux (inline f all :: l1) l2
+             = ({| preB := l2;
+                  procC := f;
+                  procAll := all |}
+                  :: fst (splitAux l1 [])
+                 , snd (splitAux l1 []))).
+  trivial.
+  (*Qed*)
+
+  (*Lemma*)
+  assert (getCode_cons : forall (b : lines tyD (memV sc)) f all cs pb,
+             getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb)
+             = map (@instruction _ _) (b ++ inline_calls [inline f all]) ++ getCode (cs, pb)).
+  intros.
+  unfold getCode.
+  simpl.
+  rewrite mapMconcat_cons.
+  simpl.
+  unfold binop.
+  unfold list_append_binop.
+  repeat rewrite map_app.
+  now repeat rewrite app_assoc.
+  (*Qed*)
+
+  enough (splitAuxEq : forall l1 (l2 : lines tyD (memV sc)),
+             l2 ++ inline_calls l1 = inline_calls (splitAux l1 l2)).
+  apply (splitAuxEq _ []).
+
+  induction l1.
+  * intro l2.
+    unfold getCode.
+    rewrite inline_inst.
+    now rewrite app_nil_r.
+  * intro l2.
+    induction a.
+    + unfold inline_calls.
+      rewrite mapMconcat_cons.
+      unfold binop.
+      rewrite app_assoc.
+      now rewrite IHl1.
+    + rewrite splitAuxCall.
+      rewrite getCode_cons.
+      unfold inline_calls.
+      rewrite mapMconcat_cons.
+      rewrite mapMconcat_app.
+      unfold inline_calls in inline_inst, IHl1.
+      rewrite inline_inst.
+      unfold binop, list_append_binop.
+      repeat rewrite app_assoc.
+      f_equal.
+      rewrite <- surjective_pairing.
+      rewrite <- IHl1.
+      apply app_nil_l.
 Qed.
 
 (* Extracting Prop object from annotated code *)
