@@ -217,71 +217,57 @@ Section ModProof.
      application of our meta theorem.
   *)
 
-  Record modCode := { preB   : list (modular tyD scv);
+  Record preCall := { preB   : lines tyD scv;
+                      procC   : verFun tyD;
+                      procAll : Scope.allocation scv (inSc procC) }.
 
-                      procC  : verFun tyD;
-
-                      procAll : Scope.allocation scv (inSc procC);
-
-                      postB  : list (modular tyD scv)
-                    }.
+  Definition modCode : Type := list preCall * lines tyD scv.
 
   Coercion getCode (mc : modCode) : list (modular tyD scv)
-    := preB mc
-            ++ map (@instruction _ _)
-                   (inline_call (inline (procC mc) (procAll mc)))
-            ++ postB mc.
+    := map (@instruction _ _ )
+         (mapMconcat (fun pc =>
+                        (preB pc
+                           ++ inline_calls [inline (procC pc) (procAll pc)])) (fst mc)
+            ++ snd mc).
 
   Let Str := str (State := HlistMem sc tyD).
 
-  Local Definition pc (vf : verFun tyD) : ann tyD (memV (inSc vf))
+  Local Definition PC (vf : verFun tyD) : ann tyD (memV (inSc vf))
     := match eqprf vf with
        | call f _ => postC (f _ (all_membership _))
        end.
 
-  (* We will be providing a way to prove the de facto verification
-     condition of annotated code with calls -
+  Let fSpec pc dummyVals := {| requirement := fun _ => True;
+                              transform   := dummyProc (procAll pc) dummyVals;
+                              guarantee   := srSnd (lineDenote (annot (PC (procC pc))))
+                            |}.
 
-     `getProp (linesDenote (inline_calls <modCode>))`
-
-     Since we do this one call at a time, successive rewrites would
-     prepend both a precondition and an already computed
-     transformation/intruction to the next such `getProp`.
-   *)
-
-  Variable cpre : Str -> Prop. (* precondition from previous lemma applications *)
-  Variable dpre : mline scv tyD (HlistMem _ _). (* semantic machine line corresponding to previous lemma applications *)
-  Variable f : verFun tyD.
-  Variable alloc : Scope.allocation scv (inSc f).
-  Variable preb postb : list (modular tyD scv).
-
-  Let fSpec dummyVals := {| requirement := fun _ => True;
-                            transform   := dummyProc alloc dummyVals;
-                            guarantee   := srSnd (lineDenote (annot (pc f)))
-                         |}.
-
-  Let lDummyProc dummyVals := transform (lift (fSpec dummyVals) alloc alloc).
+  Let lDummyProc pc dummyVals := transform (lift (fSpec pc dummyVals) (procAll pc) (procAll pc)).
 
   (* `spec` basically encapsulates the post-condition of the function
   for the abstraction we replace it with
-  *)
-  Let spec dummyVals i := VCi (fSpec dummyVals) i.
+   *)
+  Let spec pc dummyVals := VCi (fSpec pc dummyVals).
 
+  Fixpoint modProofAux cpre mpre cs pb
+    := match cs with
+       | pc :: cst =>
+           let mstep := linesDenote (preB pc) in
+           distinctAll (procAll pc) /\
+           forall dummyVals, modProofAux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
+                                          (mpre ** mstep ** justInst (H := HlistMem _ _)
+                                                (lDummyProc pc dummyVals))
+                                          cst pb
+       | []        =>   getProp cpre (mpre ** linesDenote pb)
+       end.
 
-  Axiom modularProof
-    :forall (linear : distinctAll alloc)
-            (modP : forall dummyVals,
-                let mpre := linesDenote (inline_calls preb) in
-                getProp (fun str => cpre str /\ spec dummyVals (gets alloc (srFst (dpre ** mpre) str)))
-                        ((dpre ** mpre
-                           ** justInst (H := HlistMem _ _) (lDummyProc dummyVals))
-                           ** linesDenote (inline_calls postb)))
+  Definition modularProof (mc : modCode)
+    := modProofAux (fun _ => True) ε (fst mc) (snd mc).
 
-    ,
-      getProp cpre (dpre ** linesDenote (inline_calls ({| preB := preb;
-                                                         procC := f;
-                                                         procAll := alloc;
-                                                         postB := postb |}))).
+  Axiom modularize
+    : forall mc, modularProof mc
+                 ->
+                   getProp (fun _ => True) (linesDenote (inline_calls mc)).
 
 End ModProof.
 
