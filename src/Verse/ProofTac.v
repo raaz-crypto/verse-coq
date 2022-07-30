@@ -102,15 +102,15 @@ Ltac realize := unwrap; simplify.
 
 Ltac modProof :=
   let rec inner := try match goal with
-                       | |- context [getProp _ (linesDenote (inline_calls ?l))]
-                         => rewrite <- (left_identity (linesDenote (inline_calls l))); inner
-                       | |- context [getProp _ (_ ** linesDenote (inline_calls ?l))]
-                         => rewrite (splitEq l); apply modularProof;
-                            [> unfold distinctAll; simpl; easy
-                            | breakStore; simpl; inner
-                            ]
-                       end
-
+                     | |- context [getProp _ (linesDenote (inline_calls ?l))]
+                       => rewrite (splitEq l); apply modularize;
+                          unfold modularProof; simpl;
+                          repeat match goal with
+                            | |- distinctAll _ /\ _ =>  constructor;
+                                                        [> unfold distinctAll; simpl; easy
+                                                        | breakStore ]
+                            end
+                     end
   in inner.
 
 Ltac mrealize := unwrap; modProof;
