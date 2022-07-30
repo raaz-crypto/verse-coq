@@ -130,14 +130,16 @@ Section Machine.
   Record subroutine (inp out : family) :=
     { requirement : memory inp -> Prop;
       transform   : memory inp -> memory out;
-      guarantee   : memory inp -> memory out -> Prop;
+      guarantee   : memory inp * memory out -> Prop;
     }.
 
   Arguments requirement {inp out}.
   Arguments transform   {inp out}.
   Arguments guarantee   {inp out}.
 
-  Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
+  Definition VC {inp out}(sr : subroutine inp out) : Prop
+    := forall i : memory inp, requirement sr i -> guarantee sr (i, transform sr i).
+
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
   Definition local_update {fam out : family} (outslice : slice fam out)
@@ -151,8 +153,8 @@ Section Machine.
     let trans := fun v => puts outslice (transform sr (gets inslice v)) v in
     {| requirement := fun v => requirement sr (gets inslice v);
        transform   := trans;
-       guarantee   := fun start stop =>
-                       guarantee sr (gets inslice start) (gets outslice stop)
+       guarantee   := fun st => let (start, stop) := st in
+                       guarantee sr (gets inslice start, gets outslice stop)
                        /\
                        local_update outslice trans
     |}.
@@ -183,7 +185,8 @@ Section Machine.
     : subroutine inp [tau]%list
            := {| requirement := fun _ => True;
                  transform   := fun v => [hlist.uncurry f v]%hlist;
-                 guarantee    := fun old new => get hfirst new = hlist.uncurry f old
+                 guarantee    := fun st =>
+                                   let (old, new) := st in get hfirst new = hlist.uncurry f old
               |}.
 
 
@@ -199,6 +202,8 @@ Section Machine.
 
 End Machine.
 
+Arguments lift [type A fam inp out].
+Arguments VC [type A inp out].
 
 
 Notation "[machine| e |]" := e (e custom machine).
