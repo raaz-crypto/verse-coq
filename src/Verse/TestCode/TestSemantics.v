@@ -27,7 +27,7 @@ Section Code.
          ++
          CODE [code| A := B |]
          ++
-         (ASSERT OLDVAL B = VAL A + 1)
+         (ASSERT INIT B = VAL A + 1)
          ++
          CODE [code| A := B |])%list%verse.
   Defined.

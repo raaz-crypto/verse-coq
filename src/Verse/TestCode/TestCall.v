@@ -31,7 +31,7 @@ Section Code.
 
     verse (CODE [code| a := b + b |]
                 DOES
-          (VAL a = OLDVAL b + OLDVAL b)
+          (VAL a = INIT b + INIT b)
           )%list%verse.
   Defined.
 
@@ -45,7 +45,7 @@ Section Code.
           | 0 => []
           | S n => (CODE [code| B := A; A := `6` |]
                     ++
-                    (ASSERT VAL B = OLDVAL A)
+                    (ASSERT VAL B = INIT A)
                     ++
                     [ CALL verF WITH (- A, B -) ])%verse
                     ++ repeat n
@@ -61,7 +61,7 @@ Section Code.
         ++
         repeat 1
         ++
-        (ASSERT VAL A = OLDVAL B + OLDVAL B + OLDVAL B + OLDVAL B)
+        (ASSERT VAL A = INIT B + INIT B + INIT B + INIT B)
         ++
         (ASSERT VAL A = VAL C)
       )%list%verse.

@@ -62,7 +62,7 @@ End AnnotatedCode.
 (*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
 (* Notations for annotations *)
 
-Notation "'OLDVAL' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
+Notation "'INIT' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
 (* TODO - VAL level has to be changed to be stronger than that of '='
           and of b itvector arithmetic notations *)
 Notation "'VAL' v" := (snd (oldAndNew (str := Str _ _)) _ v) (at level 50).
