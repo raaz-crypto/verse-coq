@@ -29,7 +29,7 @@ Section Code.
   Definition f (w : VariableT) (a b : w of type Word8)
     : specBlock bvDenote w.
 
-    verse (CODE [code| a := b + b |]
+    verse ([code| a := b + b |]
                 DOES
           (VAL a = INIT b + INIT b)
           )%list%verse.
@@ -43,7 +43,7 @@ Section Code.
   Fixpoint repeat (n : nat) : list (modular bvDenote v).
     exact match n with
           | 0 => []
-          | S n => (CODE [code| B := A; A := `6` |]
+          | S n => ([code| B := A; A := `6` |]
                     ++
                     (ASSERT VAL B = INIT A)
                     ++
@@ -55,7 +55,7 @@ Section Code.
   Definition test : list (modular bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
-        CODE [code| A := A; B := B; C := `0` |]
+        [code| A := A; B := B; C := `0` |]
         ++
         [ CALL verF WITH (- A, B -) ]
         ++

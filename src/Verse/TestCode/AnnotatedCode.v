@@ -18,14 +18,14 @@ Section Code.
 
   Definition test : lines bvDenote v.
     verse (
-        CODE [code| A := B;
+        [code| A := B;
                     B := `5`;
                     C[0][0] := `8`
              |]
           ++
           (ASSERT VAL A = INIT B)
           ++
-          CODE [code| B := A; A := `6` |]
+          [code| B := A; A := `6` |]
           ++
           (ASSERT VAL B = INIT B)
       )%list%verse.

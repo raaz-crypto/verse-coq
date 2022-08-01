@@ -21,15 +21,15 @@ Section Code.
 
   Definition test : lines bvDenote v.
     verse
-      (CODE [code| A := B |]
+      ([code| A := B |]
          ++
          (ASSERT VAL A = VAL B)
          ++
-         CODE [code| A := B |]
+         [code| A := B |]
          ++
          (ASSERT INIT B = VAL A + 1)
          ++
-         CODE [code| A := B |])%list%verse.
+         [code| A := B |])%list%verse.
   Defined.
 
 End Code.

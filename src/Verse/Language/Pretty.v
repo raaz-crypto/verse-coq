@@ -173,12 +173,16 @@ Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < 
 Declare Scope verse_scope.
 Delimit Scope verse_scope with verse.
 
+Class AST_maps (A B : Type) := { CODE : A -> list B }.
+
+#[export] Instance code_id (v : VariableT)
+  : AST_maps (code v) (statement v) := { CODE := id }.
 
 Declare Custom Entry verse.
 (* Notation "'[code|' e  '|]'" := e (e custom verse). *)
 Notation "A [ N ] " := (idx A (@exist _ _ N%nat _)) (in custom verse at level 29, N constr).
 Notation "[verse| e |]" := e (e custom verse).
-Notation "[code| x ; .. ; y |]":= (cons x .. (cons y nil) ..) (x custom verse, y custom verse,
+Notation "[code| x ; .. ; y |]":= (CODE (cons x .. (cons y nil) ..)) (x custom verse, y custom verse,
                                       format "[code| '[    '  '//' x ; '//' .. ; '//' y '//' ']' '//' '|]'"
                                     ).
 Notation "x" := x (in custom verse at level 0, x global).
@@ -252,8 +256,6 @@ Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 7
 Notation "'MOVE' B 'to' A [ N ]"
   := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (in custom verse at level 200, A ident).
  *)
-
-Class AST_maps (A B : Type) := { CODE : A -> list B }.
 
 (** * The verse tactic.
 
