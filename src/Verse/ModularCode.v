@@ -49,8 +49,7 @@ Section Call.
      Even if we use `HlistMachine.tyd` instead of `tyd` in the definition of sub! *)
   Definition funSub sc (fc : func sc)
     := let (bl, pc)   := fc (memV sc) (all_membership sc) in
-       {| requirement := fun _ => True;
-          transform   := srFst (linesDenote bl);
+       {| transform   := srFst (linesDenote bl);
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
 
@@ -237,9 +236,8 @@ Section ModProof.
        | call f _ => postC (f _ (all_membership _))
        end.
 
-  Let fSpec pc dummyVals := {| requirement := fun _ => True;
-                              transform   := dummyProc (procAll pc) dummyVals;
-                              guarantee   := srSnd (lineDenote (annot (PC (procC pc))))
+  Let fSpec pc dummyVals := {| transform   := dummyProc (procAll pc) dummyVals;
+                               guarantee   := srSnd (lineDenote (annot (PC (procC pc))))
                             |}.
 
   Let lDummyProc pc dummyVals := transform (lift (fSpec pc dummyVals) (procAll pc) (procAll pc)).
