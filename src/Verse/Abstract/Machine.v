@@ -128,23 +128,21 @@ Section Machine.
       gets s (puts s mem start)  = mem.
 
   Record subroutine (inp out : family) :=
-    { requirement : memory inp -> Prop;
-      transform   : memory inp -> memory out;
+    { transform   : memory inp -> memory out;
       guarantee   : memory inp * memory out -> Prop;
     }.
 
-  Arguments requirement {inp out}.
   Arguments transform   {inp out}.
   Arguments guarantee   {inp out}.
 
   Definition VC {inp out}(sr : subroutine inp out) : Prop
-    := forall i : memory inp, requirement sr i -> guarantee sr (i, transform sr i).
+    := forall i : memory inp, guarantee sr (i, transform sr i).
 
   (* We define an alternative version of VC that is composable with
   other conditions on the initial state *)
   Definition VCi {inp out}(sr : subroutine inp out) (i : memory inp)
     : Prop
-    := requirement sr i -> guarantee sr (i, transform sr i).
+    := guarantee sr (i, transform sr i).
 
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
@@ -157,8 +155,7 @@ Section Machine.
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
     : subroutine fam fam :=
     let trans := fun v => puts outslice (transform sr (gets inslice v)) v in
-    {| requirement := fun v => requirement sr (gets inslice v);
-       transform   := trans;
+    {| transform   := trans;
        guarantee   := fun st => let (start, stop) := st in
                        guarantee sr (gets inslice start, gets outslice stop)
                        /\
@@ -189,8 +186,7 @@ Section Machine.
 
   Definition updateSub {tau :type}{inp : family}(f : function inp tau)
     : subroutine inp [tau]%list
-           := {| requirement := fun _ => True;
-                 transform   := fun v => [hlist.uncurry f v]%hlist;
+           := {| transform   := fun v => [hlist.uncurry f v]%hlist;
                  guarantee    := fun st =>
                                    let (old, new) := st in get hfirst new = hlist.uncurry f old
               |}.
