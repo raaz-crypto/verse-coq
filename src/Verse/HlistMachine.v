@@ -14,7 +14,7 @@ Section Hlist.
 
   Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
-  Definition memV : Variables.U ts := fun ty => member sc ty.
+  Definition memV : Variables.U ts := member sc.
 
   (* Generic scoped code instantiated with `memV` *)
   Definition fillMemV [CODE : Variables.U ts -> Type]
