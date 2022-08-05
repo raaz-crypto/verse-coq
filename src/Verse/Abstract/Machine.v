@@ -127,6 +127,16 @@ Section Machine.
   Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
       gets s (puts s mem start)  = mem.
 
+  (** * Subroutines, annotations and their verification *)
+
+
+  (** A subroutine in this machine is a transformation that reads a
+      set of input cells and writes back to a set of output cells with
+      an additional guarantee annotated onto the
+      transformation. Having an annotation does not ensure that the
+      transformation meets the guarantee; for this you will have to
+      look at _verified subroutines_ captured by the type
+      [vsubroutine].  *)
   Record subroutine (inp out : family) :=
     { transform   : memory inp -> memory out;
       guarantee   : memory inp * memory out -> Prop;
@@ -144,6 +154,8 @@ Section Machine.
   (** The verification condition associated with a subroutine *)
   Definition VC {inp out}(sr : subroutine inp out) := forall i, guaranteeOn sr i.
 
+  (** A verified subroutine, i.e. the type of all subroutines whose VC
+      condition has been proved.  *)
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
   Definition local_update {fam out : family} (outslice : slice fam out)
