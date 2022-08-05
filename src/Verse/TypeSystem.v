@@ -22,6 +22,7 @@ Structure typeSystem :=
   TypeSystem { typeOf       :> kind -> Type;
                arrayType    : nat -> endian -> typeOf direct -> typeOf memory;
                constOf      : typeOf direct -> Type;
+               (* TODO: const and operators can be combined where constants are just 0 arity operators *)
                operator     : typeOf direct -> nat -> Type
              }.
 (** A type existentially quantified by its kind. Such existentlly quantified types
