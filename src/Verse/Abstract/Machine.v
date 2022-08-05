@@ -135,14 +135,14 @@ Section Machine.
   Arguments transform   {inp out}.
   Arguments guarantee   {inp out}.
 
-  Definition VC {inp out}(sr : subroutine inp out) : Prop
-    := forall i : memory inp, guarantee sr (i, transform sr i).
+  (** The _guarantee_ of a subroutine _on_ a given input *)
 
-  (* We define an alternative version of VC that is composable with
-  other conditions on the initial state *)
-  Definition VCi {inp out}(sr : subroutine inp out) (i : memory inp)
+  Definition guaranteeOn {inp out}(sr : subroutine inp out) (i : memory inp)
     : Prop
     := guarantee sr (i, transform sr i).
+
+  (** The verification condition associated with a subroutine *)
+  Definition VC {inp out}(sr : subroutine inp out) := forall i, guaranteeOn sr i.
 
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
@@ -209,7 +209,7 @@ Arguments puts [type A fam fam'].
 Arguments transform [type A inp out].
 Arguments lift [type A fam inp out].
 Arguments VC [type A inp out].
-Arguments VCi [type A inp out].
+Arguments guaranteeOn [type A inp out].
 Arguments local_update [type A fam out].
 
 #[global] Hint Unfold VC : Wrapper.

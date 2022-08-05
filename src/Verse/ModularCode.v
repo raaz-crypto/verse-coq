@@ -245,7 +245,7 @@ Section ModProof.
   (* `spec` basically encapsulates the post-condition of the function
   for the abstraction we replace it with
    *)
-  Let spec pc dummyVals := VCi (fSpec pc dummyVals).
+  Let spec pc dummyVals := guaranteeOn (fSpec pc dummyVals).
 
   Fixpoint modProofAux cpre mpre cs pb
     := match cs with
