@@ -46,17 +46,15 @@ Arguments lineDenote [tyD sc].
 Arguments linesDenote [tyD sc].
 Arguments codeDenote [tyD sc].
 
-Module AnnotatedCode.
+(* Mapping instances for custom syntax notations *)
 
-  #[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
-    := {|
-         CODE := List.map (@inst _ _)
-       |}.
+#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+  := {|
+    CODE := List.map (@inst _ _)
+  |}.
 
-  #[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
-    := {| CODE := fun an => [ annot an ] |}.
-
-End AnnotatedCode.
+#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+  := {| CODE := fun an => [ annot an ] |}.
 
 
 (*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)

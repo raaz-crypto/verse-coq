@@ -112,16 +112,15 @@ Arguments verFun tyD : clear implicits.
 Require Import Verse.Language.Pretty.
 Require Verse.Ast.
 
-Module ModularCode.
+(* Mapping instances for custom syntax notations *)
 
-  #[export] Instance statement_modular tyD (v : VariableT)
-    : AST_maps (list (Ast.statement v)) (modular tyD v)
-    := {| CODE := map (Basics.compose (@instruction _ _) (@inst _ _)) |}.
+#[export] Instance statement_modular tyD (v : VariableT)
+  : AST_maps (list (Ast.statement v)) (modular tyD v)
+  := {| CODE := map (Basics.compose (@instruction _ _) (@inst _ _)) |}.
 
-  #[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
-    := {| CODE := fun an => [ instruction (annot an) ] |}.
+#[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
+  := {| CODE := fun an => [ instruction (annot an) ] |}.
 
-End ModularCode.
 
 Notation "'CALL' f 'WITH' a" := (inline f a) (at level 60).
 
