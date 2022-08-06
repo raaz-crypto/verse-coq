@@ -11,8 +11,6 @@ Import ListNotations.
 
 Set Implicit Arguments.
 
-Import AnnotatedCode.
-
 Section Code.
 
   Variable v : VariableT.
