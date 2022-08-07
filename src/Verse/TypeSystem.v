@@ -103,6 +103,31 @@ Definition injector ts : compiler ts ts :=
      arrayCompatibility := fun _ _ _ => eq_refl
   |}.
 
+(**
+
+Our semantics machine needs to be executed in Coq and hence the
+machine types are types in Coq. We therefore have the following type
+system.
+
+*)
+
+
+(** The universe of  n-ary operator on a type T *)
+Fixpoint nary T (n : nat):=
+  match n with
+  | 0   => T
+  | S m => T -> nary T m
+  end.
+
+Definition abstract_type_system : typeSystem
+  := {| typeOf    := fun k => Type;
+        arrayType := fun n _ ty =>  Vector.t  ty n;
+        constOf   := fun ty => ty;
+        operator  := nary
+     |}.
+
+Definition typeDenote ts := TypeSystem.translator ts abstract_type_system.
+
 
 (** ** Translating/compiling under type translation/compilation
 
