@@ -2,7 +2,7 @@ Require Import Verse.BitVector.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
-Require Import Verse.AbstractMachine.
+Require Import Verse.HlistMachine.
 Require Import Verse.AnnotatedCode.
 
 Set Implicit Arguments.

@@ -4,7 +4,7 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
 Require Import Verse.AnnotatedCode.
-Require Import Verse.AbstractMachine.
+Require Import Verse.HlistMachine.
 
 Require Import List.
 Import ListNotations.

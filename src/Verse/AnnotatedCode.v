@@ -4,7 +4,6 @@ Require Import Verse.Language.Types.
 Require Import Verse.Ast.
 Require Scope.
 Require Import Verse.Monoid.
-Require Import Verse.AbstractMachine.
 Require Import Verse.HlistMachine.
 
 Require Import List.

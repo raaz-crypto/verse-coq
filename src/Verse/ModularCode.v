@@ -10,7 +10,6 @@ instructions to package target specific instructions with intended
 state transformations and guarantees will allow for proofs with such
 instructions.  *)
 
-Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
 Require Import Verse.Ast.
 Require Import Verse.HlistMachine.

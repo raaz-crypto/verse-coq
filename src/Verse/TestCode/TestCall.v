@@ -10,7 +10,6 @@ Require Import Verse.
    Might have to change `Require Import Verse` and `Require Import
    Verse.Language` to `Require Export`s.
  *)
-Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
 Require Import Verse.ModularCode.
 Require Import Verse.ProofTac.
