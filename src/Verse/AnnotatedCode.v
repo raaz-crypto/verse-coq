@@ -15,6 +15,15 @@ Section AnnotatedCode.
   Variable tyD : typeDenote verse_type_system.
 
   Definition Str v := Variables.renaming v (Variables.sigParam tyD).
+
+  (* We need the pair of stores an annotation references to be wrapped
+  into a typeclass to provide notations for annotations
+   *)
+  Definition Pair A : Type := A * A.
+  Class StoreP str := { oldAndNew : Pair str }.
+
+  Coercion Build_StoreP : Pair >-> StoreP.
+
   Definition ann v := StoreP (Str v) -> Prop.
 
   Inductive line (v : Variables.U verse_type_system) :=
