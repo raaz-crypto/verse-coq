@@ -21,12 +21,11 @@ Fixpoint hlamn [T] (A : T -> Type) (sc : list T)
      | n => fun f => forall a, hlamn _ _ (fun x => f (a::x)%hlist)
      end.
 
-Lemma forallhlist [T] (A : T -> Type) sc f
+Definition forallhlist [T] (A : T -> Type) sc f
   : hlamn A sc f
-    ->
-    forall x : hlist A sc, f x.
+    -> forall x : hlist A sc, f x.
   induction sc.
-  apply casenil.
+  now apply casenil.
 
   intros.
   pose (IHsc _ (X (hlist.hd x)) (hlist.tl x)).
@@ -35,18 +34,10 @@ Lemma forallhlist [T] (A : T -> Type) sc f
 Qed.
 
 Ltac breakStore :=
-  let st := fresh "st" in
   match goal with
-  | |- forall _, _ => intro st; simpl in st; revert st
+  | |- forall _, _  => refine (forallhlist _ _ _ _)
   end;
-  (match goal with
-   | |- forall _ : _ ?f ?l, _  => refine (forallhlist f l _ _)
-     (* This refine is very fragile. Break at the drop of a hat.
-        `apply`, for eg, doesn't work here!
-        Maybe find a more robust solution instead
-      *)
-   end;
-   unfold hlamn; intros).
+  unfold hlamn; intros.
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
