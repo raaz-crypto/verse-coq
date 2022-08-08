@@ -383,6 +383,33 @@ Goal to_print (propagate L).
 Abort.
 (* end hide *)
 
+(** ** Conditional swapping
+
+Given two field elements A , B and a bit b we want to swap the values
+in A and B depending on whether the bit is 1. In order to avoid side
+channel information we do the swapping by essentially performing (A,
+B) := b B + (1 - b) A, b A + (1 - b) B).
+
+ *)
+
+Section Swapping.
+
+  Context {progvar : VariableT}.
+
+  Variable TA  : progvar of type Word64.
+  Variable b   : progvar of type Word64.
+  Variable A B : fe progvar.
+
+  Program Definition swap : code progvar :=
+    foreachLimb (fun i _ => [code|
+                          TA   := A[i];
+                          A[i] := b * B[i] + (`1` - b) * A[i];
+                          B[i] := b * TA   + (`1` - b) * B[i]
+      |]).
+
+End Swapping.
+
+
 
 (** ** Field arithmetic operations.
 
