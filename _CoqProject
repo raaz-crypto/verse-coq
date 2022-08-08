@@ -1,6 +1,5 @@
 -R _build/default/src Verse
 _build/default/src/Verse.v
-_build/default/src/Verse/AbstractMachine.v
 _build/default/src/Verse/AnnotatedCode.v
 _build/default/src/Verse/Ast.v
 # _build/default/src/Verse/CoarseMeta.v

@@ -6,7 +6,6 @@
           ; Verse.Abstract.Language
 	  Verse.Abstract.Machine
           Verse.Ast
-          Verse.AbstractMachine
           Verse.AnnotatedCode
 	  Verse.Error
           Verse.FFI.Raaz
