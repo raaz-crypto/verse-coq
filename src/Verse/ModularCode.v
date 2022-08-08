@@ -227,7 +227,7 @@ Section ModProof.
                            ++ inline_calls [inline (procC pc) (procAll pc)])) (fst mc)
             ++ snd mc).
 
-  Let Str := str (State := HlistMem sc tyD).
+  Let Str := str sc tyD.
 
   Local Definition PC (vf : verFun tyD) : ann tyD (memV (inSc vf))
     := match eqprf vf with
@@ -251,7 +251,7 @@ Section ModProof.
            let mstep := linesDenote (preB pc) in
            distinctAll (procAll pc) /\
            forall dummyVals, modProofAux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
-                                          (mpre ** mstep ** justInst (H := HlistMem _ _)
+                                          (mpre ** mstep ** justInst
                                                 (lDummyProc pc dummyVals))
                                           cst pb
        | []        =>   getProp cpre (mpre ** linesDenote pb)
@@ -393,7 +393,7 @@ Section CodeGen.
 
   Variable ac : forall v, Scope.scoped v sc (list (modular tyD v)).
 
-  Definition cp := linesDenote (inline_calls (fillMemV ac)).
+  Definition cp := linesDenote (inline_calls (fillMemV sc ac)).
 
   Definition tpt := getProp (fun _ => True) cp.
 
