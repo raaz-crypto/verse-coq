@@ -415,8 +415,14 @@ Module Variables.
 
   Arguments coCompile [src tgt] cr [v s].
 
-  Definition kVariable (ts : typeSystem) := forall k, ts k -> Type.
-  Definition sigParam [ts] (kv : kVariable ts) : U ts
-    := fun T => kv _ (projT2 T).
+  (** A particularly interesting example of a variable type for a type
+      system is the one given by its type system.
+   *)
+  Definition ofTypeDenote [ts] (tyD : typeDenote ts) : U ts := fun T => tyD _ (projT2 T).
 
 End Variables.
+
+(** We make the ofTypeDenote map a coercion which ensures that we can
+    use a typeDenote whereever a varaible is expected *)
+
+Coercion Variables.ofTypeDenote : typeDenote >-> Variables.U.
