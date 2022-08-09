@@ -37,7 +37,14 @@ Section Call.
   Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
   Local Definition sub (sc : Scope.type verse_type_system)
-    := subroutine tyd sc sc.
+    := subroutine (tyD : Variables.U verse_type_system) sc sc.
+
+  (** TODO: Unfortunately the corresponding verified stuff cannot be
+      used due to universe polymorphism problem.  fixing this would
+      clean things up further.
+   *)
+  Local Definition vsub (sc : Scope.type verse_type_system)
+    := vsubroutine (tyD : Variables.U verse_type_system) sc sc.
 
   Definition func sc
     := forall w, Scope.allocation w sc
