@@ -204,8 +204,24 @@ Module LExpr.
   Arguments compile [src tgt] cr [v ty].
 
 
+  (** ** Evaluation.
+      An Lexpr over a typeDenote can be evaluated.
+   *)
+  Section Evaluation.
+    Context {ts : typeSystem}{tyD : typeDenote ts}.
 
-
+    Definition eval {T} (l : lexpr tyD T)
+      : tyD _ (projT2 T)
+    := match l in (lexpr _ s) return (tyD (projT1 s) (projT2 s)) with
+       | var x => x
+       | @deref _ _ ty b e v idx =>
+           Vector.nth_order
+             (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
+                  arrayCompatibility tyD b e ty
+               in v)
+             (proj2_sig idx)
+       end.
+  End Evaluation.
 End LExpr.
 
 Module Expr.
@@ -273,6 +289,24 @@ Module Expr.
            (e : expr (Variables.Universe.coCompile cr v) ty)
     := extract (translate cr e).
   Arguments compile [src tgt] cr [v ty].
+
+
+  (** ** Evaluation.
+      An expression over a typeDenote can be evaluated.
+   *)
+  Section Evaluation.
+    Context {ts : typeSystem}{tyD : typeDenote ts}.
+
+    Fixpoint eval {T} (e : expr tyD T)
+      :  tyD _ (projT2 T)
+      := match e with
+         | Ast.cval c => constTrans tyD c
+         | Ast.valueOf lv => LExpr.eval lv
+         | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
+         | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
+         end.
+
+  End Evaluation.
 
 End Expr.
 

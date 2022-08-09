@@ -125,34 +125,6 @@ End Hlist.
 Arguments val [ts sc tyD] _ [ty].
 Arguments update [ts sc tyD ty].
 
-Require Import Verse.TypeSystem.
-
-Section Evaluation.
-  Context {ts : typeSystem}
-          (tyD : typeDenote ts).
-
-  Definition evalLexp {T} (l : lexpr tyD T)
-    : tyD _ (projT2 T)
-    := match l in (lexpr _ s) return (tyD (projT1 s) (projT2 s)) with
-       | var x => x
-       | @deref _ _ ty b e v idx =>
-           Vector.nth_order
-             (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
-                  arrayCompatibility tyD b e ty
-               in v)
-             (proj2_sig idx)
-       end.
-
-  Fixpoint eval {T} (e : expr tyD T)
-    :  tyD _ (projT2 T)
-    := match e with
-       | Ast.cval c => constTrans tyD c
-       | Ast.valueOf lv => evalLexp lv
-       | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
-       | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
-       end.
-End Evaluation.
-
 
 (** * Meanings of program statements as machine transformations *)
 Module Internals.
@@ -166,7 +138,7 @@ Module Internals.
     Definition lexpr T := Ast.lexpr (variable sc) T.
 
     Definition evalE {T} (st : state sc tyD) (e : expr T) :  tyD _ (projT2 T)
-      := eval tyD (Expr.rename (val st) e).
+      := Ast.Expr.eval (Expr.rename (val st) e).
 
     Definition assign {T} (l : lexpr T) (e : expr T)(st : state sc tyD)
       : state sc tyD :=
