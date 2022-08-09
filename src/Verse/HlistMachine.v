@@ -131,7 +131,7 @@ Section Evaluation.
   Context {ts : typeSystem}
           (tyD : typeDenote ts).
 
-  Definition evalLexp {T} (l : lexpr (Variables.sigParam tyD) T)
+  Definition evalLexp {T} (l : lexpr tyD T)
     : tyD _ (projT2 T)
     := match l in (lexpr _ s) return (tyD (projT1 s) (projT2 s)) with
        | var x => x
@@ -143,7 +143,7 @@ Section Evaluation.
              (proj2_sig idx)
        end.
 
-  Fixpoint eval {T} (e : expr (Variables.sigParam tyD) T)
+  Fixpoint eval {T} (e : expr tyD T)
     :  tyD _ (projT2 T)
     := match e with
        | Ast.cval c => constTrans tyD c

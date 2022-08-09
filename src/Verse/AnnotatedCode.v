@@ -13,7 +13,7 @@ Section AnnotatedCode.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Definition Str v := Variables.renaming v (Variables.sigParam tyD).
+  Definition Str v := Variables.renaming v tyD.
 
   (* We need the pair of stores an annotation references to be wrapped
   into a typeclass to provide notations for annotations
