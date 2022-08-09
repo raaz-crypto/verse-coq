@@ -6,7 +6,6 @@ Require Import Verse.Scope.
 Require Import Verse.Utils.hlist.
 Require Import Verse.Abstract.Machine.
 Require Import Verse.Monoid.
-Require Import Verse.Monoid.Semantics.
 
 Require Import PeanoNat.
 
@@ -16,43 +15,76 @@ Import EqNotations.
 (* end hide *)
 
 
-(** Verse code is written universally quantified over the variable
-universe. For the purpose of verification, we instantiate the generic
-Verse code with a "universal" variable dictated by its scope. We can
-also give a computable State for such variables.  *)
+(**
+
+Verification of verse code is carried out by annotating code with
+verification conditions. To begin the process, we need to interpret
+verse types as types in Gallina using a type denotation. Given such a
+denotation, the PHOAS style verse code is interpreted as interpreted
+as instructions to an abstract machine whose states are captured by
+hlists as given by the module [Verse.Abstract.Machine].  The hlist
+machine is purely defined by the scope of the code that we are
+interpreting.  The memory cells then act as the variables in this
+context and unlike the generic variable, they can be checked for
+equality (hetrogeneous though) and the associated state transitions
+are computable.
+
+
+The "universal" nature of this machine means that this is a natural
+semantics to give to our code and hence verification here is
+meaningful.
+
+ *)
 
 Section Hlist.
 
   Context [ts : typeSystem] (sc : Scope.type ts).
-
   Variable tyD : typeDenote ts.
 
-  Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
-  Definition memV : Variables.U ts := member sc.
+  Local Definition tyDenote ty := typeTrans tyD (projT2 ty).
 
-  (* Generic scoped code instantiated with `memV` *)
-  Definition fillMemV [CODE : Variables.U ts -> Type]
-             (genC : forall v, scoped v sc (CODE v)) :=
-    uncurry (genC memV) (all_membership sc).
+  (** The memory of the hlist machine is the state *)
+  Definition state    := Machine.memory tyDenote sc.
+
+  (** The associated variable is just addresses into that memory *)
+  Definition variable : Variables.U ts := Machine.address sc.
+
+  (** The function that specialises the generic variable in the scoped
+      code with the above variable type *)
+
+
+  Definition specialise [CODE : Variables.U ts -> Type]
+             (genC : forall v, scoped v sc (CODE v)) : CODE variable :=
+    uncurry (genC variable) (all_membership sc).
 
   Local Definition type := typeOf ts.
-  Let tyd ty := typeTrans tyD (projT2 ty).
 
-  Definition str := Machine.memory tyd sc.
-
-  Definition val (m : str) ty (x : memV ty)
+  (** Compute the value of a variable *)
+  Definition val (m : state) ty (x : variable ty)
     := index x m.
 
-  Definition update ty (x : memV ty) f (m : str)
+  (** Update the value of a variable *)
+  Definition update ty (x : variable ty) f (m : state)
     := update x m (f (index x m)).
 
-  Definition transformation := str -> str.
+  (** The state transformation *)
+  Definition transformation := state -> state.
 
-  Definition assertion := str*str -> Prop.
+  (** An assertion is a predicate on state. Here we have a product of
+      state because we would like to assert things based on the
+      initial value of the state. The first component of the product
+      is therefore the initial state.
+   *)
+  Definition assertion := state * state -> Prop.
+
+  (** The transformations form a monoid and acts on assertions in a
+      natural way by transforming the second component state
+      pair. Recall that the first component is the initial state and
+      hence transformation acts trivially on it *)
 
   Global Instance assertion_action_op : LActionOp transformation assertion :=
-    fun inst ap => fun oAn => ap (fst oAn, inst (snd oAn)).
+    fun tr asrt => fun oAn => asrt (fst oAn, tr (snd oAn)).
 
   Add Parametric Morphism : lact with signature
       SetoidClass.equiv (A:=transformation) ==> SetoidClass.equiv (A:=assertion) ==> SetoidClass.equiv (A:=assertion) as lact_morp.
@@ -121,6 +153,8 @@ Section Evaluation.
        end.
 End Evaluation.
 
+
+(** * Meanings of program statements as machine transformations *)
 Module Internals.
 
   Section MachineType.
@@ -128,17 +162,15 @@ Module Internals.
     Variable sc : Scope.type ts.
     Variable tyD : typeDenote ts.
 
-    Let v := memV sc.
+    Definition expr  T := Ast.expr  (variable sc) T.
+    Definition lexpr T := Ast.lexpr (variable sc) T.
 
-    Definition expr  T := Ast.expr  v T.
-    Definition lexpr T := Ast.lexpr v T.
-
-    Definition evalE {T} (st : str sc tyD) (e : expr T) :  tyD _ (projT2 T)
+    Definition evalE {T} (st : state sc tyD) (e : expr T) :  tyD _ (projT2 T)
       := eval tyD (Expr.rename (val st) e).
 
-    Definition assign {T} (l : lexpr T) (e : expr T)(st : str sc tyD)
-      : str sc tyD :=
-      match l in Ast.lexpr _ T0 return  tyD _ (projT2 T0) -> str _ _ with
+    Definition assign {T} (l : lexpr T) (e : expr T)(st : state sc tyD)
+      : state sc tyD :=
+      match l in Ast.lexpr _ T0 return  tyD _ (projT2 T0) -> state _ _ with
       | Ast.var reg  => fun v => update reg (fun _ => v) st
       | Ast.deref a idx => fun v => let arr := val st a in
                                 let arrp := Vector.replace_order
@@ -156,24 +188,24 @@ Module Internals.
                (l : lexpr (existT _ _ T))
                (o : operator ts T 2)
                (e : expr (existT _ _ T))
-      : str sc tyD -> str sc tyD
+      : state sc tyD -> state sc tyD
       := let rhs := Ast.binOp o (Ast.valueOf l) e in
          assign l rhs.
 
     Definition uniopUpdate {T}
                (l : lexpr (existT _ _ T))
                (o : operator ts T 1)
-      : str sc tyD -> str sc tyD
+      : state sc tyD -> state sc tyD
       := let rhs := Ast.uniOp o (Ast.valueOf l) in
          assign l rhs.
 
-    Program Definition move {T}(l : lexpr T)(r : v T) :=
-      match l in Ast.lexpr _ T0 return v T0 -> _ with
+    Program Definition move {T}(l : lexpr T)(r : variable sc T) :=
+      match l in Ast.lexpr _ T0 return variable sc T0 -> _ with
       | var _ as l1     => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
       | deref _ _ as l1 => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
       end r.
 
-    Definition denoteInst {T}(inst : Ast.instruction v  T) : transformation sc tyD
+    Definition denoteInst {T}(inst : Ast.instruction (variable sc) T) : transformation sc tyD
       := match inst with
          | Ast.assign l e => assign l e
          | Ast.moveTo l r => move   l r
@@ -182,13 +214,26 @@ Module Internals.
          | Ast.clobber _     => fun x => x
          end.
 
-    Definition denoteStmt (stmt : Ast.statement v) : transformation sc tyD
+    Definition denoteStmt (stmt : Ast.statement (variable sc) ) : transformation sc tyD
       := denoteInst (projT2 stmt).
 
   End MachineType.
 
 End Internals.
 
+(** ** The verification monoid.
+
+Verification of annotated code involves working with both
+transformations as well as assertions. Transformations form a monoid
+under composition and assertions form a monoid under the /\ operation.
+It turns out that the verification process can also be seen as working
+with a monoid namely the semi direct product got by the action of the
+transformation on the assertions.
+
+
+
+
+*)
 Section Machine.
 
   Variable ts : typeSystem.
