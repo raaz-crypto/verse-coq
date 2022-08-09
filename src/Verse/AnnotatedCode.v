@@ -32,19 +32,19 @@ Section AnnotatedCode.
 
   Definition lines v := list (line v).
 
-  Definition lineDenote [sc] (l : line (memV sc))
+  Definition lineDenote [sc] (l : line (HlistMachine.variable sc))
     : mline sc tyD
     := match l with
        | inst _ s   => justInst (Internals.denoteStmt _ _ _ s)
        | annot _ a => justAssert (fun sp => a ((val (fst sp), val (snd sp)) : Pair _))
        end.
 
-  Definition linesDenote [sc] (ls : lines (memV sc))
+  Definition linesDenote [sc] (ls : lines (HlistMachine.variable sc))
     := mapMconcat (@lineDenote _) ls.
 
   Definition codeDenote sc (ls : forall v, Scope.scoped v sc (lines v))
     : mline sc tyD
-    := let sls := fillMemV sc ls in linesDenote sls.
+    := let sls := HlistMachine.specialise sc ls in linesDenote sls.
 
 End AnnotatedCode.
 
@@ -94,7 +94,7 @@ Section CodeGen.
 
   Definition getProp (pc : _ -> Prop)
              (ml : mline sc tyD)
-    := forall (st : str sc tyD), pc st
+    := forall (st : HlistMachine.state sc tyD), pc st
                           ->
                           let (i,a) := ml in
                           a (st, st).

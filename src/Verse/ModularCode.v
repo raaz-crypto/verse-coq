@@ -47,7 +47,7 @@ Section Call.
   (* Specifying the type of `funSub` explicitly as `sub (scp fc)` doesn't work.
      Even if we use `HlistMachine.tyd` instead of `tyd` in the definition of sub! *)
   Definition funSub sc (fc : func sc)
-    := let (bl, pc)   := fc (memV sc) (all_membership sc) in
+    := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
        {| transform   := srFst (linesDenote bl);
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
@@ -200,7 +200,7 @@ Section ModProof.
 
   Variable sc : Scope.type verse_type_system.
 
-  Let scv := memV sc.
+  Let scv := HlistMachine.variable sc.
 
   (* We write our modular proof axiom for `modCode` instead of for a
      syntactic shape - block ++ proc call ++ block
@@ -227,9 +227,9 @@ Section ModProof.
                            ++ inline_calls [inline (procC pc) (procAll pc)])) (fst mc)
             ++ snd mc).
 
-  Let Str := str sc tyD.
+  Let Str := HlistMachine.state sc tyD.
 
-  Local Definition PC (vf : verFun tyD) : ann tyD (memV (inSc vf))
+  Local Definition PC (vf : verFun tyD) : ann tyD (HlistMachine.variable (inSc vf))
     := match eqprf vf with
        | call f _ => postC (f _ (all_membership _))
        end.
@@ -273,8 +273,8 @@ Arguments getCode [tyD sc].
    `modCode` struct so as to be able to use our modular proof. *)
 Fixpoint splitAux [tyD]
   [sc : Scope.type verse_type_system]
-  (l1 : list (modular _ (memV sc)))
-  (l2 : lines tyD (memV sc))
+  (l1 : list (modular _ (HlistMachine.variable sc)))
+  (l2 : lines tyD (HlistMachine.variable sc))
   : modCode tyD sc
   := match l1 with
      | []       => ([], l2)
@@ -292,14 +292,14 @@ Fixpoint splitAux [tyD]
 
 Definition split [tyD]
            [sc : Scope.type verse_type_system]
-           (l : list (modular _ (memV sc)))
+           (l : list (modular _ (HlistMachine.variable sc)))
   : modCode tyD sc
   :=  splitAux l [].
 
 (* Lastly we relate the abstraction created to the original object to
 be able to use it at all *)
 Lemma splitEq  [tyD] [sc : Scope.type verse_type_system]
-      (l : list (modular tyD (memV sc)))
+      (l : list (modular tyD (HlistMachine.variable sc)))
   : inline_calls l = inline_calls (getCode (split l)).
 
 Proof.
@@ -325,7 +325,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (splitAuxCall : forall f all l1 (l2 : lines tyD (memV sc)),
+  assert (splitAuxCall : forall f all l1 (l2 : lines tyD (HlistMachine.variable sc)),
              splitAux (inline f all :: l1) l2
              = ({| preB := l2;
                   procC := f;
@@ -336,7 +336,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (getCode_cons : forall (b : lines tyD (memV sc)) f all cs pb,
+  assert (getCode_cons : forall (b : lines tyD (HlistMachine.variable sc)) f all cs pb,
              getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb)
              = map (@instruction _ _) (b ++ inline_calls [inline f all]) ++ getCode (cs, pb)).
   intros.
@@ -350,7 +350,7 @@ Proof.
   now repeat rewrite app_assoc.
   (*Qed*)
 
-  enough (splitAuxEq : forall l1 (l2 : lines tyD (memV sc)),
+  enough (splitAuxEq : forall l1 (l2 : lines tyD (HlistMachine.variable sc)),
              l2 ++ inline_calls l1 = inline_calls (splitAux l1 l2)).
   apply (splitAuxEq _ []).
 
@@ -393,7 +393,7 @@ Section CodeGen.
 
   Variable ac : forall v, Scope.scoped v sc (list (modular tyD v)).
 
-  Definition cp := linesDenote (inline_calls (fillMemV sc ac)).
+  Definition cp := linesDenote (inline_calls (HlistMachine.specialise sc ac)).
 
   Definition tpt := getProp (fun _ => True) cp.
 
