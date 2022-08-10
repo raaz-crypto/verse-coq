@@ -39,10 +39,6 @@ Section Call.
   Local Definition sub (sc : Scope.type verse_type_system)
     := subroutine (tyD : Variables.U verse_type_system) sc sc.
 
-  (** TODO: Unfortunately the corresponding verified stuff cannot be
-      used due to universe polymorphism problem.  fixing this would
-      clean things up further.
-   *)
   Local Definition vsub (sc : Scope.type verse_type_system)
     := vsubroutine (tyD : Variables.U verse_type_system) sc sc.
 
@@ -59,15 +55,15 @@ Section Call.
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
 
-  Inductive equiv : forall [T], T -> forall [sc], vsubroutine tyd sc sc -> Type :=
+  Inductive equiv : forall [T], T -> forall [sc], vsub sc -> Type :=
   | call : forall [sc] (fc : func sc)
                   (vc : VC (funSub sc fc)), equiv fc (exist _ _ vc).
 
   Record verFun := { inTy   : Scope.type verse_type_system -> Type;
                      inSc   : Scope.type verse_type_system;
                      inLine : inTy inSc;
-                     vsub   : vsubroutine tyd inSc inSc;
-                     eqprf  : @equiv _ inLine inSc vsub }.
+                     verSub : vsub inSc;
+                     eqprf  : @equiv _ inLine inSc verSub }.
 
   Inductive modular :=
   | instruction   : line tyD v -> modular
@@ -141,7 +137,7 @@ Ltac Pack f :=     refine (let sc := fst (Scope.inferNesting (Scope.Cookup.speci
                                             (st := sc)
                                             (f%function w);
                           inSc   := sc;
-                          vsub   := _;
+                          verSub := _;
                           eqprf  := call _ _ |}).
 
 (* TODO : Might be present in some standard library *)

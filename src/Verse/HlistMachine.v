@@ -42,10 +42,8 @@ Section Hlist.
   Variable tyD : typeDenote ts.
 
 
-  Local Definition tyDenote ty := typeTrans tyD (projT2 ty).
-
   (** The memory of the hlist machine is the state *)
-  Definition state    := Machine.memory tyDenote sc.
+  Definition state    := Machine.memory (tyD : Variables.U ts) sc.
 
   (** The associated variable is just addresses into that memory *)
   Definition variable : Variables.U ts := Machine.address sc.
