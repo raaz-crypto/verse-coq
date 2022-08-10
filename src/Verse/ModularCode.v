@@ -34,26 +34,22 @@ Section Call.
   Arguments block [w].
   Arguments postC [w].
 
-  Local Definition tyd ty := typeTrans tyD (projT2 ty).
-
-  Local Definition sub (sc : Scope.type verse_type_system)
+  Let sub (sc : Scope.type verse_type_system)
     := subroutine (tyD : Variables.U verse_type_system) sc sc.
 
-  Local Definition vsub (sc : Scope.type verse_type_system)
+  Let vsub (sc : Scope.type verse_type_system)
     := vsubroutine (tyD : Variables.U verse_type_system) sc sc.
 
   Definition func sc
     := forall w, Scope.allocation w sc
                  -> specBlock w.
 
-
-  (* Specifying the type of `funSub` explicitly as `sub (scp fc)` doesn't work.
-     Even if we use `HlistMachine.tyd` instead of `tyd` in the definition of sub! *)
-  Definition funSub sc (fc : func sc)
+  Definition funSub sc (fc : func sc) : sub sc
     := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
        {| transform   := srFst (linesDenote bl);
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
+
 
   Inductive equiv : forall [T], T -> forall [sc], vsub sc -> Type :=
   | call : forall [sc] (fc : func sc)
@@ -181,8 +177,6 @@ Section ModProof.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Let tyd ty := typeTrans tyD (projT2 ty).
-
   (* We want to avoid symbolic expression explosion by leveraging the
   already packaged verified function calls we provide. Instead of
   actually computing/inlining the transformation of a function body,
@@ -197,7 +191,7 @@ Section ModProof.
 
   Definition dummyProc [v] [sc : Scope.type verse_type_system]
            (alloc : Scope.allocation v sc)
-           (dummyvals : memory tyd sc)
+           (dummyvals : memory (tyD : Variables.U _) sc)
     : transformation sc tyD
     := fun _ => dummyvals.
 
@@ -386,8 +380,8 @@ Qed.
 
 (* Extracting Prop object from annotated code *)
 
-Require Import Verse.Scope.
 
+Require Import Verse.Scope.
 Section CodeGen.
 
   Variable sc : Scope.type verse_type_system.
@@ -396,6 +390,7 @@ Section CodeGen.
 
   Variable ac : forall v, Scope.scoped v sc (list (modular tyD v)).
 
+  (* TODO: This is really a bad name particularly because it is being used outside (is it ?). *)
   Definition cp := linesDenote (inline_calls (HlistMachine.specialise sc ac)).
 
   Definition tpt := getProp (fun _ => True) cp.
