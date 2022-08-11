@@ -463,6 +463,10 @@ Section Addition.
   Program Definition addAssign : code progvar :=
     foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
 
+  Definition addAssignSmall (small : expr progvar of type Word64) : code progvar.
+    verse([code| A[0] += small |]).
+  Defined.
+
 End Addition.
 
 (** ** Multiplication
@@ -586,6 +590,18 @@ Section Multiplication.
 
   Definition mult   := foreachLimb multUpdate.
   Definition square := foreachLimb sqUpdate.
+
+
+  Definition multN (n : N) : code progvar.
+    verse (
+        match n with
+        | 2%N => foreachLimb (fun i _ => [code| A[i] := B[i] << `1` |])
+        | 4%N => foreachLimb (fun i _ => [code| A[i] := B[i] << `2` |])
+        | _ => foreachLimb (fun i _ => [code| A[i] := B[i] * `n`  |])
+        end
+      ).
+  Defined.
+
 End Multiplication.
 
 (* begin hide *)
