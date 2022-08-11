@@ -1,0 +1,135 @@
+#+TITLE: Explicit formula for curve25519 computation.
+
+The curve C : y² = x³ + A x² + x
+
+
+* X25519 Diffie-Hellman.
+
+
+The curve is such that if P = (x,y) ∈ E(C) then -P = (x, -y) ∈
+E(C). Since we use only the x-coordinate, we do not need to
+distinguish the points P and -P.
+
+
+Therefore the rule is given points P and Q find and R such that R ∈
+Line(P,Q) ∩ E(C). Let y = m x + c be the line through P and Q. We have
+m = (y₁ - y₂)/(x₁ - x₂). Substituting in C and realising that
+x(P+Q) + x(P) + x(Q) should be the negative of the x²-coefficient we have.
+
+
+- x(P+Q) = m² - A - x(P) - x(Q).
+
+For doubling the associated formula is
+
+- x(2P) = m² - A - 2 x(P)  where m is now the slope of the tangent = (3x² + 2A x + 1)/(2 y).
+
+
+** In projective coordinates.
+
+The main idea is to rewrite the formulae for x-cordinates purely in terms of x-chordinates
+and then homogenize using x = X/Z.
+
+*** Doubling
+
+x(2P) = (3x² + 2A x + 1)²/4y² - A - 2 x(P).
+      = function in x alone  (by replacing y² with x³ + A x² + x)
+      =
+
+- X(2P) = (X² - Z²)²
+- Z(2P) = 4XZ(X² + A X Z + Z²)
+
+*** Point addition.
+
+Similar considerations gives us the affine formula
+
+x₃ = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ - 2 y₁ y₂]/ (x₂ - x₁)²
+
+For Montgomery ladder we only add points of the form P = i B and Q =
+(i + 1) B where B is the base point of coordinate [X(B) : Z(B)] =
+[x(B) : 1].
+
+Therefore we have B = Q - P = Q + (-P) where the coordinate of -P = (x₁, - y₁)
+We have the equation
+
+x(B) = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ + 2 y₁ y₂]/ (x₂ - x₁)²
+
+
+Which gives 2y₁y₂ = x(B) (x₂ - x₁)²  - (x₁ + x₂)(1 + x₁ x₂) - 2 A x₁ x₂.
+
+We then 2y₁y₂ to get a x-only formulae which we can homogenize.
+
+
+
+- X₂ᵢ₊₁  =  (Xᵢ Xᵢ₊₁  - Zᵢ Zᵢ₊₁)²
+
+- Z₂ᵢ₊₁  =  X(B) (Xᵢ Zᵢ₊₁  - Xᵢ₊₁ Zᵢ )²
+
+
+** Optimised formula
+
+We need to compute the following homogeneous coordinates at the end of
+each montgomery step.
+
+
+- X₂ᵢ    = (Xᵢ² - Zᵢ²)²
+- Z₂ᵢ    = 4XᵢZᵢ(Xᵢ² + A Xᵢ Zᵢ + Zᵢ²)
+- X₂ᵢ₊₁  =  (Xᵢ Xᵢ₊₁  - Zᵢ Zᵢ₊₁)²
+- Z₂ᵢ₊₁  =  X(B) (Xᵢ Zᵢ₊₁  - Xᵢ₊₁ Zᵢ )²
+
+  Based on https://martin.kleppmann.com/papers/curve25519.pdf (which
+  it self is an explanation of tweet NaCl implementation) we give the
+  following optimised implementation as a table. The actual code is
+  different in that we disallow assignments of the kind a *= b.
+
+We start with t₀, t₁, t₂, t₃ having the value Xᵢ = a, Xᵢ₊₁ = b, Zᵢ = c
+and Zᵢ₊₁ = d respectively.
+
+To see the correctness of the algorithm, look on to the SSA form of
+the program. The Value column gives the value of the appropriate SSA
+variable in terms of teh original value a,b,c, and d.
+
+Based on the SSA program, we compute the lifetime. An SSA variable vᵢ
+has a lifetime of ~l~ if the last SSA assignment where it is used is
+~vₗ~. An infinity (∞) in the lift time column indicate that the value is
+required in the next iteration.
+
+Based on the lifetimes, we compute a register allocation into
+registers 6 registers t₀...t₅. The actual series of assignment is
+given in the right most column. The property that we should ensure is
+that if t is the register allocated for an SSA variable vᵢ then it
+should not be reallocated before the life time of vᵢ expires.
+
+
+| Lifetime | SSA              | Value                         | Register allocation | Assignment       |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|        2 | t₀ = a           | a                             | t₀                  | NOP              |
+|        4 | t₁ = b           | b                             | t₁                  | NOP              |
+|        2 | t₂ = c           | c                             | t₂                  | NOP              |
+|        4 | t₃ = d           | d                             | t₃                  | NOP              |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|        6 | v₁ = t₀ + t₂     | a + c                         | t₄                  | t₄  = t₀ + t₂    |
+|        8 | v₂ = t₀ - t₂     | a - c                         | t₀                  | t₀ -= t₂         |
+|        7 | v₃ = t₁ + t₃     | b + d                         | t₅                  | t₅ = t₁ + t₃     |
+|        5 | v₄ = t₁ - t₃     | b - d                         | t₁                  | t₁ -= t₃         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|       10 | v₅ = v₁ * v₄     | (a + c)(b - d)                | t₂                  | t₂ = t₄ * t₁     |
+|       15 | v₆ = v₁ ²        | (a + c)²                      | t₁                  | t₁ = t₄²         |
+|       10 | v₇ = v₂ * v₃     | (a - c)(b + d)                | t₃                  | t₃ = t₀ t₅       |
+|       13 | v₈ = v₂ ²        | (a - c)²                      | t₄                  | t₄ = t₀²         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|       18 | v₉  = v₅ + v₇    | 2(ab - cd)                    | t₅                  | t₅ = t₂ + t₃     |
+|       11 | v₁₀ = v₅ - v₇    | 2(ad - bc)                    | t₂                  | t₂ -= t₃         |
+|       17 | v₁₁ = v₁₀ ²      | 4(ad - bc)²                   | t₀                  | t₀  = t₂²        |
+|       ∞  | v₁₂ = v₆ * v₈    | (a² - c²)²           = X₂ᵢ    | t₂                  | t₂ = t₁ * t₄     |
+|       16 | v₁₃ = v₆ - v₈    | 4ac                           | t₃                  | t₃ = t₁ - t₄     |
+|       15 | v₁₄ = 121665 v₁₃ | 486660 ac = (A - 2)a c        | t₄                  | t₄ = 121665 * t₃ |
+|       16 | v₁₅ = v₆ + v₁₄   | a² + A ac + c²                | t₁                  | t₁ += t₄         |
+|       ∞  | v₁₆ = v₁₃ * v₁₅  | 4ac (a² + A ac + c²) = Z₂ᵢ    | t₄                  | t₄ = t₃ * t₁     |
+|       ∞  | v₁₇ = v₁₁ X      | 4 X(ad - b c)²       = 4Z₂ᵢ₊₁ | t₁                  | t₁ = t₀ * X      |
+|       ∞  | v₁₈ = v₉ ²       | 4 (ab - cd)²         = 4X₂ᵢ₊₁ | t₃                  | t₃ = t₅²         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+
+At the end of the computation we should have [X₂ᵢ : Z₂ᵢ] and [X₂ᵢ₊₁ :
+Z₂ᵢ₊₁] which are available in the registers [t₂ : t₄] and [t₃ : t₁]
+respectively. Therefore the Montgomery step should be repeated with
+t₂, t₃, t₄ and t₁.
