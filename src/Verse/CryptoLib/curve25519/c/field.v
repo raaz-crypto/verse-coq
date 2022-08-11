@@ -459,9 +459,12 @@ Section Addition.
 
   Program Definition add : code progvar :=
     foreachLimb (fun i _ => [code| A[i] := B[i] + C[i]  |]).
-
+  Program Definition sub : code progvar :=
+    foreachLimb (fun i _ => [code| A[i] := B[i] - C[i]  |]).
   Program Definition addAssign : code progvar :=
     foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
+  Program Definition subAssign : code progvar :=
+    foreachLimb (fun i _ => [code| A[i] -= B[i]  |]).
 
   Definition addAssignSmall (small : expr progvar of type Word64) : code progvar.
     verse([code| A[0] += small |]).
