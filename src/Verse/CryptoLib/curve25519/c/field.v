@@ -409,6 +409,29 @@ Section Swapping.
 
 End Swapping.
 
+Section SwappingEfficient.
+
+  (* This is better because
+
+   - No temporary variable required
+   - Avoids multiplication and uses bitwise operations.
+
+   *)
+  Context {progvar : VariableT}.
+
+  Definition propagateLSB (b : progvar of type Word64) := [code| b := ~b + `1` |].
+
+  Program Definition swapE (b : progvar of type Word64) (A B : fe progvar)
+    : code progvar :=
+    (propagateLSB b
+      ++
+      foreachLimb (fun i _ => [code|
+                             A[i] := A[i] ⊕ B[i];
+                             B[i] := (b & (A[i] ⊕ B[i]))  | (~b & B[i]);
+                             A[i] := A[i] ⊕ B[i]
+                           |]))%list.
+End SwappingEfficient.
+
 
 
 (** ** Field arithmetic operations.
