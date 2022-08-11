@@ -1,193 +1,143 @@
 Require Import Verse.TypeSystem.
+Require Import Verse.Language.Pretty.
 Require Import Verse.Language.Types.
 Require Import Verse.Ast.
-Require Import Verse.Language.Pretty.
-Require Import Verse.AbstractMachine.
-Require Import Verse.Monoid.PList.
+Require Scope.
 Require Import Verse.Monoid.
+Require Import Verse.HlistMachine.
 
-Import ListNotations.
+Require Import List.
+Import List.ListNotations.
 
-Require Import EqdepFacts.
-Import EqNotations.
-
-Declare Scope annotation_scope.
-Delimit Scope annotation_scope with annot.
-
-Section Annotated.
+Section AnnotatedCode.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Definition Rel (ty : typeOf verse_type_system direct)
-    := typeTrans tyD ty -> typeTrans tyD ty -> Prop.
+  Definition Str v := Variables.renaming v tyD.
 
-  Variable Rels : forall (ty : typeOf verse_type_system direct),
-      Rel ty -> Prop
+  (* We need the pair of stores an annotation references to be wrapped
+  into a typeclass to provide notations for annotations
+   *)
+  Definition Pair A : Type := A * A.
+  Class StoreP str := { oldAndNew : Pair str }.
+
+  Coercion Build_StoreP : Pair >-> StoreP.
+
+  Definition ann v := StoreP (Str v) -> Prop.
+
+  Inductive line (v : Variables.U verse_type_system) :=
+  | inst      : statement v -> line v
+  | annot     : ann v -> line v
   .
 
-  Inductive noRels : forall (ty : typeOf verse_type_system direct),
-      Rel ty -> Type :=
-  .
+  Definition lines v := list (line v).
 
-  Section ParamV.
+  Definition lineDenote [sc] (l : line (HlistMachine.variable sc))
+    : mline sc tyD
+    := match l with
+       | inst _ s   => justInst (Internals.denoteStmt _ _ _ s)
+       | annot _ a => justAssert (fun sp => a ((val (fst sp), val (snd sp)) : Pair _))
+       end.
 
-    Variable v : Variables.U verse_type_system.
+  Definition linesDenote [sc] (ls : lines (HlistMachine.variable sc))
+    := mapMconcat (@lineDenote _) ls.
 
-    Inductive doubled : Variables.U verse_type_system :=
-    | CUR ty :> v ty -> doubled ty
-    | OLD ty : v ty -> doubled ty
-    .
+  Definition codeDenote sc (ls : forall v, Scope.scoped v sc (lines v))
+    : mline sc tyD
+    := let sls := HlistMachine.specialise sc ls in linesDenote sls.
 
-    Arguments CUR [ty].
-    Arguments OLD [ty].
+End AnnotatedCode.
 
-    Global Instance v_to_expdv ty : EXPR doubled ty (v (existT _ _ ty))
-      := fun t => valueOf (var (CUR t)).
+Arguments inst [tyD v].
+Arguments annot [tyD v].
+Arguments lineDenote [tyD sc].
+Arguments linesDenote [tyD sc].
+Arguments codeDenote [tyD sc].
 
-    Definition expr  T := Ast.expr  doubled T.
-    Definition lexpr T := Ast.lexpr doubled T.
+(* Mapping instances for custom syntax notations *)
 
-    Definition leval {T} (l : lexpr T) `{State _ v tyD} {st : StoreP str}
-      : typeTrans tyD (projT2 T)
-      := let val2 {ty} (x : doubled ty) := match x with
-                                           | CUR x => VAL x
-                                           | OLD x => OLDVAL x
-                                           end
-         in
-         match l with
-         | Ast.var reg     => val2 reg
-         | Ast.deref v idx => Vector.nth_order
-                               (rew [fun T0 : Type@{abstract_type_system.u0} => T0] arrayCompatibility tyD _ _ _
-                                 in
-                                 val2 v)
-                               (proj2_sig idx)
-         end.
+#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+  := {|
+    CODE := List.map (@inst _ _)
+  |}.
 
-    Fixpoint evalE {T} `{State _ v tyD} {st : StoreP str} (e : expr T)
-      :  typeTrans tyD (projT2 T)
-      := match e with
-         | Ast.cval c => constTrans tyD c
-         | Ast.valueOf lv => leval lv
-         | Ast.binOp o e0 e1 => (opTrans tyD o) (evalE e0) (evalE e1)
-         | Ast.uniOp o e0    => (opTrans tyD o) (evalE e0)
-         end.
+#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+  := {| CODE := fun an => [ annot an ] |}.
 
 
-    Inductive VProp : Type :=
-    | nil : VProp
-    | eq  : forall ty, expr ty -> expr ty -> VProp
-    | rel : forall ty rel, Rels ty rel -> expr (existT _ _ ty) -> expr (existT _ _ ty) -> VProp
-    | and : VProp -> VProp -> VProp
-    | or  : VProp -> VProp -> VProp
-    | not : VProp -> VProp
-    (* TODO : add imply for guiding proofs *)
-    .
+(*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
+(* Notations for annotations *)
 
-    Fixpoint VPropDenote (vp : VProp) `{State _ v tyD} {st : StoreP str} : Prop :=
-      match vp with
-      | nil               => True
-      | eq ty e1 e2       => evalE e1 = evalE e2
-      | rel _ r _ e1 e2   => r (evalE e1) (evalE e2)
-      | and vp1 vp2       => VPropDenote vp1 /\ VPropDenote vp2
-      | or vp1 vp2        => VPropDenote vp1 \/ VPropDenote vp2
-      | not vp'           => ~ (VPropDenote vp')
-      end.
-  End ParamV.
+Notation "'INIT' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
+(* TODO - VAL level has to be changed to be stronger than that of '='
+          and of b itvector arithmetic notations *)
+Notation "'VAL' v" := (snd (oldAndNew (str := Str _ _)) _ v) (at level 50).
 
-End Annotated.
-  (* TODO : remove spurious old code comments from commits on monotypecall *)
+Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at level 100).
 
-Record specified tyD Rels v T := { preC : VProp tyD Rels v;
-                                   block : T tyD Rels v;
-                                   postC : VProp tyD Rels v
-                                 }.
+Require Import Verse.Scope.
+Section CodeGen.
 
-Inductive Annotated tyD Rels v : Type :=
-| instruct  : statement v -> Annotated tyD Rels v
-| proc      : forall sc, (forall w,
-                               Scope.allocation w sc
-                               -> specified tyD Rels w
-                                            (fun a b c => list (Annotated a b c)))
-                           -> Scope.allocation v sc
-                           -> Annotated tyD Rels v
-| annot     : VProp tyD Rels v       -> Annotated tyD Rels v
-.
+  Variable sc : Scope.type verse_type_system.
 
-Definition specifiedC tyD Rels n ty
-  := (forall w,
-         Scope.allocation w (Scope.const n ty)
-         -> specified tyD Rels w
-                      (fun a b c => list (Annotated a b c))).
+  Variable tyD : typeDenote verse_type_system.
 
-Definition AnnotatedCode tyD Rels v := list (Annotated tyD Rels v).
+  Variable ac : forall v, Scope.scoped v sc (lines tyD v).
 
-Fixpoint denote1 tyD Rels v
-         (ann : Annotated tyD Rels v) {struct ann}
-  : line v (fun w => @mline _ w tyD)
-  :=
-    let anndenote [x] p := (inline
-                              (fun state : State x tyD =>
-                                 semiR id
-                                   (((fun (st : StoreP str) => VPropDenote _ _ _ p (st := st)) : StoreP str -> Prop) : Pair str -> Prop))) in
-    match ann with
-    | instruct _ _ _ s  => inst s
-    | annot _ _ _ p     => anndenote p
-    | proc _ _ _ _ p all => call (fun w wall =>
-                                      let (pre, bl, post) := p w wall in
-                                      anndenote pre ::
-                                                map (denote1 _ _ _) bl
-                                                ++ [anndenote post])
-                                   all
-    end.
+  Definition cp := codeDenote ac.
 
-Definition denote tyD Rels v (ann : AnnotatedCode tyD Rels v)
-  : IntAnnotatedCode v tyD
-  := map (denote1 tyD Rels v) ann.
+  (* We allow `getProp` to take a precondition to prefix to the
+     extracted Prop. This is never exposed to the user, but is used in
+     the CoarseAxiom to provide the proof of the procedure call
+     specification to the main body proof.
+   *)
 
-Arguments eq [tyD Rels v ty].
-Arguments and [tyD Rels v].
-Arguments or [tyD Rels v].
-Arguments rel [tyD Rels v ty rel].
-Arguments VPropDenote [tyD Rels v].
-Arguments denote [tyD Rels v] : simpl never.
+  Definition getProp (pc : _ -> Prop)
+             (ml : mline sc tyD)
+    := forall (st : HlistMachine.state sc tyD), pc st
+                          ->
+                          let (i,a) := ml in
+                          a (st, st).
 
-Global Infix "=" := (fun x y => eq (toExpr x) (toExpr y)) (in custom verse at level 70) : annotation_scope.
+  (* Note that getProp acts on `mline`s and the setoid equivalence for
+  `mline` is not the Leibniz equality. We frequently prefer to do
+  rewrites with monoidal laws inside a `getProp` and prove those
+  resulting conditions. The following provides the facility for the
+  same.
+  *)
+  Global Add Parametric Morphism pc : (getProp pc) with signature
+      (SetoidClass.equiv ==> Basics.flip Basics.impl) as getProper.
+  Proof.
+    destruct x, y.
+    unfold Basics.impl.
+    intro mlEq.
+    destruct mlEq as [iEq aEq].
+    rewrite iEq.
+    unfold getProp.
+    intros P0 st pcst.
+    now apply aEq, P0.
+  Defined.
 
-Global Notation "X < R > Y" := (rel R X Y) (in custom verse at level 99) : annotation_scope.
-Global Infix "VAND" := and (in custom verse at level 56, left associativity) : annotation_scope.
-Global Infix "VOR"  := or  (in custom verse at level 59, left associativity) : annotation_scope.
+  Definition tpt := getProp (fun _ => True) cp.
+
+End CodeGen.
+
+Global Hint Unfold tpt : Wrapper.
+Global Hint Unfold cp  : Wrapper.
+
+Arguments cp sc [tyD].
+Arguments getProp [sc tyD].
+Arguments tpt sc [tyD].
 
 
-(* TODO : Somehow not being able to make this work without the 'WITH' *)
-(* The implicit parameters of `proc` to do with its scope seem to be
-   inferable in the monotype call setting!
- *)
 
-Arguments CUR [v ty].
-Arguments OLD [v ty].
-Arguments noRels {tyD}.
-Arguments Annotated [tyD].
-Arguments instruct [tyD Rels] {v}.
-Arguments proc [tyD Rels v sc].
-Arguments annot [tyD Rels] {v}.
-Arguments nil {tyD Rels v}.
+(* Extracting Prop object from annotated code *)
 
-Notation "'CALL' f 'WITH' a"
-  := ([ let sc := fst (Scope.inferNesting (Scope.Cookup.specialise f)) in
-        proc
-           (fun w => Scope.uncurry
-                    (st := sc)
-                    (f%function w))
-           a ])
-       (at level 60).
-
-Notation "'CODE' l" := (map (@instruct _ _ _) l) (at level 60).
-Notation "'ANNOT' a" := (map (@annot _ _ _) a)
-                             (at level 60).
-
-Notation "F 'DOES' Post" := ({| preC := nil ; block := F; postC := Post |})
-(at level 60).
-
-(*
-Notation "'SPEC' { Pre } F { Post }" := ({| preC := Pre; block := F; postC := Post |}).
-*)
+Ltac getProp func
+  := (let cv := constr:(fun v => curry_vec (func v)) in
+      let level0 := constr:(Scope.Cookup.specialise cv) in
+      let level0break := (eval hnf in (Scope.inferNesting level0)) in
+      let pvs := constr:(fst level0break) in
+      let level1 := constr:(snd level0break) in
+      let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
+      exact (tpt (pvs ++ lvs)%list cv)).

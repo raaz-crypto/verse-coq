@@ -1,6 +1,5 @@
 -R _build/default/src Verse
 _build/default/src/Verse.v
-_build/default/src/Verse/AbstractMachine.v
 _build/default/src/Verse/AnnotatedCode.v
 _build/default/src/Verse/Ast.v
 # _build/default/src/Verse/CoarseMeta.v
@@ -20,6 +19,7 @@ _build/default/src/Verse/Machine/BitVector.v
 _build/default/src/Verse/BitVector.v
 _build/default/src/Verse/BitVector/Facts.v
 _build/default/src/Verse/BitVector/ArithRing.v
+_build/default/src/Verse/ModularCode.v
 _build/default/src/Verse/Monoid.v
 _build/default/src/Verse/Monoid/Interface.v
 _build/default/src/Verse/Monoid/PList.v

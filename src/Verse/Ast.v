@@ -108,36 +108,6 @@ Arguments instruction [ts].
 Arguments code [ts].
 Arguments statement [ts].
 
-Require Verse.Scope.
-
-Section ModularCode.
-
-  Variable ts : typeSystem.
-
-  Inductive line (v : Variables.U ts) mline :=
-  | inst      : statement v -> line v mline
-  | inline    : mline v     -> line v mline
-  | call      : forall (sc : Scope.type ts),
-                  (forall w, Scope.allocation w sc -> (list (line w mline)))
-                  -> Scope.allocation v sc -> line v mline
-
-  (* The called code cannot be `scoped (list line)` as Coq cannot
-     verify positivity in that form.
-     Making it uncurried might require typeclasses invoked by
-     notations. This is because the called code will generally
-     be curried and the translation needs to know the scope
-  *)
-  .
-
-  Definition lines v mline := list (line v mline).
-
-End ModularCode.
-
-Arguments inst [ts v mline].
-Arguments inline [ts v _].
-Arguments call [ts v mline sc] _ _.
-Arguments line [ts] _ _.
-Arguments lines [ts] _ _.
 
 (**
 
@@ -234,8 +204,24 @@ Module LExpr.
   Arguments compile [src tgt] cr [v ty].
 
 
+  (** ** Evaluation.
+      An Lexpr over a typeDenote can be evaluated.
+   *)
+  Section Evaluation.
+    Context {ts : typeSystem}{tyD : typeDenote ts}.
 
-
+    Definition eval {T} (l : lexpr tyD T)
+      : tyD _ (projT2 T)
+    := match l in (lexpr _ s) return (tyD (projT1 s) (projT2 s)) with
+       | var x => x
+       | @deref _ _ ty b e v idx =>
+           Vector.nth_order
+             (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
+                  arrayCompatibility tyD b e ty
+               in v)
+             (proj2_sig idx)
+       end.
+  End Evaluation.
 End LExpr.
 
 Module Expr.
@@ -296,13 +282,31 @@ Module Expr.
   Arguments extract [tgt v ty].
 
 
-  Fixpoint compile src tgt
+  Definition compile src tgt
            (cr : TypeSystem.compiler src tgt)
            (v  : Variables.U tgt)
            (ty : some (typeOf src))
            (e : expr (Variables.Universe.coCompile cr v) ty)
     := extract (translate cr e).
   Arguments compile [src tgt] cr [v ty].
+
+
+  (** ** Evaluation.
+      An expression over a typeDenote can be evaluated.
+   *)
+  Section Evaluation.
+    Context {ts : typeSystem}{tyD : typeDenote ts}.
+
+    Fixpoint eval {T} (e : expr tyD T)
+      :  tyD _ (projT2 T)
+      := match e with
+         | Ast.cval c => constTrans tyD c
+         | Ast.valueOf lv => LExpr.eval lv
+         | Ast.binOp o e0 e1 => (opTrans tyD o) (eval e0) (eval e1)
+         | Ast.uniOp o e0    => (opTrans tyD o) (eval e0)
+         end.
+
+  End Evaluation.
 
 End Expr.
 

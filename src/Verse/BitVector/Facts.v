@@ -19,7 +19,7 @@ Require Import Arith.
 Require Import Verse.BitVector.
 Require Import Verse.NFacts.
 
-Hint Resolve
+Global Hint Resolve
      andb_comm andb_assoc andb_orb_distrib_r
      orb_comm orb_assoc orb_andb_distrib_r
      xorb_comm xorb_assoc
@@ -33,10 +33,7 @@ Hint Rewrite
      Nat.add_1_r Nat.add_0_r Nat.add_0_l
   : bitvector.
 
-
-
-
-Hint Unfold BVshiftR BVshiftL : bitvector.
+Global Hint Unfold BVshiftR BVshiftL : bitvector.
 
 Module Internal.
   Lemma vector_0_nil : forall A (vec : Vector.t A 0), vec = [].
@@ -257,7 +254,7 @@ End BinOpInternals.
 
 
 Import BinOpInternals.
-Hint Resolve map2_comm map2_assoc map2_distr : bitvector.
+Global Hint Resolve map2_comm map2_assoc map2_distr : bitvector.
 Hint Rewrite BVzeros_nth BVones_nth : bitvector.
 
 (* end hide *)
@@ -428,7 +425,7 @@ Lemma rotMSB_LSB_inv : forall sz (v : Bvector sz),
     rotTowardsMSB sz (rotTowardsLSB sz v) = v.
 Proof.
   Hint Rewrite rotMSB_S_n popout_shiftin :bitvector.
-  Hint Unfold rotTowardsLSB : bitvector.
+  Global Hint Unfold rotTowardsLSB : bitvector.
   intros sz v.
   destruct v; crush.
 Qed.
@@ -584,22 +581,20 @@ Proof.
          Nat2N.inj_succ
     : bitvector.
 
-  Hint Resolve Nb2n_mod N.le_0_l : bitvector.
+  Global Hint Resolve Nb2n_mod N.le_0_l : bitvector.
   intro sz.
   induction sz as [|n IHsz]. intro x; crush.
   intro x; autorewrite with bitvector; try (rewrite IHsz; rewrite N.add_cancel_r); crush.
-
 Qed.
 
 Lemma Bv2N_N2Bv_sized  : forall sz x, N.size_nat x <= sz -> Bv2N (N2Bv_sized sz x) = x.
 Proof.
   intros.
-  Hint Resolve Nsize_nat_pow_2 : bitvector.
+  Global Hint Resolve Nsize_nat_pow_2 : bitvector.
   Hint Rewrite N.mod_small     : bitvector.
   Hint Rewrite Bv2N_N2Bv_sized_mod : bitvector.
   crush.
 Qed.
-
 
 Lemma Bv2N_lt_pow_2_size : forall sz (v : Bvector sz), (Bv2N v < 2^(N.of_nat sz))%N.
 Proof.
@@ -608,7 +603,7 @@ Proof.
     (*   N.size_nat (Bv2N v) <= sz *)
     apply Bv2N_Nsize.
 Qed.
-Hint Resolve Bv2N_lt_pow_2_size : bitvector.
+Global Hint Resolve Bv2N_lt_pow_2_size : bitvector.
 
 Lemma Bv2N_mod_2_size  : forall sz (v : Bvector sz), (Bv2N v mod 2^(N.of_nat sz) = Bv2N v)%N.
 Proof.
@@ -644,13 +639,13 @@ Qed.
 
 Lemma N_ones_size_gen : forall sz n, n <= sz -> N.size_nat (N.ones (N.of_nat n)) <= sz.
 Proof.
-  Hint Resolve Nat.le_trans : bitvector.
-  Hint Resolve N_ones_size : bitvector.
+  Global Hint Resolve Nat.le_trans : bitvector.
+  Global Hint Resolve N_ones_size : bitvector.
   intros sz n pfSzLeN.
   crush.
 Qed.
 
-Hint Resolve Bv2N_N2Bv_sized_mod : bitvector.
+Global Hint Resolve Bv2N_N2Bv_sized_mod : bitvector.
 
 (* end hide *)
 
@@ -671,7 +666,7 @@ the bitvector size.
 Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz), Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
 Proof.
   Hint Rewrite inj_shiftR : bitvector.
-  Hint Resolve N.shiftr_div_pow2 : bitvector.
+  Global Hint Resolve N.shiftr_div_pow2 : bitvector.
   intros sz n vec.
   crush.
 Qed.
@@ -685,7 +680,7 @@ Proof.
   unfold lower_ones.
   rewrite Nand_BVand.
 
-  Hint Resolve N_ones_size_gen N.land_ones : bitvector.
+  Global Hint Resolve N_ones_size_gen N.land_ones : bitvector.
   rewrite Bv2N_N2Bv_sized; eauto with bitvector.
 Qed.
 
@@ -715,7 +710,7 @@ Lemma Bv2N_plus : forall sz n (v0 v1 : Bvector sz),
     BVN_size_nat v0 <= n -> BVN_size_nat v1 <= n -> n < sz ->
     (Bv2N (BVplus v0 v1) = Bv2N v0 + Bv2N v1)%N.
 Proof.
-  Hint Resolve Nadd_bound_nat_gen : bitvector.
+  Global Hint Resolve Nadd_bound_nat_gen : bitvector.
   intros.
   rewrite Bv2N_plus_mod;
   rewrite N.mod_small; trivial.

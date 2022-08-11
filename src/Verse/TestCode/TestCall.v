@@ -10,11 +10,9 @@ Require Import Verse.
    Might have to change `Require Import Verse` and `Require Import
    Verse.Language` to `Require Export`s.
  *)
-Require Import Verse.AbstractMachine.
 Require Import Verse.AnnotatedCode.
-
-
-Open Scope annotation_scope.
+Require Import Verse.ModularCode.
+Require Import Verse.ProofTac.
 
 Set Implicit Arguments.
 
@@ -22,31 +20,46 @@ Section Code.
 
   Variable v : VariableT.
 
-  Variable A B : v of type Word8.
+  Variable A B C : v of type Word8.
 
   Definition f (w : VariableT) (a b : w of type Word8)
-    : specified bvDenote noRels w AnnotatedCode.
+    : specBlock bvDenote w.
 
-    verse (CODE [code| a := b + `2` |]
+    verse ([code| a := b + b |]
                 DOES
-           [verse| a = `OLD b` + `2` |]
+          (VAL a = INIT b + INIT b)
           )%list%verse.
   Defined.
 
-  Definition test : AnnotatedCode bvDenote noRels v.
+  Definition verF : verFun bvDenote.
+    Pack f.
+    realize.
+  Defined.
+
+  Fixpoint repeat (n : nat) : list (modular bvDenote v).
+    exact match n with
+          | 0 => []
+          | S n => ([code| B := A; A := `6` |]
+                    ++
+                    (ASSERT VAL B = INIT A)
+                    ++
+                    [ CALL verF WITH (- A, B -) ])%verse
+                    ++ repeat n
+          end%list.
+    Defined.
+
+  Definition test : list (modular bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
-        CODE [code| A := A; B := B |]
+        [code| A := A; B := B; C := `0` |]
         ++
-        CALL f WITH (- A, B -)
+        [ CALL verF WITH (- A, B -) ]
         ++
-        ANNOT [code| A = `OLD B` + `2` |]
+        repeat 1
         ++
-        CODE [code| B := A; A := `6` |]
+        (ASSERT VAL A = INIT B + INIT B + INIT B + INIT B)
         ++
-        CALL f WITH (- A, B -)
-        ++
-        ANNOT [code| A = `OLD B` + `4` |]
+        (ASSERT VAL A = VAL C)
       )%list%verse.
   Defined.
 
@@ -56,10 +69,22 @@ Definition toProve : Prop.
   getProp test.
 Defined.
 
-(*Require Import CoarseMeta.*)
 Require Import ProofTac.
+
 Definition proof : toProve.
-
-  realize.
-
+  time mrealize.
 Abort.
+
+(** Timing notes -
+    mrealize
+    repeat 5  - 21 sec  1 sec
+    repeat 6  - 38 sec
+    repeat 7  - 45 sec  8 sec
+    repeat 8  - 75 sec  11 sec
+    repeat 9  - 101 sec 13 sec
+    repeat 10 - 133 sec 18 sec
+
+    Realize
+    repeat 5  - .3 sec
+    repeat 13 - 81 sec
+*)

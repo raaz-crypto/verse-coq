@@ -200,13 +200,13 @@ Module Blake2 (C : CONFIG).
 
       Section UpdateCount.
 
-        Hint Resolve Nat.add_pos_pos.
-        Hint Resolve Nat.add_pos_nonneg.
-        Hint Constructors le.
+        Hint Resolve Nat.add_pos_pos : natineq.
+        Hint Resolve Nat.add_pos_nonneg : natineq.
+        Hint Constructors le : natineq.
         Lemma zeroLtPower2 : forall n, 0 < 2 ^ n.
-          intros; induction n; simpl; eauto.
+          intros; induction n; simpl; eauto with natineq.
         Qed.
-        Hint Resolve zeroLtPower2.
+        Hint Resolve zeroLtPower2 : natineq.
 
       (* To make the update count work uniformly both for the iterator
          as well as the last block compressor, we need to parameterise

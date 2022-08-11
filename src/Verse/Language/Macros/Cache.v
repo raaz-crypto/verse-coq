@@ -176,7 +176,7 @@ Import Vector.VectorNotations.
 
 Fixpoint makeIndices (b n : nat)(l : Vector.t nat n)
   : Vector.t {i : nat | i < b } n + {exists i, Vector.In i l /\ ~ (i < b) }.
-  Hint Constructors Vector.In.
+  Global Hint Constructors Vector.In : VectorIn.
   refine (match l with
           | []        => inleft []
           | (x :: xs)  =>
@@ -185,7 +185,7 @@ Fixpoint makeIndices (b n : nat)(l : Vector.t nat n)
             | right pf, _ => inright (ex_intro _ x (conj _ pf))
             | left pf, inright err => inright _
             end
-          end); eauto. destruct err. intuition. eauto.
+          end); eauto with VectorIn. destruct err. intuition. eauto with VectorIn.
 Defined.
 
 
@@ -214,10 +214,9 @@ Arguments Permutation [b] _.
      implementation.  *)
 
 
-Global Hint Constructors Vector.In.
 Global Tactic Notation "crush_permutation_obligation" integer(B) :=
       intros;
       repeat match goal with
              | [ H : _ <= _ |- _ ] => contradict H; lia
-             | [ n : nat    |- _ ] => destruct n; eauto B
+             | [ n : nat    |- _ ] => destruct n; eauto B with VectorIn
              end.

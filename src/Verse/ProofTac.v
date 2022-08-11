@@ -1,17 +1,12 @@
-
-(* TODO : While the following two tactics are fairly generic, they
-          don't work without specific BitVector functions. Needs to be
-          organized better.
- *)
-
-
 (** Tactics for proof goal presentation *)
-
+Require Import Verse.AnnotatedCode.
 Require Import Verse.BitVector.
-Require Import Verse.Machine.BitVector.
 Require Import Verse.BitVector.ArithRing.
+Require Import Verse.Machine.BitVector.
+Require Import Verse.ModularCode.
+Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
-Require Import Verse.HlistMachine.
+
 Require Import List.
 Import List.ListNotations.
 
@@ -26,12 +21,11 @@ Fixpoint hlamn [T] (A : T -> Type) (sc : list T)
      | n => fun f => forall a, hlamn _ _ (fun x => f (a::x)%hlist)
      end.
 
-Lemma forallhlist [T] (A : T -> Type) sc f
+Definition forallhlist [T] (A : T -> Type) sc f
   : hlamn A sc f
-    ->
-    forall x : hlist A sc, f x.
+    -> forall x : hlist A sc, f x.
   induction sc.
-  apply casenil.
+  now apply casenil.
 
   intros.
   pose (IHsc _ (X (hlist.hd x)) (hlist.tl x)).
@@ -40,22 +34,19 @@ Lemma forallhlist [T] (A : T -> Type) sc f
 Qed.
 
 Ltac breakStore :=
-  let st := fresh "st" in
   match goal with
-  | |- forall _, _ => intro st; simpl in st; revert st
+  | |- forall _, _  => refine (forallhlist _ _ _ _)
   end;
-  (match goal with
-   | |- forall _ : _ ?f ?l, _  => refine (forallhlist f l _ _)
-     (* This refine is very fragile. Break at the drop of a hat.
-        `apply`, for eg, doesn't work here!
-        Maybe find a more robust solution instead
-      *)
-   end;
-   unfold hlamn; intros).
+  unfold hlamn; intros.
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
                end; autounfold with Wrapper; simpl.
+
+(* TODO : While the following two tactics are fairly generic, they
+          don't work without specific BitVector functions. Needs to be
+          organized better.
+ *)
 
 Ltac simplify := unfold getProp;
                  breakStore;
@@ -99,3 +90,19 @@ Ltac simplify := unfold getProp;
 (*| |- context f [ ?F _ ] => unfold F*)
 
 Ltac realize := unwrap; simplify.
+
+Ltac modProof :=
+  let rec inner := try match goal with
+                     | |- context [getProp _ (linesDenote (inline_calls ?l))]
+                       => rewrite (splitEq l); apply modularize;
+                          unfold modularProof; simpl;
+                          repeat match goal with
+                            | |- distinctAll _ /\ _ =>  constructor;
+                                                        [> unfold distinctAll; simpl; easy
+                                                        | breakStore ]
+                            end
+                     end
+  in inner.
+
+Ltac mrealize := unwrap; modProof;
+                 try simplify.

@@ -173,12 +173,16 @@ Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < 
 Declare Scope verse_scope.
 Delimit Scope verse_scope with verse.
 
+Class AST_maps (A B : Type) := { CODE : A -> list B }.
+
+#[export] Instance code_id (v : VariableT)
+  : AST_maps (code v) (statement v) := { CODE := id }.
 
 Declare Custom Entry verse.
 (* Notation "'[code|' e  '|]'" := e (e custom verse). *)
 Notation "A [ N ] " := (idx A (@exist _ _ N%nat _)) (in custom verse at level 29, N constr).
 Notation "[verse| e |]" := e (e custom verse).
-Notation "[code| x ; .. ; y |]":= (cons x .. (cons y nil) ..) (x custom verse, y custom verse,
+Notation "[code| x ; .. ; y |]":= (CODE (cons x .. (cons y nil) ..)) (x custom verse, y custom verse,
                                       format "[code| '[    '  '//' x ; '//' .. ; '//' y '//' ']' '//' '|]'"
                                     ).
 Notation "x" := x (in custom verse at level 0, x global).
@@ -248,37 +252,10 @@ Notation "A >>>= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 7
 Notation "A ⋙= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
 
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 70).
-
 (*
 Notation "'MOVE' B 'to' A [ N ]"
   := (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B)) (in custom verse at level 200, A ident).
  *)
-
-(* We overload notations for `instruction` and `line` *)
-Declare Scope code_scope.
-Delimit Scope code_scope with code.
-
-Notation "A ::= E" := (inst (assignStmt A E))  (at level 70) : code_scope.
-Notation "A <- B" := (inst (moveStmt A B)) (at level 70) : code_scope.
-Notation "A ::=+ B" := (inst (binOpUpdate plus A B)) (at level 70) : code_scope.
-Notation "A ::=- B" := (inst (binOpUpdate minus A B)) (at level 70) : code_scope.
-Notation "A ::=* B" := (inst (binOpUpdate mul A B)) (at level 70) : code_scope.
-Notation "A ::=/ B" := (inst (binOpUpdate quot A B)) (at level 70) : code_scope.
-Notation "A ::=% B" := (inst (binOpUpdate rem A B)) (at level 70) : code_scope.
-Notation "A ::=| B" := (inst (binOpUpdate bitOr A B)) (at level 70) : code_scope.
-Notation "A ::=& B"  := (inst (binOpUpdate bitAnd A B)) (at level 70) : code_scope.
-Notation "A ::=x B"  := (inst (binOpUpdate bitXor A B)) (at level 70, only parsing) : code_scope.
-Notation "A ::=⊕ B" := (inst (binOpUpdate bitXor A B)) (at level 70) : code_scope.
-
-Notation "A ::=<< N"   := (inst (uniOpUpdate (shiftL N) A))   (at level 70) : code_scope.
-Notation "A ::=>> N"   := (inst (uniOpUpdate (shiftR N) A))   (at level 70) : code_scope.
-Notation "A ::=<<< N"  := (inst (uniOpUpdate (rotL N)   A))   (at level 70) : code_scope.
-Notation "A ::=>>> N"  := (inst (uniOpUpdate (rotR N)   A))   (at level 70) : code_scope.
-Notation "'CLOBBER' A" := (inst (existT _ _ (clobber A)))     (at level 70) : code_scope.
-
-Notation "'MOVE' B 'TO' A [- N -]"
-  := (inst (existT _ _ (moveTo (deref A (exist _ (N%nat) _)) B))) (at level 200, A ident) : code_scope.
-
 
 (** * The verse tactic.
 
@@ -299,7 +276,8 @@ Ltac  verse_warn :=
 Ltac verse_bounds_warn := verse_warn; idtac "possible array index out of bounds".
 Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over zero".
 
-Global Hint Resolve PeanoNat.Nat.mod_upper_bound.
+(* The following doesn't seem to be used any more. Retained to bugfix a later realization. *)
+(*Global Hint Resolve PeanoNat.Nat.mod_upper_bound.*)
 
 (* Typically verse throws up bound checks of the kind x < b where b is a symbolic array size
 

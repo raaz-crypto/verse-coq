@@ -1,98 +1,228 @@
 (* begin hide *)
+Require Import Verse.Ast.
 Require Import Verse.TypeSystem.
+Require Import Verse.Language.Types.
 Require Import Verse.Scope.
 Require Import Verse.Utils.hlist.
-Require Import Verse.AbstractMachine.
 Require Import Verse.Abstract.Machine.
+Require Import Verse.Monoid.
+
+Require Import PeanoNat.
+
+Require Import EqdepFacts.
+Import EqNotations.
+
 (* end hide *)
+
+
+(**
+
+Verification of verse code is carried out by annotating code with
+verification conditions. To begin the process, we need to interpret
+verse types as types in Gallina using a type denotation. Given such a
+denotation, the PHOAS style verse code is interpreted as interpreted
+as instructions to an abstract machine whose states are captured by
+hlists as given by the module [Verse.Abstract.Machine].  The hlist
+machine is purely defined by the scope of the code that we are
+interpreting.  The memory cells then act as the variables in this
+context and unlike the generic variable, they can be checked for
+equality (hetrogeneous though) and the associated state transitions
+are computable.
+
+
+The "universal" nature of this machine means that this is a natural
+semantics to give to our code and hence verification here is
+meaningful.
+
+ *)
 
 Section Hlist.
 
   Context [ts : typeSystem] (sc : Scope.type ts).
-
   Variable tyD : typeDenote ts.
 
-  Local Definition tyd ty := typeTrans tyD (projT2 ty).
 
-  Definition memV : Variables.U ts := fun ty => member sc ty.
+  (** The memory of the hlist machine is the state *)
+  Definition state    := Machine.memory (tyD : Variables.U ts) sc.
 
-  (* Generic scoped code instantiated with `memV` *)
-  Definition fillMemV [CODE : Variables.U ts -> Type]
-             (genC : forall v, scoped v sc (CODE v)) :=
-    uncurry (genC memV) (all_membership sc).
+  (** The associated variable is just addresses into that memory *)
+  Definition variable : Variables.U ts := Machine.address sc.
 
-  Instance HlistMem : State memV tyD.
-  refine {| str         := memory tyd sc;
-            val         := fun m _ v => index v m;
-            storeUpdate := fun _ v f m => update v m (f (index v m));
-            evalUpdate  := _;
-         |}.
-  constructor.
-  apply update_other_index.
-  apply updated_index.
-  Defined.
+  (** The function that specialises the generic variable in the scoped
+      code with the above variable type *)
+
+
+  Definition specialise [CODE : Variables.U ts -> Type]
+             (genC : forall v, scoped v sc (CODE v)) : CODE variable :=
+    uncurry (genC variable) (all_membership sc).
+
+  Local Definition type := typeOf ts.
+
+  (** Compute the value of a variable *)
+  Definition val (m : state) ty (x : variable ty)
+    := index x m.
+
+  (** Update the value of a variable *)
+  Definition update ty (x : variable ty) f (m : state)
+    := update x m (f (index x m)).
+
+  (** The state transformation *)
+  Definition transformation := state -> state.
+
+  (** An assertion is a predicate on state. Here we have a product of
+      state because we would like to assert things based on the
+      initial value of the state. The first component of the product
+      is therefore the initial state.
+   *)
+  Definition assertion := state * state -> Prop.
+
+  (** The transformations form a monoid and acts on assertions in a
+      natural way by transforming the second component state
+      pair. Recall that the first component is the initial state and
+      hence transformation acts trivially on it *)
+
+  Global Instance assertion_action_op : LActionOp transformation assertion :=
+    fun tr asrt => fun oAn => asrt (fst oAn, tr (snd oAn)).
+
+  Add Parametric Morphism : lact with signature
+      SetoidClass.equiv (A:=transformation) ==> SetoidClass.equiv (A:=assertion) ==> SetoidClass.equiv (A:=assertion) as lact_morp.
+    unfold lact.
+    unfold assertion_action_op; simpl.
+    intros P Q.
+    intro  PEQ.
+    intros tr1 tr2.
+    intro trEq.
+    intro_destruct.
+    rewrite (trEq (s, P s0)).
+    now rewrite PEQ.
+  Qed.
+
+  Global Program Instance assertion_action : LAction transformation assertion :=
+    {| lact_unit := _  |}.
+
+  Next Obligation.
+    intro_destruct; unfold lact. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct. unfold lact. unfold assertion_action_op. intuition.
+  Qed.
+
+  Next Obligation.
+    intro_destruct; unfold lact; unfold assertion_action_op. intuition.
+  Qed.
+
+
+  Next Obligation.
+    intro_destruct; unfold lact; unfold assertion_action_op;
+    unfold binop; unfold transition_binop; unfold Basics.compose; simpl. intuition.
+  Qed.
 
 End Hlist.
 
-Arguments fillMemV [ts sc CODE].
+Arguments val [ts sc tyD] _ [ty].
+Arguments update [ts sc tyD ty].
 
-Require Import Verse.Language.Pretty.
-Require Import Verse.AnnotatedCode.
-Require Import Vector.
-Import VectorNotations.
-Require Import Verse.Language.Types.
 
-Section CodeGen.
+(** * Meanings of program statements as machine transformations *)
+Module Internals.
 
-  Variable n : nat.
-  Variable sc : Scope.type verse_type_system.
+  Section MachineType.
+    Variable ts : typeSystem.
+    Variable sc : Scope.type ts.
+    Variable tyD : typeDenote ts.
 
-  Variable tyD : typeDenote verse_type_system.
-  Variable Rels : forall (ty : typeOf verse_type_system direct),
-      Rel tyD ty -> Prop
-  .
+    Definition expr  T := Ast.expr  (variable sc) T.
+    Definition lexpr T := Ast.lexpr (variable sc) T.
 
-  Variable ac : forall v, Scope.scoped v sc (AnnotatedCode tyD Rels v).
+    Definition evalE {T} (st : state sc tyD) (e : expr T) :  tyD _ (projT2 T)
+      := Ast.Expr.eval (Expr.rename (val st) e).
 
-  Definition cp := interpret (denote (fillMemV ac)).
+    Definition assign {T} (l : lexpr T) (e : expr T)(st : state sc tyD)
+      : state sc tyD :=
+      match l in Ast.lexpr _ T0 return  tyD _ (projT2 T0) -> state _ _ with
+      | Ast.var reg  => fun v => update reg (fun _ => v) st
+      | Ast.deref a idx => fun v => let arr := val st a in
+                                let arrp := Vector.replace_order
+                                              (rew [fun T0 : Type@{abstract_type_system.u0} => T0]
+                                                   arrayCompatibility tyD _ _ _
+                                                in arr)
+                                              (proj2_sig idx) v
+                                in
+                                update a (fun _ =>
+                                            (rew <- [id] arrayCompatibility tyD _ _ _ in arrp)
+                                         ) st
+      end (evalE st e).
 
-  (* We allow `getProp` to take a precondition to prefix to the
-     extracted Prop. This is never exposed to the user, but is used in
-     the CoarseAxiom to provide the proof of the procedure call
-     specification to the main body proof.
-   *)
+    Definition binopUpdate {T}
+               (l : lexpr (existT _ _ T))
+               (o : operator ts T 2)
+               (e : expr (existT _ _ T))
+      : state sc tyD -> state sc tyD
+      := let rhs := Ast.binOp o (Ast.valueOf l) e in
+         assign l rhs.
 
-  Definition getProp (pc : _ -> Prop)
-             (ml : @mline _ (memV sc) tyD)
-    := forall (st : str), pc st
-                          ->
-                          let (i,a) := (ml (HlistMem _ _)) in
-                          a (st, st).
+    Definition uniopUpdate {T}
+               (l : lexpr (existT _ _ T))
+               (o : operator ts T 1)
+      : state sc tyD -> state sc tyD
+      := let rhs := Ast.uniOp o (Ast.valueOf l) in
+         assign l rhs.
 
-  Definition tpt := getProp (fun _ => True) cp.
-(*
-  Definition getProp (ml : @mline _ (Scope.scopeVar sc) tyD)
-    := forall (st : str), snd (ml (scopeStore _ _))
-                              ({| store := st |}, {| store := st |}).
+    Program Definition move {T}(l : lexpr T)(r : variable sc T) :=
+      match l in Ast.lexpr _ T0 return variable sc T0 -> _ with
+      | var _ as l1     => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
+      | deref _ _ as l1 => fun r0 => assign l1 (Ast.valueOf (Ast.var r0))
+      end r.
 
-  Definition tpt := getProp cp.
+    Definition denoteInst {T}(inst : Ast.instruction (variable sc) T) : transformation sc tyD
+      := match inst with
+         | Ast.assign l e => assign l e
+         | Ast.moveTo l r => move   l r
+         | Ast.binopUpdate l o e => binopUpdate l o e
+         | Ast.uniopUpdate l o   => uniopUpdate l o
+         | Ast.clobber _     => fun x => x
+         end.
+
+    Definition denoteStmt (stmt : Ast.statement (variable sc) ) : transformation sc tyD
+      := denoteInst (projT2 stmt).
+
+  End MachineType.
+
+End Internals.
+
+(** ** The verification monoid.
+
+Verification of annotated code involves working with both
+transformations as well as assertions. Transformations form a monoid
+under composition and assertions form a monoid under the /\ operation.
+It turns out that the verification process can also be seen as working
+with a monoid namely the semi direct product got by the action of the
+transformation on the assertions.
+
+
+
+
 *)
-End CodeGen.
+Section Machine.
 
-Global Hint Unfold tpt : Wrapper.
-Global Hint Unfold cp  : Wrapper.
+  Variable ts : typeSystem.
+  Variable sc : Scope.type ts.
 
-Arguments cp sc [tyD].
-Arguments getProp [sc tyD].
-Arguments tpt sc [tyD Rels].
+  Variable tyD   : typeDenote ts.
 
-(* Extracting Prop object from annotated code *)
+  Definition mline := transformation sc tyD ⋉ assertion sc tyD.
 
-Ltac getProp func
-  := (let cv := constr:(fun v => curry_vec (func v)) in
-      let level0 := constr:(Scope.Cookup.specialise cv) in
-      let level0break := (eval hnf in (Scope.inferNesting level0)) in
-      let pvs := constr:(fst level0break) in
-      let level1 := constr:(snd level0break) in
-      let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (tpt (pvs ++ lvs)%list cv)).
+  Definition justInst
+    : transformation sc tyD -> mline
+    := fun i => semiR i (fun _ => True).
+
+  Definition justAssert
+    : assertion sc tyD -> mline
+    := fun a => semiR id a.
+
+End Machine.
+
+Arguments mline [ts].
+Arguments justInst [ts sc tyD] .
+Arguments justAssert [ts sc tyD].

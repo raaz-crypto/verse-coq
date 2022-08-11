@@ -44,6 +44,7 @@ Ltac crush_monoid :=
          | [ H : ?X == _ |- context[?X] ] => rewrite H
          | [ |- context[ε] ] => try (rewrite left_identity); try (rewrite right_identity)
          | _ => intuition; try (apply associativity)
+         | [ |- _ == _ ] => try (rewrite symmetry)
          end.
 
 Ltac crush_morph_tac n :=
@@ -66,14 +67,63 @@ Proof.
   exact proper_oper.
 Qed.
 
-
 Definition mconcat {t}`{mon: Monoid t} : list t -> t
   := fun l => fold_left binop l ε.
+
+Add Parametric Morphism {t} `{Monoid t} (l : list t) : (fold_left binop l)
+    with signature (SetoidClass.equiv ==> SetoidClass.equiv) as foldleft_mor.
+Proof.
+  induction l; intros x y eqxy.
+  * trivial.
+  * apply IHl.
+    crush_monoid.
+Qed.
 
 Definition mapMconcat {A}{t}`{mon : Monoid t}
            (f : A -> t) (xs : list A)
   : t
   := mconcat (map f xs).
+
+Lemma foldleft_init {t}`{mon: Monoid t} l i1 i2 :
+  fold_left binop l (i1 ** i2) == i1 ** fold_left binop l i2.
+Proof.
+  revert i1 i2.
+  induction l; intro i.
+  * simpl.
+    crush_monoid.
+  * simpl.
+    intro.
+    rewrite <- associativity.
+    apply IHl.
+Qed.
+
+Lemma mapMconcat_app {A}{t}`{mon : Monoid t}
+      (f : A -> t) l1 l2
+  : mapMconcat f (l1 ++ l2) == mapMconcat f l1 ** mapMconcat f l2.
+Proof.
+  unfold mapMconcat, mconcat.
+  rewrite map_app.
+  rewrite fold_left_app.
+  induction l2.
+  * simpl.
+    now crush_monoid.
+  * simpl.
+    rewrite left_identity.
+    apply foldleft_init.
+Qed.
+
+Lemma mapMconcat_cons {A}{t}`{mon : Monoid t}
+      (f : A -> t) a l
+  : mapMconcat f (a :: l) == f a ** mapMconcat f l.
+Proof.
+  unfold mapMconcat, mconcat.
+  rewrite map_cons.
+  simpl.
+  rewrite left_identity.
+  rewrite <- (right_identity (f a)).
+  rewrite foldleft_init.
+  now rewrite right_identity.
+Qed.
 
 (** ** State transition.
 
@@ -143,7 +193,7 @@ Section FunctionEquivalence.
 End FunctionEquivalence.
 
 
-Instance function_setoid B `{Setoid B} A : Setoid (A -> B) | 1 :=
+#[global] Instance function_setoid B `{Setoid B} A : Setoid (A -> B) | 1 :=
   {| SetoidClass.equiv := equiv_function;
      setoid_equiv := function_equivalence
   |}.
@@ -161,10 +211,10 @@ Section FunctionEquivalence.
 
 End FunctionEquivalence.
 
-Instance function_binop A B `{Monoid B} : BinOp (A -> B) :=
+#[global] Instance function_binop A B `{Monoid B} : BinOp (A -> B) :=
   fun f g x => f x ** g x.
 
-Program Instance function_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
+#[global] Program Instance function_monoid A B `{Monoid B} : Monoid (A -> B) | 1 :=
   {| ε              := fun _ => ε;
      proper_oper    := function_product_mor_Proper;
      left_identity  := _;
@@ -186,7 +236,7 @@ Next Obligation.
 Qed.
 
 (* TODO *)
-Instance dep_point_setoid A (F : A -> Type)
+#[global] Instance dep_point_setoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
   : Setoid (forall a, F a) | 2 :=
   {| SetoidClass.equiv f g := forall x, f x == g x;
@@ -211,7 +261,7 @@ Instance dep_point_setoid A (F : A -> Type)
                     |}
   |}.
 
-Instance dep_point_binop  A (F : A -> Type)
+#[global] Instance dep_point_binop  A (F : A -> Type)
          `{forall a, BinOp (F a)}
   : BinOp (forall a, F a) := fun f g => fun a => f a ** g a.
 
@@ -233,7 +283,7 @@ Add Parametric Morphism A (F : A -> Type)
   reflexivity.
 Qed.
 
-Program Instance dep_point_monoid A (F : A -> Type)
+#[global] Program Instance dep_point_monoid A (F : A -> Type)
          `{forall a, Setoid (F a)}
          `{forall a, BinOp (F a)}
          `{forall a, Monoid (F a)}
@@ -262,7 +312,7 @@ Class Hom [t1 t2]`{Monoid t1} `{Monoid t2} (f : t1 -> t2) : Prop
        preserves_product   : forall {a b}, f (a ** b) == f a ** f b
      }.
 
-Instance monoid_homomorphism_Proper t1 t2 (f : t1 -> t2) `{Hom t1 t2 f} : Proper (SetoidClass.equiv ==> SetoidClass.equiv) f
+#[global] Instance monoid_homomorphism_Proper t1 t2 (f : t1 -> t2) `{Hom t1 t2 f} : Proper (SetoidClass.equiv ==> SetoidClass.equiv) f
   := proper_morphism.
 
 Arguments preserves_unit [t1 t2] {_ _ _ _ _} _.
@@ -314,7 +364,7 @@ Section Error.
       symmetry proved by eq_error_sym
       transitivity proved by eq_error_trans as error_equivalence.
 
-  Global Instance error_setoid : Setoid (A + {E}) :=
+  #[global] Instance error_setoid : Setoid (A + {E}) :=
     {| SetoidClass.equiv :=  eq_error;
        SetoidClass.setoid_equiv := error_equivalence
     |}.
@@ -333,7 +383,7 @@ Section Error.
     crush_morph 2.
   Qed.
 
-  Global Instance binop_error : BinOp (A + {E}) := error_prod.
+  #[global] Instance binop_error : BinOp (A + {E}) := error_prod.
 
   Global Program Instance error_monoid
   : Monoid (A + {E}) :=
@@ -383,12 +433,12 @@ Section Prod.
       symmetry proved by eq_prod_symm
       transitivity proved by eq_prod_trans as prod_equivalence.
 
-  Global Instance prod_setoid  : Setoid (A * B)
+  #[global] Instance prod_setoid  : Setoid (A * B)
     := {| SetoidClass.equiv        := eq_prod; |}.
 
 
 
-  Global Instance prod_binop : BinOp (A * B) := fun x y => (fst x ** fst y, snd x ** snd y).
+  #[global] Instance prod_binop : BinOp (A * B) := fun x y => (fst x ** fst y, snd x ** snd y).
 
   Global Add Parametric Morphism : binop with signature
       eq_prod ==> eq_prod ==> eq_prod
@@ -446,13 +496,16 @@ Class LAction G A `{Monoid A}`{Monoid G}`{LActionOp G A} :=
     lact_compose           : forall g1 g2 a, (g1 ** g2)•a  == g1•g2•a
   }.
 
-Instance monoid_action_Proper G A `{LAction G A}
+#[global] Instance monoid_action_Proper G A `{LAction G A}
   : Proper (SetoidClass.equiv (A:=G) ==> SetoidClass.equiv (A:=A) ==> SetoidClass.equiv(A:=A)) lact
   := proper_laction.
 
 
 Inductive SemiR G A := semiR : G -> A -> SemiR G A.
 Infix "⋉" := SemiR (left associativity, at level 59).
+
+Definition srFst [G A] (sr : SemiR G A) := let (g, _) := sr in g.
+Definition srSnd [G A] (sr : SemiR G A) := let (_, a) := sr in a.
 
 Arguments semiR {G A}.
 
@@ -487,12 +540,12 @@ Section SemiDirectProduct.
          symmetry proved by eqsemi_sym
          transitivity proved by eqsemi_trans as semiR_equiv.
 
-  Global Instance rsemi_direct_product : BinOp (G ⋉ A) :=
+  #[global] Instance rsemi_direct_product : BinOp (G ⋉ A) :=
     fun s1 s2 => match s1, s2 with
               | semiR g1 a1, semiR g2 a2 => semiR (g1 ** g2) (a1 ** g1 • a2)
               end.
 
-  Global Instance semiRSetoid : Setoid (G ⋉ A) :=
+  #[global] Instance semiRSetoid : Setoid (G ⋉ A) :=
     {| SetoidClass.equiv := eqSemiR |}.
 
   Global Add Parametric Morphism : binop with signature
@@ -502,7 +555,7 @@ Section SemiDirectProduct.
   crush_morph 2.
   Qed.
 
-  Global Program Instance semiR_monoid : Monoid (G ⋉ A) :=
+  #[global] Program Instance semiR_monoid : Monoid (G ⋉ A) :=
     {| ε := semiR ε ε;
       left_identity := _;
       right_identity := _;
@@ -540,12 +593,12 @@ the eq_setoid and those that 'can'.
 
  *)
 
-Instance eq_setoid T : Setoid T | 10
+#[global] Instance eq_setoid T : Setoid T | 10
   := { equiv := eq }.
 
-Instance list_append_binop (A : Type) : BinOp (list A) := List.app (A :=A).
+#[global] Instance list_append_binop (A : Type) : BinOp (list A) := List.app (A :=A).
 
-Instance list_is_monoid (A : Type)
+#[global] Instance list_is_monoid (A : Type)
   : Monoid (list A) := {| ε  := nil;
                           left_identity  := app_nil_l (A:=A);
                           right_identity := app_nil_r (A:=A);
@@ -553,9 +606,8 @@ Instance list_is_monoid (A : Type)
                        |}.
 
 
-Print compose.
-Instance transition_binop (A : Type) : BinOp (A -> A) :=  fun (f g : A -> A) => compose g f.
-Instance transition_setoid (A : Type) : Setoid (A -> A) :=
+#[global] Instance transition_binop (A : Type) : BinOp (A -> A) :=  fun (f g : A -> A) => compose g f.
+#[global] Instance transition_setoid (A : Type) : Setoid (A -> A) :=
   {| SetoidClass.equiv := eq |}.
 Add Parametric Morphism A : binop with signature
     SetoidClass.equiv (A:= A -> A)==> SetoidClass.equiv  ==> SetoidClass.equiv
@@ -563,11 +615,11 @@ Add Parametric Morphism A : binop with signature
   crush_monoid.
 Qed.
 
-Program Instance transition_monoid (A : Type) : Monoid (A -> A) :=
+#[global] Program Instance transition_monoid (A : Type) : Monoid (A -> A) :=
   {| ε := @id A |}.
 
-Instance prop_prod : BinOp Prop := and.
-Program Instance prop_monoid : Monoid Prop :=
+#[global] Instance prop_prod : BinOp Prop := and.
+#[global] Program Instance prop_monoid : Monoid Prop :=
   {| ε := True |}.
 Next Obligation.
   unfold binop; unfold prop_prod. intuition.
@@ -641,7 +693,7 @@ now unfold halftwist.
 
 Defined.
 
-Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
+#[global] Instance sdp_halfcomp A B `{Monoid B} : Monoid ((A -> A)*(A*A -> B))
   := semi_direct_prod _ _ (halfcomp A B).
 *)
 

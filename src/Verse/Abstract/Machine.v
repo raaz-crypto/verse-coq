@@ -95,7 +95,6 @@ Section Machine.
   Lemma notIn_tl {fam out : family}{s s0}(outslice : slice fam (s0 :: out))
         : forall  (idx : s ∈ fam), notIn idx outslice -> notIn idx (tl outslice).
     intros.
-    Hint Resolve index_tl.
     intros t i.
     rewrite index_tl.
     eauto.
@@ -106,7 +105,6 @@ Section Machine.
       notIn idx outslice ->
       forall v, forall u, get idx (puts outslice u v) = get idx v.
     intros s idx ineq.
-    Hint Unfold get put.
     intro v.
     unfold puts.
     unfold puts_hlist.
@@ -114,9 +112,9 @@ Section Machine.
     unfold put.
     unfold get.
     intro u.
-    Local Hint Resolve notIn_tl notIn_hd.
+    Local Hint Resolve notIn_tl notIn_hd : slice.
     rewrite update_other_index;
-    eauto.
+    eauto with slice.
   Qed.
 
   (** ** Linear slice.
@@ -129,17 +127,35 @@ Section Machine.
   Definition linear {fam fam'} (s : slice fam fam') := forall (start : memory fam) (mem : memory fam'),
       gets s (puts s mem start)  = mem.
 
+  (** * Subroutines, annotations and their verification *)
+
+
+  (** A subroutine in this machine is a transformation that reads a
+      set of input cells and writes back to a set of output cells with
+      an additional guarantee annotated onto the
+      transformation. Having an annotation does not ensure that the
+      transformation meets the guarantee; for this you will have to
+      look at _verified subroutines_ captured by the type
+      [vsubroutine].  *)
   Record subroutine (inp out : family) :=
-    { requirement : memory inp -> Prop;
-      transform   : memory inp -> memory out;
-      guarantee   : memory inp -> memory out -> Prop;
+    { transform   : memory inp -> memory out;
+      guarantee   : memory inp * memory out -> Prop;
     }.
 
-  Arguments requirement {inp out}.
   Arguments transform   {inp out}.
   Arguments guarantee   {inp out}.
 
-  Definition VC {inp out}(sr : subroutine inp out) : Prop := forall i : memory inp, requirement sr i -> guarantee sr i (transform sr i).
+  (** The _guarantee_ of a subroutine _on_ a given input *)
+
+  Definition guaranteeOn {inp out}(sr : subroutine inp out) (i : memory inp)
+    : Prop
+    := guarantee sr (i, transform sr i).
+
+  (** The verification condition associated with a subroutine *)
+  Definition VC {inp out}(sr : subroutine inp out) := forall i, guaranteeOn sr i.
+
+  (** A verified subroutine, i.e. the type of all subroutines whose VC
+      condition has been proved.  *)
   Definition vsubroutine (inp outp : family) := { sr : subroutine inp outp | VC sr }.
 
   Definition local_update {fam out : family} (outslice : slice fam out)
@@ -151,10 +167,9 @@ Section Machine.
   Definition lift {fam inp out : family} (sr : subroutine inp out) (inslice : slice fam inp) (outslice : slice fam out)
     : subroutine fam fam :=
     let trans := fun v => puts outslice (transform sr (gets inslice v)) v in
-    {| requirement := fun v => requirement sr (gets inslice v);
-       transform   := trans;
-       guarantee   := fun start stop =>
-                       guarantee sr (gets inslice start) (gets outslice stop)
+    {| transform   := trans;
+       guarantee   := fun st => let (start, stop) := st in
+                       guarantee sr (gets inslice start, gets outslice stop)
                        /\
                        local_update outslice trans
     |}.
@@ -172,8 +187,8 @@ Section Machine.
     * rewrite (linprf gmemstart (transform sr (gets inslice gmemstart ))).
       now apply vcprf.
     * unfold local_update.
-      Hint Resolve noupdate_lemma.
-      eauto.
+      Hint Resolve noupdate_lemma : noupdate.
+      eauto with noupdate.
   Qed.
 
   Definition function  (inp : family) (tau : type) := hlist.curried A (A tau) inp.
@@ -183,9 +198,9 @@ Section Machine.
 
   Definition updateSub {tau :type}{inp : family}(f : function inp tau)
     : subroutine inp [tau]%list
-           := {| requirement := fun _ => True;
-                 transform   := fun v => [hlist.uncurry f v]%hlist;
-                 guarantee    := fun old new => get hfirst new = hlist.uncurry f old
+           := {| transform   := fun v => [hlist.uncurry f v]%hlist;
+                 guarantee    := fun st =>
+                                   let (old, new) := st in get hfirst new = hlist.uncurry f old
               |}.
 
 
@@ -201,7 +216,15 @@ Section Machine.
 
 End Machine.
 
+Arguments gets [type A fam fam'].
+Arguments puts [type A fam fam'].
+Arguments transform [type A inp out].
+Arguments lift [type A fam inp out].
+Arguments VC [type A inp out].
+Arguments guaranteeOn [type A inp out].
+Arguments local_update [type A fam out].
 
+#[global] Hint Unfold VC : Wrapper.
 
 Notation "[machine| e |]" := e (e custom machine).
 Notation "x" := x     (in custom machine at level 0, x global).
