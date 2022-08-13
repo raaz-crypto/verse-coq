@@ -80,6 +80,12 @@ Definition Packed := Array 4 littleE Word64.
 (** Field element *)
 Definition fe (v : VariableT) := Vector.t (v of type Word64) nLimbs.
 
+(** A variable vector that can hold a field element. For the purpose
+of this implementation, you should think of [feVar] as a variable that
+can hold a field element computational representation
+ *)
+Definition feVar (v : VariableT) := Vector.t (v of type Word64) nLimbs.
+
 (* begin hide *)
 (* NOTE: These are inline tests *)
 Definition bitSizes := foreachLimb (fun i _  => [len i] ).
@@ -191,7 +197,7 @@ Module Internal.
   Section InstructionGenerate.
     Context {progvar : VariableT}.
     Context (word    : progvar of type Packed).
-    Context (limb    : fe progvar).
+    Context (limb    : feVar progvar).
 
     (** The instructions to load appropriate bits into the jth
        limb. We assume that the ith word is already loaded into the
@@ -262,7 +268,7 @@ Require Import Verse.Target.C.Pretty.
 Axiom MyVar :VariableT.
 Axiom W : MyVar of type Packed.
 Axiom T : MyVar of type Word64.
-Axiom L : fe MyVar.
+Axiom L : feVar MyVar.
 Goal to_print (Internal.loadAll W L ).
   unfold Internal.loadAll;
     unfold foreachWord;
@@ -311,7 +317,7 @@ next limb (cycling when we reach the last limb *)
 Section CarryPropagation.
 
   Context {progvar : VariableT}.
-  Variable limb    : fe progvar.
+  Variable limb    : feVar progvar.
 
   Program Definition carryFrom (i : nat)`{i < nLimbs} :=
     if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
@@ -398,7 +404,7 @@ Section Swapping.
 
   Variable TA  : progvar of type Word64.
   Variable b   : progvar of type Word64.
-  Variable A B : fe progvar.
+  Variable A B : feVar progvar.
 
   Program Definition swap : code progvar :=
     foreachLimb (fun i _ => [code|
@@ -421,7 +427,7 @@ Section SwappingEfficient.
 
   Definition propagateLSB (b : progvar of type Word64) := [code| b := ~b + `1` |].
 
-  Program Definition swapE (b : progvar of type Word64) (A B : fe progvar)
+  Program Definition swapE (b : progvar of type Word64) (A B : feVar progvar)
     : code progvar :=
     (propagateLSB b
       ++
@@ -455,7 +461,7 @@ Section Addition.
 
   Context {progvar : VariableT}.
 
-  Variable A B C : fe progvar.
+  Variable A B C : feVar progvar.
 
   Program Definition add : code progvar :=
     foreachLimb (fun i _ => [code| A[i] := B[i] + C[i]  |]).
@@ -494,7 +500,7 @@ being 19 * 2 (because 2²⁵⁵ = 19 int the field).
 
 Section Multiplication.
   Context {progvar : VariableT}.
-  Context (A B C : fe progvar).
+  Context (A B C : feVar progvar).
 
 
   (** Compute the term Tᵢⱼ suitably scaled *)
@@ -608,7 +614,7 @@ Section Multiplication.
 End Multiplication.
 
 (* begin hide *)
-Axiom A B C : fe MyVar.
+Axiom A B C : feVar MyVar.
 
 Goal to_print (mult A B C).
   unfold mult;
