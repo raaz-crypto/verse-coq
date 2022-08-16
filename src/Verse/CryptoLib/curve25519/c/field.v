@@ -1,7 +1,12 @@
 (* begin hide *)
 Require Import NArith.
+Require Import ZArith.
 Require Import Arith.
 Require Import Verse.
+Require setoid_ring.Algebra_syntax.
+Require Import Verse.Modular.ModRing.
+Require Import Verse.Modular.Equation.
+Require Import Psatz.
 (* end hide *)
 (** * Field arithmetic over GF(2²⁵⁵ - 19).
 
@@ -13,6 +18,14 @@ elements of this field.
 
  *)
 
+(** The underlying prime *)
+Definition P : positive := (2^255 - 19)%positive.
+
+(** The underlying Galois field *)
+Definition GF := Zmod P.
+
+Definition N2GF : N -> GF := of_N.
+Coercion  N2GF  : N >-> GF.
 
 (** ** Representing elements.
 
@@ -66,13 +79,130 @@ Definition foreachLimb {A : Type}(f : forall i, i < nLimbs -> list A) : list A :
 Definition foreachWord {A : Type}(f : forall i, i < nWord  -> list A) : list A := iterate f.
 
 Definition Packed := Array 4 littleE Word64.
-(** Field element *)
-Definition fe (v : VariableT) := Vector.t (v of type Word64) nLimbs.
+
+(** Field element in computational representation *)
+Definition fe := Vector.t (const Word64) nLimbs.
+
+Require Import Verse.NFacts.
+
+Create HintDb localdb.
+Hint Rewrite N.mod_1_r N.sub_0_r : localdb.
+Hint Rewrite
+  div_mod_sub
+  divide_add_mod_multiple
+  divide_mod_mod
+  add_sub_le : localdb.
+
+(** We now give helper functions to create field element constants. *)
+Section FieldElements.
+
+  Import List.ListNotations.
+  Definition limbOf (i : N) (n : N) : N :=
+    (n  mod (2^posN (i + 1)))/ 2^posN i.
+
+  Definition limbsOf (n : N) : list N :=
+    (foreachLimb (fun i _ => [limbOf (N.of_nat i) n ] %list )).
+
+
+  Definition of_limbs (l : list N) : N :=
+    let fld  (acc : N * N) n :=
+      let (i , alpha) := acc in
+      let incr  :=  (n * 2^(posN i))%N in
+      ((i+1),  alpha + incr)%N
+    in
+    snd (List.fold_left fld l (0%N, 0%N)).
+
+
+
+  Ltac local_crush := repeat (match goal with
+                              | [ |- (?X | ?Y)%N  ] => eexists (Y/X)%N; compute; trivial
+                              | [ |- _ <> _  ] => compute;
+                                               let H := fresh "Hyp" in
+                                               intro H; inversion H
+                              | [ |- (_ mod _ <= _ mod _)%N ] => apply divide_mod_le
+                              | [ |- ( _ mod _ < _)%N      ] => apply N.mod_lt
+                              | [ |- (_ < _)%N ] => lia
+                              | _ =>  autounfold with localdb; simpl; autorewrite with localdb; trivial
+                              end).
+
+  Hint Unfold limbsOf of_limbs limbOf : localdb.
+  Lemma limb_spec : forall n, of_limbs (limbsOf n) = (n mod 2^255)%N.
+    intro.
+    local_crush.
+  Qed.
+
+
+  Definition limbsOfGF (alpha : GF) : list N := limbsOf (to_N alpha).
+  Definition GF_of_limbs (l : list N) : GF := of_limbs l.
+
+  Lemma modPLt255 : forall n : N, (n mod (Npos P) < 2^255)%N.
+    intro n.
+    apply (N.lt_trans _ (Npos P)); local_crush; compute; trivial.
+  Qed.
+
+  Hint Resolve modPLt255 : localdb.
+
+
+  Import setoid_ring.Algebra_syntax.
+  Hint Unfold
+         equality
+         eq_Zmod
+         eqZmod
+         eqMod
+         limbsOfGF
+         GF_of_limbs
+    : localdb.
+
+  Hint Rewrite to_vs_of_N_spec : localdb.
+  Lemma limbsOfGF_spec : forall alpha : GF, GF_of_limbs (limbsOfGF alpha) == alpha.
+    intros.
+    destruct alpha;
+      unfold GF_of_limbs;
+      unfold limbsOfGF;
+    rewrite to_vs_of_N_spec;
+    rewrite limb_spec.
+    assert (Hyp: (((n mod N.pos P) mod 2^255) = n mod N.pos P)%N).
+    apply N.mod_small; eauto with localdb.
+    rewrite Hyp.
+    local_crush.
+  Qed.
+
+  Definition wordsOf  (alpha : GF) := List.map (NToConst Word64) (limbsOfGF alpha).
+  Definition of_Words (vec : fe) : GF := of_limbs (List.map (@Bv2N 64) (Vector.to_list vec)).
+  Definition GF2const (alpha : GF) : fe :=  Vector.of_list (wordsOf alpha).
+
+
+  Definition minus18 : GF := of_N (Npos P - 18).
+  Definition minus19 : GF := of_N (Npos P - 19).
+
+  (* begin hide *)
+  (* NOTE: These are inline tests of correctness *)
+
+  Lemma minus18_specs : minus18 + of_N 18 == of_N 0.
+    compute; trivial.
+  Qed.
+  Lemma minus19_specs : minus19 + of_N 19 == 0.
+    compute; trivial.
+  Qed.
+
+
+  Definition minus18_const : fe := GF2const minus18.
+  Definition minus19_const : fe := GF2const minus19.
+
+  Lemma minus18_const_specs : of_Words minus18_const == to_N minus18.
+    compute; trivial.
+  Qed.
+
+  Lemma minus19_const_specs:  of_Words  minus19_const == minus19.
+    compute; trivial.
+  Qed.
+
+End FieldElements.
 
 (** A variable vector that can hold a field element. For the purpose
-of this implementation, you should think of [feVar] as a variable that
-can hold a field element computational representation
- *)
+    of this implementation, you should think of [feVar] as a variable
+    that can hold a field element computational representation *)
+
 Definition feVar (v : VariableT) := Vector.t (v of type Word64) nLimbs.
 
 (* begin hide *)
