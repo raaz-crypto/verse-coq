@@ -34,24 +34,13 @@ canonical.  The computational representation should be treated as an
 implementation dependent internal format and is designed to make the
 implementation of the field operation efficient.
 
- *)
-
-(**
-
-In the computable representation, [pos i] represent gives the bit
-position from which the ith limb start. The function [pos i]
-completely determine the computation presentation. For the finite
-field GF(2²⁵⁵ - 19), computational representation associated with the
-position function [pos i = ⌈25.5 i⌉] is used.
+The computational representation given by specifying the bit position
+of the [i]-th limb which is given by the function [pos i = ⌈25.5 i⌉]
+for the natural number [i]. We also have [posP] and [posN] that works
+for limb positions of type [positive] or [N].
 
  *)
 
-(*
-Definition pos (i : nat) :=
-  let j := i / 2 in
-  let k := i mod 2 in
-  j * 51 + k * 26.
-*)
 Definition posP (p : positive) :=
   match p with
   | pp~0 => 51 * pp
