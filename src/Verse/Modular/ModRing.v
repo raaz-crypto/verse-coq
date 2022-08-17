@@ -19,6 +19,22 @@ Definition to_N {M}(z : Zmod M) :=
 Definition eqZmod {M} : relation (Zmod M) := fun x y => match x, y with
                                                      | of_N x, of_N y => x ≡ y [mod (Npos M)]
                                                      end.
+Definition eqZmodb {M}(x y : Zmod M) := to_N x ≡? to_N y [mod (Npos M)].
+
+Lemma eqZmod_spec M : forall (x y : Zmod M), eqZmodb x y = true -> eqZmod x y.
+  intros x y.
+  destruct x; destruct y.
+  unfold eqZmodb.
+  unfold eqZmod.
+  simpl.
+  intro Hyp.
+  assert (modMod (N.pos M) n  ≡ modMod (N.pos M) n0 [mod N.pos M]) by (apply eqModb_ok; trivial).
+  modrewrite <- modMod_idemp.
+  rewrite H.
+  modrewrite modMod_idemp.
+  reflexivity.
+Qed.
+
 
 Hint Unfold eqZmod : localdb.
 #[local] Ltac simplify := repeat (autounfold with localdb; Equation.simplify).
