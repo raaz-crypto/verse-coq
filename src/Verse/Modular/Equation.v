@@ -43,7 +43,7 @@ the kind X ≡ Y mod M.
 
 Definition eqMod M  : relation N := fun X Y => (X mod M = Y mod M)%N.
 Definition redMod M : relation N := fun X Y => (X = Y mod  M)%N.
-
+Definition eqModb M (X Y : N) := (X mod M =? Y mod M)%N.
 
 
 #[export] Instance redSubEqMod M (pf : M <> 0%N): subrelation (redMod M) (eqMod M).
@@ -54,8 +54,16 @@ apply N.mod_mod; eauto with modular.
 Qed.
 
 
-Notation "X ≡ Y [mod M ]"  := (eqMod M X Y) (at level 70, format "X  ≡  Y  [mod  M ]").
+Notation "X ≡ Y  [mod M ]"  := (eqMod M X Y)  (at level 70, format "X  ≡  Y  [mod  M ]").
+Notation "X ≡? Y [mod M ]"  := (eqModb M X Y) (at level 70, format "X  ≡?  Y  [mod  M ]").
 Notation "X <==[mod M ] Y"  := (redMod M X Y) (at level 70, format "X  <==[mod M ]  Y").
+
+
+Lemma eqModb_ok {M}(X Y : N) : X ≡? Y [mod M] = true -> X ≡ Y [mod M].
+  unfold eqModb.
+  unfold eqMod.
+  rewrite N.eqb_eq; trivial.
+Qed.
 
 Lemma red_eq_mod : forall M x y z,  y ≡ z [mod M] -> x <==[mod M] y  -> x <==[mod M] z.
   intros M x y z.
