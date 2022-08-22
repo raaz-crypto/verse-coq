@@ -38,6 +38,9 @@ Lemma eqZmod_spec M : forall (x y : Zmod M), eqZmodb x y = true -> eqZmod x y.
   reflexivity.
 Qed.
 
+Lemma to_vs_of_N_spec M : forall n : N, to_N (@of_N M n) = (n mod (Npos M))%N.
+  trivial.
+Qed.
 
 Hint Unfold eqZmod : localdb.
 #[local] Ltac simplify := repeat (autounfold with localdb; Equation.simplify).
