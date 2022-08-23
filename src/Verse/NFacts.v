@@ -26,7 +26,9 @@ Hint Rewrite
      N.add_1_r N.add_1_l
      N.add_0_r N.add_0_l
      N.pow_add_r
-     N.pow_succ_r : Nrewrites.
+     N.pow_succ_r
+     N.add_sub
+  : Nrewrites.
 
 
 
@@ -162,4 +164,51 @@ Lemma Nmul_bound_nat n0 n1 a b :  N.size_nat a <= n0 -> N.size_nat b <= n1
 Proof.
   Hint Rewrite Nat2N.inj_add : Nrewrites.
   crush.
+Qed.
+
+Lemma div_mod_sub : forall a b, b <> 0%N ->  (a / b * b = a - a mod b)%N.
+  intros a b Hbnz.
+  rewrite N.mul_comm.
+  set (lhs:= (b*(a/b))%N).
+  set (amb := (a mod b)%N).
+  rewrite (N.div_mod a b); trivial.
+  crush.
+Qed.
+
+Lemma divide_add_mod_multiple : forall x m n p : N, n <> 0%N -> (n | m)%N ->  (x mod n = (m * p + x) mod n )%N.
+Proof.
+    intros x m n p.
+    intro HnNz.
+    intro HnDm.
+    rewrite N.add_mod; trivial.
+    rewrite N.mul_mod; trivial.
+    assert (Hmnz : (m mod n = 0)%N) by (rewrite (N.mod_divide m n HnNz); trivial).
+    rewrite Hmnz.
+    crush.
+Qed.
+
+Lemma divide_mod_mod : forall (x m n : N), m <> 0%N ->  n <> 0%N -> (n | m)%N ->  ( (x mod m ) mod n = x mod n)%N.
+  intros x m n.
+  intros HmnZ HnnZ.
+  intro HnDm.
+  rewrite (divide_add_mod_multiple (x mod m) m n (x / m)); trivial.
+  rewrite <- N.div_mod; trivial.
+Qed.
+
+(*
+Hint Rewrite divide_mod_mod : localdb.
+*)
+
+Lemma divide_mod_le : forall (x m n : N), m <> 0%N -> n <> 0%N -> (n | m)%N  -> (n < m)%N ->  (x mod n <= x mod m)%N.
+  intros x m n.
+  intros HmNz HnNz HnDm HnLTm.
+  rewrite <- (divide_mod_mod x m n); trivial.
+  apply (N.mod_le (x mod m) n); trivial.
+Qed.
+
+Lemma add_sub_le : forall a b : N, (a <= b)%N -> (a + (b - a) = b)%N.
+  intros a b HaLeB.
+  rewrite N.add_sub_assoc; eauto.
+  rewrite N.add_comm.
+  apply N.add_sub.
 Qed.
