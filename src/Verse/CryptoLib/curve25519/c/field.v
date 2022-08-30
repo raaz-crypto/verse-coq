@@ -32,13 +32,20 @@ Coercion  N2GF  : N >-> GF.
 
 There are two possible representations of elements in this field
 
-* The packed representation as a 255 bit little endian quantity
+* The _packed representation_ as a 255 bit little endian quantity
   represented as 32 bytes. We consider this as 4 -64-bit little endian
   values.
 
-* The computational representation: Consider the 255 bit number in
+* The _computational representation_: Consider the 255 bit number in
   base 2⁵¹ as α = x₀ + x₁ 2⁵¹ .... + x₅ 2²⁰⁴. Each of the xᵢ's
   themselves can be considered as aᵢ + bᵢ 2²⁶.
+
+* The _intermediate computational form_ is essentially the
+  computational representation with a looser bound on the bit size of
+  the last limb: the last limb can have 26 significant bits, i.e. 1
+  more than its designated 25 bits. Every arithmetic operation is
+  designed to work correctly for such inputs and generate output in
+  this intermediate computational form.
 
 
 The packed representation is the standard representation and is in
@@ -51,6 +58,11 @@ The computational representation given by specifying the bit position
 of the [i]-th limb which is given by the function [pos i = ⌈25.5 i⌉]
 for the natural number [i]. We also have [posP] and [posN] that works
 for limb positions of type [positive] or [N].
+
+In the intermediate computational form, certain field element can have
+multiple bit representation. The only point at which we fix this is
+just before serialisation. This step will be called the cannonisation
+procedure.
 
  *)
 
@@ -463,10 +475,10 @@ needs to be propagated further on. We allow for an additional bit at
 the top most limb x₉ which will be adjusted after the end of all
 operations. Consider the following arithmetic operations
 
-* _Addition:_ Here there is at most one additional bit generated. So
-  the carry from xᵢ to xᵢ₊₁ bit. What this means is that if xᵢ₊₁ was
-  already of length len (i + 1) at most an additional bit is added to
-  it which then is propagated further up.
+* _Addition:_ Here there is at most one additional bit generated in
+  each limb. A single propagation will get all the limbs to the
+  intermediate computational form.
+
 
 * _Multiplication:_ If we think of the limbs as forming a polynomial
   over the indeterminate X then the coefficients cₖ (∑ aᵢ Xⁱ)(∑ bᵢ Xʲ)
@@ -480,14 +492,16 @@ operations. Consider the following arithmetic operations
   but c₉ is a 25-bit number + a 37 bit number = 38 bit number. What
   this means is in the next round we will be propagating 38 - 25 = 11
   bits from c₉ to c₀ but then on will only be propagating at most 1
-  bit; adding a 11-bit carry to a 25 or 26 bit number will result in
-  at most have an additional 1 bit carry. As a result after the end of
-  the second round of propagation all limbs c₀ ... c₈ will have the
-  correct number of bits but c₉ might have one addition bit (i.e 26
-  bits instead of 25 bits). Although this is not the standard
-  representation, we do not need to perform any further propagation
-  until the final result is desired for, with this bit counts, none of
-  our arithmetic operations will overflow.
+  bit; adding a 11-bit to 25 or 26 bit number will at most result in
+  an additional 1 bit carry. As a result after the end of the second
+  round of propagation all limbs c₀ ... c₈ will have the correct
+  number of bits but c₉ might have one addition bit (i.e 26 bits
+  instead of 25 bits). Therefore after a multiplication it is
+  sufficient to do carry propagation twice.
+
+* _Multiplicaiton by small constant_: We can get away by a single
+  propagation if the multiplication is by a small constant, or if we
+  know that one of the field elements have all their limbs as small.
 
 NOTE: Instead of starting from the largest limb, we could start from
 any of the limb but then that particular limb will have an additional
