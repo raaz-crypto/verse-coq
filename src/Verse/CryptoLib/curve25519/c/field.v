@@ -94,7 +94,6 @@ Definition Packed := Array 4 littleE Word64.
 
 (** Field element in computational representation *)
 Definition fe := Vector.t (const Word64) nLimbs.
-
 Require Import Verse.NFacts.
 
 Create HintDb localdb.
@@ -548,6 +547,18 @@ Section Swapping.
 
 End Swapping.
 
+
+(**
+
+Consider a variable b that is a single bit. Often we want to select or
+mask based on this single bit. We need to then convert this b into a
+mask, i.e. if b = 1 then b should become all ones and if b =0 then b
+should become all 0's. The setToMask essentially does this.
+
+ *)
+
+Definition setToMask {progvar : VariableT}(b : progvar of type Word64) := [code| b := (~b) + `1` |].
+
 Section SwappingEfficient.
 
   (* This is better because
@@ -558,17 +569,16 @@ Section SwappingEfficient.
    *)
   Context {progvar : VariableT}.
 
-  Definition propagateLSB (b : progvar of type Word64) := [code| b := ~b + `1` |].
-
   Program Definition swapE (b : progvar of type Word64) (A B : feVar progvar)
     : code progvar :=
-    (propagateLSB b
+
+    ( setToMask b
       ++
-      foreachLimb (fun i _ => [code|
-                             A[i] := A[i] ⊕ B[i];
-                             B[i] := (b & (A[i] ⊕ B[i]))  | (~b & B[i]);
-                             A[i] := A[i] ⊕ B[i]
-                           |]))%list.
+      foreachLimb (fun i _ =>
+                           [code| A[i] := A[i] ⊕ B[i] ;
+                                  B[i] := (b & (A[i] ⊕ B[i])) | (~b & B[i]) ;
+                                  A[i] := A[i] ⊕ B[i]
+                           |]    ))%list.
 End SwappingEfficient.
 
 
@@ -577,7 +587,9 @@ End SwappingEfficient.
 
 We implement the following operations for field elements.
 
-1. A := B + C or A += B + C.
+1. A := B + C or A += B.
+
+2. A := B - C of A -= B.
 
 2. A := B * C of A *= B.
 
@@ -586,7 +598,15 @@ No explicit propagation is done because as remarked above, the number
 of propagations that is to be done depends on the operations that we
 are performing and the context.
 
-We start with addition which is more or less straight forward.
+We start with addition which is more or less straight forward. If we
+start with limbs in intermediate computational representation then
+after an addition step we will end up with each limb having an
+additional bit. A single round of propagation should get it back to
+the intermediate computational representation.
+
+Note that one does not need to do a single propagation every time. If
+there is a chain of at most 25 additions, we need to do the
+propagation only once.
 
  *)
 
@@ -598,18 +618,104 @@ Section Addition.
 
   Program Definition add : code progvar :=
     foreachLimb (fun i _ => [code| A[i] := B[i] + C[i]  |]).
-  Program Definition sub : code progvar :=
-    foreachLimb (fun i _ => [code| A[i] := B[i] - C[i]  |]).
   Program Definition addAssign : code progvar :=
     foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
-  Program Definition subAssign : code progvar :=
-    foreachLimb (fun i _ => [code| A[i] -= B[i]  |]).
 
   Definition addAssignSmall (small : expr progvar of type Word64) : code progvar.
     verse([code| A[0] += small |]).
   Defined.
 
 End Addition.
+
+(** ** Subtraction.
+
+Imagine the 255 bit field element α with its bits distributed among
+the 10 limbs. Complementing these 255 bits would mean that we replace
+the associated integer with 2²⁵⁵ - 1 - α where as what we do want to
+compute is 2²⁵⁵ - 19 - α. So the negation of α is obtained by
+complementing and adding the field element -18.
+
+There are two important additional issues.
+
+1. Each limb which has 25 (or 26) bit need to be complemented only on
+   those many bits. This also takes care of there being no rounding
+   errors when we eventually add this to a field element in
+   intermediate form.
+
+2. The field element α, in its intermediate form might have an
+   additional bit in its 256 bit position (i.e. α = α₀ + b . 2²⁵⁵ = α₀
+   + b . 19) where b = 0/1. The negation α in this case is - α₀ - b
+   . 19. Therefore, we need to add an additional (- b . 19) to -α₀.
+
+
+Other than these adjustments, subtraction is essentially addition.
+
+*)
+Section Subtraction.
+
+  Context {progvar : VariableT}.
+
+  (** In the intermediate computation form each field element is
+      expressed as a 256 bit constant b₀,...,b₂₅₅. When
+      subtracting/negating.  this bit becomes the constant [minus_19].
+      All the code in the subtraction section will use this temporary
+      variable to get the 256-th bit of the appropriate field element.1
+
+   *)
+  Variable B255 : progvar of type Word64.
+
+  (** Function to set 256-th bit given a field element
+      variable. Notice that, we want this bit to be a mask,
+      i.e. [B255] should have all ones if the 256 bit of the field
+      element is 1 and 0 otherwise. Thus we can use [B255] as a mask
+      to select the appropriate expression.
+   *)
+
+  Program Definition setB255 (X : feVar progvar) :=
+    let x := [verse| X[9] |] in
+    ([code| B255 := `toTopBits 26 x `|] ++ setToMask B255)%list.
+
+
+  (** For a field element if we complement all the bits, we get the
+      nat value (2²⁵⁵ - 1 - α) We need to adjust this will additional
+      additive terms. Firstly, we need to add the field constant -18
+      so that the nat value becomes (2²⁵⁵ - 19 - α). In addition if
+      the 256-th bit was 1 in the bit representation, we also need to
+      add an additional -19. This we capture with [adjustExpr]
+
+   *)
+
+  Program Definition adjustExpr i (_ : i < nLimbs) : expr progvar of type Word64
+      := [verse| `minus18_const` [i] + (B255 & minus19_const [i]) |].
+
+  Program Definition complement (X : feVar progvar) i (_ : i < nLimbs)  : expr progvar of type Word64
+    := keepOnlyLower (len i) [verse| ~ X[i] |].
+
+  Program Definition update_complement (X : feVar progvar) i (pf : i < nLimbs) : code progvar :=
+    let x := [verse| X[i] |] in
+    [code| X[i] := `complement X` [i] |].
+
+
+  (** Negate the field element in the register A *)
+  Program Definition negate (A : feVar progvar):=
+    (setB255 A
+       ++ foreachLimb (update_complement A)
+       ++ foreachLimb (fun i pf => [code| A[i] += adjustExpr[i] |])
+    )%list.
+
+  Program Definition sub (A B C : feVar progvar) : code progvar :=
+    let CComp := complement C in
+    (setB255 C
+       ++ foreachLimb (fun i pf => [code| A[i] := B[i] + CComp[i] + adjustExpr[i] |])
+       )%list.
+
+  Program Definition subAssign (A B : feVar progvar) : code progvar :=
+    let BComp := complement B in
+    (setB255 B
+       ++ foreachLimb (fun i _ => [code| A[i] += BComp[i] + adjustExpr[i]  |] ))%list.
+
+End Subtraction.
+
 
 (** ** Multiplication
 
