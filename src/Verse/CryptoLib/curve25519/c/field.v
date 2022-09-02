@@ -24,9 +24,6 @@ Definition P : positive := (2^255 - 19)%positive.
 (** The underlying Galois field *)
 Definition GF := Zmod P.
 
-Definition N2GF : N -> GF := of_N.
-Coercion  N2GF  : N >-> GF.
-
 (** ** Representing elements.
 
 
@@ -144,7 +141,7 @@ Section FieldElements.
 
 
   Definition limbsOfGF (alpha : GF) : list N := limbsOf (to_N alpha).
-  Definition GF_of_limbs (l : list N) : GF := of_limbs l.
+  Definition GF_of_limbs (l : list N) : GF := of_N (of_limbs l).
 
   Lemma modPLt255 : forall n : N, (n mod (Npos P) < 2^255)%N.
     intro n.
@@ -179,34 +176,23 @@ Section FieldElements.
   Qed.
 
   Definition wordsOf  (alpha : GF) := List.map (NToConst Word64) (limbsOfGF alpha).
-  Definition of_Words (vec : fe) : GF := of_limbs (List.map (@Bv2N 64) (Vector.to_list vec)).
+  Definition of_Words (vec : fe) : GF := of_N (of_limbs (List.map (@Bv2N 64) (Vector.to_list vec))).
   Definition GF2const (alpha : GF) : fe :=  Vector.of_list (wordsOf alpha).
+  Arguments GF2const (alpha)%modular.
 
 
-  Definition minus18 : GF := of_N (Npos P - 18).
-  Definition minus19 : GF := of_N (Npos P - 19).
+  Definition minus18_const : fe := GF2const ( -18 ).
+  Definition minus19_const : fe := GF2const ( -19 ).
 
-  (* begin hide *)
-  (* NOTE: These are inline tests of correctness *)
-
-  Lemma minus18_specs : minus18 + of_N 18 == of_N 0.
-    compute; trivial.
-  Qed.
-  Lemma minus19_specs : minus19 + of_N 19 == 0.
+  Lemma minus18_const_specs : of_Words minus18_const == -18%modular.
     compute; trivial.
   Qed.
 
-
-  Definition minus18_const : fe := GF2const minus18.
-  Definition minus19_const : fe := GF2const minus19.
-
-  Lemma minus18_const_specs : of_Words minus18_const == to_N minus18.
+  Lemma minus19_const_specs:  of_Words  minus19_const == -19%modular.
     compute; trivial.
   Qed.
 
-  Lemma minus19_const_specs:  of_Words  minus19_const == minus19.
-    compute; trivial.
-  Qed.
+
 
 End FieldElements.
 
