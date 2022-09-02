@@ -1,6 +1,7 @@
 #+TITLE: Explicit formula for curve25519 computation.
 
-The curve C : y² = x³ + A x² + x
+The curve C : y² = x³ + A x² + x over the finite field 𝔽ₚ. In our
+case the prime p = 2²⁵⁵ - 19 and the constant A is 486662.
 
 
 * X25519 Diffie-Hellman.
@@ -23,13 +24,57 @@ For doubling the associated formula is
 
 - x(2P) = m² - A - 2 x(P)  where m is now the slope of the tangent = (3x² + 2A x + 1)/(2 y).
 
+** Montgomery ladder.
+
+Given a base point B on the curve and a number n = a₀ + a₁ 2 + ... +
+aₖ 2ᵏ we want to compute the n B; rather we want to compute the
+x-coordinate of n B. We compute a sequence of point pairs.
+
+Pᵢ , Qᵢ such that Pᵢ = nᵢ B and Qᵢ = (nᵢ + 1) B. The nᵢ's are choosen
+with the property that nᵢ = ⌈ n/2ᵏ⁻ⁱ ⌉ = aₖ₋ᵢ + 2 * aₖ₋ᵢ₊₁ + ... + 2ⁱ
+aₖ.  To start the process, we can set P₋₁ = n₋₁ B = 0 B = ∞ ; Q₋₁ = B.
+When i = k we have the desired result.
+
+Consider the stage (i - 1) and let P = Pᵢ₋₁ and Q = Qᵢ₋₁. We have the following cases.
+
+- aₖ₋ᵢ = 0 ::
+
+  We have nᵢ = 2  and hence Pᵢ = 2P and Qᵢ = P + Q.
+
+- aₖ₋ᵢ = 1 :: Then Pᵢ = P + Q and Qᵢ = 2Q.
+
+
+Define a /Montgomery step/ as computing (2 P, P+Q) from (P, Q).  Notice
+that depending on whether the bit aₖ₋ᵢ we might have to compute either
+(2P , P + Q) or (2Q, P+Q). In the most complete sense, Montgomery step
+is the following.
+
+
+- Montegomery step :: Given (P,Q) and the point B such that Q - P = B,
+  compute (2 P, P+Q). We will denote this by the function Montgomery :
+  E * E -> E * E.
+
+*** Swapping and climbing the ladder.
+
+In our case, we need all the Pᵢ's and Qᵢ's and it is sufficient to
+iterate the Montegomery step with appropriate swaps. Notice that
+(Pᵢ,Qᵢ) = swap aₖ₋ᵢ . Montgomery . swap aₖ₋ᵢ (P,Q)
+
+swap b (P,Q) = if b = 0 then (P,Q) else (Q,P).
+
+
+Notice that we have B = Q - P but since we only use the. So if we swap
+we need the point -B = P - Q. However since only the x-coordinate of B
+is required during the computation, all we care about is the
+x-coordinate of B.
+
 
 ** In projective coordinates.
 
-The main idea is to rewrite the formulae for x-cordinates purely in terms of x-chordinates
-and then homogenize using x = X/Z.
+The main idea is to rewrite the formulae for x-cordinates purely in
+terms of x-coordinates and then homogenize using x = X/Z.
 
-*** Doubling
+*** Doubling the point P.
 
 x(2P) = (3x² + 2A x + 1)²/4y² - A - 2 x(P).
       = function in x alone  (by replacing y² with x³ + A x² + x)
@@ -38,31 +83,32 @@ x(2P) = (3x² + 2A x + 1)²/4y² - A - 2 x(P).
 - X(2P) = (X² - Z²)²
 - Z(2P) = 4XZ(X² + A X Z + Z²)
 
-*** Point addition.
+*** Point addition P + Q
 
-Similar considerations gives us the affine formula
+We assume that we have the points P and Q with coordinates [x₁,z₁] and
+[x₂,z₂] respectively and we know the x-coordinate of x₀ of the point B
+= Q - P.
 
-x₃ = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ - 2 y₁ y₂]/ (x₂ - x₁)²
+The formula for point addition is given by.
 
-For Montgomery ladder we only add points of the form P = i B and Q =
-(i + 1) B where B is the base point of coordinate [X(B) : Z(B)] =
-[x(B) : 1].
+x = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ - 2 y₁ y₂]/ (x₂ - x₁)²
 
-Therefore we have B = Q - P = Q + (-P) where the coordinate of -P = (x₁, - y₁)
-We have the equation
+
+Using this we get
 
 x(B) = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ + 2 y₁ y₂]/ (x₂ - x₁)²
 
 
-Which gives 2y₁y₂ = x(B) (x₂ - x₁)²  - (x₁ + x₂)(1 + x₁ x₂) - 2 A x₁ x₂.
+Which gives 2y₁y₂ = x(B) (x₂ - x₁)² - (x₁ + x₂)(1 + x₁ x₂) - 2 A x₁
+x₂. We then substitute 2y₁y₂ to get a x-only formulae which we can
+homogenize. This results in the following projective equation for the
+X and Z coordinates of P + Q.
 
-We then 2y₁y₂ to get a x-only formulae which we can homogenize.
 
 
+- X  =  (X₁ X₂  - Z₁ Z₂)²
 
-- X₂ᵢ₊₁  =  (Xᵢ Xᵢ₊₁  - Zᵢ Zᵢ₊₁)²
-
-- Z₂ᵢ₊₁  =  X(B) (Xᵢ Zᵢ₊₁  - Xᵢ₊₁ Zᵢ )²
+- Z  =  X(B) (X₁ Z₂  - X₂ Z₁ )²
 
 
 ** Optimised formula
@@ -133,3 +179,68 @@ At the end of the computation we should have [X₂ᵢ : Z₂ᵢ] and [X₂ᵢ₊
 Z₂ᵢ₊₁] which are available in the registers [t₂ : t₄] and [t₃ : t₁]
 respectively. Therefore the Montgomery step should be repeated with
 t₂, t₃, t₄ and t₁.
+
+
+The monocypher library which inturn borrows from the supercop
+implementation has the following operations.
+
+#+begin_src C
+  // Montgomery ladder step: replaces (P2, P3) by (P2*2, P2+P3)
+  // with differential addition
+  fe_sub(t0, x3, z3);  fe_sub(t1, x2, z2);    fe_add(x2, x2, z2);
+  fe_add(z2, x3, z3);  fe_mul(z3, t0, x2);    fe_mul(z2, z2, t1);
+  fe_sq (t0, t1    );  fe_sq (t1, x2    );    fe_add(x3, z3, z2);
+  fe_sub(z2, z3, z2);  fe_mul(x2, t1, t0);    fe_sub(t1, t1, t0);
+  fe_sq (z2, z2    );  fe_mul121666(z3, t1);  fe_sq (x3, x3    );
+  fe_add(t0, t0, z3);  fe_mul(z3, x1, z2);    fe_mul(z2, t1, t0);
+#+end_src
+
+Here give the instructions in tabular form.
+
+
+
+| SSA                | Value                    | Register allocation | Assignment        |
+|--------------------+--------------------------+---------------------+-------------------|
+| a                  | a  (x₂)                  | x₂                  | NOP               |
+| b                  | b  (x₃)                  | x₃                  | NOP               |
+| c                  | c  (z₂)                  | z₂                  | NOP               |
+| d                  | d  (z₃)                  | z₃                  | NOP               |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁ = x₃ - z₃       | b - d                    | t₀                  | t₀  = x₃ - z₃     |
+| v₂ = x₂ - z₂       | a - c                    | t₁                  | t₁  = x₂ - z₂     |
+| v₃ = x₂ + z₂       | a + c                    | x₂                  | x₂ += z₂          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₄ = x₃ + z₃       | b + d                    | z₂                  | z₂ = x₃ + z₃      |
+| v₅ = v₁ * v₃       | (b - d)(a + c)           | z₃                  | z₃ = t₀ * x₂      |
+| v₆ = v₄ * v₂       | (b + d)(a - c)           | z₂                  | z₂ *= t₁          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₇ = v₂²           | (a - c)²                 | t₀                  | t₀ := t₁²         |
+| v₈ = v₃²           | (a + c)²                 | t₁                  | t₁ := x₂²         |
+| v₉ = v₅ + v₆       | 2(ab - cd)               | x₃                  | x₃ := z₃ + z₂     |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₀ = v₅ - v₆      | 2(bc - ad)               | z₂                  | z₂ := z₃ - z₂     |
+| v₁₁ = v₇ * v₈      | (a² - c²)²               | x₂                  | x₂ := t₁ * t₀     |
+| v₁₂ = v₈ - v₇      | 4 ac                     | t₁                  | t₁ -= t₀          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₃ = v₁₀²         | 4(bc - ad)²              | z₂                  | z₂ := z₂²         |
+| v₁₄ = 121666 * v₁₂ | 486664 ac                | z₃                  | z₃ := 121666 * t₁ |
+| v₁₅ = v₉²          | 4(ab - cd)²              | x₃                  | x₃ := x₃²         |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₆ += v₁₄         | a² + c² + 486662 ac      | t₀                  | t₀ += z₃          |
+| v₁₇ = x₁ * z₂      | 4 X(B)(bc - ad)²         | z₃                  | z₃ := x₁ * z₂     |
+| v₁₈ = v₁₂ * v₁₆    | 4ac(a² + c² + 486662 ac) | z₂                  | z₂ := t₁ * t₀     |
+|--------------------+--------------------------+---------------------+-------------------|
+
+
+We start with x₁ = X(B) the base point (z₁ = 1) and the values [a : c] = [X(P) : Z(P)]
+[b : d] = [X(Q) : Z(Q)].
+The result is that we have X and Z coordinates as follows.
+
+
+
+| Coordinate | Value               | SSA Variable | Program Variable |
+|------------+---------------------+--------------+------------------|
+| X(2P)      | (a² - c²)²          | v₁₁          | x₂               |
+| Z(2P)      | 4ac(a² + 486662 ac) | v₁₈          | z₂               |
+| X(P+Q)     | 4(ab - cd)²         | v₁₅          | x₃               |
+| Z(P+Q)     | 4X(B)(bc - ad)²     | v₁₇          | z₃               |
