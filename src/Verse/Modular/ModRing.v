@@ -7,17 +7,22 @@ Require Import RelationClasses.
 Require Export Relation_Definitions.
 Create HintDb localdb.
 
+
 Inductive Zmod (M : positive) :=
 | of_N : N -> Zmod M.
 
 Arguments of_N {M}.
+
+Declare Scope modular_scope.
+Delimit Scope modular_scope with modular.
+Bind Scope modular_scope with Zmod.
+
 
 Definition to_N {M}(z : Zmod M) :=
   match z with
   | of_N x => modMod (Npos M) x
   end%N.
 
-Definition to_Z {M}(z : Zmod M) := Z.of_N (to_N z).
 
 Definition eqZmod {M} : relation (Zmod M) := fun x y => match x, y with
                                                      | of_N x, of_N y => x ≡ y [mod (Npos M)]
@@ -91,14 +96,13 @@ Definition opp {M} (x : Zmod M) : Zmod M := match x with
 
 Definition minus {M}(x y : Zmod M) : Zmod M :=  add x (opp y).
 
+Definition of_positive [M](p : positive) : Zmod M := of_N (Npos p).
+Definition of_negative [M](p : positive) : Zmod M := opp (of_positive p).
+Definition of_Zero {M} : Zmod M := of_N 0.
+Definition idZ := @id Z.
 
-Definition of_Z {M}(z : Z) : Zmod M :=
-  match z with
-  | Z0 => of_N 0
-  | Zpos p => of_N (Npos p)
-  | Zneg p => opp (of_N (Npos p))
-  end.
-
+Number Notation Zmod idZ idZ
+                (via Z mapping [ [of_Zero] => Z0 , [of_positive] => Zpos, [of_negative] => Zneg ]) : modular_scope.
 
 #[local] Hint Unfold add mul minus opp
   : localdb.
@@ -139,14 +143,6 @@ Proof.
   local_crush.
 Qed.
 
-Add Parametric Morphism (M : positive) : to_Z with signature
-    @eqZmod M ==> eq as to_Z_mor.
-Proof.
-  local_crush.
-  unfold to_Z.
-  repeat f_equiv; trivial.
-Qed.
-
 Add Parametric Morphism (M : positive) : addition  with signature
     (eqZmod ==> eqZmod ==> @eqZmod M) as add_mor.
 Proof.
@@ -169,15 +165,6 @@ Qed.
 Add Parametric Morphism (M : positive) : opposite  with signature
     (@eqZmod M ==> eqZmod) as opp_mor.
 Proof.
-  local_crush.
-Qed.
-
-
-Add Parametric Morphism (M : positive) : of_Z with signature
-    eq ==> @eqZmod M as of_Z_mor.
-Proof.
-  intro y.
-  destruct y;
   local_crush.
 Qed.
 
