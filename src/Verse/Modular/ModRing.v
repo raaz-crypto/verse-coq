@@ -1,4 +1,5 @@
 Require Import NArith.
+Require Import ZArith.
 Require Import Verse.Modular.Equation.
 Require Import Setoid.
 Require Import SetoidClass.
@@ -6,19 +7,45 @@ Require Import RelationClasses.
 Require Export Relation_Definitions.
 Create HintDb localdb.
 
+
 Inductive Zmod (M : positive) :=
 | of_N : N -> Zmod M.
 
 Arguments of_N {M}.
+
+Declare Scope modular_scope.
+Delimit Scope modular_scope with modular.
+Bind Scope modular_scope with Zmod.
+
 
 Definition to_N {M}(z : Zmod M) :=
   match z with
   | of_N x => modMod (Npos M) x
   end%N.
 
+
 Definition eqZmod {M} : relation (Zmod M) := fun x y => match x, y with
                                                      | of_N x, of_N y => x ≡ y [mod (Npos M)]
                                                      end.
+Definition eqZmodb {M}(x y : Zmod M) := to_N x ≡? to_N y [mod (Npos M)].
+
+Lemma eqZmod_spec M : forall (x y : Zmod M), eqZmodb x y = true -> eqZmod x y.
+  intros x y.
+  destruct x; destruct y.
+  unfold eqZmodb.
+  unfold eqZmod.
+  simpl.
+  intro Hyp.
+  assert (modMod (N.pos M) n  ≡ modMod (N.pos M) n0 [mod N.pos M]) by (apply eqModb_ok; trivial).
+  modrewrite <- modMod_idemp.
+  rewrite H.
+  modrewrite modMod_idemp.
+  reflexivity.
+Qed.
+
+Lemma to_vs_of_N_spec M : forall n : N, to_N (@of_N M n) = (n mod (Npos M))%N.
+  trivial.
+Qed.
 
 Hint Unfold eqZmod : localdb.
 #[local] Ltac simplify := repeat (autounfold with localdb; Equation.simplify).
@@ -69,6 +96,13 @@ Definition opp {M} (x : Zmod M) : Zmod M := match x with
 
 Definition minus {M}(x y : Zmod M) : Zmod M :=  add x (opp y).
 
+Definition of_positive [M](p : positive) : Zmod M := of_N (Npos p).
+Definition of_negative [M](p : positive) : Zmod M := opp (of_positive p).
+Definition of_Zero {M} : Zmod M := of_N 0.
+Definition idZ := @id Z.
+
+Number Notation Zmod idZ idZ
+                (via Z mapping [ [of_Zero] => Z0 , [of_positive] => Zpos, [of_negative] => Zneg ]) : modular_scope.
 
 #[local] Hint Unfold add mul minus opp
   : localdb.
@@ -102,6 +136,7 @@ Add Parametric Morphism (M : positive) : to_N with signature
 Proof.
   local_crush.
 Qed.
+
 Add Parametric Morphism (M : positive) : of_N with signature
     @eqMod (Npos M) ==> @eqZmod M as of_N_mor.
 Proof.
@@ -202,6 +237,28 @@ Lemma Zmod_opp_def {M} : forall x : Zmod M, x + opposite x == 0.
   rewrite N.add_sub_swap; local_crush.
 Qed.
 
+
+Print semi_ring_theory.
+Program Definition modular_semi_ring (M : positive)
+  : semi_ring_theory
+      0
+      1
+      addition
+      multiplication
+      (@eqZmod M) :=
+  {|
+    SRadd_0_l   := Zmod_add_0_l;
+    SRadd_comm  := Zmod_add_comm;
+    SRadd_assoc := Zmod_add_assoc;
+    SRmul_1_l   := Zmod_mul_1_l;
+    SRmul_comm  := Zmod_mul_comm;
+    SRmul_assoc := Zmod_mul_assoc;
+    SRdistr_l   := Zmod_distr_l
+  |}.
+
+Solve All Obligations with reflexivity.
+
+
 Definition modular_ring (M : positive)
   : ring_theory
       0
@@ -222,3 +279,43 @@ Definition modular_ring (M : positive)
       Rsub_def   := Zmod_sub_def;
       Ropp_def   := Zmod_opp_def
     |}.
+
+
+
+Program Definition modular_semi_morph (M : positive)
+  : semi_morph
+      0
+      1
+      addition
+      multiplication
+      (@eqZmod M)
+      0%N
+      1%N
+      N.add
+      N.mul
+      (@eqModb (Npos M))
+      (@of_N M)
+  := {|
+    Smorph0 := _;
+    Smorph1 := _;
+    Smorph_add := _;
+    Smorph_mul := _;
+    Smorph_eq := _
+    |}.
+
+Solve Obligations with (try reflexivity).
+
+Next Obligation.
+  modrewrite N.add_mod. reflexivity.
+Qed.
+
+Next Obligation.
+  modrewrite N.mul_mod; reflexivity.
+Qed.
+
+Next Obligation.
+  apply eqModb_ok; trivial.
+Qed.
+
+
+Definition eqModZb {M} (x y : Z) := (x mod (Zpos M) =? y mod (Zpos M))%Z.

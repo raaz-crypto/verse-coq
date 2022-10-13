@@ -1,0 +1,246 @@
+#+TITLE: Explicit formula for curve25519 computation.
+
+The curve C : y² = x³ + A x² + x over the finite field 𝔽ₚ. In our
+case the prime p = 2²⁵⁵ - 19 and the constant A is 486662.
+
+
+* X25519 Diffie-Hellman.
+
+
+The curve is such that if P = (x,y) ∈ E(C) then -P = (x, -y) ∈
+E(C). Since we use only the x-coordinate, we do not need to
+distinguish the points P and -P.
+
+
+Therefore the rule is given points P and Q find and R such that R ∈
+Line(P,Q) ∩ E(C). Let y = m x + c be the line through P and Q. We have
+m = (y₁ - y₂)/(x₁ - x₂). Substituting in C and realising that
+x(P+Q) + x(P) + x(Q) should be the negative of the x²-coefficient we have.
+
+
+- x(P+Q) = m² - A - x(P) - x(Q).
+
+For doubling the associated formula is
+
+- x(2P) = m² - A - 2 x(P)  where m is now the slope of the tangent = (3x² + 2A x + 1)/(2 y).
+
+** Montgomery ladder.
+
+Given a base point B on the curve and a number n = a₀ + a₁ 2 + ... +
+aₖ 2ᵏ we want to compute the n B; rather we want to compute the
+x-coordinate of n B. We compute a sequence of point pairs.
+
+Pᵢ , Qᵢ such that Pᵢ = nᵢ B and Qᵢ = (nᵢ + 1) B. The nᵢ's are choosen
+with the property that nᵢ = ⌈ n/2ᵏ⁻ⁱ ⌉ = aₖ₋ᵢ + 2 * aₖ₋ᵢ₊₁ + ... + 2ⁱ
+aₖ.  To start the process, we can set P₋₁ = n₋₁ B = 0 B = ∞ ; Q₋₁ = B.
+When i = k we have the desired result.
+
+Consider the stage (i - 1) and let P = Pᵢ₋₁ and Q = Qᵢ₋₁. We have the following cases.
+
+- aₖ₋ᵢ = 0 ::
+
+  We have nᵢ = 2  and hence Pᵢ = 2P and Qᵢ = P + Q.
+
+- aₖ₋ᵢ = 1 :: Then Pᵢ = P + Q and Qᵢ = 2Q.
+
+
+Define a /Montgomery step/ as computing (2 P, P+Q) from (P, Q).  Notice
+that depending on whether the bit aₖ₋ᵢ we might have to compute either
+(2P , P + Q) or (2Q, P+Q). In the most complete sense, Montgomery step
+is the following.
+
+
+- Montegomery step :: Given (P,Q) and the point B such that Q - P = B,
+  compute (2 P, P+Q). We will denote this by the function Montgomery :
+  E * E -> E * E.
+
+*** Swapping and climbing the ladder.
+
+In our case, we need all the Pᵢ's and Qᵢ's and it is sufficient to
+iterate the Montegomery step with appropriate swaps. Notice that
+(Pᵢ,Qᵢ) = swap aₖ₋ᵢ . Montgomery . swap aₖ₋ᵢ (P,Q)
+
+swap b (P,Q) = if b = 0 then (P,Q) else (Q,P).
+
+
+Notice that we have B = Q - P but since we only use the. So if we swap
+we need the point -B = P - Q. However since only the x-coordinate of B
+is required during the computation, all we care about is the
+x-coordinate of B.
+
+
+** In projective coordinates.
+
+The main idea is to rewrite the formulae for x-cordinates purely in
+terms of x-coordinates and then homogenize using x = X/Z.
+
+*** Doubling the point P.
+
+x(2P) = (3x² + 2A x + 1)²/4y² - A - 2 x(P).
+      = function in x alone  (by replacing y² with x³ + A x² + x)
+      =
+
+- X(2P) = (X² - Z²)²
+- Z(2P) = 4XZ(X² + A X Z + Z²)
+
+*** Point addition P + Q
+
+We assume that we have the points P and Q with coordinates [x₁,z₁] and
+[x₂,z₂] respectively and we know the x-coordinate of x₀ of the point B
+= Q - P.
+
+The formula for point addition is given by.
+
+x = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ - 2 y₁ y₂]/ (x₂ - x₁)²
+
+
+Using this we get
+
+x(B) = [(x₁ + x₂)(1 + x₁ x₂) + 2 A x₁ x₂ + 2 y₁ y₂]/ (x₂ - x₁)²
+
+
+Which gives 2y₁y₂ = x(B) (x₂ - x₁)² - (x₁ + x₂)(1 + x₁ x₂) - 2 A x₁
+x₂. We then substitute 2y₁y₂ to get a x-only formulae which we can
+homogenize. This results in the following projective equation for the
+X and Z coordinates of P + Q.
+
+
+
+- X  =  (X₁ X₂  - Z₁ Z₂)²
+
+- Z  =  X(B) (X₁ Z₂  - X₂ Z₁ )²
+
+
+** Optimised formula
+
+We need to compute the following homogeneous coordinates at the end of
+each montgomery step.
+
+
+- X₂ᵢ    = (Xᵢ² - Zᵢ²)²
+- Z₂ᵢ    = 4XᵢZᵢ(Xᵢ² + A Xᵢ Zᵢ + Zᵢ²)
+- X₂ᵢ₊₁  =  (Xᵢ Xᵢ₊₁  - Zᵢ Zᵢ₊₁)²
+- Z₂ᵢ₊₁  =  X(B) (Xᵢ Zᵢ₊₁  - Xᵢ₊₁ Zᵢ )²
+
+  Based on https://martin.kleppmann.com/papers/curve25519.pdf (which
+  it self is an explanation of tweet NaCl implementation) we give the
+  following optimised implementation as a table. The actual code is
+  different in that we disallow assignments of the kind a *= b.
+
+We start with t₀, t₁, t₂, t₃ having the value Xᵢ = a, Xᵢ₊₁ = b, Zᵢ = c
+and Zᵢ₊₁ = d respectively.
+
+To see the correctness of the algorithm, look on to the SSA form of
+the program. The Value column gives the value of the appropriate SSA
+variable in terms of teh original value a,b,c, and d.
+
+Based on the SSA program, we compute the lifetime. An SSA variable vᵢ
+has a lifetime of ~l~ if the last SSA assignment where it is used is
+~vₗ~. An infinity (∞) in the lift time column indicate that the value is
+required in the next iteration.
+
+Based on the lifetimes, we compute a register allocation into
+registers 6 registers t₀...t₅. The actual series of assignment is
+given in the right most column. The property that we should ensure is
+that if t is the register allocated for an SSA variable vᵢ then it
+should not be reallocated before the life time of vᵢ expires.
+
+
+| Lifetime | SSA              | Value                         | Register allocation | Assignment       |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|        2 | t₀ = a           | a                             | t₀                  | NOP              |
+|        4 | t₁ = b           | b                             | t₁                  | NOP              |
+|        2 | t₂ = c           | c                             | t₂                  | NOP              |
+|        4 | t₃ = d           | d                             | t₃                  | NOP              |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|        6 | v₁ = t₀ + t₂     | a + c                         | t₄                  | t₄  = t₀ + t₂    |
+|        8 | v₂ = t₀ - t₂     | a - c                         | t₀                  | t₀ -= t₂         |
+|        7 | v₃ = t₁ + t₃     | b + d                         | t₅                  | t₅ = t₁ + t₃     |
+|        5 | v₄ = t₁ - t₃     | b - d                         | t₁                  | t₁ -= t₃         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|       10 | v₅ = v₁ * v₄     | (a + c)(b - d)                | t₂                  | t₂ = t₄ * t₁     |
+|       15 | v₆ = v₁ ²        | (a + c)²                      | t₁                  | t₁ = t₄²         |
+|       10 | v₇ = v₂ * v₃     | (a - c)(b + d)                | t₃                  | t₃ = t₀ t₅       |
+|       13 | v₈ = v₂ ²        | (a - c)²                      | t₄                  | t₄ = t₀²         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+|       18 | v₉  = v₅ + v₇    | 2(ab - cd)                    | t₅                  | t₅ = t₂ + t₃     |
+|       11 | v₁₀ = v₅ - v₇    | 2(ad - bc)                    | t₂                  | t₂ -= t₃         |
+|       17 | v₁₁ = v₁₀ ²      | 4(ad - bc)²                   | t₀                  | t₀  = t₂²        |
+|       ∞  | v₁₂ = v₆ * v₈    | (a² - c²)²           = X₂ᵢ    | t₂                  | t₂ = t₁ * t₄     |
+|       16 | v₁₃ = v₆ - v₈    | 4ac                           | t₃                  | t₃ = t₁ - t₄     |
+|       15 | v₁₄ = 121665 v₁₃ | 486660 ac = (A - 2)a c        | t₄                  | t₄ = 121665 * t₃ |
+|       16 | v₁₅ = v₆ + v₁₄   | a² + A ac + c²                | t₁                  | t₁ += t₄         |
+|       ∞  | v₁₆ = v₁₃ * v₁₅  | 4ac (a² + A ac + c²) = Z₂ᵢ    | t₄                  | t₄ = t₃ * t₁     |
+|       ∞  | v₁₇ = v₁₁ X      | 4 X(ad - b c)²       = 4Z₂ᵢ₊₁ | t₁                  | t₁ = t₀ * X      |
+|       ∞  | v₁₈ = v₉ ²       | 4 (ab - cd)²         = 4X₂ᵢ₊₁ | t₃                  | t₃ = t₅²         |
+|----------+------------------+-------------------------------+---------------------+------------------|
+
+At the end of the computation we should have [X₂ᵢ : Z₂ᵢ] and [X₂ᵢ₊₁ :
+Z₂ᵢ₊₁] which are available in the registers [t₂ : t₄] and [t₃ : t₁]
+respectively. Therefore the Montgomery step should be repeated with
+t₂, t₃, t₄ and t₁.
+
+
+The monocypher library which inturn borrows from the supercop
+implementation has the following operations.
+
+#+begin_src C
+  // Montgomery ladder step: replaces (P2, P3) by (P2*2, P2+P3)
+  // with differential addition
+  fe_sub(t0, x3, z3);  fe_sub(t1, x2, z2);    fe_add(x2, x2, z2);
+  fe_add(z2, x3, z3);  fe_mul(z3, t0, x2);    fe_mul(z2, z2, t1);
+  fe_sq (t0, t1    );  fe_sq (t1, x2    );    fe_add(x3, z3, z2);
+  fe_sub(z2, z3, z2);  fe_mul(x2, t1, t0);    fe_sub(t1, t1, t0);
+  fe_sq (z2, z2    );  fe_mul121666(z3, t1);  fe_sq (x3, x3    );
+  fe_add(t0, t0, z3);  fe_mul(z3, x1, z2);    fe_mul(z2, t1, t0);
+#+end_src
+
+Here give the instructions in tabular form.
+
+
+
+| SSA                | Value                    | Register allocation | Assignment        |
+|--------------------+--------------------------+---------------------+-------------------|
+| a                  | a  (x₂)                  | x₂                  | NOP               |
+| b                  | b  (x₃)                  | x₃                  | NOP               |
+| c                  | c  (z₂)                  | z₂                  | NOP               |
+| d                  | d  (z₃)                  | z₃                  | NOP               |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁ = x₃ - z₃       | b - d                    | t₀                  | t₀  = x₃ - z₃     |
+| v₂ = x₂ - z₂       | a - c                    | t₁                  | t₁  = x₂ - z₂     |
+| v₃ = x₂ + z₂       | a + c                    | x₂                  | x₂ += z₂          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₄ = x₃ + z₃       | b + d                    | z₂                  | z₂ = x₃ + z₃      |
+| v₅ = v₁ * v₃       | (b - d)(a + c)           | z₃                  | z₃ = t₀ * x₂      |
+| v₆ = v₄ * v₂       | (b + d)(a - c)           | z₂                  | z₂ *= t₁          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₇ = v₂²           | (a - c)²                 | t₀                  | t₀ := t₁²         |
+| v₈ = v₃²           | (a + c)²                 | t₁                  | t₁ := x₂²         |
+| v₉ = v₅ + v₆       | 2(ab - cd)               | x₃                  | x₃ := z₃ + z₂     |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₀ = v₅ - v₆      | 2(bc - ad)               | z₂                  | z₂ := z₃ - z₂     |
+| v₁₁ = v₇ * v₈      | (a² - c²)²               | x₂                  | x₂ := t₁ * t₀     |
+| v₁₂ = v₈ - v₇      | 4 ac                     | t₁                  | t₁ -= t₀          |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₃ = v₁₀²         | 4(bc - ad)²              | z₂                  | z₂ := z₂²         |
+| v₁₄ = 121666 * v₁₂ | 486664 ac                | z₃                  | z₃ := 121666 * t₁ |
+| v₁₅ = v₉²          | 4(ab - cd)²              | x₃                  | x₃ := x₃²         |
+|--------------------+--------------------------+---------------------+-------------------|
+| v₁₆ += v₁₄         | a² + c² + 486662 ac      | t₀                  | t₀ += z₃          |
+| v₁₇ = x₁ * z₂      | 4 X(B)(bc - ad)²         | z₃                  | z₃ := x₁ * z₂     |
+| v₁₈ = v₁₂ * v₁₆    | 4ac(a² + c² + 486662 ac) | z₂                  | z₂ := t₁ * t₀     |
+|--------------------+--------------------------+---------------------+-------------------|
+
+
+We start with x₁ = X(B) the base point (z₁ = 1) and the values [a : c] = [X(P) : Z(P)]
+[b : d] = [X(Q) : Z(Q)].
+The result is that we have X and Z coordinates as follows.
+
+
+
+| Coordinate | Value               | SSA Variable | Program Variable |
+|------------+---------------------+--------------+------------------|
+| X(2P)      | (a² - c²)²          | v₁₁          | x₂               |
+| Z(2P)      | 4ac(a² + 486662 ac) | v₁₈          | z₂               |
+| X(P+Q)     | 4(ab - cd)²         | v₁₅          | x₃               |
+| Z(P+Q)     | 4X(B)(bc - ad)²     | v₁₇          | z₃               |
