@@ -69,10 +69,25 @@ Arguments repCodeDenote [tyD sc].
 (*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
 (* Notations for annotations *)
 
-Notation "'INIT' v" := (fst (oldAndNew (str := Str _ _)) _ v) (at level 50).
-(* TODO - VAL level has to be changed to be stronger than that of '='
-          and of b itvector arithmetic notations *)
-Notation "'VAL' v" := (snd (oldAndNew (str := Str _ _)) _ v) (at level 50).
+Class Evaluate (v : VariableT) tyD varType
+  := eval : forall [k] [ty : verse_type_system k],
+              Variables.renaming v tyD -> varType v _ ty -> varType tyD _ ty.
+
+Definition INIT [v k ty tyD f] `{StoreP (Str tyD v)} `{Evaluate v tyD f} (x : f v k ty)
+  := eval (fst (oldAndNew (str := Str tyD v))) x.
+
+Definition VAL [v k ty tyD f] `{StoreP (Str tyD v)} `{Evaluate v tyD f} (x : f v k ty)
+  := eval (snd (oldAndNew (str := Str tyD v))) x.
+
+#[export] Instance EvalVar v tyD : Evaluate v tyD (fun x k ty => x (existT _ k ty))
+  := fun _ _ f x => f _ x.
+
+Definition VecVar n (x : VariableT) [k] ty := Vector.t (x (existT _ k ty)) n.
+
+#[export] Instance EvalVec v tyD n `{eVar : Evaluate v tyD (fun x k ty => x (existT _ k ty))}
+  : Evaluate v tyD (VecVar n)
+  := fun _ _ f x => Vector.map (eval f (Evaluate := eVar)) x.
+
 
 Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at level 100).
 
