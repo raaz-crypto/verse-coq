@@ -51,7 +51,7 @@ Module Internals.
 
 End Internals.
 Require Import Verse.
-Require Import Verse.Error.
+Require Export Verse.Error.
 
 (* end hide *)
 
