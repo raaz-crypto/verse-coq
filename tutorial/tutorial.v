@@ -108,7 +108,7 @@ wrap this code inside a module to preserve namespaces.
 
 *)
 
-Module SHA2.
+Section Schedule.
 
   (** The standard idiom for writing a Verse program is to define a
       Coq [Section] which contains definitions of the program
@@ -157,10 +157,16 @@ variable types.
       by the actual message schedule.
    *)
 
-  Variable W       : progvar of type BLOCK.
-  Variable S T     : progvar of type word.
+  Section Params.
 
-  (**
+    Variable W       : progvar of type BLOCK.
+
+    Section Locals.
+
+
+      Variable S T     : progvar of type word.
+
+      (**
 
      We can index the [i]-th elements of the array [W] by using the
      notation [W[i]].  However, for safety verse does not allow
@@ -170,34 +176,54 @@ variable types.
      joub is to complete such bounds. In the Definition below
      notice its use.
 
-   *)
+       *)
 
-  Section Schedule.
-    Context (i : nat)(pf : i < SIZE).
-    Definition WordSchedule  :  code progvar.
-      verse ([code|
-                 S  :=  W[ i ] ;
-                 T  :=  W[ (i + 14) mod SIZE ] ;
-                 S  += T;
-                 T  :=  W[ (i + 9) mod SIZE  ] ;
-                 S  += T;
-                 T  := W[ (i + 1) mod SIZE ];
-                 S  += T;
-                 W[ i ] := S
-            |]).
-    Defined.
-  End Schedule.
+      Section Schedule.
+        Context (i : nat)(pf : i < SIZE).
+        Definition WordSchedule  :  code progvar.
+          verse ([code|
+                   S  :=  W[ i ] ;
+                   T  :=  W[ (i + 14) mod SIZE ] ;
+                   S  +=  T;
+                   T  :=  W[ (i + 9) mod SIZE  ] ;
+                   S  +=  T;
+                   T  :=  W[ (i + 1) mod SIZE ];
+                   S  +=  T;
+                   W[ i ] := S
+                 |]).
+        Defined.
+      End Schedule.
 
-  (** Having defined the code segment for scheduling a single word
+      (** Having defined the code segment for scheduling a single word
       in the message, we use the [foreach] function to generate an
       unrolled loop performing the [WordSchedule] for every index of
       [W].
-   *)
+       *)
 
-  Definition Schedule := iterate WordSchedule.
+      Definition Schedule := iterate WordSchedule.
 
-End SHA2.
+    End Locals.
 
+    Definition Scheduled := do Schedule end.
+
+  End Params.
+
+End Schedule.
+
+Require Import Verse.Target.C.
+Require Import Verse.Print.
+
+Inductive name := schedule64bit.
+
+Definition Schedule64bit
+  : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function schedule64bit
+           (Scheduled Word64).
+Defined.
+
+Goal to_print (recover Schedule64bit).
+  print.
+Abort.
 
 (** ** Legal
 
