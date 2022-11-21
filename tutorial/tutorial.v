@@ -91,7 +91,7 @@ lists and vectors.
 
  *)
 
-Require Import Verse.
+From Verse Require Import Verse.
 
 
 (** *** Straight line functions
@@ -206,8 +206,8 @@ variable types.
 
 End Schedule.
 
-Require Import Verse.Target.C.
-Require Import Verse.Print.
+From Verse Require Import Verse.Target.C.
+From Verse Require Import Verse.Print.
 
 Inductive name := schedule64bit.
 
