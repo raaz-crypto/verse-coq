@@ -26,15 +26,11 @@ module serves as a short tutorial for Verse.
 
 (** ** Getting started.
 
-You will need coq (currently tested with 8.6 and 8.7) and the coq
-library CoLoR.  We recommend the use of emacs and the proof general
-mode for editing. The suggested means of developing verse code is
-using opam however the CoLoR library has a bit of difficulty working
-with sandboxing available with opam-2. When using opam-2 initialise
-the repository using the command.
-
-<< opam init -y --disable-sandboxing --compiler "$OCAML_VER" >>
-
+You will need a recent enough version of Coq. Refer to our continuous
+build at
+https://github.com/raaz-crypto/verse-coq/actions/workflows/ci.yml for
+which all versions are supported. We recommend the use of emacs and
+the proof general mode for editing.
 
  *)
 
