@@ -179,18 +179,10 @@ Qed.
 
 Lemma Zmod_add_assoc {M} : forall x y z: Zmod M, (x + (y + z)) == (x + y + z).
   local_crush.
-  unfold modMod.
-  repeat (rewrite <- N.add_mod); local_crush.
-  unfold eqMod.
-  repeat (rewrite <- N.add_mod); local_crush.
-  rewrite N.add_assoc.
-  trivial.
 Qed.
+
 Lemma Zmod_mul_1_l {M} : forall x : Zmod M, 1 * x == x.
   local_crush.
-  unfold modMod.
-  unfold eqMod.
-  repeat rewrite <- N.mul_mod; local_crush.
 Qed.
 
 Lemma Zmod_mul_comm {M} : forall x y : Zmod M, x * y == y * x.
@@ -198,22 +190,11 @@ Lemma Zmod_mul_comm {M} : forall x y : Zmod M, x * y == y * x.
 Qed.
 
 Lemma Zmod_mul_assoc {M} : forall x y z : Zmod M, x * (y * z) == x * y * z.
-  local_crush; simpl.
-  unfold modMod.
-  repeat rewrite <- N.mul_mod; local_crush.
-  unfold eqMod.
-  repeat rewrite <- N.mul_mod; local_crush;
-    rewrite N.mul_assoc; trivial.
+  local_crush.
 Qed.
 
 Lemma Zmod_distr_l {M} : forall x y a : Zmod M, (x + y) * a == x * a + y * a.
   local_crush.
-  unfold modMod.
-  repeat rewrite <- N.add_mod; local_crush.
-  unfold eqMod.
-  repeat rewrite <- N.mul_mod; local_crush.
-  repeat rewrite <- N.add_mod; local_crush.
-  rewrite N.mul_add_distr_r; trivial.
 Qed.
 
 
