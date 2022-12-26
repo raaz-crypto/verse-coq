@@ -63,10 +63,9 @@ iterate the Montegomery step with appropriate swaps. Notice that
 swap b (P,Q) = if b = 0 then (P,Q) else (Q,P).
 
 
-Notice that we have B = Q - P but since we only use the. So if we swap
-we need the point -B = P - Q. However since only the x-coordinate of B
-is required during the computation, all we care about is the
-x-coordinate of B.
+Notice that we have B = Q - P. If we swap we need the point -B = P -
+Q, which, fortunately has the same x-coordinate of B which is all what
+we care about during the computation.
 
 
 ** In projective coordinates.
@@ -132,12 +131,12 @@ and Zᵢ₊₁ = d respectively.
 
 To see the correctness of the algorithm, look on to the SSA form of
 the program. The Value column gives the value of the appropriate SSA
-variable in terms of teh original value a,b,c, and d.
+variable in terms of the original value a,b,c, and d.
 
 Based on the SSA program, we compute the lifetime. An SSA variable vᵢ
 has a lifetime of ~l~ if the last SSA assignment where it is used is
-~vₗ~. An infinity (∞) in the lift time column indicate that the value is
-required in the next iteration.
+~vₗ~. An infinity (∞) in the life time column indicate that the value
+is required in the next Montgomery step.
 
 Based on the lifetimes, we compute a register allocation into
 registers 6 registers t₀...t₅. The actual series of assignment is
@@ -226,7 +225,7 @@ Here give the instructions in tabular form.
 | v₁₄ = 121666 * v₁₂ | 486664 ac                | z₃                  | z₃ := 121666 * t₁ |
 | v₁₅ = v₉²          | 4(ab - cd)²              | x₃                  | x₃ := x₃²         |
 |--------------------+--------------------------+---------------------+-------------------|
-| v₁₆ += v₁₄         | a² + c² + 486662 ac      | t₀                  | t₀ += z₃          |
+| v₁₆ = v₇ + v₁₄     | a² + c² + 486662 ac      | t₀                  | t₀ += z₃          |
 | v₁₇ = x₁ * z₂      | 4 X(B)(bc - ad)²         | z₃                  | z₃ := x₁ * z₂     |
 | v₁₈ = v₁₂ * v₁₆    | 4ac(a² + c² + 486662 ac) | z₂                  | z₂ := t₁ * t₀     |
 |--------------------+--------------------------+---------------------+-------------------|
