@@ -160,30 +160,30 @@ Add Parametric Morphism M  : (modMod M)
   simplify.
 Qed.
 
-Add Parametric Morphism M (pf : M <> 0%N) : N.add
-    with signature (eqMod M) ==> eqMod M ==> eqMod M as add_mor.
+Add Parametric Morphism P : N.add
+    with signature (eqMod (N.pos P)) ==> eqMod (N.pos P)==> eqMod (N.pos P)as add_mor.
   intros.
   unfold eqMod.
   simplify_rewrite N.add_mod.
 Qed.
 
-Add Parametric Morphism M (pf : M <> 0%N): N.mul
-    with signature (eqMod M) ==> eqMod M ==> eqMod M as mul_mor.
+Add Parametric Morphism P : N.mul
+    with signature (eqMod (N.pos P)) ==> eqMod (N.pos P)==> eqMod (N.pos P)as mul_mor.
   intros.
   unfold eqMod.
   simplify_rewrite N.mul_mod.
 Qed.
 
-Add Parametric Morphism M (pf : M <> 0%N) : (addMod M)
-    with signature (eqMod M) ==> eqMod M ==> eq as addMod_mor.
+Add Parametric Morphism P : (addMod (N.pos P))
+    with signature (eqMod (N.pos P)) ==> eqMod (N.pos P)==> eq as addMod_mor.
   intros.
   apply modMod_mor.
   apply add_mor;
     simplify.
 Qed.
 
-Add Parametric Morphism M (pf : M <> 0%N) : (mulMod M)
-    with signature (eqMod M) ==> eqMod M ==> eq as mulMod_mor.
+Add Parametric Morphism P : (mulMod (N.pos P))
+    with signature (eqMod (N.pos P)) ==> eqMod (N.pos P)==> eq as mulMod_mor.
   intros.
   apply modMod_mor;
     apply mul_mor; simplify.
@@ -196,8 +196,8 @@ Add Parametric Morphism M : (oppMod M)
     simplify; reflexivity.
 Qed.
 
-Add Parametric Morphism M  (pf : M <> 0%N): (minusMod M)
-    with signature eqMod M ==> eqMod M ==> eq  as minusMod_mor.
+Add Parametric Morphism P : (minusMod (N.pos P))
+    with signature eqMod (N.pos P)==> eqMod (N.pos P)==> eq  as minusMod_mor.
   intros.
   apply addMod_mor;
     local_crush.
