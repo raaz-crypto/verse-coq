@@ -1,0 +1,4 @@
+(coq.theory
+ (name tutorial)
+ (theories Verse)
+ (synopsis "A quick tutorial for verse"))
