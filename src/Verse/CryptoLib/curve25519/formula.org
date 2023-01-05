@@ -219,16 +219,16 @@ Given below is a SSA program that works through the instructions.
 |-------------------------------+-----+------------------+--------+-----+-----+-----+-----+-----+-----+------------------+----------+---------|
 | a                             |   0 | v₀ = a           | 5  (A) | v₀  |     |     |     |     |     |                  | 61       | 40      |
 | b                             |   1 | v₁ = b           | 7  (A) |     | v₁  |     |     |     |     |                  | 61       | 40      |
-| c                             |   2 | v₂ = c           | 5  (A) |     |     | v₂  |     |     |     |                  | 61       | 40      |
-| d                             |   3 | v₃ = d           | 7  (A) |     |     |     | v₃  |     |     |                  | 61       | 40      |
+| c                             |   2 | v₂ = c           | 5  (S) |     |     | v₂  |     |     |     |                  | 61 (CC)  | *       |
+| d                             |   3 | v₃ = d           | 7  (S) |     |     |     | v₃  |     |     |                  | 61 (CC)  | *       |
 |-------------------------------+-----+------------------+--------+-----+-----+-----+-----+-----+-----+------------------+----------+---------|
 | a + c                         |   4 | v₄ = v₀ + v₂     | 9  (M) |     |     |     |     | v₄  |     | t₀ = x₂ + z₂     | 62 (CC)  | 41 (C)  |
-| a - c                         |   5 | v₅ = v₀ - v₂     | 11 (M) | v₅  |     |     |     |     |     | x₂ -= z₂         | 62  (CC) | 41 (C)  |
-| b + d                         |   6 | v₆ = v₁ + v₃     | 10 (M) |     |     |     |     |     | v₆  | t₁ = x₃ + z₃     | 62  (CC) | 41 (C)  |
-| b - d                         |   7 | v₇ = v₁ - v₃     | 8  (M) |     | v₇  |     |     |     |     | x₃ -= z₃         | 62  (CC) | 41 (C)  |
+| a - c                         |   5 | v₅ = v₀ - v₂     | 11 (M) | v₅  |     |     |     |     |     | x₂ -= z₂         | 62 (CC)  | 41 (C)  |
+| b + d                         |   6 | v₆ = v₁ + v₃     | 10 (M) |     |     |     |     |     | v₆  | t₁ = x₃ + z₃     | 62 (CC)  | 41 (C)  |
+| b - d                         |   7 | v₇ = v₁ - v₃     | 8  (M) |     | v₇  |     |     |     |     | x₃ -= z₃         | 62 (CC)  | 41 (C)  |
 | (a + c)(b - d)                |   8 | v₈ = v₄ * v₇     | 13 (A) |     |     |     | v₈  |     |     | z₃ = x₃ * t₀     | 61       | 61      |
 | (a + c)²                      |   9 | v₉ = v₄²         | 18 (M) |     |     | v₉  |     |     |     | z₂ = t₀²         | 61 (CC)  | 61 (CC) |
-| (a - c)(b + d)                |  10 | v₁₀ = v₅ * v₆    | 13 (A) |     | v₁₀ |     |     |     |     | x₃ = x₂ * t₁     | 61       | 61      |
+| (a - c)(b + d)                |  10 | v₁₀ = v₅ * v₆    | 13 (S) |     | v₁₀ |     |     |     |     | x₃ = x₂ * t₁     | 61 (CC)  | 61 (CC) |
 | (a - c)²                      |  11 | v₁₁ = v₅²        | 16 (M) |     |     |     |     |     | v₁₁ | t₁ = x₂²         | 61 (CC)  | 61 (CC) |
 |-------------------------------+-----+------------------+--------+-----+-----+-----+-----+-----+-----+------------------+----------+---------|
 | 2(ab - cd)                    |  12 | v₁₂ = v₈ + v₁₀   | 21 (M) |     |     |     |     | v₁₂ |     | t₀ = z₃ + x₃     | 62 (CC)  | 62 (CC) |
@@ -238,15 +238,17 @@ Given below is a SSA program that works through the instructions.
 | 4ac                           |  16 | v₁₆ = v₉ - v₁₁   | 19 (M) |     |     |     | v₁₆ |     |     | z₃ = z₂ - t₁     | 27 (C)   | 27 (C)  |
 | 486660 ac = (A - 2)a c        |  17 | v₁₇ = 121665 v₁₆ | 18 (A) |     |     |     |     |     | v₁₇ | t₁ = 121665 * z₃ | 44       | 44      |
 | a² + A ac + c²                |  18 | v₁₈ = v₉ + v₁₇   | 19 (M) |     |     |     |     |     | v₁₈ | t₁ += z₂         | 45 (C)   | 45 (C)  |
-| 4ac (a² + A ac + c²) = Z₂ᵢ    |  19 | v₁₉ = v₁₆ * v₁₈  | ∞  (A) |     |     | v₁₉ |     |     |     | z₂ = t₁ * z₃     | 61       | 61 (C)  |
-| 4 X(bc - ad)²        = 4Z₂ᵢ₊₁ |  20 | v₂₀ = v₁₄ * X(B) | ∞  (A) |     |     |     | v₂₀ |     |     | z₃ = x₃ * X(B)   | 61       | 61 (C)  |
+| 4ac (a² + A ac + c²) = Z₂ᵢ    |  19 | v₁₉ = v₁₆ * v₁₈  | ∞  (A) |     |     | v₁₉ |     |     |     | z₂ = t₁ * z₃     | 61       | 61 (CC) |
+| 4 X(bc - ad)²        = 4Z₂ᵢ₊₁ |  20 | v₂₀ = v₁₄ * X(B) | ∞  (A) |     |     |     | v₂₀ |     |     | z₃ = x₃ * X(B)   | 61       | 61 (CC) |
 | 4 (ab - cd)²         = 4X₂ᵢ₊₁ |  21 | v₂₁ = v₁₂²       | ∞  (A) |     | v₂₁ |     |     |     |     | x₃ = t₀²         | 61       | 61 (C)  |
 |-------------------------------+-----+------------------+--------+-----+-----+-----+-----+-----+-----+------------------+----------+---------|
 
 
+*** Carry propagation rules.
+
 The need column says till what instruction is the value
-need. Additionally it also ways whether the value is needed in a
-multiplication or in an addition. The size column says what bit size
-we expect the limbs to be in. A C field in the size column means a single carry
-is required to be done there says whether we need to
-perform carry propagation.
+need. Additionally it also depends on whether the value is needed as
+multiplicative, additive or a negative operand; in A = B - C, C is the
+negative operand. We need to get all multiplicative and negative
+operand to standard form and therefore enough carry propagation is to
+be done.
