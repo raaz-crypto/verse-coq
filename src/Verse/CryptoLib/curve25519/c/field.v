@@ -450,48 +450,35 @@ Section CarryPropagation.
 End CarryPropagation.
 
 
-(** ** How many progagations ?
+(** ** How many and when ?
 
-Firstly checking whether any of the carry is actually zero is not such
-a good idea (branching based on secret). So the answer is that we run
-the propagate one two many times. In the standard representation, we
-want to ensure that the ith limb contains [len i] many bits (rest
-needs to be propagated further on. We allow for an additional bit at
-the top most limb x₉ which will be adjusted after the end of all
-operations. Consider the following arithmetic operations
+Checking whether any of the carry is actually zero is not a good idea
+(branching based on secret). So carry propagation has to be done
+enough times. Having computed an intermediate field element value in a
+[feVar] say [X], we can always do as many carry propagation as one
+wants without affecting the correctness. However, it is good to
+optimise on the carry propagations. How many carry propagations are
+needed on an intermediate [feVar] [X] depends on two things.
 
-* _Addition:_ Here there is at most one additional bit generated in
-  each limb. A single propagation will get all the limbs to the
-  intermediate computational form.
+1. The "use" of the variable; whether additive or multiplicative.
 
 
-* _Multiplication:_ If we think of the limbs as forming a polynomial
-  over the indeterminate X then the coefficients cₖ (∑ aᵢ Xⁱ)(∑ bᵢ Xʲ)
-  will be of the form cₖ = 10 terms of the form aᵢ bⱼ * 2 * 19. Which
-  is bounded by 2⁵² * 380 = 2⁶¹ and hence are of 61 bits each.
+  * _Additive arguments:_ If X is an additive argument, i.e. in the
+    subsequent program, it only takes part in an additive instruction
+    then we only need a guarantee that the limbs of X is at most
+    63-bits in size.
 
-  Now consider the first round of propagation from c₉ to c₀, c₀ to c₁
-  ...  c₈ to c₉.  When we started each cᵢ's had 61 bits at most and
-  hence they propagate at most 62 - 25 = 37 bits in each stage. After
-  one cycle of propagation c₀ to c₈ have their correct number of bits
-  but c₉ is a 25-bit number + a 37 bit number = 38 bit number. What
-  this means is in the next round we will be propagating 38 - 25 = 11
-  bits from c₉ to c₀ but then on will only be propagating at most 1
-  bit; adding a 11-bit to 25 or 26 bit number will at most result in
-  an additional 1 bit carry. As a result after the end of the second
-  round of propagation all limbs c₀ ... c₈ will have the correct
-  number of bits but c₉ might have one addition bit (i.e 26 bits
-  instead of 25 bits). Therefore after a multiplication it is
-  sufficient to do carry propagation twice.
+  * _Multiplicative arguments:_ In this case, we do need to ensure
+    that X is in the intermediate computational form, i.e. the i-th
+    limbs of X should be of [len i] size except for the last limb
+    which can be 26-bits. Any argument that is to be used in a
+    multiplicative instruction needs to be converted to its
+    computational form.
 
-* _Multiplicaiton by small constant_: We can get away by a single
-  propagation if the multiplication is by a small constant, or if we
-  know that one of the field elements have all their limbs as small.
-
-NOTE: Instead of starting from the largest limb, we could start from
-any of the limb but then that particular limb will have an additional
-bit. It is better to therefore start the propagation from one of the
-25 bit making it 26 bit and our 61 bit bound holds.
+2. The bit sizes of the limbs. Notice that after a single carry
+   propagation, all but the last limb is in the standard form. The
+   last limb can get up to 64 - 26 = 38 bits from the last limb and
+   hence can become 39-bits in size.
 
 *)
 
