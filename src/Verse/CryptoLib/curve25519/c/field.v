@@ -454,31 +454,52 @@ End CarryPropagation.
 
 Checking whether any of the carry is actually zero is not a good idea
 (branching based on secret). So carry propagation has to be done
-enough times. Having computed an intermediate field element value in a
-[feVar] say [X], we can always do as many carry propagation as one
-wants without affecting the correctness. However, it is good to
-optimise on the carry propagations. How many carry propagations are
-needed on an intermediate [feVar] [X] depends on two things.
+enough times. For a multi-limb [feVar] like [X], let [size(X)] denote
+the size of its largest (in magnitude) limb. Consider an instruction
+of the kind A := B ∘ C. To avoid overflow during operations we need
+the following restriction.
 
-1. The "use" of the variable; whether additive or multiplicative.
+1. For addition both B and C should have limbs of at-most size 63 for
+   no overflow to take placed.
 
+2. For multiplication B and C should have at-most 26 bits in each of
+   its limbs. A simple way to ensure this is to get B and C into their
+   intermediate computational representation.
 
-  * _Additive arguments:_ If X is an additive argument, i.e. in the
-    subsequent program, it only takes part in an additive instruction
-    then we only need a guarantee that the limbs of X is at most
-    63-bits in size.
+3. For subtraction C _should be_ in its intermediate computation
+   representation (a mere bound of 26 bits is not enough unlike in the
+   case of multiplication). However for the operand B, like addition
+   we only need a bound of 62 (subtraction can generate additional
+   carry)
 
-  * _Multiplicative arguments:_ In this case, we do need to ensure
-    that X is in the intermediate computational form, i.e. the i-th
-    limbs of X should be of [len i] size except for the last limb
-    which can be 26-bits. Any argument that is to be used in a
-    multiplicative instruction needs to be converted to its
-    computational form.
+The result in A has the following bounds.
 
-2. The bit sizes of the limbs. Notice that after a single carry
-   propagation, all but the last limb is in the standard form. The
-   last limb can get up to 64 - 26 = 38 bits from the last limb and
-   hence can become 39-bits in size.
+1. For addition A is of size at most 1 more than the maximum size of B
+   and C.
+
+2. For subtraction A is of size at most 1 more than the
+   [max(size(B),26)] and
+
+3. For multiplication which is safe (no overflow), we can assume that
+   the size of A is at most 61 bit.
+
+The considerations for carry propagation is as follows.
+
+1. Doing more carry propagation that is required is always safe.
+
+2. For a multi-limb [feVar] [X], a single carry propagation will get
+   it to intermediate computation representation if size(X) < 50. For
+   64-bit limbs 2 carry propagation is sufficient in any case.
+
+Consider a variable X, we do enough carry propagation based on how it
+is used in later instructions. If X is used subsequently as an operand
+for a multiplication, or is the negated operand for an instruction,
+get it to the intermediate computational form. This may need two carry
+propagation in the worst case but one may even get away by a single
+operation if we know (from how X is computed), whether size(X) < 50.
+If X is used only as additive operand then we can often get away
+without any carry propagation on X.
+
 
 *)
 
