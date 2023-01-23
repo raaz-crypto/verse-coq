@@ -52,6 +52,8 @@ Module Internal.
 
     Context {progvar : VariableT}.
 
+    Definition propagateTwice (x : feVar progvar) : code progvar := (propagate x ++ propagate x)%list.
+
     (* Base point *)
     Variable xB : feVar progvar.
 
@@ -74,60 +76,92 @@ Module Internal.
        where you can see a fuller explanation.
 
 
-| Value                         | SSA | SSA program      | Need | x₂  | x₃  | z₂  | z₃  | t₀  | t₁  | Inst             |
-|-------------------------------+-----+------------------+------+-----+-----+-----+-----+-----+-----+------------------|
-| a                             |   0 | v₀ = a           |    5 | v₀  |     |     |     |     |     |                  |
-| b                             |   1 | v₁ = b           |    7 |     | v₁  |     |     |     |     |                  |
-| c                             |   2 | v₂ = c           |    5 |     |     | v₂  |     |     |     |                  |
-| d                             |   3 | v₃ = d           |    7 |     |     |     | v₃  |     |     |                  |
-| a + c                         |   4 | v₄ = v₀ + v₂     |    9 |     |     |     |     | v₄  |     | t₀ = x₂ + z₂     |
-| a - c                         |   5 | v₅ = v₀ - v₂     |   11 | v₅  |     |     |     |     |     | x₂ -= z₂         |
-| b + d                         |   6 | v₆ = v₁ + v₃     |   10 |     |     |     |     |     | v₆  | t₁ = x₃ + z₃     |
-| b - d                         |   7 | v₇ = v₁ - v₃     |    8 |     | v₇  |     |     |     |     | x₃ -= z₃         |
-| (a + c)(b - d)                |   8 | v₈ = v₄ * v₇     |   13 |     |     |     | v₈  |     |     | z₃ = x₃ * t₀     |
-| (a + c)²                      |   9 | v₉ = v₄²         |   18 |     |     | v₉  |     |     |     | z₂ = t₀²         |
-| (a - c)(b + d)                |  10 | v₁₀ = v₅ * v₆    |   13 |     | v₁₀ |     |     |     |     | x₃ = x₂ * t₁     |
-| (a - c)²                      |  11 | v₁₁ = v₅²        |   16 |     |     |     |     |     | v₁₁ | t₁ = x₂²         |
-| 2(ab - cd)                    |  12 | v₁₂ = v₈ + v₁₀   |   21 |     |     |     |     | v₁₂ |     | t₀ = z₃ + x₃     |
-| 2(bc - ad)                    |  13 | v₁₃ = v₈ - v₁₀   |   14 |     |     |     | v₁₃ |     |     | z₃ -= x₃         |
-| 4(bc - ad)²                   |  14 | v₁₄ = v₁₃²       |   20 |     | v₁₄ |     |     |     |     | x₃ = z₃²         |
-| (a² - c²)²           = X₂ᵢ    |  15 | v₁₅ = v₉ * v₁₁   |    ∞ | v₁₅ |     |     |     |     |     | x₂ = z₂ * t₁     |
-| 4ac                           |  16 | v₁₆ = v₉ - v₁₁   |   19 |     |     |     | v₁₆ |     |     | z₃ = z₂ - t₁     |
-| 486660 ac = (A - 2)a c        |  17 | v₁₇ = 121665 v₁₆ |   18 |     |     |     |     |     | v₁₇ | t₁ = 121665 * z₃ |
-| a² + A ac + c²                |  18 | v₁₈ = v₉ + v₁₇   |   19 |     |     |     |     |     | v₁₈ | t₁ += z₂         |
-| 4ac (a² + A ac + c²) = Z₂ᵢ    |  19 | v₁₉ = v₁₆ * v₁₈  |    ∞ |     |     | v₁₉ |     |     |     | z₂ = t₁ * z₃     |
-| 4 X(bc - ad)²        = 4Z₂ᵢ₊₁ |  20 | v₂₀ = v₁₄ * X(B) |    ∞ |     |     |     | v₂₀ |     |     | z₃ = x₃ * X(B)   |
-| 4 (ab - cd)²         = 4X₂ᵢ₊₁ |  21 | v₂₁ = v₁₂²       |    ∞ |     | v₂₁ |     |     |     |     | x₃ = t₀²         |
-|-------------------------------+-----+------------------+------+-----+-----+-----+-----+-----+-----+------------------|
+| Value                         | SSA | SSA program      | Need | x₂  | x₃  | z₂  | z₃  | t₀  | t₁  | Inst             | size | Req size | Carry |
+|-------------------------------+-----+------------------+------+-----+-----+-----+-----+-----+-----+------------------+------+----------+-------|
+| a                             |   0 | v₀ = a           |    5 | v₀  |     |     |     |     |     |                  |   40 | 40       |     0 |
+| b                             |   1 | v₁ = b           |    7 |     | v₁  |     |     |     |     |                  |   40 | 40       |     0 |
+| c                             |   2 | v₂ = c           |    5 |     |     | v₂  |     |     |     |                  |  std | std      |     0 |
+| d                             |   3 | v₃ = d           |    7 |     |     |     | v₃  |     |     |                  |  std | std      |     0 |
+| a + c                         |   4 | v₄ = v₀ + v₂     |    9 |     |     |     |     | v₄  |     | t₀ = x₂ + z₂     |   42 | std      |     1 |
+| a - c                         |   5 | v₅ = v₀ - v₂     |   11 | v₅  |     |     |     |     |     | x₂ -= z₂         |   42 | std      |     1 |
+| b + d                         |   6 | v₆ = v₁ + v₃     |   10 |     |     |     |     |     | v₆  | t₁ = x₃ + z₃     |   42 | std      |     1 |
+| b - d                         |   7 | v₇ = v₁ - v₃     |    8 |     | v₇  |     |     |     |     | x₃ -= z₃         |   42 | std      |     1 |
+| (a + c)(b - d)                |   8 | v₈ = v₄ * v₇     |   13 |     |     |     | v₈  |     |     | z₃ = x₃ * t₀     |   61 | 40       |     1 |
+| (a + c)²                      |   9 | v₉ = v₄²         |   18 |     |     | v₉  |     |     |     | z₂ = t₀²         |   61 | std      |     2 |
+| (a - c)(b + d)                |  10 | v₁₀ = v₅ * v₆    |   13 |     | v₁₀ |     |     |     |     | x₃ = x₂ * t₁     |   61 | std      |     2 |
+| (a - c)²                      |  11 | v₁₁ = v₅²        |   16 |     |     |     |     |     | v₁₁ | t₁ = x₂²         |   61 | std      |     2 |
+| 2(ab - cd)                    |  12 | v₁₂ = v₈ + v₁₀   |   21 |     |     |     |     | v₁₂ |     | t₀ = z₃ + x₃     |   41 | std      |     1 |
+| 2(bc - ad)                    |  13 | v₁₃ = v₈ - v₁₀   |   14 |     |     |     | v₁₃ |     |     | z₃ -= x₃         |   41 | std      |     1 |
+| 4(bc - ad)²                   |  14 | v₁₄ = v₁₃²       |   20 |     | v₁₄ |     |     |     |     | x₃ = z₃²         |   61 | std      |     2 |
+| (a² - c²)²           = X₂ᵢ    |  15 | v₁₅ = v₉ * v₁₁   |    ∞ | v₁₅ |     |     |     |     |     | x₂ = z₂ * t₁     |   61 | 40       |     1 |
+| 4ac                           |  16 | v₁₆ = v₉ - v₁₁   |   19 |     |     |     | v₁₆ |     |     | z₃ = z₂ - t₁     |   27 | 27       |     0 |
+| 486660 ac = (A - 2)a c        |  17 | v₁₇ = 121665 v₁₆ |   18 |     |     |     |     |     | v₁₇ | t₁ = 121665 * z₃ |   44 | 44       |     0 |
+| a² + A ac + c²                |  18 | v₁₈ = v₉ + v₁₇   |   19 |     |     |     |     |     | v₁₈ | t₁ += z₂         |   45 | std      |     1 |
+| 4ac (a² + A ac + c²) = Z₂ᵢ    |  19 | v₁₉ = v₁₆ * v₁₈  |    ∞ |     |     | v₁₉ |     |     |     | z₂ = t₁ * z₃     |   61 | std      |     2 |
+| 4 X(bc - ad)²        = 4Z₂ᵢ₊₁ |  20 | v₂₀ = v₁₄ * X(B) |    ∞ |     |     |     | v₂₀ |     |     | z₃ = x₃ * X(B)   |   61 | std      |     2 |
+| 4 (ab - cd)²         = 4X₂ᵢ₊₁ |  21 | v₂₁ = v₁₂²       |    ∞ |     | v₂₁ |     |     |     |     | x₃ = t₀²         |   61 | 40       |     1 |
+|-------------------------------+-----+------------------+------+-----+-----+-----+-----+-----+-----+------------------+------+----------+-------|
 
 
 TODO: Insert appropriate carry propagation.
 
+The size assumptions that we have are
+
+1. [x2] [x3] are at most 41 bits (so one carry propagation will get them to standard form)
+2. [z2] [z3] are in standard form.
+
      *)
-
-
 
     Definition Step : code progvar :=
       List.concat [
-          add t0 x2 z2;
-          subtractAssign x2 z2;
-          add t1 x3 z3;
-          subtractAssign x3 z3;
-          mult z3 x3 t0;
-          square z2 t0;
-          mult x3 x2 t1;
-          square t1 x2;
-          add t0 z3 x3;
-          subtractAssign z3 x3;
-          square x3 z3;
-          mult x2 z2 t1;
-          subtract z3 z2 t1;
-          multN t1 z3 121665%N;
-          addAssign t1 z2;
-          mult z2 t1 z3;
-          mult z3 x3 xB;
-          square x3 t0
+          add t0 x2 z2;           propagate t0;        (* std sized *)
+          subtractAssign x2 z2;   propagate x2;        (* std sized *)
+          add t1 x3 z3;           propagate t1;        (* std sized *)
+          subtractAssign x3 z3;   propagate x3;        (* std sized *)
+          mult z3 x3 t0;          propagate z3;        (* 40 bits   *)
+          square z2 t0;           propagateTwice z2;   (* std sized *)
+          mult x3 x2 t1;          propagateTwice x3;   (* std sized *)
+          square t1 x2;           propagateTwice t1;   (* std sized *)
+          add t0 z3 x3;           propagate t0;        (* 41 -> std sized *)
+          subtractAssign z3 x3;   propagate z3;        (* 42 -> std sized *)
+          square x3 z3;           propagateTwice x3;   (* std sized *)
+          mult x2 z2 t1;          propagate  x2;       (* 61 -> 40 *)
+          subtract z3 z2 t1;      (* no prop *)        (* 27 bits *)
+          multN t1 z3 121665%N;   (* no prop *)        (* 44 bits *)
+          addAssign t1 z2;        propagate t1;        (* 45 -> std *)
+          mult z2 t1 z3;          propagateTwice z2;   (* std sized *)
+          mult z3 x3 xB;          propagateTwice z3;   (* std sized *)
+          square x3 t0;           propagate  x3        (* 40 sized *)
         ].
+
+
+    (** The montgomery step with appropriate swapping based on the bit variable b *)
+    Definition MStep (bit : progvar of type Word64) : code progvar :=
+      List.concat [
+          field.swapE bit x2 x3;
+          field.swapE bit z2 z3;
+          Step;
+          field.swapE bit x2 x3;
+          field.swapE bit z2 z3
+        ].
+
+
+    Definition ithBit  (x : progvar of type Word64) i : expr progvar of type Word64 := [verse| (x >> i) & `1` |].
+
+    (** Montgomery step with a 64-bit scalar. Each step has to be done
+        from high bits to low bits and hence the reverse iteration
+     *)
+    Definition montgomery64 (s64 : progvar of type Word64) (bit : progvar of type Word64) : code progvar :=
+      iterate_reverse (fun i (pf : i < 64) => [code| bit := `ithBit s64 i` |]
+                                             ++ MStep bit )%list.
+
+
+    Program Definition montgomery
+      (scalar : progvar of type Scalar)
+      (s64 : progvar of type Word64)
+      (bit : progvar of type Word64) :=
+      iterate_reverse (fun i (_ : i < 4) => [code| s64 := scalar[ i ] |]
+                         ++ montgomery64 s64 bit)%list.
 
   End Montgomery.
 

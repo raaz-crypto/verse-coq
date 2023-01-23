@@ -31,7 +31,7 @@ aₖ 2ᵏ we want to compute the n B; rather we want to compute the
 x-coordinate of n B. We compute a sequence of point pairs.
 
 Pᵢ , Qᵢ such that Pᵢ = nᵢ B and Qᵢ = (nᵢ + 1) B. The nᵢ's are choosen
-with the property that nᵢ = ⌈ n/2ᵏ⁻ⁱ ⌉ = aₖ₋ᵢ + 2 * aₖ₋ᵢ₊₁ + ... + 2ⁱ
+with the property that nᵢ = ⌊n/2ᵏ⁻ⁱ⌋ = aₖ₋ᵢ + 2 * aₖ₋ᵢ₊₁ + ... + 2ⁱ
 aₖ.  To start the process, we can set P₋₁ = n₋₁ B = 0 B = ∞ ; Q₋₁ = B.
 When i = k we have the desired result.
 
