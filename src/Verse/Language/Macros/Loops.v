@@ -72,7 +72,7 @@ Section Loop.
   Definition iterate   := foreach (loop b).
 
   (** Similar to [iterate] but does in the reverse order *)
-  Definition iterate_reverse := foreach (List.rev (loop b)).
+  Definition iterate_reverse := foreach (loopReverse b).
 
 End Loop.
 
