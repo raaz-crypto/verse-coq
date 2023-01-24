@@ -135,34 +135,26 @@ The size assumptions that we have are
         ].
 
 
-    (** The montgomery step with appropriate swapping based on the bit variable b *)
-    Definition MStep (bit : progvar of type Word64) : code progvar :=
-      List.concat [
-          field.swapE bit x2 x3;
-          field.swapE bit z2 z3;
-          Step;
-          field.swapE bit x2 x3;
-          field.swapE bit z2 z3
-        ].
-
-
-    Definition ithBit  (x : progvar of type Word64) i : expr progvar of type Word64 := [verse| (x >> i) & `1` |].
 
     (** Montgomery step with a 64-bit scalar. Each step has to be done
         from high bits to low bits and hence the reverse iteration
      *)
-    Definition montgomery64 (s64 : progvar of type Word64) (bit : progvar of type Word64) : code progvar :=
-      iterate_reverse (fun i (pf : i < 64) => [code| bit := `ithBit s64 i` |]
-                                             ++ MStep bit )%list.
 
+    Definition doSwap (smask : progvar of type Word64) : code progvar := (field.swapE smask x2 x3 ++ field.swapE smask z2 z3)%list.
+    Program Definition montgomeryWord (smask : progvar of type Word64) (w : expr progvar of type Word64) :=
+      let ithBit i     := [verse| (w >> i) & `1` |] in
+      let updateMask i := [code| smask ^= `field.mask (ithBit i)` |] in
+      iterate_reverse (fun i (_ : i < 64) => updateMask i ++ doSwap smask ++ Step)%list.
 
+    (* TODO: The toExpr is a eye sore fix it *)
     Program Definition montgomery
       (scalar : progvar of type Scalar)
-      (s64 : progvar of type Word64)
-      (bit : progvar of type Word64) :=
-      iterate_reverse (fun i (_ : i < 4) => [code| s64 := scalar[ i ] |]
-                         ++ montgomery64 s64 bit)%list.
-
+      (smask  : progvar of type Word) :=
+      ( let wexp (i : nat) (pf : i < 4) := toExpr [verse| scalar[i] |] : expr progvar of type Word in
+        [code| smask := `0` |] ++
+          iterate_reverse (fun i (pf : i < 4) => montgomeryWord smask (wexp i pf) )
+                                                ++ doSwap smask
+      )%list.
   End Montgomery.
 
 End Internal.
