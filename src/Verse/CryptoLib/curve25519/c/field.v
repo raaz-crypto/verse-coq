@@ -542,37 +542,41 @@ Section Swapping.
 End Swapping.
 
 
-(**
+(** * Masks
 
-Consider a variable b that is a single bit. Often we want to select or
-mask based on this single bit. We need to then convert this b into a
-mask, i.e. if b = 1 then b should become all ones and if b =0 then b
-should become all 0's. The setToMask essentially does this.
+A mask associated with a bit is a continuation of that bit to the
+entire word. For example if the word size is 64-bits, then the mask
+associated with the bit b is as the all ones (i.e. 2⁶⁴ - 1) or the all
+zeros word depending on whether b is 1 or 0 respectively. Converting
+from bits to mask makes some of the operations faster due to the use
+of the more efficient bitwise operations instead of the arithmetic
+operations.
 
  *)
 
-Definition setToMask {progvar : VariableT}(b : progvar of type Word64) : code progvar
-  := [code| b := (~b) + `1` |].
+Definition mask {progvar : VariableT}{T}`{EXPR progvar Word64 T}(t : T) : expr progvar of type Word64 := [verse| ~(t) + `1` |].
 
 Section SwappingEfficient.
 
-  (* This is better because
+  (**
+      A more efficient swapping routine that makes use of a swap mask.
+      This is more efficient because
 
-   - No temporary variable required
-   - Avoids multiplication and uses bitwise operations.
+      1. It does not need a temporary variable
+      2. Instead of 64-bit multiplication it uses the 64 bit bitwise operation.
 
    *)
+
   Context {progvar : VariableT}.
 
   Program Definition swapE (b : progvar of type Word64) (A B : feVar progvar)
-    :=
-    ( setToMask b
-      ++
-      foreachLimb (fun i _ =>
-                           [code| A[i] := A[i] ⊕ B[i] ;
-                                  B[i] := (b & (A[i] ⊕ B[i])) | (~b & B[i]) ;
-                                  A[i] := A[i] ⊕ B[i]
-                           |]    ))%list.
+    : Repeat (statement progvar) :=
+
+    ( foreachLimb (fun i _ =>
+                     [code| A[i] := A[i] ⊕ B[i] ;
+                      B[i] := (mask & (A[i] ⊕ B[i])) | (~mask & B[i]) ;
+                      A[i] := A[i] ⊕ B[i]
+                     |]    ))%list.
 End SwappingEfficient.
 
 
@@ -650,10 +654,10 @@ Section Subtraction.
   Context {progvar : VariableT}.
 
   (** In the intermediate computation form each field element is
-      expressed as a 256 bit constant b₀,...,b₂₅₅. When
-      subtracting/negating.  this bit becomes the constant [minus_19].
-      All the code in the subtraction section will use this temporary
-      variable to get the 256-th bit of the appropriate field element.1
+      expressed as a 256 bit constant [b₀],...,[b₂₅₅] of which the bit
+      [b₂₅₅] contributes [minus_19] to the computation.  All the code
+      in the subtraction section will use this temporary variable to
+      get the 256-th bit of the appropriate field element.
 
    *)
   Variable B255 : progvar of type Word64.
@@ -667,7 +671,10 @@ Section Subtraction.
 
   Program Definition setB255 (X : feVar progvar) :=
     let x := [verse| X[9] |] in
-    ([code| B255 := `toTopBits 26 x `|] ++ setToMask B255)%list.
+    ([code| B255 := `toTopBits 26 x`;
+            B255 := `mask B255`
+
+    |]).
 
 
   (** For a field element if we complement all the bits, we get the
