@@ -146,11 +146,10 @@ The size assumptions that we have are
       let updateMask i := [code| smask ^= `field.mask (ithBit i)` |] in
       iterate_reverse (fun i (_ : i < 64) => updateMask i ++ doSwap smask ++ Step)%list.
 
-    (* TODO: The toExpr is a eye sore fix it *)
     Program Definition montgomery
       (scalar : progvar of type Scalar)
       (smask  : progvar of type Word) :=
-      ( let wexp (i : nat) (pf : i < 4) := toExpr [verse| scalar[i] |] : expr progvar of type Word in
+      ( let wexp (i : nat) (pf : i < 4) : lexpr progvar of type Word := [verse| scalar[i] |] in
         [code| smask := `0` |] ++
           iterate_reverse (fun i (pf : i < 4) => montgomeryWord smask (wexp i pf) )
                                                 ++ doSwap smask
