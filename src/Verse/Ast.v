@@ -116,6 +116,8 @@ Arguments statement [ts].
    be able to use old code
 *)
 
+Coercion valueOf : lexpr >-> expr.
+
 (**
 
 Many cryptographic primitives work on streams of data that are divided
