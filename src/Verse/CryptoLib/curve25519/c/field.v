@@ -202,6 +202,9 @@ End FieldElements.
 
 Definition feVar (v : VariableT) := Vector.t (v of type Word64) nLimbs.
 
+Program Definition assignFeVar {progvar}(u v : feVar progvar) : code progvar :=
+  foreachLimb (fun i _ => [code| u[i] := v[i]|]).
+
 (* begin hide *)
 (* NOTE: These are inline tests *)
 Definition bitSizes := foreachLimb (fun i _  => [len i] ).
@@ -853,6 +856,28 @@ Section Multiplication.
 
 End Multiplication.
 
+Section Inverse.
+  Context {progvar : VariableT}.
+  Context (cP z temp : feVar progvar).
+
+
+
+  (** By Fermat's little theorem we know that aᵖ⁻² . a = aᵖ⁻¹ = 1 mod
+      p so aᵖ⁻² is the inverse of a *)
+
+  Definition ipower := Npos ((P - 2)%positive).
+  Definition ibits  := Vector.to_list (N2Bv ipower).
+  Definition sqZ : code progvar := (square temp z ++ assignFeVar z temp)%list.
+  Definition updateProd (bit : bool) : code progvar :=
+    (if bit then (mult temp cP z ++ assignFeVar cP temp ++ sqZ)
+     else sqZ
+    )%list.
+
+  Definition inverse  : code progvar :=
+    List.concat (List.map updateProd ibits).
+
+End Inverse.
+
 (* begin hide *)
 Axiom A B C : feVar MyVar.
 
@@ -881,3 +906,27 @@ Goal to_print (square A B).
     idtac "Code for squaring:".
   time dumpgoal.
 Abort.
+
+(*
+This is too slow.
+Axiom z cP Temp : feVar MyVar.
+
+Goal to_print (inverse z cP Temp).
+  unfold inverse.
+  simpl.
+  unfold mult;
+  unfold assignFeVar;
+  unfold foreachLimb;
+  unfold multUpdate;
+  unfold foreachLimb;
+  unfold iterate;
+    unfold update.
+  unfold ibits.
+  unfold ipower.
+  unfold P.
+
+   Check
+  time dumpgoal.
+Abort.
+
+*)
