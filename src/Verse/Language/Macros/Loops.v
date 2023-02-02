@@ -18,18 +18,15 @@ refactoring such code.
 
 Module Internal.
 
-  Definition indexSucc m (idx : {i | i < m}) : {i | i < S m} :=
-    match idx with
-    | exist _ x pf => exist _ x (le_S _ _ pf)
-    end.
+  Program Definition indexSucc m (idx : {i | i < m}) : {i | i < S m} := idx.
 
   Definition liftBound {m} : list {i | i < m} -> list {i | i < S m}
     := List.map (indexSucc m).
 
-  Fixpoint loopReverse b : list {i | i < b}
+  Program Fixpoint loopReverse b : list {i | i < b}
     := match b with
        | 0   => []
-       | S m => let bm1 : { i | i < S m} := exist _ m (le_n (S m))
+       | S m => let bm1 : { i | i < S m} := exist _ m _
                in  bm1 :: liftBound (loopReverse m)
        end.
 
