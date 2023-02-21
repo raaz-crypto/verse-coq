@@ -872,21 +872,66 @@ Section Multiplication.
 End Multiplication.
 
 Section Inverse.
+
+  (** ** Inverse through powering.
+
+      By Fermat's little theorem we know that aᵖ⁻² . a = aᵖ⁻¹ = 1 mod
+      p so aᵖ⁻² is the inverse of a. Therefore we perform inverse of
+      [z] by computing the [p-2]-th power of z using the repeated
+      squaring method Since this is a known power exponentiation there
+      is no side channel here.
+*)
+
+
+  Definition ipower := Npos ((P - 2)%positive).
+  Definition ibits  := Vector.to_list (N2Bv ipower).
+
+(** The process is simple. In each step we will square [z] and keep
+    the cumulative product in [cp]. If [cp] started out as 1 then we
+    will end with [cp] containing [z⁻¹]. Rather than computing the
+    inverse, our application is to compute [a . z⁻¹] for some [a]. In
+    such case we can just start the algorithm with [cp] with [a] in
+    it instead of 1.
+*)
+
+
   Context {progvar : VariableT}.
   Context (cP z temp : feVar progvar).
 
 
+(** There are two additional problems we need to handle
 
-  (** By Fermat's little theorem we know that aᵖ⁻² . a = aᵖ⁻¹ = 1 mod
-      p so aᵖ⁻² is the inverse of a *)
+1. Firstly our multiplication and squaring step can only compute the
+   result in an [temp] variable. We need to prepare the [z] and [cp]
+   for the next step by assigning them back from [temp]
 
-  Definition ipower := Npos ((P - 2)%positive).
-  Definition ibits  := Vector.to_list (N2Bv ipower).
-  Definition sqZ : code progvar := (square temp z ++ assignFeVar z temp)%list.
-  Definition updateProd (bit : bool) : code progvar :=
-    (if bit then (mult temp cP z ++ assignFeVar cP temp ++ sqZ)
-     else sqZ
+2. We also need to adjust limbs by two carry propagation (as
+   multiplication is involved).
+
+
+We perform the first carry propagation together with the assignment and
+then a single propagation.
+
+ *)
+
+
+  (** The squaring code *)
+  Definition sqZ : code progvar :=
+    (square temp z
+       ++ propagateAssign z temp
+       ++ propagate z
     )%list.
+
+  (** Multiplication code *)
+  Definition multAndSquare : code progvar :=
+    (mult temp cP z
+       ++ propagateAssign cP temp
+       ++ propagate cP
+       ++ sqZ
+    )%list.
+
+  Definition updateProd (bit : bool) : code progvar :=
+    if bit then multAndSquare else sqZ.
 
   Definition inverse  : code progvar :=
     List.concat (List.map updateProd ibits).
