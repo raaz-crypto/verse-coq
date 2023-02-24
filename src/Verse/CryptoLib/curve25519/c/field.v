@@ -473,6 +473,53 @@ Section CarryPropagation.
 
 End CarryPropagation.
 
+(** * Final modular reduction.
+
+
+The intermediate computational form represents a number 0 <= α <= 2²⁵⁶
+- 1 Let p be the prime 2²⁵⁵ - 19 then we would like to computing an
+integer 0 <= α₀ < p such that α₀ = α (mod p). We do this in two stages
+
+1. α is of the form b 2²⁵⁵ + γ for some γ < 2²⁵⁵ - 1 and b is the
+   256-th bit of α. A single carry propagation of α gives β <= 2²⁵⁵ -
+   1 + 19 such that β such that α = β (mod p).
+
+2. Consider the _reduction amount_ B of β defined as the number
+   starting from 256-th bit onwards of of β + 19. Clearly since β <=
+   2²⁵⁵ - 1 + 19, β + 19 < 2²⁵⁵ + 38 which is clearly <
+   2²⁵⁶. Therefore the reduction amount B cannot be more than 1-bit.
+
+   We claim β + B . 19 (mod 2²⁵⁵) is the desired element. There are
+   only two possibilities β < p (in which case B = 0) and p <= β < 2 p
+   in which case B = 1.
+
+   - In the first case clearly β + B 19 = β (mod 2²⁵⁵) and hence is
+     the desired final form.
+
+   - In the second case β + 19 = γ + 2²⁵⁵ (The 2²⁵⁵ becomes the bit
+     B).  Notice that γ = β - (2²⁵⁵ - 19) = β (mod p) and γ < p. is
+     the desired element. But γ is just β + B . 19 mode 2²⁵⁵.
+
+
+
+ *)
+
+Section FieldReduction.
+
+  Context {progvar : VariableT}.
+  Context (x : feVar progvar) (B : progvar of type Word64).
+  Program Definition computeReduceBit  : code progvar
+    := let stmt i (_ : i < nLimbs) := if i =? 0 then [code| B := x[i] + `19` ; B >>= `len 0` |]
+                     else [code| B += x[i] ; B >>= `len i` |]
+       in foreachLimb stmt.
+
+  Definition reduce  : code progvar.
+    verse(propagate x
+      ++ computeReduceBit ++ [code| x[0] += B * `19` |]
+      ++ propagate x)%list.
+  Defined.
+
+End FieldReduction.
 
 (** ** How many and when ?
 
