@@ -1,5 +1,6 @@
 Require Import Verse.
 Require Import BinNat.
+Require Import Arith.
 Require Import Verse.CryptoLib.curve25519.c.field.
 Import List.ListNotations.
 (** * Curve 25519 and its parameters *)
@@ -12,7 +13,7 @@ Definition Scalar    := (Array 4 littleE Word).
 
 Module Internal.
 
-  Section Curve25519.
+  Section Clamping.
     Variable progvar : VariableT.
 
     (** ** Clamping the scalar [n].
@@ -45,28 +46,60 @@ Module Internal.
          |}%list.
 
     Definition ClampIter := do clampIter end.
-  End Curve25519.
 
 
-  Section Montgomery.
+  End Clamping.
 
-    Context {progvar : VariableT}.
+  (** ** The X25519 function.
 
-    Definition propagateTwice (x : feVar progvar) : code progvar := (propagate x ++ propagate x)%list.
+  Given a scalar [n] and the X coordinate a point X(P) of the point P
+  on the elliptic curve curve25519, the X25519 function computes the
+  X-coordinate X (n P) coordinates the point [n P]. So the parameters
+  for the function are.
 
-    (* Base point *)
+
+   *)
+
+  Section Params.
+    Variable progvar : VariableT.
+    Context (scalar :  progvar of type Scalar)(point : progvar of type Element).
+    Program Definition scalarWord i (_ : i < 4) : lexpr progvar of type Word := [verse| scalar [i] |].
+    Section Locals.
+
+      Definition propagateTwice (x : feVar progvar) : code progvar := (propagate x ++ propagate x)%list.
+
+      (** * Computational representations.
+
+      The local variables are essentially the computational
+      representations of the various field elements as limbs. It also
+      have some temporary variables.
+
+       *)
+
+
+      (* Base point *)
     Variable xB : feVar progvar.
 
+    Definition LoadBasePoint : code progvar := field.Internal.loadAll point xB.
     (* Point P *)
     Variable x2 z2 : feVar progvar.
-
     Variable x3 z3 : feVar progvar.
+
+
+    Definition initialize : code progvar :=
+      List.concat [ field.Internal.loadAll point xB;
+
+                    field.setFeVar x2 feOne;
+                    field.setFeVar z2 feZero;
+
+                    field.copyFeVar x3 xB;
+                    field.setFeVar z3 feOne
+        ]%list.
 
     Variable t0 t1 t2 t3 : feVar progvar.
 
+    (** Temporary variable need by subtraction *)
     Variable B255 : progvar of type Word64.
-
-
     Definition subtract := field.sub B255.
     Definition subtractAssign := field.subAssign B255.
 
@@ -103,8 +136,6 @@ Module Internal.
 |-------------------------------+-----+------------------+------+-----+-----+-----+-----+-----+-----+------------------+------+----------+-------|
 
 
-TODO: Insert appropriate carry propagation.
-
 The size assumptions that we have are
 
 1. [x2] [x3] are at most 41 bits (so one carry propagation will get them to standard form)
@@ -132,35 +163,60 @@ The size assumptions that we have are
           mult z2 t1 z3;          propagateTwice z2;   (* std sized *)
           mult z3 x3 xB;          propagateTwice z3;   (* std sized *)
           square x3 t0;           propagate  x3        (* 40 sized *)
-        ].
+        ]%list.
 
 
+    (** The result of the montgomery operation is to get a projective
+       coordinates in x2 and z2. We need to convert this to affine
+       coordinate followed by getting into the normalised form.
 
-    (** Montgomery step with a 64-bit scalar. Each step has to be done
-        from high bits to low bits and hence the reverse iteration
      *)
 
-    Definition doSwap (smask : progvar of type Word64) : code progvar := (field.swapE smask x2 x3 ++ field.swapE smask z2 z3)%list.
-    Program Definition montgomeryWord (smask : progvar of type Word64) (w : expr progvar of type Word64) :=
-      let ithBit i     := [verse| (w >> i) & `1` |] in
-      let updateMask i := [code| smask ^= `field.mask (ithBit i)` |] in
-      iterate_reverse (fun i (_ : i < 64) => updateMask i ++ doSwap smask ++ Step)%list.
+    Definition affinize : Repeat (statement progvar) :=
+      List.concat [ propagate x2 : Repeat (statement progvar);           (* get x2 to std form from 41 bits *)
+                    field.inverse x2 z2 t0  (* x₂ := x₂ z₂⁻¹  and in stdform   *)
+        ].
+    (** Montgomery step with a 64-bit scalar. Each step has to be done
+        from high bits to low bits and hence the reverse iteration. We
+        have also optimised on swap using the xor trick. This requires
+        a final conditional swap at the end of all the steps.
+     *)
 
-    Program Definition montgomery
-      (scalar : progvar of type Scalar)
-      (smask  : progvar of type Word) :=
-      ( let wexp (i : nat) (pf : i < 4) : lexpr progvar of type Word := [verse| scalar[i] |] in
-        [code| smask := `0` |] ++
-          iterate_reverse (fun i (pf : i < 4) => montgomeryWord smask (wexp i pf) )
-                                                ++ doSwap smask
+    Variable smask : progvar of type Word64.
+    Variable scalarWord  : progvar of type Word64.
+
+    Definition doSwap    : code progvar := (field.swapE smask x2 x3 ++ field.swapE smask z2 z3)%list.
+    Program Definition montgomeryWord i (_ : i < 4) : Repeat (statement progvar) :=
+      let initSword := [code| scalarWord := scalar[i] |] in
+      let updateSword := [code| scalarWord <<= `1` |] in
+      let updateMask := let bit  := [verse| scalarWord >> `63` |] in
+                        [code| smask ^= `field.mask bit` |] in
+      let step := List.concat [updateMask ; doSwap; Step; updateSword ] in
+      [Repeat.repeat 64 step].
+
+    Definition sMaskInit : Repeat (statement progvar)  := [code| smask := `0` |].
+    Program Definition montgomery : Repeat (statement progvar) :=
+      ( sMaskInit
+          ++ iterate_reverse montgomeryWord
+          ++ (doSwap : Repeat (statement progvar))
       )%list.
-  End Montgomery.
 
+    Definition x25519_code : Repeat (statement progvar) :=
+      List.concat [  initialize : Repeat (statement progvar);
+                     montgomery;
+                     affinize;
+                     field.reduce x2 B255 : Repeat (statement progvar)
+        ]%list.
+    End Locals.
+    Definition x25519 := do x25519_code end.
+  End Params.
 End Internal.
 
 
 
-Inductive name := verse_curve25519_c_portable_clamp.
+Inductive name :=
+| verse_curve25519_c_portable_clamp
+| verse_x25519_c_portable.
 
 Require Import Verse.Target.C.
 Require Import Verse.Error.
@@ -172,9 +228,22 @@ Definition clamp  : CodeGen.Config.programLine + {Error.TranslationError}.
            Internal.ClampIter.
 Defined.
 
-Definition clampI       : Compile.programLine := recover clamp.
+Definition x25519 :  CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_x25519_c_portable (Internal.x25519).
+Defined.
 
-Definition program := verseC [ clampI ].
+Definition clampI       : Compile.programLine := recover clamp.
+Definition x25519C       : Compile.programLine := recover x25519.
+
+
+Require Import Verse.Print.
+(*
+Goal to_print x25519C.
+  print.
+Abort.
+*)
+
+Definition program := verseC [ clampI ; x25519C].
 
 
 Require Import Verse.FFI.Raaz.
