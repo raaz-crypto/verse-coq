@@ -181,6 +181,8 @@ Section FieldElements.
   Arguments GF2const (alpha)%modular.
 
 
+  Definition feOne         : fe := GF2const 1.
+  Definition feZero        : fe := GF2const 0.
   Definition minus18_const : fe := GF2const ( -18 ).
   Definition minus19_const : fe := GF2const ( -19 ).
 
