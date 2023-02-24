@@ -204,8 +204,12 @@ End FieldElements.
 
 Definition feVar (v : VariableT) := Vector.t (v of type Word64) nLimbs.
 
-Program Definition assignFeVar {progvar}(u v : feVar progvar) : code progvar :=
+Program Definition copyFeVar {progvar}(u v : feVar progvar) : code progvar :=
   foreachLimb (fun i _ => [code| u[i] := v[i]|]).
+
+
+Program Definition setFeVar {progvar}(u : feVar progvar)(alpha : fe) :=
+  foreachLimb(fun i _ => [code| u[i] := alpha[i] |]).
 
 (* begin hide *)
 (* NOTE: These are inline tests *)
