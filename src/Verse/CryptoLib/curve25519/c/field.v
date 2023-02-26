@@ -625,7 +625,7 @@ operations.
 
  *)
 
-Definition mask {progvar : VariableT}{T}`{EXPR progvar Word64 T}(t : T) : expr progvar of type Word64 := [verse| ~(t) + `1` |].
+Definition mask {progvar : VariableT}{T}`{EXPR progvar Word64 T}(t : T) : expr progvar of type Word64 := [verse| (~t) + `1` |].
 
 Section SwappingEfficient.
 
