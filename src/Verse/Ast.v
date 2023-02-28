@@ -108,6 +108,49 @@ Arguments instruction [ts].
 Arguments code [ts].
 Arguments statement [ts].
 
+(**
+
+Cryptographic primitives, at times need the facility of repeating a
+block of unparametrized code. Providing an explicit inductive type for
+this facility allows other parts of the code base, especially the
+target code generation, to be cognizant of such use. This becomes
+essential, for example, to keep generated code sizes in check for
+elliptic curve based primitives.
+
+ *)
+
+Inductive repeated [ts] (code : Variables.U ts -> Type) v : Type :=
+| once   : code v -> repeated code v
+| repeat : nat -> code v -> repeated code v.
+
+Arguments once [ts code v].
+Arguments repeat [ts code v].
+
+Definition Repeat [ts] (code : Variables.U ts -> Type) v
+  := list (repeated code v).
+
+Module Repeat.
+
+  Context [ts : typeSystem]
+          (src : Variables.U ts -> Type)
+          (tgt : Variables.U ts -> Type)
+          (f : forall [v], src v -> tgt v)
+          [v : Variables.U ts].
+
+  (* TODO : `translate` is not a good name here given how the rest of
+  the file usus it *)
+  Definition translate (rsrc : repeated src v) : repeated tgt v
+    := match rsrc with
+       | once s   => once (f v s)
+       | repeat n s => repeat n (f v s)
+       end.
+
+  Definition map : Repeat src v -> Repeat tgt v
+    := List.map translate.
+
+End Repeat.
+
+
 
 (**
 
