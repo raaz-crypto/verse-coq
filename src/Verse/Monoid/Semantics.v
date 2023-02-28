@@ -23,6 +23,12 @@ Require Import Verse.Ast.
 Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
         denote       : Ast.statement (mvariables M)  -> line;
+
+        (* The repeater is forced to work with an internal `line`
+        instead of a `list Ast.statement` because we need the body
+        that is repeated to be denoted as normal code.
+        *)
+        repeater     : nat -> line -> line
      }.
 
 Arguments denote  [types mtypes] [M line] {_ _ _}.
