@@ -8,6 +8,8 @@ We now have pretty printing notations for cvars.
 
 *)
 
+Declare Scope c_scope.
+
 Notation "'bPtr'"
   := (bPtr _)
        (at level 1, only printing) : c_scope.
