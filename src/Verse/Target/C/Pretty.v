@@ -18,10 +18,6 @@ Notation "'v' N"
   := (cVar _ N)
        (at level 1, only printing, format "'v' N") : c_scope.
 
-Notation "'v' N"
-  := (cVar _ N)
-       (at level 1, only printing, format "'v' N") : c_scope.
-
 (** * Declarations *)
 
 Notation "T X"
