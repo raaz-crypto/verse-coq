@@ -24,6 +24,10 @@ Notation "T X"
   := (declare_variable T X)
        (at level 29, only printing) : c_scope.
 
+Notation "T X = INIT"
+  := (initialize_variable T X INIT)
+       (at level 29, only printing) : c_scope.
+
 Notation "T X [ N ]"
   := (declare_variable (array N T) X)
        (at level 29, only printing,
@@ -226,6 +230,11 @@ Notation "'while' ( COND ) BODY"
   := (whileLoop COND BODY)
        (at level 70, only printing,
         format "'while'  ( COND ) '//' BODY") : c_scope.
+
+Notation "'for' ( INIT ; COND ; INCR ) BODY"
+  := (forLoop INIT COND INCR BODY)
+       (at level 70, only printing,
+         format "'for' ( INIT ; COND ; INCR ) '//' BODY") : c_scope.
 
 Notation "# 'define' 'XOR' ^" := defineXOR (only printing) : c_scope.
 Notation "/* 'Empty' 'Program' */" := (Program []) (only printing) : c_scope.
