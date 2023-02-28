@@ -45,6 +45,41 @@ Module Internals.
 
    *)
 
+  Definition targetTs := TypeSystem.result c_type_system.
+
+  Definition trType (ty : Types.type direct) : typeOf targetTs direct
+    := let couldNotError := error (CouldNotTranslate ty)
+       in match ty with
+          | Word8  => {- uint8_t  -}
+          | Word16 => {- uint16_t -}
+          | Word32 => {- uint32_t -}
+          | Word64 => {- uint64_t -}
+          | _ => couldNotError
+          end.
+
+  Definition trConst [ty : Types.type direct]
+    : Types.const ty -> constOf targetTs (trType ty)
+    := match ty with
+       | word n =>
+           match n as n0
+                 return Types.const (word n0)
+                        -> constOf targetTs (trType (word n0))
+           with
+           | 0 | 1 | 2 | 3  => fun x => Vector.to_list (Nibble.fromBv x)
+           | _ => fun x : _ => error (CouldNotTranslate x)
+           end
+       | multiword _ _  => fun x => error (CouldNotTranslate x)
+       end.
+
+  Definition trOp (ty : Types.type direct) n
+    : operator verse_type_system ty n ->
+      operator targetTs (trType ty) n
+    := fun op : Types.op n =>
+         match trType ty as x return (operator targetTs x n) with
+         | error e => error e
+         | _ => op
+         end.
+
   Definition variables : Variables.U c_type_system
     := fun (ty : some type) =>
          match projT1 ty with
@@ -71,6 +106,12 @@ Module Internals.
              ]
        | _ => fun u =>  [ declare (ty:=ty) u]
        end%list.
+
+  Definition init n
+    := initialize_variable uint64_t
+                           repCtr
+                           (verse_const uint64_t
+                                        (trConst (natToConst Word64 n))).
 
   (* begin hide *)
   Fixpoint trExpr {ty} (e : Ast.expr variables ty) : expr :=
@@ -148,6 +189,12 @@ Module Internals.
     | existT _ ty i => single <$> trInst ty i
     end.
 
+  Definition trRepeat n (c : list C.Ast.statement + {TranslationError}) :=
+    let cond := Expr.gt_zero repCtr in
+    let decr := C.Ast.decrement repCtr in
+    let loop n c := [ forLoop (init n) cond decr (Braces c) ] in
+    loop n <$> c.
+
 End Internals.
 
 Module Config <: CONFIG.
@@ -158,50 +205,16 @@ Module Config <: CONFIG.
   Definition typs := c_type_system.
   Definition vars := Internals.variables.
 
-  Definition targetTs := TypeSystem.result typs.
-  Definition trType (ty : Types.type direct) : typeOf targetTs direct
-    := let couldNotError := error (CouldNotTranslate ty)
-       in match ty with
-          | Word8  => {- uint8_t  -}
-          | Word16 => {- uint16_t -}
-          | Word32 => {- uint32_t -}
-          | Word64 => {- uint64_t -}
-          | _ => couldNotError
-          end.
-
-  Definition trConst (ty : Types.type direct)
-    : Types.const ty -> constOf targetTs (trType ty)
-    := match ty with
-       | word n =>
-         match n as n0
-               return Types.const (word n0)
-                      -> constOf targetTs (trType (word n0))
-         with
-         | 0 | 1 | 2 | 3  => fun x => Vector.to_list (Nibble.fromBv x)
-         | _ => fun x : _ => error (CouldNotTranslate x)
-         end
-       | multiword _ _  => fun x => error (CouldNotTranslate x)
-       end.
-
-  Definition trOp (ty : Types.type direct) n
-             : operator verse_type_system ty n ->
-               operator targetTs (trType ty) n
-    := fun op : Types.op n =>
-         match trType ty as x return (operator targetTs x n) with
-         | error e => error e
-         | _ => op
-         end.
-
   Definition M : mSpecs verse_type_system typs :=
     {|
       mvariables    := Internals.variables;
-      mtypeCompiler := verseTranslation trType trConst trOp
+      mtypeCompiler := verseTranslation Internals.trType Internals.trConst Internals.trOp
     |}.
 
   Definition target_semantics
     : Semantics M (list C.Ast.statement + {TranslationError})
     := Build_Semantics _ _ M (list C.Ast.statement + {TranslationError})
-                       _ _ _ Internals.trStatement.
+                       _ _ _ Internals.trStatement Internals.trRepeat.
 
   Definition streamOf {k}(block : type k)
     : typeOf c_type_system memory
