@@ -23,14 +23,8 @@ Require Import Verse.Ast.
 Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
         denote       : Ast.statement (mvariables M)  -> line;
-        (* The inliner should possibly take the scope of the
-           called function as an argument.
-           Isn't necessary for semantics, but maybe for inlining
-        *)
-        inliner      : line -> line
      }.
 
-Arguments inliner [types mtypes] [M line] {_ _ _}.
 Arguments denote  [types mtypes] [M line] {_ _ _}.
 
 Definition codeDenote {types mtypes}

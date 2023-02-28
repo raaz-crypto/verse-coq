@@ -201,7 +201,7 @@ Module Config <: CONFIG.
   Definition target_semantics
     : Semantics M (list C.Ast.statement + {TranslationError})
     := Build_Semantics _ _ M (list C.Ast.statement + {TranslationError})
-                       _ _ _ Internals.trStatement id.
+                       _ _ _ Internals.trStatement.
 
   Definition streamOf {k}(block : type k)
     : typeOf c_type_system memory
