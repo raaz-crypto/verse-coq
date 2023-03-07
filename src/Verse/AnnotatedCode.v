@@ -42,9 +42,10 @@ Section AnnotatedCode.
   Definition linesDenote [sc] (ls : lines (HlistMachine.variable sc))
     := mapMconcat (@lineDenote _) ls.
 
-  Definition codeDenote sc (ls : forall v, Scope.scoped v sc (lines v))
+  Definition repCodeDenote sc (ls : forall v, Scope.scoped v sc (Repeat (line v)))
     : mline sc tyD
-    := let sls := HlistMachine.specialise sc ls in linesDenote sls.
+    := let srls := HlistMachine.specialise sc ls in
+       unroll (@linesDenote sc) srls.
 
 End AnnotatedCode.
 
@@ -52,7 +53,7 @@ Arguments inst [tyD v].
 Arguments annot [tyD v].
 Arguments lineDenote [tyD sc].
 Arguments linesDenote [tyD sc].
-Arguments codeDenote [tyD sc].
+Arguments repCodeDenote [tyD sc].
 
 (* Mapping instances for custom syntax notations *)
 
@@ -82,9 +83,9 @@ Section CodeGen.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Variable ac : forall v, Scope.scoped v sc (lines tyD v).
+  Variable ac : forall v, Scope.scoped v sc (Repeat (line tyD v)).
 
-  Definition cp := codeDenote ac.
+  Definition cp := repCodeDenote ac.
 
   (* We allow `getProp` to take a precondition to prefix to the
      extracted Prop. This is never exposed to the user, but is used in
