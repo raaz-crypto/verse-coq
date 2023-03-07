@@ -67,6 +67,12 @@ Proof.
   exact proper_oper.
 Qed.
 
+Fixpoint ntimes {t} `{Monoid t} n T
+  := match n with
+     | 0   => ε
+     | S m => T ** ntimes m T
+     end.
+
 Definition mconcat {t}`{mon: Monoid t} : list t -> t
   := fun l => fold_left binop l ε.
 

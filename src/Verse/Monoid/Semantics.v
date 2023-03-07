@@ -39,3 +39,12 @@ Definition codeDenote {types mtypes}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
   := mapMconcat (denote sem).
+
+Definition repCodeDenote {types mtypes}
+                      (M : mSpecs types mtypes)
+                      line `{Monoid line}
+                      (sem : Semantics M line)
+  : Repeat (statement (mvariables M)) -> line
+  := mapMconcat (fun rc => match rc with
+                           | repeat n c => ntimes n (codeDenote M line sem c)
+                           end).
