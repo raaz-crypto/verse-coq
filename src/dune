@@ -17,6 +17,7 @@
           Verse.Language.Macros.Cache
           Verse.Language.Macros.Loops
           Verse.Language.Pretty
+	  Verse.Language.Repeat
           Verse.Language.Types
           Verse.Modular.Equation
           Verse.Modular.ModRing
