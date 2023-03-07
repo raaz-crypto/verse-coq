@@ -36,26 +36,22 @@ Section Code.
     realize.
   Defined.
 
-  Fixpoint repeat (n : nat) : list (modular bvDenote v).
-    exact match n with
-          | 0 => []
-          | S n => ([code| B := A; A := `6` |]
-                    ++
-                    (ASSERT VAL B = INIT A)
-                    ++
-                    [ CALL verF WITH (- A, B -) ])%verse
-                    ++ repeat n
-          end%list.
-    Defined.
+  Definition middle : list (modular bvDenote v).
+    verse ([code| B := A; A := `6` |]
+             ++
+             (ASSERT VAL B = INIT A)
+             ++
+             CALL verF WITH (- A, B -))%list%verse.
+  Defined.
 
-  Definition test : list (modular bvDenote v).
+  Definition test : Repeat (modular bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
         [code| A := A; B := B; C := `0` |]
         ++
-        [ CALL verF WITH (- A, B -) ]
+        CALL verF WITH (- A, B -)
         ++
-        repeat 1
+        [ repeat 2 middle ]
         ++
         (ASSERT VAL A = INIT B + INIT B + INIT B + INIT B)
         ++

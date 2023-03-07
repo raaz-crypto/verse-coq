@@ -17,7 +17,7 @@ Section Code.
 
   Variable A B : v of type Word8.
 
-  Definition test : lines bvDenote v.
+  Definition test : Repeat (line bvDenote v).
     verse
       ([code| A := B |]
          ++

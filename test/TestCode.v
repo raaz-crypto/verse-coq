@@ -29,7 +29,7 @@ Section TestFunction.
 
 
   (* Definition regAssignment := (- cr uint16_t "temp" -). *)
-  Definition someInstruction i (_ : i < 5) : code variable.
+  Definition someInstruction i (_ : i < 5) : Repeat (statement variable).
     verse [code| arr[ i ] ⊕= arr[ (i + 1) mod 5 ] + tmp + `1` |].
   Defined.
 
@@ -39,7 +39,7 @@ Section TestFunction.
   Definition stmt3 : statement variable := [verse| num := num * `Ox "12 34"` |].
 
 
-  Definition testFunction : code variable.
+  Definition testFunction : Repeat (statement variable).
     verse
       [code|  (* Assignments  using binary operators *)
         num := tmp + `43981%N`;
