@@ -183,8 +183,8 @@ Class AST_maps (A B : Type) := { CODE : A -> list B }.
   : AST_maps (code v) (statement v) := { CODE := id }.
 
 #[export] Instance code_repeat (v : VariableT)
-  : AST_maps (code v) (repeated (code (ts := verse_type_system)) v) | 2
-  := { CODE := fun C => [ once C ]%list }.
+  : AST_maps (code v) (repeated (code (ts := verse_type_system) v))
+  := { CODE := fun C => [ repeat 1 C ]%list }.
 
 Declare Custom Entry verse.
 (* Notation "'[code|' e  '|]'" := e (e custom verse). *)
