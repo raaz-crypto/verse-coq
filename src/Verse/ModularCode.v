@@ -297,28 +297,13 @@ Lemma splitEq  [tyD] [sc : Scope.type verse_type_system]
 
 Proof.
   (*Lemma*)
-  assert (inline_inst : forall v (l : lines tyD v),
-             inline_calls (map (@instruction tyD v) l) = l).
-  (*Proof*)
-  intros v0 l0.
-  induction l0.
-    easy.
-
-    simpl. unfold inline_calls.
-    rewrite mapMconcat_cons.
-    simpl.
-    rewrite <- IHl0 at 2.
-    trivial.
-  (*Qed*)
-
-  (*Lemma*)
   assert (inline_nil : forall v, @inline_calls tyD v [] = []).
   (*Proof*)
   trivial.
   (*Qed*)
 
   (*Lemma*)
-  assert (splitAuxCall : forall f all l1 (l2 : lines tyD (HlistMachine.variable sc)),
+  assert (splitAuxCall : forall f all l1 (l2 : Repeat (line tyD (HlistMachine.variable sc))),
              splitAux (inline f all :: l1) l2
              = ({| preB := l2;
                   procC := f;
@@ -329,9 +314,9 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (getCode_cons : forall (b : lines tyD (HlistMachine.variable sc)) f all cs pb,
-             getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb)
-             = map (@instruction _ _) (b ++ inline_calls [inline f all]) ++ getCode (cs, pb)).
+  assert (getCode_cons : forall (b : Repeat (line tyD (HlistMachine.variable sc))) f all cs pb,
+             inline_calls (getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb))
+             = inline_calls (block (b ++ inline_calls [inline f all]) :: getCode (cs, pb))).
   intros.
   unfold getCode.
   simpl.
@@ -339,39 +324,43 @@ Proof.
   simpl.
   unfold binop.
   unfold list_append_binop.
-  repeat rewrite map_app.
+  rewrite inline_instructions.
+  unfold inline_calls.
+  unfold map.
+  unfold inline_call at 3 5.
+  unfold concat.
+  repeat rewrite app_nil_r.
   now repeat rewrite app_assoc.
   (*Qed*)
 
-  enough (splitAuxEq : forall l1 (l2 : lines tyD (HlistMachine.variable sc)),
+  enough (splitAuxEq : forall l1 (l2 : Repeat (line tyD (HlistMachine.variable sc))),
              l2 ++ inline_calls l1 = inline_calls (splitAux l1 l2)).
   apply (splitAuxEq _ []).
 
   induction l1.
   * intro l2.
     unfold getCode.
-    rewrite inline_inst.
+    rewrite inline_instructions.
     now rewrite app_nil_r.
   * intro l2.
     induction a.
-    + unfold inline_calls.
-      rewrite mapMconcat_cons.
-      unfold binop.
+    + unfold inline_calls at 1.
+      rewrite map_cons.
+      simpl.
       rewrite app_assoc.
       now rewrite IHl1.
     + rewrite splitAuxCall.
       rewrite getCode_cons.
       unfold inline_calls.
-      rewrite mapMconcat_cons.
-      rewrite mapMconcat_app.
-      unfold inline_calls in inline_inst, IHl1.
-      rewrite inline_inst.
-      unfold binop, list_append_binop.
-      repeat rewrite app_assoc.
-      f_equal.
+      repeat rewrite map_cons.
+      unfold inline_call at 3.
+      unfold map at 2.
+      pose inline_instructions.
+      unfold inline_calls in e, IHl1.
+      repeat rewrite concat_cons at 1.
       rewrite <- surjective_pairing.
       rewrite <- IHl1.
-      apply app_nil_l.
+      now repeat rewrite <- app_assoc.
 Qed.
 
 (* Extracting Prop object from annotated code *)
