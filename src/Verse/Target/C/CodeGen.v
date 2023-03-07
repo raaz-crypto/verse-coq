@@ -190,10 +190,14 @@ Module Internals.
     end.
 
   Definition trRepeat n (c : list C.Ast.statement + {TranslationError}) :=
-    let cond := Expr.gt_zero repCtr in
-    let decr := C.Ast.decrement repCtr in
-    let loop n c := [ forLoop (init n) cond decr (Braces c) ] in
-    loop n <$> c.
+    match n with
+    | 0 => {- [] -} (* TODO : Consider making this an error *)
+    | 1 => c
+    | _ => let cond := Expr.gt_zero repCtr in
+           let decr := C.Ast.decrement repCtr in
+           let loop n c := [ forLoop (init n) cond decr (Braces c) ] in
+           loop n <$> c
+    end.
 
 End Internals.
 
