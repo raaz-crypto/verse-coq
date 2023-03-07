@@ -57,13 +57,13 @@ Arguments repCodeDenote [tyD sc].
 
 (* Mapping instances for custom syntax notations *)
 
-#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (repeated (list (line tyD v)))
   := {|
-    CODE := List.map (@inst _ _)
+    CODE := fun ls => [ Repeat.repeat 1 (List.map (@inst _ _) ls) ]
   |}.
 
-#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
-  := {| CODE := fun an => [ annot an ] |}.
+#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (line tyD v)))
+  := {| CODE := fun an => [ Repeat.repeat 1 [ annot an ] ] |}.
 
 
 (*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
