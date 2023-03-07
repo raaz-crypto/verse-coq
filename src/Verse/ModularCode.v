@@ -28,10 +28,10 @@ Section Call.
   Context [tyD : typeDenote verse_type_system]
           [ v  : VariableT ].
 
-  Record specBlock w := { block   : lines tyD w;
+  Record specBlock w := { blck    : Repeat (line tyD w);
                           postC   : ann tyD w    }.
 
-  Arguments block [w].
+  Arguments blck [w].
   Arguments postC [w].
 
   Let sub (sc : Scope.type verse_type_system)
@@ -46,7 +46,7 @@ Section Call.
 
   Definition funSub sc (fc : func sc) : sub sc
     := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
-       {| transform   := srFst (linesDenote bl);
+       {| transform   := srFst (unroll (linesDenote (sc := sc)) bl);
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
 
@@ -62,7 +62,7 @@ Section Call.
                      eqprf  : @equiv _ inLine inSc verSub }.
 
   Inductive modular :=
-  | instruction   : line tyD v -> modular
+  | block         : Repeat (line tyD v) -> modular
   | inline        : forall vfun, Scope.allocation v (inSc vfun) -> modular.
 
   (* We consider the default interpretation of a `call` to be an
@@ -72,32 +72,28 @@ Section Call.
   inside functions.
    *)
 
-  Definition stripAnn [v] (ls : lines tyD v)
-    := concat (map (fun l => match l with
-                             | inst _ as l0 => [ l0 ]
-                             | _            => []
-                             end)
-                 ls).
+  Definition stripAnn [v] (ls : Repeat (line tyD v))
+    := List.map (Repeat.push (fun x => concat (map (fun l => match l with
+                                                                   | inst _ as l0 => [ l0 ]
+                                                                   | _            => []
+                                                                   end) x
+                ))) ls.
 
-  Definition inline_call (a : modular) : lines tyD v
+  Definition inline_call (a : modular) : Repeat (line tyD v)
     := match a with
-       | instruction i => [i]
+       | block i       => i
        | inline sl all => match eqprf sl with
-                          | call fc vc => fun all0 => stripAnn (block (fc v all0))
+                          | call fc vc => fun all0 => stripAnn (blck (fc v all0))
                           end all
        end.
 
-  Definition inline_calls := mapMconcat inline_call.
+  Definition inline_calls := fun x : list (modular) => concat (PList.map inline_call x).
 
-  Lemma inline_instructions (ls : lines tyD v)
-    : inline_calls (map instruction ls) = ls.
+  Lemma inline_instructions (ls : Repeat (line tyD v))
+    : inline_calls [ block ls ] = ls.
   Proof.
-    induction ls.
-    * trivial.
-    * unfold inline_calls.
-      rewrite map_cons, mapMconcat_cons.
-      fold inline_calls.
-      now rewrite IHls.
+    unfold inline_calls.
+    apply app_nil_r.
   Qed.
 
 End Call.
@@ -211,18 +207,18 @@ Section ModProof.
      application of our meta theorem.
   *)
 
-  Record preCall := { preB   : lines tyD scv;
+  Record preCall := { preB    : Repeat (line tyD scv);
                       procC   : verFun tyD;
                       procAll : Scope.allocation scv (inSc procC) }.
 
-  Definition modCode : Type := list preCall * lines tyD scv.
+  Definition modCode : Type := list preCall * Repeat (line tyD scv).
 
   Coercion getCode (mc : modCode) : list (modular tyD scv)
-    := map (@instruction _ _ )
-         (mapMconcat (fun pc =>
+    := [ block
+           (mapMconcat (fun pc =>
                         (preB pc
-                           ++ inline_calls [inline (procC pc) (procAll pc)])) (fst mc)
-            ++ snd mc).
+                           ++ inline_calls [inline (procC pc) (procAll pc)])) (fst mc) ++
+            (snd mc)) ].
 
   Let Str := HlistMachine.state sc tyD.
 
@@ -245,13 +241,13 @@ Section ModProof.
   Fixpoint modProofAux cpre mpre cs pb
     := match cs with
        | pc :: cst =>
-           let mstep := linesDenote (preB pc) in
+           let mstep := unroll (linesDenote (sc := sc)) (preB pc) in
            distinctAll (procAll pc) /\
            forall dummyVals, modProofAux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
                                           (mpre ** mstep ** justInst
                                                 (lDummyProc pc dummyVals))
                                           cst pb
-       | []        =>   getProp cpre (mpre ** linesDenote pb)
+       | []        =>   getProp cpre (mpre ** unroll (linesDenote (sc := sc)) pb)
        end.
 
   Definition modularProof (mc : modCode)
@@ -260,7 +256,7 @@ Section ModProof.
   Axiom modularize
     : forall mc, modularProof mc
                  ->
-                   getProp (fun _ => True) (linesDenote (inline_calls mc)).
+                   getProp (fun _ => True) (unroll (linesDenote (sc := sc)) (inline_calls mc)).
 
 End ModProof.
 
@@ -271,7 +267,7 @@ Arguments getCode [tyD sc].
 Fixpoint splitAux [tyD]
   [sc : Scope.type verse_type_system]
   (l1 : list (modular _ (HlistMachine.variable sc)))
-  (l2 : lines tyD (HlistMachine.variable sc))
+  (l2 : Repeat (line tyD (HlistMachine.variable sc)))
   : modCode tyD sc
   := match l1 with
      | []       => ([], l2)
@@ -283,7 +279,7 @@ Fixpoint splitAux [tyD]
                                 procAll := all |}
                                :: fst x
                               , snd x)
-         | instruction i => splitAux tl (l2 ++ [i])
+         | block b       => splitAux tl (l2 ++ b)
          end
      end.
 
