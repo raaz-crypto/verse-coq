@@ -445,24 +445,6 @@ End Code.
 
 Module RepStatement.
 
-  Section Repeat.
-    Context [A B : Type]
-            (f : A -> B).
-
-    Definition push (rsrc : repeated A) : repeated B
-      := match rsrc with
-         | repeat n s => repeat n (f s)
-         end.
-
-    Context [Err : Prop].
-    Definition pullOutRep (rerr : repeated (A + {Err})) : repeated A + {Err}
-      := match rerr with
-         | repeat n {- x -}     => {- repeat n x -}
-         | repeat _ (error err) => error err
-         end.
-
-  End Repeat.
-
   Definition translate src tgt
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt)

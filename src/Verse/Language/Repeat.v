@@ -1,4 +1,5 @@
 Require Import Verse.Monoid.
+Require Import Verse.Error.
 
 (**
 
@@ -21,3 +22,22 @@ Polymorphic Definition Repeat A := list (repeated (list A)).
 Definition unroll [A M] `{Setoid M} `{Monoid M} (f : A -> M)
   := mapMconcat (fun rla => let 'repeat n la := rla
   in ntimes n (f la)).
+
+Section Repeat.
+
+  Context [A B : Type]
+          (f : A -> B).
+
+  Definition push (rsrc : repeated A) : repeated B
+    := match rsrc with
+       | repeat n s => repeat n (f s)
+       end.
+
+  Context [Err : Prop].
+  Definition pullOutRep (rerr : repeated (A + {Err})) : repeated A + {Err}
+    := match rerr with
+       | repeat n {- x -}     => {- repeat n x -}
+       | repeat _ (error err) => error err
+       end.
+
+End Repeat.
