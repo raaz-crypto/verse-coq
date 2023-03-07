@@ -34,6 +34,9 @@ We begin by defining the types for the language.
 (* begin hide *)
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
+Require Export Verse.Language.Repeat.
+
+Import List.ListNotations.
 Import EqNotations.
 (* end hide *)
 
@@ -108,6 +111,11 @@ Arguments instruction [ts].
 Arguments code [ts].
 Arguments statement [ts].
 
+(* We provide a coercion from `code` to `Repeat statement` so to still
+   be able to use old code
+*)
+Coercion mapRep ts (v : Variables.U ts) (c : code v) : Repeat (statement v)
+  := List.map (fun x => repeat 1 [x]%list) c.
 
 (**
 
@@ -118,9 +126,9 @@ type [ty].
 
  *)
 Record iterator ts (v : Variables.U ts) (ty : typeOf ts memory)
-  := { setup    : code v;
-       process  : v (existT _ _ ty) -> code v;
-       finalise : code v
+  := { setup    : Repeat (statement v);
+       process  : v (existT _ _ ty) -> Repeat (statement v);
+       finalise : Repeat (statement v)
      }.
 
 Arguments iterator [ts].
