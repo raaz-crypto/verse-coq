@@ -1,4 +1,3 @@
-Require Import SetoidClass.
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
 

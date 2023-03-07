@@ -9,7 +9,7 @@ An implementation of monoids.
    `call` element of the Verse AST
 *)
 Require Import Monoid.PList.
-Require Import SetoidClass.
+Require Export SetoidClass.
 Require Export Setoid.
 Require Import RelationClasses.
 Require Export Relation_Definitions.
