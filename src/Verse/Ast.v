@@ -524,9 +524,9 @@ Module Iterator.
              memty
              (itr : iterator (Variables.Universe.coTranslate tr v) memty)
   : iterator v (Types.translate tr memty)
-    := {| setup    := Code.translate tr (setup itr);
-          finalise := Code.translate tr (finalise itr);
-          process := fun x => Code.translate tr (process itr x)
+    := {| setup    := RepCode.translate tr (setup itr);
+          finalise := RepCode.translate tr (finalise itr);
+          process := fun x => RepCode.translate tr (process itr x)
        |}.
 
 
@@ -545,9 +545,9 @@ Module Iterator.
 
    *)
 
-  Record compiled tgt (v : Variables.U tgt) := { preamble : code v;
-                                                 loopBody : code v;
-                                                 finalisation : code v
+  Record compiled tgt (v : Variables.U tgt) := { preamble : Repeat (statement v);
+                                                 loopBody : Repeat (statement v);
+                                                 finalisation : Repeat (statement v)
                                                }.
 
 
@@ -563,10 +563,10 @@ Module Iterator.
              (pf : Types.compile cr memty = {- good -})
              (x  : v (existT _ _ good))
     : compiled tgt v + {TranslationError}
-    := do stup <- Code.compile cr (setup itr) ;;
-       do fnls <- Code.compile cr (finalise itr) ;;
-       do prcs <- Code.compile cr (process itr (rew <- f_equal _ pf in Variables.inject x)) ;;
-          pure {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
+    := do stup <- RepCode.compile cr (setup itr) ;;
+       do fnls <- RepCode.compile cr (finalise itr) ;;
+       do prcs <- RepCode.compile cr (process itr (rew <- f_equal _ pf in Variables.inject x)) ;;
+        pure {| preamble := stup;  loopBody := stup; finalisation := stup |}.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
 
