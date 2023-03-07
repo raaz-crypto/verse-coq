@@ -105,7 +105,7 @@ Module Internal.
 
          *)
 
-        Definition Init : code progvar.
+        Definition Init : Repeat (statement progvar).
           verse [code|
               x0  := C0         ; x1  := C1         ; x2  := C2         ; x3  := C3;
               x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
@@ -121,7 +121,7 @@ Module Internal.
 
          *)
 
-        Definition QRound (a b c d : progvar of type Word) : code progvar
+        Definition QRound (a b c d : progvar of type Word) : Repeat (statement progvar)
           := [code|
                a += b; d ⊕= a; d := d ⋘ `16`;
                c += d; b ⊕= c; b := b ⋘ `12`;
@@ -145,7 +145,7 @@ Module Internal.
         for the x's. Duplicating the custom syntax indexing notation
         outside it too, and wrapping the following in the `verse`
         tactic might be a solution *)
-        Definition Rounds : code progvar :=
+        Definition Rounds : Repeat (statement progvar) :=
           let colRound := List.concat [ QRound x0 x4 x8   x12;
                                         QRound x1 x5 x9   x13;
                                         QRound x2 x6 x10  x14;
@@ -165,7 +165,7 @@ Module Internal.
         it to the initial state.
 
          *)
-        Definition Update : code progvar.
+        Definition Update : Repeat (statement progvar).
           verse [code|
               x0  += C0         ; x1  += C1         ; x2  += C2         ; x3  += C3;
               x4  += key[ 0 ] ; x5  += key[ 1 ] ; x6  += key[ 2 ] ; x7  += key[ 3 ];
@@ -214,21 +214,21 @@ Module Internal.
          *)
 
         Definition XorBlock (B : progvar of type (Block littleE))(i : nat) (_ : i < 16)
-          : code progvar.
+          : Repeat (statement progvar).
           verse [code| Temp := B[ i ]; Temp ⊕= X [ i ]; B[ i ] <- Temp |].
         Defined.
 
         Definition EmitStream (B : progvar of type (Block hostE))(i : nat) (_ : i < 16)
-          : code progvar.
+          : Repeat (statement progvar).
           verse [code| B[ i ] <-  X [ i ] |].
         Defined.
 
-        Definition Encrypt blk
+        Definition Encrypt blk : Repeat (statement progvar)
           := (TransformState ++ foreach (indices blk) (XorBlock blk)
                              ++ [code| ctr += `1` |])%list.
 
 
-        Definition CSPRGStream blk
+        Definition CSPRGStream blk : Repeat (statement progvar)
           := (TransformState ++ foreach (indices blk) (EmitStream blk)
                              ++ [code| ctr += `1` |])%list.
 
@@ -245,7 +245,7 @@ Module Internal.
        the subkey.
 
          *)
-        Definition HInit : code progvar.
+        Definition HInit : Repeat (statement progvar).
           verse [code|
               x0  := C0       ; x1  := C1       ; x2  := C2       ; x3  := C3;
               x4  := key[ 0 ] ; x5  := key[ 1 ] ; x6  := key[ 2 ] ; x7 := key[ 3 ];
@@ -254,7 +254,7 @@ Module Internal.
             |].
         Defined.
 
-        Definition HUpdateKey : code progvar.
+        Definition HUpdateKey : Repeat (statement progvar).
           verse [code|
                   key [ 0 ] <- x0;
                   key [ 1 ] <- x1;
@@ -267,7 +267,7 @@ Module Internal.
                 |].
         Defined.
 
-        Definition hChaCha20 : code progvar :=  List.concat [ HInit; Rounds; HUpdateKey ].
+        Definition hChaCha20 : Repeat (statement progvar) :=  List.concat [ HInit; Rounds; HUpdateKey ].
 
         (** ** The iterators.
 
@@ -275,10 +275,10 @@ Module Internal.
         encryption and the chacha20 host-endian key stream.
 
          *)
-        Definition LoadCounter : code progvar.
+        Definition LoadCounter : Repeat (statement progvar).
           verse [code| ctr := ctrRef[ 0 ] |].
         Defined.
-        Definition StoreCounter : code progvar.
+        Definition StoreCounter : Repeat (statement progvar).
           verse [code| ctrRef[ 0 ] <- ctr |].
         Defined.
 

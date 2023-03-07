@@ -23,7 +23,7 @@ Module Internal.
      *)
 
 
-    Definition clamp (T : progvar of type Word) (scalA : progvar of type Scalar) : code progvar.
+    Definition clamp (T : progvar of type Word) (scalA : progvar of type Scalar) : Repeat (statement progvar).
       verse [code|
           T := scalA[ 0 ];
           T &= `Ox "ff:ff:ff:ff ff:ff:ff:f8"`;

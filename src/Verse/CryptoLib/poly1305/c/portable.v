@@ -298,14 +298,14 @@ Module Internal.
           Variable i     : nat.
           Variable x0 x1 : progvar of type Limb.
           Variable bpf   : i < bound.
-          Definition Load64 : code progvar.
+          Definition Load64 : Repeat (statement progvar).
             verse [code|
                     x1 :=  Arr [ i ];
                     x0 :=  x1 & Select32;
                     x1 >>= `32`
                   |].
           Defined.
-          Definition Mov64 : code progvar.
+          Definition Mov64 : Repeat (statement progvar).
             verse [code|
                     x1      <<= `32`;
                     x1      |= x0;
@@ -316,7 +316,7 @@ Module Internal.
         Arguments Load64 [bound e].
         Arguments Mov64 [bound e].
 
-        Definition LoadA : code progvar.
+        Definition LoadA : Repeat (statement progvar).
           verse (
               Load64 AArray 0 a0 a1 _
                      ++ Load64 AArray 1 a2 a3 _
@@ -324,14 +324,14 @@ Module Internal.
             )%list.
         Defined.
 
-        Definition LoadR : code progvar.
+        Definition LoadR : Repeat (statement progvar).
           verse (
               Load64 RArray 0 r0 r1 _
                      ++ Load64 RArray 1 r2 r3 _
             )%list.
         Defined.
 
-        Definition MovA  : code progvar.
+        Definition MovA  : Repeat (statement progvar).
           verse (
               Mov64 AArray 0 a0 a1 _
                     ++ Mov64 AArray 1 a2 a3 _
@@ -368,7 +368,7 @@ Module Internal.
          *)
 
 
-        Definition Add128 {e : endian}(blk : progvar of type (Array 2 e Word64)) : code progvar.
+        Definition Add128 {e : endian}(blk : progvar of type (Array 2 e Word64)) : Repeat (statement progvar).
           verse (
               Load64 blk 0 T0 T1 _
                      ++ [code|
@@ -383,7 +383,7 @@ Module Internal.
             )%list.
         Defined.
 
-        Definition AddFullBlock (blk : progvar of type Block) : code progvar
+        Definition AddFullBlock (blk : progvar of type Block) : Repeat (statement progvar)
           := (Add128 blk ++ [code| a4 += `1` |])%list.
 
         (** ** Computing [A := A * R]
@@ -435,7 +435,7 @@ Module Internal.
 
 
      *)
-    Definition MulR : code progvar
+    Definition MulR : Repeat (statement progvar)
       :=
         [code|
           (** *** Coefficients of [Two32ij] for [i+j < 4] *)
@@ -535,15 +535,15 @@ Module Internal.
 
         *)
 
-        Definition PropagateIth (i : nat)(pf : i < 4) : code progvar.
+        Definition PropagateIth (i : nat)(pf : i < 4) : Repeat (statement progvar).
           verse [code| T0             := A [ i ] >> `32`;
                        A [ i ]        &= Select32;
                        A [ 1 + i ]  += T0
                 |].
         Defined.
 
-        Definition Propagate : code progvar := iterate PropagateIth.
-        Definition Wrap : code progvar :=
+        Definition Propagate : Repeat (statement progvar) := iterate PropagateIth.
+        Definition Wrap : Repeat (statement progvar) :=
           [code| T0 := a4 >> `2`; a4 &= Select2; T0 *= `5` ; a0 += T0 |].
 
         (** ** Adjusting [a0,..,a4] to maintain the invariant.
@@ -564,7 +564,7 @@ Module Internal.
 
          *)
 
-        Definition AdjustBits : code progvar.
+        Definition AdjustBits : Repeat (statement progvar).
           verse  (PropagateIth 3 _
                                ++ Wrap
                                ++ Propagate
@@ -597,7 +597,7 @@ Module Internal.
      The function below computes the desired reduction amount [u].
 
          *)
-        Definition  ReductionAmount : code progvar :=
+        Definition  ReductionAmount : Repeat (statement progvar) :=
           [code|
                  T0 := a0 + `5`;
                  T0 >>= `32`;
@@ -622,7 +622,7 @@ Module Internal.
          differ it till the additional [u*5] is added (if required).
          *)
 
-        Definition FullReduction : code progvar :=
+        Definition FullReduction : Repeat (statement progvar) :=
           (Wrap ++ ReductionAmount
                 ++ [code| T0 := T0 * `5`; a0 += T0 |]
                 ++ Propagate)%list.
@@ -646,12 +646,12 @@ Module Internal.
       block is full or partial.
          *)
 
-        Definition ProcessBlock (AddC : progvar of type Block -> code progvar)(blk : progvar of type Block)
-          : code progvar
+        Definition ProcessBlock (AddC : progvar of type Block -> Repeat (statement progvar))(blk : progvar of type Block)
+          : Repeat (statement progvar)
           := (AddC blk ++ MulR ++ AdjustBits)%list.
 
-        Definition ProcessFullBlock : progvar of type Block -> code progvar  := ProcessBlock AddFullBlock.
-        Definition ProcessLastBlock : progvar of type Block -> code progvar  := ProcessBlock Add128.
+        Definition ProcessFullBlock : progvar of type Block -> Repeat (statement progvar)  := ProcessBlock AddFullBlock.
+        Definition ProcessLastBlock : progvar of type Block -> Repeat (statement progvar)  := ProcessBlock Add128.
 
         (** * The exported functions and iterators.
 
@@ -705,7 +705,7 @@ Module Internal.
         last partial block.
          *)
 
-        Definition poly1305PartialMAC : code progvar
+        Definition poly1305PartialMAC : Repeat (statement progvar)
           := (setup poly1305IterMAC
                     ++ ProcessLastBlock LastBlock
                     ++ finalise poly1305IterMAC)%list.
@@ -724,7 +724,7 @@ Module Internal.
 
          *)
 
-        Definition clamp (blk : progvar of type Array128) : code progvar.
+        Definition clamp (blk : progvar of type Array128) : Repeat (statement progvar).
           verse [code|
 
                  T0 := blk[ 0 ];
