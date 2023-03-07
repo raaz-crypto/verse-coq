@@ -109,16 +109,27 @@ Require Verse.Ast.
 (* Mapping instances for custom syntax notations *)
 
 #[export] Instance statement_modular tyD (v : VariableT)
-  : AST_maps (list (Ast.statement v)) (modular tyD v)
-  := {| CODE := map (Basics.compose (@instruction _ _) (@inst _ _)) |}.
+  : AST_maps (list (Ast.statement v)) (modular tyD v) | 1
+  := {| CODE := fun ls => [ block (CODE ls) ] |}.
 
-#[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v)
-  := {| CODE := fun an => [ instruction (annot an) ] |}.
+#[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v) | 1
+  := {| CODE := fun an => [ block [ Repeat.repeat 1 [ annot an ] ] ] |}.
 
+#[export] Instance statement_repModular tyD (v : VariableT)
+  : AST_maps (list (Ast.statement v)) (repeated (list (modular tyD v))) | 0
+  := {| CODE := fun ls => [ Repeat.repeat 1 [ block (CODE ls) ] ] |}.
 
-Notation "'CALL' f 'WITH' a" := (inline f a) (at level 60).
+#[export] Instance annot_repModular tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (modular tyD v))) | 0
+  := {| CODE := fun an => [ Repeat.repeat 1 [ block [ Repeat.repeat 1 [ annot an ] ] ] ] |}.
 
-Notation "F 'DOES' Post" := ({| block := F;
+#[export] Instance modular_id tyD (v : VariableT) : AST_maps (list (modular tyD v)) (modular tyD v) | 1 := {| CODE := id |}.
+
+#[export] Instance modular_repModular tyD (v : VariableT) : AST_maps (list (modular tyD v)) (repeated (list (modular tyD v))) | 0
+  := {| CODE := fun x => [ Repeat.repeat 1 x ] |}.
+
+Notation "'CALL' f 'WITH' a" := (CODE [ inline f a ]) (at level 60).
+
+Notation "F 'DOES' Post" := ({| blck := F;
                                 postC := fun _ : StoreP (Str _ _) => Post |})
                               (at level 60).
 
@@ -373,10 +384,12 @@ Section CodeGen.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Variable ac : forall v, Scope.scoped v sc (list (modular tyD v)).
+  Variable ac : forall v, Scope.scoped v sc (Repeat (modular tyD v)).
 
   (* TODO: This is really a bad name particularly because it is being used outside (is it ?). *)
-  Definition cp := linesDenote (inline_calls (HlistMachine.specialise sc ac)).
+  Definition cp
+    := unroll (fun x => unroll (linesDenote (sc := sc)) (inline_calls x))
+              (HlistMachine.specialise sc ac).
 
   Definition tpt := getProp (fun _ => True) cp.
 
