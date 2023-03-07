@@ -443,6 +443,73 @@ Module Code.
 
 End Code.
 
+Module RepStatement.
+
+  Section Repeat.
+    Context [A B : Type]
+            (f : A -> B).
+
+    Definition push (rsrc : repeated A) : repeated B
+      := match rsrc with
+         | repeat n s => repeat n (f s)
+         end.
+
+    Context [Err : Prop].
+    Definition pullOutRep (rerr : repeated (A + {Err})) : repeated A + {Err}
+      := match rerr with
+         | repeat n {- x -}     => {- repeat n x -}
+         | repeat _ (error err) => error err
+         end.
+
+  End Repeat.
+
+  Definition translate src tgt
+             (tr : TypeSystem.translator src tgt)
+             (v : Variables.U tgt)
+    : repeated (code (Variables.Universe.coTranslate tr v)) -> repeated (code v)
+    :=  (push (Code.translate (v := v)tr)).
+
+  Arguments translate [src tgt] tr [v].
+
+  Definition result tgt (v : Variables.U tgt)
+    := repeated (code v) + {TranslationError}.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : TypeSystem.compiler src tgt)
+             (v : Variables.U tgt)
+             (c : repeated (code (Variables.Universe.coCompile cr v))) : result v
+    := pullOutRep (push (Code.compile cr (v := v)) c).
+
+  Arguments compile [src tgt] cr [v].
+
+End RepStatement.
+
+Module RepCode.
+
+  Definition translate src tgt
+             (tr : TypeSystem.translator src tgt)
+             (v : Variables.U tgt)
+  : Repeat (statement (Variables.Universe.coTranslate tr v)) -> Repeat (statement v)
+  := List.map (RepStatement.translate tr (v := v)).
+
+  Arguments translate [src tgt] tr [v].
+
+  Definition result tgt (v : Variables.U tgt) := Repeat (statement v) + {TranslationError}.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : TypeSystem.compiler src tgt)
+             (v : Variables.U tgt)
+             (c : Repeat (statement (Variables.Universe.coCompile cr v))) : result v
+    :=  let compile := fun s => (List.map (RepStatement.compile cr (v := v)) s) in
+        pullOutList (compile c).
+
+  Arguments compile [src tgt] cr [v].
+
+End RepCode.
 
 Module Iterator.
 
