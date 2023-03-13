@@ -176,7 +176,7 @@ variable types.
 
       Section Schedule.
         Context (i : nat)(pf : i < SIZE).
-        Definition WordSchedule  :  code progvar.
+        Definition WordSchedule  :  Repeat (statement progvar).
           verse ([code|
                    S  :=  W[ i ] ;
                    T  :=  W[ (i + 14) mod SIZE ] ;
