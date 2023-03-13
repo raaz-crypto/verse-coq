@@ -32,6 +32,7 @@ Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
      }.
 
 Arguments denote  [types mtypes] [M line] {_ _ _}.
+Arguments repeater [types mtypes] [M line] {_ _ _}.
 
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
@@ -46,5 +47,5 @@ Definition repCodeDenote {types mtypes}
                       (sem : Semantics M line)
   : Repeat (statement (mvariables M)) -> line
   := mapMconcat (fun rc => match rc with
-                           | repeat n c => ntimes n (codeDenote M line sem c)
+                           | repeat n c => repeater sem n (codeDenote M line sem c)
                            end).
