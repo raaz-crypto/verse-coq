@@ -548,7 +548,7 @@ Module Iterator.
     := do stup <- RepCode.compile cr (setup itr) ;;
        do fnls <- RepCode.compile cr (finalise itr) ;;
        do prcs <- RepCode.compile cr (process itr (rew <- f_equal _ pf in Variables.inject x)) ;;
-        pure {| preamble := stup;  loopBody := stup; finalisation := stup |}.
+        pure {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
 
