@@ -361,7 +361,7 @@ Module CodeGen (T : CONFIG).
          in do iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar ;;
                let fsig := FunSig fullParams locals
                  in do pre    <- repCodeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;
-                    do middle <- repCodeDenote M _ target_semantics(Iterator.loopBody iterComp)      ;;
+                    do middle <- repCodeDenote M _ target_semantics (Iterator.loopBody iterComp)     ;;
                     do post   <- repCodeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
                        let lp := T.mapOverBlocks streamVar middle in
                        {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
