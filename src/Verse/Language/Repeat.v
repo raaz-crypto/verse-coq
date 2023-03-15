@@ -18,6 +18,11 @@ Inductive repeated A : Type :=
 
 Arguments repeat [A].
 
+Definition map {A B}(f : A -> B) (rp : repeated A) : repeated B :=
+  match rp with
+  | repeat n a => repeat n (f a)
+  end.
+
 Polymorphic Definition Repeat A := list (repeated (list A)).
 
 Definition unroll [A M] `{Setoid M} `{Monoid M} (f : A -> M)
@@ -26,15 +31,7 @@ Definition unroll [A M] `{Setoid M} `{Monoid M} (f : A -> M)
 
 Section Repeat.
 
-  Context [A B : Type]
-          (f : A -> B).
-
-  Definition push (rsrc : repeated A) : repeated B
-    := match rsrc with
-       | repeat n s => repeat n (f s)
-       end.
-
-  Context [Err : Prop].
+  Context [A B : Type][Err : Prop].
   Definition pullOutRep (rerr : repeated (A + {Err})) : repeated A + {Err}
     := match rerr with
        | repeat n {- x -}     => {- repeat n x -}
