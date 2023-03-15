@@ -450,7 +450,7 @@ Section CarryPropagation.
       else [verse| limb[ i ]  ≫ `len i` |].
 
 
-    Definition propagateTo (i : nat)`(i < nLimbs) : Repeat (statement progvar).
+    Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
       verse [code| limb[i] += carryFrom[ (i + nLimbs - 1) mod nLimbs ] |].
     Defined.
 
@@ -594,11 +594,10 @@ Section SwappingEfficient.
   Context {progvar : VariableT}.
 
   Program Definition swapE (b : progvar of type Word64) (A B : feVar progvar)
-    : Repeat (statement progvar) :=
-
+    : code progvar :=
     ( foreachLimb (fun i _ =>
                      [code| A[i] := A[i] ⊕ B[i] ;
-                      B[i] := (mask & (A[i] ⊕ B[i])) | (~mask & B[i]) ;
+                      B[i] := (`mask b` & (A[i] ⊕ B[i])) | (~`mask b` & B[i]) ;
                       A[i] := A[i] ⊕ B[i]
                      |]    ))%list.
 End SwappingEfficient.
@@ -890,7 +889,17 @@ Section Inverse.
 
 
   Definition ipower := Npos ((P - 2)%positive).
-  Definition ibits  := Vector.to_list (N2Bv ipower).
+  Import List.ListNotations.
+  (* This is a representation of ipower as bits. We will use this to build our inverse function *)
+  Definition ibitsRep : list (repeated bool) := ([repeat 2 true; repeat 1 false; repeat 1 true; repeat 1 false; repeat 250 true])%list.
+  (* The actual ibits as a list *)
+  Definition ibits  := Repeat.unroll (fun x : bool => [x]%list) ibitsRep.
+
+  (* Ensure that ibitsRep when unrolled gives the value P - 2 as a number *)
+  Goal Bv2N (Vector.of_list ibits) = ipower.
+    compute; trivial.
+  Qed.
+
 
 (** The process is simple. In each step we will square [z] and keep
     the cumulative product in [cp]. If [cp] started out as 1 then we
@@ -939,8 +948,9 @@ then a single propagation.
   Definition updateProd (bit : bool) : code progvar :=
     if bit then multAndSquare else sqZ.
 
-  Definition inverse  : code progvar :=
-    List.concat (List.map updateProd ibits).
+
+  Definition inverse : Repeat (statement progvar) := List.map (Repeat.map updateProd) ibitsRep.
+
 
 End Inverse.
 
@@ -972,27 +982,3 @@ Goal to_print (square A B).
     idtac "Code for squaring:".
   time dumpgoal.
 Abort.
-
-(*
-This is too slow.
-Axiom z cP Temp : feVar MyVar.
-
-Goal to_print (inverse z cP Temp).
-  unfold inverse.
-  simpl.
-  unfold mult;
-  unfold assignFeVar;
-  unfold foreachLimb;
-  unfold multUpdate;
-  unfold foreachLimb;
-  unfold iterate;
-    unfold update.
-  unfold ibits.
-  unfold ipower.
-  unfold P.
-
-   Check
-  time dumpgoal.
-Abort.
-
-*)
