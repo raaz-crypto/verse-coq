@@ -91,10 +91,10 @@ Section ArrayUtils.
   (** This macro loads the array to the corresponding chached
       variables *)
   Definition loadCache (arr : v (existT _ _ (array b e ty)))
-    (ch : Vector.t (v (existT _ _ ty)) b) : code v :=
-    foreach (indices arr)
+    (ch : Vector.t (v (existT _ _ ty)) b) : Repeat (statement v) :=
+    (foreach (indices arr)
             (fun i pf => let ix := @exist _ _ i pf in
-                      [ Pretty.assignStmt (Vector.nth_order ch pf) (deref arr ix) ]
+                      [ Pretty.assignStmt (Vector.nth_order ch pf) (deref arr ix) ]) : code v
             ).
 
   (**
@@ -114,22 +114,22 @@ Section ArrayUtils.
    *)
 
   Definition moveBackCache (arr : v (existT _ _ (array b e ty)))
-    (ch : Vector.t (v (existT _ _ ty)) b)  : code v :=
-      foreach (indices arr)
+    (ch : Vector.t (v (existT _ _ ty)) b)  : Repeat (statement v) :=
+    (foreach (indices arr)
               (fun i pf => let ix := @exist _ _ i pf in
-                           [ Pretty.moveStmt (deref arr ix) (Vector.nth_order ch pf) ]).
+                           [ Pretty.moveStmt (deref arr ix) (Vector.nth_order ch pf) ])) : code v.
 
     (** This function is similar [moveCacheBack], except that it
        preserves the values in the cache variables. The cached
        variables can then be reused in the rest of the program.  *)
 
-    Definition backupCache  (arr : v (existT _ _ (array  b e ty))) (ch : VarIndex) : code v :=
-      foreach (indices arr)
+    Definition backupCache  (arr : v (existT _ _ (array  b e ty))) (ch : VarIndex) : Repeat (statement v) :=
+      (foreach (indices arr)
               (fun i pf => let ix := @exist _ _ i pf in
                            let arrI := deref arr ix in
                            let chI := ch i pf in
                            [ Pretty.assignStmt arrI chI ]
-              ).
+              )) : code v.
 
 End ArrayUtils.
 

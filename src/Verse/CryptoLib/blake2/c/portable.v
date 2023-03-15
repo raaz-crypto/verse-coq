@@ -219,7 +219,7 @@ Module Blake2 (C : CONFIG).
       Variable byteCount : A.
 
 
-      Definition UPDATE_COUNTER (u l : progvar of type Word) : code progvar :=
+      Definition UPDATE_COUNTER (u l : progvar of type Word) : Repeat (statement progvar) :=
         [code| (* We first ensure that the variable C gets the carry that overflows
              when l is added bsize. For this we first need to get the msb of l
              into the lsb position
@@ -272,7 +272,7 @@ Module Blake2 (C : CONFIG).
 
      *)
 
-    Definition G (a b c d m0 m1 : progvar of type Word) : code progvar :=
+    Definition G (a b c d m0 m1 : progvar of type Word) : Repeat (statement progvar) :=
       [code|
         a += b; a += m0; d ⊕= a; d := d ⋙ R0;
         c += d;          b ⊕= c; b := b ⋙ R1;
@@ -335,7 +335,7 @@ Module Blake2 (C : CONFIG).
                                 (@Vector.nth_order _ _ RoundPerms (r mod 10) _))).
       Defined.
 
-      Definition BLAKE_ROUND : code progvar.
+      Definition BLAKE_ROUND : Repeat (statement progvar).
         verse (G v0 v4 v8  v12 (M 0 _) (M 1 _) ++
                G v1 v5 v9  v13 (M 2 _) (M 3 _) ++
                G v2 v6 v10 v14 (M 4 _) (M 5 _) ++
@@ -352,7 +352,7 @@ Module Blake2 (C : CONFIG).
     Definition ALL_ROUNDS := iterate (fun r (_ : r < ROUNDS) => BLAKE_ROUND r).
 
 
-    Definition SETUP : code progvar.
+    Definition SETUP : Repeat (statement progvar).
       verse ( [code| U := UpperRef [ 0 ]; L := LowerRef [ 0 ] |] ++ loadCache hash H )%list.
     Defined.
 
@@ -364,7 +364,7 @@ Module Blake2 (C : CONFIG).
         initialisation code.
 
      *)
-    Definition INIT_STATE : code progvar.
+    Definition INIT_STATE : Repeat (statement progvar).
       verse
         [code|
           v0  := H[0];
@@ -386,7 +386,7 @@ Module Blake2 (C : CONFIG).
         |].
     Defined.
 
-    Definition INIT_STATE_LAST : code progvar.
+    Definition INIT_STATE_LAST : Repeat (statement progvar).
       verse
         [code|
           v0 := H[0];
@@ -417,7 +417,7 @@ Module Blake2 (C : CONFIG).
      *)
     Definition W : VarIndex progvar BLOCK_SIZE Word := varIndex message_variables.
     Definition LOAD_MESSAGE_I (blk : progvar of type Block) (i : nat) (pf : i < BLOCK_SIZE)
-      : code progvar.
+      : Repeat (statement progvar).
       verse [code| `W i _` := blk [ i ] |].
     Defined.
     Definition LOAD_MESSAGE (blk : progvar of type Block)
@@ -429,7 +429,7 @@ Module Blake2 (C : CONFIG).
         After performing the rounds of blake, the hash gets updated as follows.
 
      *)
-    Definition UPDATE_HASH : code progvar.
+    Definition UPDATE_HASH : Repeat (statement progvar).
       verse
       [code|
         H[0] ⊕= v0 ; H[0] ⊕= v8;
@@ -445,7 +445,7 @@ Module Blake2 (C : CONFIG).
 
     (** In the iterator one needs to update the hash array as well as
         the reference variables UpperRef and LowerRef.  *)
-    Definition FINALISE : code progvar.
+    Definition FINALISE : Repeat (statement progvar).
       verse ([code| UpperRef [ 0 ] <- U ; LowerRef [ 0 ] <- L |] ++ moveBackCache hash H )%list.
     Defined.
 
@@ -459,11 +459,11 @@ Module Blake2 (C : CONFIG).
     (** ** The BLAKE2 iterator and the last block compressor.  *)
     Definition compress : iterator progvar Block :=
       {| setup   := SETUP;
-         process := fun blk => UPDATE_COUNTER_ITER ++ INIT_STATE ++ PROCESS_BLOCK blk;
+         process := fun blk => (UPDATE_COUNTER_ITER ++ INIT_STATE ++ PROCESS_BLOCK blk);
          finalise := FINALISE
       |}%list.
 
-    Definition lastBlock :=
+    Definition lastBlock : Repeat (statement progvar) :=
       (loadCache hash H
                  ++ UPDATE_COUNTER_LAST
                  ++ INIT_STATE_LAST

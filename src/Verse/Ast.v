@@ -34,6 +34,9 @@ We begin by defining the types for the language.
 (* begin hide *)
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
+Require Export Verse.Language.Repeat.
+
+Import List.ListNotations.
 Import EqNotations.
 (* end hide *)
 
@@ -108,6 +111,11 @@ Arguments instruction [ts].
 Arguments code [ts].
 Arguments statement [ts].
 
+(* We provide a coercion from `code` to `Repeat statement` so to still
+   be able to use old code
+*)
+Coercion mapRep ts (v : Variables.U ts) (c : code v) : Repeat (statement v)
+  := List.map (fun x => repeat 1 [x]%list) c.
 
 (**
 
@@ -118,9 +126,9 @@ type [ty].
 
  *)
 Record iterator ts (v : Variables.U ts) (ty : typeOf ts memory)
-  := { setup    : code v;
-       process  : v (existT _ _ ty) -> code v;
-       finalise : code v
+  := { setup    : Repeat (statement v);
+       process  : v (existT _ _ ty) -> Repeat (statement v);
+       finalise : Repeat (statement v)
      }.
 
 Arguments iterator [ts].
@@ -435,6 +443,55 @@ Module Code.
 
 End Code.
 
+Module RepStatement.
+
+  Definition translate src tgt
+             (tr : TypeSystem.translator src tgt)
+             (v : Variables.U tgt)
+    : repeated (code (Variables.Universe.coTranslate tr v)) -> repeated (code v)
+    :=  (push (Code.translate (v := v)tr)).
+
+  Arguments translate [src tgt] tr [v].
+
+  Definition result tgt (v : Variables.U tgt)
+    := repeated (code v) + {TranslationError}.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : TypeSystem.compiler src tgt)
+             (v : Variables.U tgt)
+             (c : repeated (code (Variables.Universe.coCompile cr v))) : result v
+    := pullOutRep (push (Code.compile cr (v := v)) c).
+
+  Arguments compile [src tgt] cr [v].
+
+End RepStatement.
+
+Module RepCode.
+
+  Definition translate src tgt
+             (tr : TypeSystem.translator src tgt)
+             (v : Variables.U tgt)
+  : Repeat (statement (Variables.Universe.coTranslate tr v)) -> Repeat (statement v)
+  := List.map (RepStatement.translate tr (v := v)).
+
+  Arguments translate [src tgt] tr [v].
+
+  Definition result tgt (v : Variables.U tgt) := Repeat (statement v) + {TranslationError}.
+
+  Arguments result [tgt].
+
+  Definition compile src tgt
+             (cr : TypeSystem.compiler src tgt)
+             (v : Variables.U tgt)
+             (c : Repeat (statement (Variables.Universe.coCompile cr v))) : result v
+    :=  let compile := fun s => (List.map (RepStatement.compile cr (v := v)) s) in
+        pullOutList (compile c).
+
+  Arguments compile [src tgt] cr [v].
+
+End RepCode.
 
 Module Iterator.
 
@@ -449,9 +506,9 @@ Module Iterator.
              memty
              (itr : iterator (Variables.Universe.coTranslate tr v) memty)
   : iterator v (Types.translate tr memty)
-    := {| setup    := Code.translate tr (setup itr);
-          finalise := Code.translate tr (finalise itr);
-          process := fun x => Code.translate tr (process itr x)
+    := {| setup    := RepCode.translate tr (setup itr);
+          finalise := RepCode.translate tr (finalise itr);
+          process := fun x => RepCode.translate tr (process itr x)
        |}.
 
 
@@ -470,9 +527,9 @@ Module Iterator.
 
    *)
 
-  Record compiled tgt (v : Variables.U tgt) := { preamble : code v;
-                                                 loopBody : code v;
-                                                 finalisation : code v
+  Record compiled tgt (v : Variables.U tgt) := { preamble : Repeat (statement v);
+                                                 loopBody : Repeat (statement v);
+                                                 finalisation : Repeat (statement v)
                                                }.
 
 
@@ -488,10 +545,10 @@ Module Iterator.
              (pf : Types.compile cr memty = {- good -})
              (x  : v (existT _ _ good))
     : compiled tgt v + {TranslationError}
-    := do stup <- Code.compile cr (setup itr) ;;
-       do fnls <- Code.compile cr (finalise itr) ;;
-       do prcs <- Code.compile cr (process itr (rew <- f_equal _ pf in Variables.inject x)) ;;
-          pure {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
+    := do stup <- RepCode.compile cr (setup itr) ;;
+       do fnls <- RepCode.compile cr (finalise itr) ;;
+       do prcs <- RepCode.compile cr (process itr (rew <- f_equal _ pf in Variables.inject x)) ;;
+        pure {| preamble := stup;  loopBody := prcs; finalisation := fnls |}.
 
   Arguments compile [src tgt] cr [v memty] itr [good].
 

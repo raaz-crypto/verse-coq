@@ -8,13 +8,11 @@ We now have pretty printing notations for cvars.
 
 *)
 
+Declare Scope c_scope.
+
 Notation "'bPtr'"
   := (bPtr _)
        (at level 1, only printing) : c_scope.
-
-Notation "'v' N"
-  := (cVar _ N)
-       (at level 1, only printing, format "'v' N") : c_scope.
 
 Notation "'v' N"
   := (cVar _ N)
@@ -24,6 +22,10 @@ Notation "'v' N"
 
 Notation "T X"
   := (declare_variable T X)
+       (at level 29, only printing) : c_scope.
+
+Notation "T X = INIT"
+  := (initialize_variable T X INIT)
        (at level 29, only printing) : c_scope.
 
 Notation "T X [ N ]"
@@ -228,6 +230,11 @@ Notation "'while' ( COND ) BODY"
   := (whileLoop COND BODY)
        (at level 70, only printing,
         format "'while'  ( COND ) '//' BODY") : c_scope.
+
+Notation "'for' ( INIT ; COND ; INCR ) BODY"
+  := (forLoop INIT COND INCR BODY)
+       (at level 70, only printing,
+         format "'for' ( INIT ; COND ; INCR ) '//' BODY") : c_scope.
 
 Notation "# 'define' 'XOR' ^" := defineXOR (only printing) : c_scope.
 Notation "/* 'Empty' 'Program' */" := (Program []) (only printing) : c_scope.

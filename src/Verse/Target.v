@@ -195,7 +195,7 @@ Module CodeGen (T : CONFIG).
    *)
 
   Definition toVerseAllocation    := Scope.Allocation.coCompile T.typeCompiler.
-  Definition typeCheckedTransform := Code.compile T.typeCompiler.
+  Definition typeCheckedTransform := RepCode.compile T.typeCompiler.
 
   (** To carry out these transformation, we also need compatibility of
       the allocation types which the following predicate asserts *)
@@ -306,12 +306,12 @@ Module CodeGen (T : CONFIG).
         which has as body an [abstracted] verse code block
      *)
     Definition function
-               (func   : forall v, abstracted v (code v))
+               (func   : forall v, abstracted v (Repeat (Ast.statement v)))
       : T.programLine + { TranslationError }
       := let 'Scope.body pbody := Scope.uncurry (func _) verse_params in
          let body := Scope.uncurry pbody verse_locals
          in do btc     <- typeCheckedTransform body ;;
-            do btarget <- codeDenote M _ target_semantics btc ;;
+            do btarget <- repCodeDenote M _ target_semantics btc ;;
                let fsig := FunSig params locals
                in {- T.makeFunction name fname fsig btarget -}.
 
@@ -360,9 +360,9 @@ Module CodeGen (T : CONFIG).
          let iter    := Scope.uncurry piter verse_locals
          in do iterComp <- Iterator.compile T.typeCompiler iter streamElemCompat elemVar ;;
                let fsig := FunSig fullParams locals
-                 in do pre    <- codeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;
-                    do middle <- codeDenote M _ target_semantics(Iterator.loopBody iterComp)      ;;
-                    do post   <- codeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
+                 in do pre    <- repCodeDenote M _ target_semantics (Iterator.preamble iterComp)     ;;
+                    do middle <- repCodeDenote M _ target_semantics (Iterator.loopBody iterComp)     ;;
+                    do post   <- repCodeDenote M _ target_semantics (Iterator.finalisation iterComp) ;;
                        let lp := T.mapOverBlocks streamVar middle in
                        {- T.makeFunction name fname fsig (pre ++ lp ++ post)%list -}.
 

@@ -30,13 +30,11 @@ Module Internals.
 
 
   Definition clearL n : forall ty, const ty
-    := makeMask (fun sz => let bsz := bitSize sz in
-                        BitVector.upper_ones (bsz - n)).
+    := makeMask (fun sz => BitVector.upper_ones (sz - n)).
 
 
   Definition clearU n : forall ty, const ty
-    := makeMask (fun sz => let bsz := bitSize sz in
-                        BitVector.lower_ones (bsz - n)).
+    := makeMask (fun sz => BitVector.lower_ones (sz - n)).
 
 
   Definition selShiftR  n (ty : type direct) : nat

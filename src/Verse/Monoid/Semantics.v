@@ -23,15 +23,16 @@ Require Import Verse.Ast.
 Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
   := {
         denote       : Ast.statement (mvariables M)  -> line;
-        (* The inliner should possibly take the scope of the
-           called function as an argument.
-           Isn't necessary for semantics, but maybe for inlining
+
+        (* The repeater is forced to work with an internal `line`
+        instead of a `list Ast.statement` because we need the body
+        that is repeated to be denoted as normal code.
         *)
-        inliner      : line -> line
+        repeater     : nat -> line -> line
      }.
 
-Arguments inliner [types mtypes] [M line] {_ _ _}.
 Arguments denote  [types mtypes] [M line] {_ _ _}.
+Arguments repeater [types mtypes] [M line] {_ _ _}.
 
 Definition codeDenote {types mtypes}
                       (M : mSpecs types mtypes)
@@ -39,3 +40,12 @@ Definition codeDenote {types mtypes}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
   := mapMconcat (denote sem).
+
+Definition repCodeDenote {types mtypes}
+                      (M : mSpecs types mtypes)
+                      line `{Monoid line}
+                      (sem : Semantics M line)
+  : Repeat (statement (mvariables M)) -> line
+  := mapMconcat (fun rc => match rc with
+                           | repeat n c => repeater sem n (codeDenote M line sem c)
+                           end).

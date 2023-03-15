@@ -75,10 +75,11 @@ variables.
 *)
 
 Inductive cvar : some type -> Type :=
-| bPtr  : forall sz t, cvar (existT _ _ (ptrToArray sz t))
-| cTr   : cvar (existT _ _ uint64_t)
-| cTr32 : cvar (existT _ _ uint64_t)
-| cVar  : forall (ty : some type), nat -> cvar ty.
+| bPtr   : forall sz t, cvar (existT _ _ (ptrToArray sz t))
+| cTr    : cvar (existT _ _ uint64_t)
+| cTr32  : cvar (existT _ _ uint64_t)
+| repCtr : cvar (existT _ _ uint64_t)
+| cVar   : forall (ty : some type), nat -> cvar ty.
 
 Arguments bPtr [sz].
 
@@ -104,7 +105,8 @@ Coercion Expr.cvar2exp : cvar >-> Expr.expr.
 Import Expr.
 
 Inductive declaration :=
-| declare_variable : forall [k] (ty : type k), expr -> declaration.
+| declare_variable : forall [k] (ty : type k), expr -> declaration
+| initialize_variable : forall (ty : type direct), expr -> expr -> declaration.
 
 Definition declare [k] (ty : type k) := declare_variable ty.
 
@@ -118,6 +120,7 @@ Inductive statement :=
 | decrement   : expr -> statement
 | comment   : forall Text , Text -> statement
 | whileLoop : expr -> braces -> statement
+| forLoop   : declaration -> expr -> statement -> braces -> statement
 with braces := Braces : list statement -> braces.
 
 Inductive line :=

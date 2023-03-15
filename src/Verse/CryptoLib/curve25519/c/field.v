@@ -363,12 +363,12 @@ Module Internal.
         | UpperT n  => upperStore n
         end.
 
-      Definition load : code progvar := toList (option_map toLoad (transfer i j)).
-      Definition store : code progvar := toList (option_map toStore (transfer i j)).
+      Definition load : Repeat (statement progvar) := (toList (option_map toLoad (transfer i j))) : code progvar.
+      Definition store : Repeat (statement progvar) := (toList (option_map toStore (transfer i j))) : code progvar.
     End ForEachIJ.
 
-    Definition loadAll  : code progvar := foreachWord (fun i pf => foreachLimb (load  i pf)).
-    Definition storeAll : code progvar := foreachWord (fun i pf => foreachLimb (store i pf)).
+    Definition loadAll  : Repeat (statement progvar) := foreachWord (fun i pf => foreachLimb (load  i pf)).
+    Definition storeAll : Repeat (statement progvar) := foreachWord (fun i pf => foreachLimb (store i pf)).
 
   End InstructionGenerate.
 
@@ -440,7 +440,7 @@ Section CarryPropagation.
     else [verse| limb[ i ]  ≫ `len i` |].
 
 
-  Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
+  Definition propagateTo (i : nat)`(i < nLimbs) : Repeat (statement progvar).
     verse [code| limb[i] += carryFrom[ (i + nLimbs - 1) mod nLimbs ] |].
   Defined.
 
@@ -524,7 +524,7 @@ Section Swapping.
   Variable b   : progvar of type Word64.
   Variable A B : feVar progvar.
 
-  Program Definition swap : code progvar :=
+  Program Definition swap : Repeat (statement progvar) :=
     foreachLimb (fun i _ => [code|
                           TA   := A[i];
                           A[i] := b * B[i] + (`1` - b) * A[i];
@@ -556,7 +556,7 @@ Section SwappingEfficient.
   Context {progvar : VariableT}.
 
   Program Definition swapE (b : progvar of type Word64) (A B : feVar progvar)
-    : code progvar :=
+    : Repeat (statement progvar) :=
 
     ( setToMask b
       ++
@@ -602,12 +602,12 @@ Section Addition.
 
   Variable A B C : feVar progvar.
 
-  Program Definition add : code progvar :=
+  Program Definition add : Repeat (statement progvar) :=
     foreachLimb (fun i _ => [code| A[i] := B[i] + C[i]  |]).
-  Program Definition addAssign : code progvar :=
+  Program Definition addAssign : Repeat (statement progvar) :=
     foreachLimb (fun i _ => [code| A[i] += B[i] |] ).
 
-  Definition addAssignSmall (small : expr progvar of type Word64) : code progvar.
+  Definition addAssignSmall (small : expr progvar of type Word64) : Repeat (statement progvar).
     verse([code| A[0] += small |]).
   Defined.
 
@@ -677,7 +677,7 @@ Section Subtraction.
   Program Definition complement (X : feVar progvar) i (_ : i < nLimbs)  : expr progvar of type Word64
     := keepOnlyLower (len i) [verse| ~ X[i] |].
 
-  Program Definition update_complement (X : feVar progvar) i (pf : i < nLimbs) : code progvar :=
+  Program Definition update_complement (X : feVar progvar) i (pf : i < nLimbs) : Repeat (statement progvar) :=
     let x := [verse| X[i] |] in
     [code| X[i] := `complement X` [i] |].
 
@@ -689,13 +689,13 @@ Section Subtraction.
        ++ foreachLimb (fun i pf => [code| A[i] += adjustExpr[i] |])
     )%list.
 
-  Program Definition sub (A B C : feVar progvar) : code progvar :=
+  Program Definition sub (A B C : feVar progvar) : Repeat (statement progvar) :=
     let CComp := complement C in
     (setB255 C
        ++ foreachLimb (fun i pf => [code| A[i] := B[i] + CComp[i] + adjustExpr[i] |])
        )%list.
 
-  Program Definition subAssign (A B : feVar progvar) : code progvar :=
+  Program Definition subAssign (A B : feVar progvar) : Repeat (statement progvar) :=
     let BComp := complement B in
     (setB255 B
        ++ foreachLimb (fun i _ => [code| A[i] += BComp[i] + adjustExpr[i]  |] ))%list.
@@ -812,7 +812,7 @@ Section Multiplication.
     Definition termsFor := foreachLimb termFrom.
     Definition sqTermFor := foreachLimb sqTermFrom.
 
-    Program Definition update exps : code progvar :=
+    Program Definition update exps : Repeat (statement progvar) :=
       match exps with
       | (x :: xs) => [code| A[k] := `List.fold_left (fun e1 e2 => [verse| e1 + e2 |]) xs x` |]
       | _ => []
@@ -826,7 +826,7 @@ Section Multiplication.
   Definition square := foreachLimb sqUpdate.
 
 
-  Definition multN (n : N) : code progvar.
+  Definition multN (n : N) : Repeat (statement progvar).
     verse (
         match n with
         | 2%N => foreachLimb (fun i _ => [code| A[i] := B[i] << `1` |])
