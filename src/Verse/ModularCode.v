@@ -73,11 +73,11 @@ Section Call.
    *)
 
   Definition stripAnn [v] (ls : Repeat (line tyD v))
-    := List.map (Repeat.push (fun x => concat (map (fun l => match l with
-                                                                   | inst _ as l0 => [ l0 ]
-                                                                   | _            => []
-                                                                   end) x
-                ))) ls.
+    := List.map (Repeat.map (fun x => concat (map (fun l => match l with
+                                                      | inst _ as l0 => [ l0 ]
+                                                      | _            => []
+                                                      end) x
+         ))) ls.
 
   Definition inline_call (a : modular) : Repeat (line tyD v)
     := match a with

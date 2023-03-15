@@ -448,7 +448,7 @@ Module RepStatement.
              (tr : TypeSystem.translator src tgt)
              (v : Variables.U tgt)
     : repeated (code (Variables.Universe.coTranslate tr v)) -> repeated (code v)
-    :=  (push (Code.translate (v := v)tr)).
+    :=  (Repeat.map (Code.translate (v := v)tr)).
 
   Arguments translate [src tgt] tr [v].
 
@@ -461,7 +461,7 @@ Module RepStatement.
              (cr : TypeSystem.compiler src tgt)
              (v : Variables.U tgt)
              (c : repeated (code (Variables.Universe.coCompile cr v))) : result v
-    := pullOutRep (push (Code.compile cr (v := v)) c).
+    := pullOutRep (Repeat.map (Code.compile cr (v := v)) c).
 
   Arguments compile [src tgt] cr [v].
 
