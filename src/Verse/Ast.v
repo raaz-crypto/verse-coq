@@ -115,7 +115,7 @@ Arguments statement [ts].
    be able to use old code
 *)
 Coercion mapRep ts (v : Variables.U ts) (c : code v) : Repeat (statement v)
-  := List.map (fun x => repeat 1 [x]%list) c.
+  := [repeat 1 c]%list.
 
 (**
 
