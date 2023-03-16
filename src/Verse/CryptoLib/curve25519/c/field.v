@@ -208,7 +208,7 @@ Program Definition copyFeVar {progvar}(u v : feVar progvar) : code progvar :=
   foreachLimb (fun i _ => [code| u[i] := v[i]|]).
 
 
-Program Definition setFeVar {progvar}(u : feVar progvar)(alpha : fe) :=
+Program Definition setFeVar {progvar}(u : feVar progvar)(alpha : fe) : code progvar :=
   foreachLimb(fun i _ => [code| u[i] := alpha[i] |]).
 
 (* begin hide *)
@@ -372,6 +372,7 @@ Module Internal.
         | UpperT n  => upperStore n
         end.
 
+
       Definition load  := toList (option_map toLoad (transfer i j)).
       Definition store := toList (option_map toStore (transfer i j)).
     End ForEachIJ.
@@ -455,7 +456,7 @@ Section CarryPropagation.
     Defined.
 
     (* We perform a full cycle of propagation by starting at the highest limb *)
-    Definition propagate := foreachLimb propagateTo.
+    Definition propagate : code progvar := foreachLimb propagateTo.
 
   End Propagate.
 
@@ -692,7 +693,7 @@ Section Subtraction.
       to select the appropriate expression.
    *)
 
-  Program Definition setB255 (X : feVar progvar) :=
+  Program Definition setB255 (X : feVar progvar) : code progvar :=
     let x := [verse| X[9] |] in
     ([code| B255 := `toTopBits 26 x`;
             B255 := `mask B255`
@@ -721,7 +722,7 @@ Section Subtraction.
 
 
   (** Negate the field element in the register A *)
-  Program Definition negate (A : feVar progvar):=
+  Program Definition negate (A : feVar progvar) : code progvar:=
     (setB255 A
        ++ foreachLimb (update_complement A)
        ++ foreachLimb (fun i pf => [code| A[i] += adjustExpr[i] |])
