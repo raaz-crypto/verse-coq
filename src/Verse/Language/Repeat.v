@@ -1,5 +1,6 @@
 Require Import Verse.Monoid.
 Require Import Verse.Error.
+Import List.ListNotations.
 
 (**
 
@@ -41,3 +42,7 @@ Section Repeat.
        end.
 
 End Repeat.
+
+Definition once [A] : list A -> Repeat A := fun a => [ repeat 1 a ]%list.
+
+Coercion once : list >-> Repeat.
