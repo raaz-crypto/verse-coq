@@ -182,14 +182,12 @@ Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < 
 
 Class AST_maps (A B : Type) := { CODE : A -> list B }.
 
-#[export]
- Instance code_id (v : VariableT)
-  : AST_maps (code v) (statement (ts := verse_type_system) v)
+#[export] Instance code_id (v : VariableT)
+  : AST_maps (code v) (statement (ts := verse_type_system) v) | 0
   := { CODE := id }.
 
-#[export]
- Instance code_repeat (v : VariableT)
-  : AST_maps (code v) (repeated (code (ts := verse_type_system) v))
+#[export] Instance code_repeat (v : VariableT)
+  : AST_maps (code v) (repeated (code (ts := verse_type_system) v)) | 1
   := { CODE := fun C => [ repeat 1 C ]%list }.
 
 Declare Custom Entry verse.
