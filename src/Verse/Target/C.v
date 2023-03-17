@@ -73,7 +73,7 @@ Ltac Function name func
                  (Compile.function name pvs lvs
                                    cpvs clvs
                                    pfpvt pflvt
-                                   pA lA cfunc)
+                                   pA lA (repeat_in cfunc))
                    (** TODO: This can be a normal function application if
                              inferNesting carries around correctness proofs
                     *)
