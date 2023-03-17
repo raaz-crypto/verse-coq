@@ -14,7 +14,7 @@ Section Code.
   Variable A B : v of type Word8.
   Variable C   : Vector.t (v of type (Array 1 bigE Word16)) 1.
 
-  Definition test : Repeat (line bvDenote v).
+  Definition test : lines bvDenote v.
     verse (
         [code| A := B;
                     B := `5`;
