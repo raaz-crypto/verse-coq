@@ -173,9 +173,9 @@ The size assumptions that we have are
      *)
 
     Definition affinize : Repeat (statement progvar) :=
-      List.concat [ propagate x2 : Repeat (statement progvar);           (* get x2 to std form from 41 bits *)
+      List.concat [ propagate x2 : Repeat _;(* get x2 to std form from 41 bits *)
                     field.inverse x2 z2 t0  (* x₂ := x₂ z₂⁻¹  and in stdform   *)
-        ].
+                  ].
     (** Montgomery step with a 64-bit scalar. Each step has to be done
         from high bits to low bits and hence the reverse iteration. We
         have also optimised on swap using the xor trick. This requires
@@ -192,11 +192,12 @@ The size assumptions that we have are
       let updateMask := let bit  := [verse| scalarWord >> `63` |] in
                         [code| smask ^= `field.mask bit` |] in
       let step := List.concat [updateMask ; doSwap; Step; updateSword ] in
-      [Repeat.repeat 64 step].
+      [Repeat.repeat 64 step]%list.
 
-    Definition sMaskInit : Repeat (statement progvar)  := [code| smask := `0` |].
+    Definition sMaskInit : code progvar  := [code| smask := `0` |].
+
     Program Definition montgomery : Repeat (statement progvar) :=
-      ( sMaskInit
+      ( (sMaskInit : Repeat _)
           ++ iterate_reverse montgomeryWord
           ++ (doSwap : Repeat (statement progvar))
       )%list.
@@ -211,7 +212,6 @@ The size assumptions that we have are
     Definition x25519 := do x25519_code end.
   End Params.
 End Internal.
-
 
 
 Inductive name :=

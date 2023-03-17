@@ -372,7 +372,6 @@ Module Internal.
         | UpperT n  => upperStore n
         end.
 
-
       Definition load  := toList (option_map toLoad (transfer i j)).
       Definition store := toList (option_map toStore (transfer i j)).
     End ForEachIJ.
@@ -601,6 +600,7 @@ Section SwappingEfficient.
                       B[i] := (`mask b` & (A[i] ⊕ B[i])) | (~`mask b` & B[i]) ;
                       A[i] := A[i] ⊕ B[i]
                      |]    ))%list.
+
 End SwappingEfficient.
 
 
