@@ -234,15 +234,6 @@ Defined.
 
 Definition clampI       : Compile.programLine := recover clamp.
 Definition x25519C       : Compile.programLine := recover x25519.
-
-
-Require Import Verse.Print.
-(*
-Goal to_print x25519C.
-  print.
-Abort.
-*)
-
 Definition program := verseC [ clampI ; x25519C].
 
 
@@ -252,5 +243,8 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [ iterator verse_curve25519_c_portable_clamp
                                Scalar
-                               Internal.ClampIter
+                               Internal.ClampIter;
+                      function verse_x25519_c_portable
+                               Internal.x25519
+
                     ].
