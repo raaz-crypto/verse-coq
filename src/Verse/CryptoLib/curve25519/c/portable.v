@@ -63,7 +63,6 @@ Module Internal.
   Section Params.
     Variable progvar : VariableT.
     Context (scalar :  progvar of type Scalar)(point : progvar of type Element).
-    Program Definition scalarWord i (_ : i < 4) : lexpr progvar of type Word := [verse| scalar [i] |].
     Section Locals.
 
       Definition propagateTwice (x : feVar progvar) : code progvar := (propagate x ++ propagate x)%list.
