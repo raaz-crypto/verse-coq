@@ -644,7 +644,7 @@ Section SwappingEfficient.
     : code progvar :=
     ( foreachLimb (fun i _ =>
                      [code| A[i] := A[i] ⊕ B[i] ;
-                      B[i] := (`mask b` & (A[i] ⊕ B[i])) | (~`mask b` & B[i]) ;
+                      B[i] := (b & (A[i] ⊕ B[i])) | (~b & B[i]) ;
                       A[i] := A[i] ⊕ B[i]
                      |]    ))%list.
 
