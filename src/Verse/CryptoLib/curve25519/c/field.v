@@ -87,7 +87,7 @@ Definition nWord  := 4.
 Definition foreachLimb {A : Type}(f : forall i, i < nLimbs -> list A) : list A := iterate f.
 Definition foreachWord {A : Type}(f : forall i, i < nWord  -> list A) : list A := iterate f.
 
-Definition Packed := Array 4 littleE Word64.
+Definition Packed := Array 4 hostE Word64.
 
 (** Field element in computational representation *)
 Definition fe := Vector.t (const Word64) nLimbs.

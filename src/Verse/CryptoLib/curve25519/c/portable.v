@@ -8,8 +8,8 @@ Import List.ListNotations.
 
 
 Definition Word      := Word64.
-Definition Element   := (Array 4 littleE Word).
-Definition Scalar    := (Array 4 littleE Word).
+Definition Element   := (Array 4 hostE Word).
+Definition Scalar    := (Array 4 hostE Word).
 
 Module Internal.
 
@@ -85,9 +85,13 @@ Module Internal.
     Variable x3 z3 : feVar progvar.
 
 
+    Variable t0 t1 t2 t3 : feVar progvar.
+    (** Temporary variable need by subtraction *)
+    Variable B255 : progvar of type Word64.
+
+
     Definition initialize : code progvar :=
       List.concat [ field.Internal.loadAll point xB;
-
                     field.setFeVar x2 feOne;
                     field.setFeVar z2 feZero;
 
@@ -95,10 +99,26 @@ Module Internal.
                     field.setFeVar z3 feOne
         ]%list.
 
-    Variable t0 t1 t2 t3 : feVar progvar.
 
-    (** Temporary variable need by subtraction *)
-    Variable B255 : progvar of type Word64.
+    (** The result of the montgomery operation is to get a projective
+       coordinates in x2 and z2. The x25519 function has to return the
+       affine x co-ordinate in x2. The affinized from is converted to
+       canonical reduced from (i.e. value between 0 and 2²⁵⁵ - 19) For
+       all these purposes we make use of z3 as the temporary variable.
+
+     *)
+
+    Definition affinize : Repeat (statement progvar) :=
+      List.concat [ propagate x2 : Repeat _; (* get x2 to std form from 41 bits *)
+                    field.inverse x2 z2 z3;  (* x₂ := x₂ z₂⁻¹  and in stdform  (the affinisation step)  *)
+                    field.reduce x2 B255 : Repeat (statement progvar)   (* compute the reduced form *)
+        ].
+
+    Definition finalize : Repeat (statement progvar) :=
+      List.concat [ affinize;
+                    field.Internal.storeAll point x2 : Repeat (statement progvar)
+        ].
+
     Definition subtract := field.sub B255.
     Definition subtractAssign := field.subAssign B255.
 
@@ -165,16 +185,6 @@ The size assumptions that we have are
         ]%list.
 
 
-    (** The result of the montgomery operation is to get a projective
-       coordinates in x2 and z2. We need to convert this to affine
-       coordinate followed by getting into the normalised form.
-
-     *)
-
-    Definition affinize : Repeat (statement progvar) :=
-      List.concat [ propagate x2 : Repeat _;(* get x2 to std form from 41 bits *)
-                    field.inverse x2 z2 t0  (* x₂ := x₂ z₂⁻¹  and in stdform   *)
-                  ].
     (** Montgomery step with a 64-bit scalar. Each step has to be done
         from high bits to low bits and hence the reverse iteration. We
         have also optimised on swap using the xor trick. This requires
@@ -191,7 +201,7 @@ The size assumptions that we have are
       let updateMask := let bit  := [verse| scalarWord >> `63` |] in
                         [code| smask ^= `field.mask bit` |] in
       let step := List.concat [updateMask ; doSwap; Step; updateSword ] in
-      [Repeat.repeat 64 step]%list.
+       (initSword ++ [Repeat.repeat 64 step])%list.
 
     Definition sMaskInit : code progvar  := [code| smask := `0` |].
 
@@ -201,14 +211,16 @@ The size assumptions that we have are
           ++ (doSwap : Repeat (statement progvar))
       )%list.
 
+
     Definition x25519_code : Repeat (statement progvar) :=
       List.concat [  initialize : Repeat (statement progvar);
                      montgomery;
-                     affinize;
-                     field.reduce x2 B255 : Repeat (statement progvar)
-        ]%list.
+                     finalize
+        ].
+    Definition test_finalize := field.Internal.storeAll point x2.
     End Locals.
     Definition x25519 := do x25519_code end.
+    Definition finalizeCode := do test_finalize end.
   End Params.
 End Internal.
 
@@ -232,7 +244,14 @@ Definition x25519 :  CodeGen.Config.programLine + {Error.TranslationError}.
 Defined.
 
 Definition clampI       : Compile.programLine := recover clamp.
-Definition x25519C       : Compile.programLine := recover x25519.
+
+(* Just to display stuff for easy visualisation *)
+Require Import Verse.Print.
+Require Import Verse.Target.C.Pretty.
+
+
+Definition x25519C      : Compile.programLine := recover x25519.
+
 Definition program := verseC [ clampI ; x25519C].
 
 
