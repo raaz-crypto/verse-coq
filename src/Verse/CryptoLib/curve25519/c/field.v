@@ -442,34 +442,21 @@ next limb (cycling when we reach the last limb *)
 Section CarryPropagation.
 
   Context {progvar : VariableT}.
+  Context (limb : feVar progvar).
+  Program Definition carryFrom (i : nat)(_ : i < nLimbs) :=
+    if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
+    else [verse| limb[ i ]  ≫ `len i` |].
 
-  Section Propagate.
-    Context (limb : feVar progvar).
-    Program Definition carryFrom (i : nat)(_ : i < nLimbs) :=
-      if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
-      else [verse| limb[ i ]  ≫ `len i` |].
+  Definition trimLimb (i : nat)(_ : i < nLimbs) : code progvar.
+    verse ([keepOnlyLowerUpdate (len i) [verse| limb[ (i+nLimbs - 1) mod nLimbs] |]]).
+  Defined.
+  Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
+    verse ( [code| limb[i] += carryFrom[ (i + nLimbs - 1) mod nLimbs ]
+            |] ++ (trimLimb ((i + nLimbs - 1) mod nLimbs) _))%list.
+  Defined.
 
-
-    Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
-      verse [code| limb[i] += carryFrom[ (i + nLimbs - 1) mod nLimbs ] |].
-    Defined.
-
-    (* We perform a full cycle of propagation by starting at the highest limb *)
-    Definition propagate : code progvar := foreachLimb propagateTo.
-
-  End Propagate.
-
-  Section AssignPropagate.
-    Context (Dest Src : feVar progvar).
-
-    Definition carrySrc := carryFrom Src.
-    Definition propagateAssignTo (i : nat)`(i < nLimbs) : code progvar.
-      verse [code| Dest[i] := Src [i] + carrySrc[ (i + nLimbs - 1) mod nLimbs ] |].
-    Defined.
-
-    Definition propagateAssign := foreachLimb propagateAssignTo.
-
-  End AssignPropagate.
+  (* We perform a full cycle of propagation by starting at the highest limb *)
+  Definition propagate : code progvar := foreachLimb propagateTo.
 
 End CarryPropagation.
 
