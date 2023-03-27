@@ -913,6 +913,8 @@ End Multiplication.
 
 Section Inverse.
 
+  Context {progvar : VariableT}.
+
   (** ** Inverse through powering.
 
       By Fermat's little theorem we know that aᵖ⁻² . a = aᵖ⁻¹ = 1 mod
@@ -920,20 +922,11 @@ Section Inverse.
       [z] by computing the [p-2]-th power of z using the repeated
       squaring method Since this is a known power exponentiation there
       is no side channel here.
-*)
+   *)
 
+  Import List.ListNotations.
 
   Definition ipower := Npos ((P - 2)%positive).
-  Import List.ListNotations.
-  (* This is a representation of ipower as bits. We will use this to build our inverse function *)
-  Definition ibitsRep : list (repeated bool) := ([repeat 2 true; repeat 1 false; repeat 1 true; repeat 1 false; repeat 250 true])%list.
-  (* The actual ibits as a list *)
-  Definition ibits  := Repeat.unroll (fun x : bool => [x]%list) ibitsRep.
-
-  (* Ensure that ibitsRep when unrolled gives the value P - 2 as a number *)
-  Goal Bv2N (Vector.of_list ibits) = ipower.
-    compute; trivial.
-  Qed.
 
 
 (** The process is simple. In each step we will square [z] and keep
@@ -944,47 +937,65 @@ Section Inverse.
     it instead of 1.
 *)
 
+  (** There squaring and multiplication does not update the same variable.
 
-  Context {progvar : VariableT}.
-  Context (cP z temp : feVar progvar).
+      1. Squaring computes the square in z' when starting with z
 
+      2. Multiplication computes the cummulative product in cp' when starting with cp
+   *)
 
-(** There are two additional problems we need to handle
+  Definition varPair := (feVar progvar * feVar progvar)%type.
+  Definition swapVar (vPair : varPair) : varPair := (snd vPair, fst vPair).
 
-1. Firstly our multiplication and squaring step can only compute the
-   result in an [temp] variable. We need to prepare the [z] and [cp]
-   for the next step by assigning them back from [temp]
-
-2. We also need to adjust limbs by two carry propagation (as
-   multiplication is involved).
-
-
-We perform the first carry propagation together with the assignment and
-then a single propagation.
-
- *)
-
-
-  (** The squaring code *)
-  Definition sqZ : code progvar :=
-    (square temp z
-       ++ propagateAssign z temp
+  Definition squareStep (Z : varPair)   : code progvar :=
+    let z' := fst Z in
+    let z  := snd Z in
+    (square z' z
+       ++ propagate z
        ++ propagate z
     )%list.
 
-  (** Multiplication code *)
-  Definition multAndSquare : code progvar :=
-    (mult temp cP z
-       ++ propagateAssign cP temp
-       ++ propagate cP
-       ++ sqZ
+
+  Definition multStep (CP Z : varPair) : code progvar  :=
+    let cp' := fst CP in
+    let cp  := snd CP in
+    let z   := snd CP in
+    ( mult cp' cp z
+        ++ propagate cp'
+        ++ propagate cp'
+        ++ squareStep Z
+     )%list.
+
+  Definition square2Step (Z : varPair) : code progvar  :=
+    ( squareStep Z ++ squareStep (swapVar Z) )%list.
+  Definition mult2Step (CP Z : varPair) : code progvar :=
+    ( multStep CP Z ++ multStep (swapVar CP) (swapVar Z) )%list.
+
+    (* This is a representation of ipower as bits. We will use this to build our inverse function *)
+  Definition ibitsRep : list (repeated bool) :=
+    ( [ repeat 2 true;
+        repeat 1 false;
+        repeat 1 true;
+        repeat 1 false;
+        repeat 250 true]
     )%list.
 
-  Definition updateProd (bit : bool) : code progvar :=
-    if bit then multAndSquare else sqZ.
+  Definition inverse (CP Z : varPair) : Repeat (statement progvar) :=
+    let code2True   := repeat 1  (mult2Step CP Z) in
+    let code1False1 := repeat 1 (squareStep Z) in
+    let code1True   := repeat 1 (multStep CP (swapVar Z)) in
+    let code1False2 := repeat 1 (squareStep Z) in
+    let codeRest    := repeat (Nat.div 250 2) (mult2Step (swapVar CP) (swapVar Z)) in
+    [code2True ; code1False1; code1True; code1False2; codeRest ]%list.
 
 
-  Definition inverse : Repeat (statement progvar) := List.map (Repeat.map updateProd) ibitsRep.
+  (* The actual ibits as a list *)
+  Definition ibits : list bool := Repeat.unroll (fun x : bool => [x]%list) ibitsRep.
+
+  (* Ensure that ibitsRep when unrolled gives the value P - 2 as a number *)
+  Goal Bv2N (Vector.of_list ibits) = ipower.
+    compute; trivial.
+  Qed.
 
 
 End Inverse.
