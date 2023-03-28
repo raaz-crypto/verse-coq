@@ -448,11 +448,12 @@ Section CarryPropagation.
     else [verse| limb[ i ]  ≫ `len i` |].
 
   Definition trimLimb (i : nat)(_ : i < nLimbs) : code progvar.
-    verse ([keepOnlyLowerUpdate (len i) [verse| limb[ (i+nLimbs - 1) mod nLimbs] |]]).
+    verse ([keepOnlyLowerUpdate (len i) [verse| limb[i] |]]).
   Defined.
   Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
-    verse ( [code| limb[i] += carryFrom[ (i + nLimbs - 1) mod nLimbs ]
-            |] ++ (trimLimb ((i + nLimbs - 1) mod nLimbs) _))%list.
+    verse ( let ip := (i + nLimbs - 1) mod nLimbs in
+            [code| limb[i] += carryFrom[ ip ] |]
+              ++ (trimLimb ip _))%list.
   Defined.
 
   (* We perform a full cycle of propagation by starting at the highest limb *)
@@ -567,7 +568,7 @@ Goal to_print (propagate L).
   unfold foreachLimb;
     unfold iterate;
     unfold foreach;
-  simpl; unfold carryFrom; unfold len; simpl;
+  simpl; unfold len; simpl;
     idtac "Carry propagation:";
     dumpgoal.
 Abort.
@@ -948,30 +949,64 @@ Section Inverse.
   Definition swapVar (vPair : varPair) : varPair := (snd vPair, fst vPair).
 
   Definition squareStep (Z : varPair)   : code progvar :=
-    let z' := fst Z in
-    let z  := snd Z in
+    let (z',z) := Z in
     (square z' z
-       ++ propagate z
-       ++ propagate z
+       ++ propagate z'
+       ++ propagate z'
     )%list.
 
 
   Definition multStep (CP Z : varPair) : code progvar  :=
-    let cp' := fst CP in
-    let cp  := snd CP in
-    let z   := snd CP in
+    let (cp',cp) := CP in
+    let (_,z)    := Z in
     ( mult cp' cp z
         ++ propagate cp'
         ++ propagate cp'
         ++ squareStep Z
      )%list.
 
-  Definition square2Step (Z : varPair) : code progvar  :=
-    ( squareStep Z ++ squareStep (swapVar Z) )%list.
-  Definition mult2Step (CP Z : varPair) : code progvar :=
-    ( multStep CP Z ++ multStep (swapVar CP) (swapVar Z) )%list.
+  Definition swapStep (bit : bool)(st : varPair * varPair) :=
+    let (CP, Z) := st  in
+    if bit  then (swapVar CP , swapVar Z) else (CP, swapVar Z).
 
-    (* This is a representation of ipower as bits. We will use this to build our inverse function *)
+  Definition step  (bit : bool) (st : varPair * varPair) : code progvar :=
+    let (CP, Z) := st in
+    if bit then multStep CP Z else squareStep Z.
+
+  Definition step2 (bit : bool) st : code progvar := (step bit st ++ step bit st)%list.
+
+  Fixpoint divMod2 (n : nat) : nat * nat :=
+    match n with
+    | 0 => (0, 0)
+    | 1 => (0, 1)
+    | S (S m) => let (u,b) := divMod2 m in
+                (S u, b)
+    end.
+
+  Definition repStep (r : repeated bool) (st : varPair * varPair) : Repeat (statement progvar) * (varPair * varPair) :=
+    match r with
+    | repeat n bit =>
+        let (m,parity) := divMod2 n in
+        let cde := (repeatIt m (step2 bit st) ++ repeatIt parity (step bit st))%list in
+        let stp := match parity with
+                   | 1 => swapStep bit st
+                   | _ => st
+                   end in
+        (cde , stp)
+    end.
+
+  Fixpoint repSteps (rs : list (repeated bool)) (st : varPair * varPair) : Repeat (statement progvar) * (varPair * varPair) :=
+    match rs with
+    | [] => ([], st)
+    | (r :: rsp) => let (start, stp)  := repStep r st in
+                  let (rest, stEnd) := repSteps rsp stp in
+                  (start ++ rest, stEnd)
+    end%list.
+
+
+
+  (* This is a representation of ipower as bits. We will use this to build our inverse function *)
+
   Definition ibitsRep : list (repeated bool) :=
     ( [ repeat 2 true;
         repeat 1 false;
@@ -980,16 +1015,7 @@ Section Inverse.
         repeat 250 true]
     )%list.
 
-  Definition inverse (CP Z : varPair) : Repeat (statement progvar) :=
-    let code2True   := repeat 1  (mult2Step CP Z) in
-    let code1False1 := repeat 1 (squareStep Z) in
-    let code1True   := repeat 1 (multStep CP (swapVar Z)) in
-    let code1False2 := repeat 1 (squareStep Z) in
-    let codeRest    := repeat (Nat.div 250 2) (mult2Step (swapVar CP) (swapVar Z)) in
-    [code2True ; code1False1; code1True; code1False2; codeRest ]%list.
-
-
-  (* The actual ibits as a list *)
+    (* The actual ibits as a list *)
   Definition ibits : list bool := Repeat.unroll (fun x : bool => [x]%list) ibitsRep.
 
   (* Ensure that ibitsRep when unrolled gives the value P - 2 as a number *)
@@ -997,11 +1023,22 @@ Section Inverse.
     compute; trivial.
   Qed.
 
+  Definition inverse (cp' z' cp z : feVar progvar ) : Repeat (statement progvar) * feVar progvar :=
+    let (cde, st) := repSteps ibitsRep ((cp',cp), (z',z)) in
+    let (CP,_) := st in
+    (cde, snd CP).
 
 End Inverse.
 
 (* begin hide *)
 Axiom A B C : feVar MyVar.
+Axiom cp cp' z z' : feVar MyVar.
+Compute snd (inverse cp' z' cp z).
+
+Goal to_print (inverse cp' z' cp z).
+  unfold inverse.
+  simpl.
+Abort.
 
 Goal to_print (mult A B C).
   unfold mult;
