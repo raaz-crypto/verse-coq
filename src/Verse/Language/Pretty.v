@@ -299,6 +299,7 @@ Require Import Psatz.
 Ltac verse_simplify := match goal with
                        | [ H : ?T |- ?T ]     => exact H
                        | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
+                       | [ H := _ : nat |- ?H < _ ] => subst H
                        | [ |- ?A mod ?B < ?B ] => apply (PeanoNat.Nat.mod_upper_bound A B)
                        | [ |- _ <= ?T         ] => compute; solve [repeat constructor | lia]
                        | [ |- _ < ?T         ] => compute; solve [repeat constructor | lia]
