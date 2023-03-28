@@ -41,5 +41,11 @@ Section Repeat.
 End Repeat.
 
 Definition once [A] : list A -> Repeat A := fun a => [ repeat 1 a ]%list.
+Definition repeatIt [A](n : nat)(ls : list A) : Repeat A :=
+  match n with
+  | 0 => []%list
+  | 1 => once ls
+  | m => [repeat m ls]%list
+  end.
 
 Coercion once : list >-> Repeat.
