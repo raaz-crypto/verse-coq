@@ -108,16 +108,14 @@ Module Internal.
 
      *)
 
-    Definition affinize : Repeat (statement progvar) :=
-      List.concat [ propagate x2 : Repeat _; (* get x2 to std form from 41 bits *)
-                    field.inverse x2 z2 z3;  (* x₂ := x₂ z₂⁻¹  and in stdform  (the affinisation step)  *)
-                    field.reduce x2 B255 : Repeat (statement progvar)   (* compute the reduced form *)
-        ].
-
     Definition finalize : Repeat (statement progvar) :=
-      List.concat [ affinize;
-                    field.Internal.storeAll point x2 : Repeat (statement progvar)
-        ].
+      List.concat [ propagate x2 : Repeat _; (* get x2 to std form from 41 bits *)
+                    let (cde, x2aff) := inverse x3 z3 x2 z2 in
+                    List.concat [ cde ;
+                      field.reduce x2aff B255 : Repeat _;
+                      field.Internal.storeAll point x2aff : Repeat _
+                    ]
+        ]%list.
 
     Definition subtract := field.sub B255.
     Definition subtractAssign := field.subAssign B255.
@@ -245,13 +243,17 @@ Defined.
 
 Definition clampI       : Compile.programLine := recover clamp.
 
+Definition x25519C      : Compile.programLine := recover x25519.
+
+
 (* Just to display stuff for easy visualisation *)
 Require Import Verse.Print.
 Require Import Verse.Target.C.Pretty.
 
-
-Definition x25519C      : Compile.programLine := recover x25519.
-
+Goal to_print x25519C.
+  compute.
+  print.
+Abort.
 Definition program := verseC [ clampI ; x25519C].
 
 
