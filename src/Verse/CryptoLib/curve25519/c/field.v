@@ -980,7 +980,7 @@ Section Inverse.
     let (CP, Z) := st in
     if bit then multStep CP Z else squareStep Z.
 
-  Definition step2 (bit : bool) st : code progvar := (step bit st ++ step bit st)%list.
+  Definition step2 (bit : bool) st : code progvar := (step bit st ++ step bit (swapStep bit st) )%list.
 
   Fixpoint divMod2 (n : nat) : nat * nat :=
     match n with
