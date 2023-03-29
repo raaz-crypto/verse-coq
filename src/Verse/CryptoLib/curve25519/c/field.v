@@ -982,18 +982,11 @@ Section Inverse.
 
   Definition step2 (bit : bool) st : code progvar := (step bit st ++ step bit (swapStep bit st) )%list.
 
-  Fixpoint divMod2 (n : nat) : nat * nat :=
-    match n with
-    | 0 => (0, 0)
-    | 1 => (0, 1)
-    | S (S m) => let (u,b) := divMod2 m in
-                (S u, b)
-    end.
-
   Definition repStep (r : repeated bool) (st : varPair * varPair) : Repeat (statement progvar) * (varPair * varPair) :=
     match r with
     | repeat n bit =>
-        let (m,parity) := divMod2 n in
+        let m := Nat.div n 2 in
+        let parity := n mod 2 in
         let cde := (repeatIt m (step2 bit st) ++ repeatIt parity (step bit st))%list in
         let stp := match parity with
                    | 1 => swapStep bit st
