@@ -443,16 +443,18 @@ Section CarryPropagation.
 
   Context {progvar : VariableT}.
   Context (limb : feVar progvar).
-  Program Definition carryFrom (i : nat)(_ : i < nLimbs) :=
-    if (i =? 9) then [verse| `19` * (limb[9] ≫ `len 9`) |]
-    else [verse| limb[ i ]  ≫ `len i` |].
+  Program Definition carry (i : nat)(_ : i < nLimbs) : expr progvar of type Word64 :=
+    [verse| limb[ i ]  ≫ `len i` |].
+
+  Definition scale (i : nat)(e : expr progvar of type Word64) : expr progvar of type Word64
+    := if i =? 9 then [verse| `19` * e |] else e.
 
   Definition trimLimb (i : nat)(_ : i < nLimbs) : code progvar.
     verse ([keepOnlyLowerUpdate (len i) [verse| limb[i] |]]).
   Defined.
   Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
     verse ( let ip := (i + nLimbs - 1) mod nLimbs in
-            [code| limb[i] += carryFrom[ ip ] |]
+            [code| limb[i] += `scale ip (carry ip _)` |]
               ++ (trimLimb ip _))%list.
   Defined.
 
@@ -564,12 +566,17 @@ without any carry propagation on X.
 
 (* begin hide *)
 Goal to_print (propagate L).
-  unfold propagate.
+  unfold propagate;
   unfold foreachLimb;
     unfold iterate;
     unfold foreach;
   simpl; unfold len; simpl;
     idtac "Carry propagation:";
+    unfold carry;
+    unfold len;
+    unfold Pos.to_nat;
+    unfold scale; simpl.
+
     dumpgoal.
 Abort.
 (* end hide *)
