@@ -472,7 +472,7 @@ integer 0 <= α₀ < p such that α₀ = α (mod p). We do this in two stages
 
 1. α is of the form b 2²⁵⁵ + γ for some γ < 2²⁵⁵ - 1 and b is the
    256-th bit of α. A single carry propagation of α gives β <= 2²⁵⁵ -
-   1 + 19 such that β such that α = β (mod p).
+   1 + 19 such that α = β (mod p).
 
 2. Consider the _reduction amount_ B of β defined as the number
    starting from 256-th bit onwards of of β + 19. Clearly since β <=
