@@ -297,7 +297,10 @@ Ltac verse_modulus_warn := verse_warn; idtac "possible modulo arithmetic over ze
 Require Import Psatz.
 
 Ltac verse_simplify := match goal with
-                       | [ H : ?T |- ?T ]     => exact H
+                       | [ H : ?T            |- ?T ]     => exact H
+                       | [ H : ?I < ?N - 1   |- ?I  < ?N ] => lia
+                       | [ H : ?I < ?N - 1   |- ?I + 1 < ?N ] => lia
+                       | [ H : ?I < ?N - 1   |- 1 + ?I < ?N ] => lia
                        | [ |- _ <> _ ]        => unfold not; let H := fresh "H" in intro H; inversion H
                        | [ H := _ : nat |- ?H < _ ] => subst H
                        | [ |- ?A mod ?B < ?B ] => apply (PeanoNat.Nat.mod_upper_bound A B)
