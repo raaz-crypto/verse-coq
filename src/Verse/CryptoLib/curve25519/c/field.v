@@ -443,23 +443,24 @@ Section CarryPropagation.
 
   Context {progvar : VariableT}.
   Context (limb : feVar progvar).
-  Program Definition carry (i : nat)(_ : i < nLimbs) : expr progvar of type Word64 :=
-    [verse| limb[ i ]  ≫ `len i` |].
 
-  Definition scale (i : nat)(e : expr progvar of type Word64) : expr progvar of type Word64
-    := if i =? 9 then [verse| `19` * e |] else e.
 
   Definition trimLimb (i : nat)(_ : i < nLimbs) : code progvar.
     verse ([keepOnlyLowerUpdate (len i) [verse| limb[i] |]]).
   Defined.
-  Definition propagateTo (i : nat)`(i < nLimbs) : code progvar.
-    verse ( let ip := (i + nLimbs - 1) mod nLimbs in
-            [code| limb[i] += `scale ip (carry ip _)` |]
-              ++ (trimLimb ip _))%list.
+
+  Definition wrap : code progvar.
+    verse([code| limb[0] += `19` * (limb[ 9 ] >> `len 9`) |] ++ trimLimb 9 _)%list.
   Defined.
 
+  Definition carryForwardI (i : nat)(_  : i < nLimbs - 1) : code progvar.
+    verse ([code| limb[i + 1] += limb[i] >> `len i` |] ++ trimLimb i _)%list.
+  Defined.
+
+  Definition carryForward := iterate carryForwardI.
+
   (* We perform a full cycle of propagation by starting at the highest limb *)
-  Definition propagate : code progvar := foreachLimb propagateTo.
+  Definition propagate : code progvar := (wrap ++ carryForward)%list.
 
 End CarryPropagation.
 
@@ -498,15 +499,21 @@ Section FieldReduction.
 
   Context {progvar : VariableT}.
   Context (x : feVar progvar) (B : progvar of type Word64).
+
   Program Definition computeReduceBit  : code progvar
-    := let stmt i (_ : i < nLimbs) := if i =? 0 then [code| B := x[i] + `19` ; B >>= `len 0` |]
-                     else [code| B += x[i] ; B >>= `len i` |]
-       in foreachLimb stmt.
+    := ([code| B := `19` |] ++
+         foreachLimb (fun i (_ : i < nLimbs) => [code| B += x[i] ; B >>= `len i` |])) %list.
+
+  Definition add19MB : code progvar.
+    verse([code| x[0] += B * `19` |] ++ carryForward x)%list.
+  Defined.
 
   Definition reduce  : code progvar.
-    verse(propagate x
-      ++ computeReduceBit ++ [code| x[0] += B * `19` |]
-      ++ propagate x)%list.
+    verse(
+        propagate x
+          ++ computeReduceBit
+          ++ add19MB
+          ++ trimLimb x 9 _)%list.
   Defined.
 
 End FieldReduction.
@@ -567,18 +574,12 @@ without any carry propagation on X.
 (* begin hide *)
 Goal to_print (propagate L).
   unfold propagate;
-  unfold foreachLimb;
+  unfold wrap;
+  unfold trimLimb;
     unfold iterate;
-    unfold foreach;
-  simpl; unfold len; simpl;
-    idtac "Carry propagation:";
-    unfold carry;
-    unfold len;
-    unfold Pos.to_nat;
-    unfold scale; simpl.
-
-    dumpgoal.
+    unfold foreach; simpl.
 Abort.
+
 (* end hide *)
 
 (** ** Conditional swapping
