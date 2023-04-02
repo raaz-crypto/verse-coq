@@ -60,6 +60,7 @@
           Verse.CryptoLib.sha512.c.portable
           Verse.CryptoLib.curve25519.c.field
           Verse.CryptoLib.curve25519.c.portable
+          Verse.CryptoLib.curve25519test.c.portable
           Verse.Utils.hlist
           ))
 (include_subdirs qualified)
