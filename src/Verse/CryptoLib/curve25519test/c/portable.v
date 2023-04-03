@@ -54,6 +54,13 @@ Module Internal.
                       Store aLA aL
           ].
 
+
+      Definition fieldReduce (B : progvar of type Word64) : code progvar :=
+        List.concat [ Load aL aLA;
+                      reduce aL B;
+                      Store aLA aL
+          ].
+
     End Locals.
 
     Definition loadStore := do loadAndStore end.
@@ -64,7 +71,7 @@ Module Internal.
     Definition subAssign  := do fun (B : progvar of type Word64) => fieldOpAssign (field.subAssign B) end.
     Definition multiplication := do fieldOp mult end.
     Definition propagateL     := do propagateLimbs end.
-
+    Definition fieldRed       := do fieldReduce end.
   End Params.
 
 End Internal.
@@ -72,6 +79,7 @@ End Internal.
 Inductive name :=
 | verse_gf25519_load_store
 | verse_gf25519_propagate
+| verse_gf25519_reduce
 | verse_gf25519_addition
 | verse_gf25519_addition_assign
 | verse_gf25519_minus
@@ -89,6 +97,10 @@ Defined.
 
 Definition propagateLimbs : CodeGen.Config.programLine + {Error.TranslationError}.
   Function verse_gf25519_propagate (Internal.propagateL).
+Defined.
+
+Definition fieldReduce : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_gf25519_reduce (Internal.fieldRed).
 Defined.
 
 Definition addition : CodeGen.Config.programLine + {Error.TranslationError}.
@@ -117,6 +129,7 @@ Defined.
 
 Definition loadStore : Compile.programLine := recover loadAndStore.
 Definition propagateF : Compile.programLine := recover propagateLimbs.
+Definition fieldRedF  : Compile.programLine := recover fieldReduce.
 Definition addF  : Compile.programLine := recover addition.
 Definition addAF : Compile.programLine := recover addAssign.
 Definition subF  : Compile.programLine := recover subtraction.
@@ -125,6 +138,7 @@ Definition multF  : Compile.programLine := recover multiplication.
 
 Definition program := verseC [ loadStore;
                                propagateF;
+                               fieldRedF;
                                addF;
                                addAF;
                                subF;
@@ -140,6 +154,7 @@ Definition raazFFI {Name} (name : Name)
   := mkProgram name [
          function verse_gf25519_load_store Internal.loadAndStore;
          function verse_gf25519_propagate  Internal.propagateL;
+         function verse_gf25519_reduce     Internal.fieldRed;
          function verse_gf25519_addition Internal.addition ;
          function verse_gf25519_addition_assign Internal.addAssign;
          function verse_gf25519_minus Internal.subtraction;
