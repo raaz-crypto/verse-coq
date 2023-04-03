@@ -117,8 +117,33 @@ Module Internal.
                     ]
         ]%list.
 
+
     Definition subtract := field.sub B255.
     Definition subtractAssign := field.subAssign B255.
+    Definition opP (f : feVar progvar -> feVar progvar -> feVar progvar -> code progvar) x y z n :=
+      List.concat [ f x y z;
+                    match  n with
+                    | 0 => nil
+                    | 1 => propagate x
+                    | _ => propagateTwice x
+                    end
+        ].
+
+    Definition opAssignP (f : feVar progvar -> feVar progvar -> code progvar) x y n:=
+      List.concat [ f x y;
+                    match  n with
+                    | 0 => nil
+                    | 1 => propagate x
+                    | _ => propagateTwice x
+                    end
+        ].
+
+    Definition addP  := opP add.
+    Definition addAP := opAssignP addAssign.
+    Definition subP  := opP subtract.
+    Definition subAP := opAssignP subtractAssign.
+    Definition mulP  := opP mult.
+    Definition sqAP  := opAssignP square.
 
     (**
 
@@ -162,24 +187,24 @@ The size assumptions that we have are
 
     Definition Step : code progvar :=
       List.concat [
-          add t0 x2 z2;           propagate t0;        (* std sized *)
-          subtractAssign x2 z2;   propagate x2;        (* std sized *)
-          add t1 x3 z3;           propagate t1;        (* std sized *)
-          subtractAssign x3 z3;   propagate x3;        (* std sized *)
-          mult z3 x3 t0;          propagate z3;        (* 40 bits   *)
-          square z2 t0;           propagateTwice z2;   (* std sized *)
-          mult x3 x2 t1;          propagateTwice x3;   (* std sized *)
-          square t1 x2;           propagateTwice t1;   (* std sized *)
-          add t0 z3 x3;           propagate t0;        (* 41 -> std sized *)
-          subtractAssign z3 x3;   propagate z3;        (* 42 -> std sized *)
-          square x3 z3;           propagateTwice x3;   (* std sized *)
-          mult x2 z2 t1;          propagate  x2;       (* 61 -> 40 *)
-          subtract z3 z2 t1;      (* no prop *)        (* 27 bits *)
-          multN t1 z3 121665%N;   (* no prop *)        (* 44 bits *)
-          addAssign t1 z2;        propagate t1;        (* 45 -> std *)
-          mult z2 t1 z3;          propagateTwice z2;   (* std sized *)
-          mult z3 x3 xB;          propagateTwice z3;   (* std sized *)
-          square x3 t0;           propagate  x3        (* 40 sized *)
+          addP  t0  x2 z2        1 ; (* std sized *)
+          subAP x2  z2           1 ; (* std sized *)
+          addP  t1  x3 z3        1 ; (* std sized *)
+          subAP x3 z3            1 ; (* std sized *)
+          mulP  z3 x3 t0         1 ; (* 40 bits   *)
+          sqAP  z2 t0            2 ; (* std sized *)
+          mulP  x3 x2 t1         2 ; (* std sized *)
+          sqAP  t1 x2            2 ; (* std sized *)
+          addP  t0 z3 x3         1 ; (* 41 -> std sized *)
+          subAP z3 x3            1 ; (* 42 -> std sized *)
+          sqAP  x3 z3            2 ; (* std sized *)
+          mulP  x2 z2 t1         1 ; (* 61 -> 40 *)
+          subP  z3 z2 t1         0 ; (* no prop *) (* 27 bits *)
+          multN t1 z3 121665%N     ; (* no prop *) (* 44 bits *)
+          addAP t1 z2            1 ; (* 45 -> std *)
+          mulP  z2 t1 z3         2 ; (* std sized *)
+          mulP  z3 x3 xB         2 ; (* std sized *)
+          sqAP  x3 t0            1   (* 40 sized *)
         ]%list.
 
 
