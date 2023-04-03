@@ -25,11 +25,19 @@ Module Internal.
       Variable oper  : feVar progvar -> feVar progvar -> feVar progvar -> code progvar.
       Variable operA : feVar progvar -> feVar progvar -> code progvar.
 
+      Program Definition  Load  (limb : feVar progvar) (arr : progvar of type LimbArray)  : code progvar :=
+        foreachLimb (fun i (_ : i < nLimbs) => [code| limb[i] := arr [i] |]).
+
       Program Definition Store (arr : progvar of type LimbArray) (limb : feVar progvar) : code progvar :=
         foreachLimb (fun i (_ : i < nLimbs) => [code| arr[i] := limb [i] |]).
 
       Variable aL bL cL : feVar progvar.
 
+      Definition propagateLimbs : code progvar :=
+        List.concat [ Load aL aLA;
+                      propagate aL;
+                      Store aLA aL
+          ].
 
 
       Definition fieldOp : code progvar :=
@@ -55,6 +63,7 @@ Module Internal.
     Definition subtraction := do fun (B : progvar of type Word64) => fieldOp (field.sub B) end.
     Definition subAssign  := do fun (B : progvar of type Word64) => fieldOpAssign (field.subAssign B) end.
     Definition multiplication := do fieldOp mult end.
+    Definition propagateL     := do propagateLimbs end.
 
   End Params.
 
@@ -62,6 +71,7 @@ End Internal.
 
 Inductive name :=
 | verse_gf25519_load_store
+| verse_gf25519_propagate
 | verse_gf25519_addition
 | verse_gf25519_addition_assign
 | verse_gf25519_minus
@@ -69,11 +79,16 @@ Inductive name :=
 | verse_gf25519_multiplication.
 
 
+
 Require Import Verse.Target.C.
 Require Import Verse.Error.
 
 Definition loadAndStore : CodeGen.Config.programLine + {Error.TranslationError}.
   Function verse_gf25519_load_store (Internal.loadStore).
+Defined.
+
+Definition propagateLimbs : CodeGen.Config.programLine + {Error.TranslationError}.
+  Function verse_gf25519_propagate (Internal.propagateL).
 Defined.
 
 Definition addition : CodeGen.Config.programLine + {Error.TranslationError}.
@@ -101,6 +116,7 @@ Definition multiplication : CodeGen.Config.programLine + {Error.TranslationError
 Defined.
 
 Definition loadStore : Compile.programLine := recover loadAndStore.
+Definition propagateF : Compile.programLine := recover propagateLimbs.
 Definition addF  : Compile.programLine := recover addition.
 Definition addAF : Compile.programLine := recover addAssign.
 Definition subF  : Compile.programLine := recover subtraction.
@@ -108,6 +124,7 @@ Definition subAF  : Compile.programLine := recover subAssign.
 Definition multF  : Compile.programLine := recover multiplication.
 
 Definition program := verseC [ loadStore;
+                               propagateF;
                                addF;
                                addAF;
                                subF;
@@ -122,6 +139,7 @@ Require Import Verse.FFI.Raaz.Target.C.
 Definition raazFFI {Name} (name : Name)
   := mkProgram name [
          function verse_gf25519_load_store Internal.loadAndStore;
+         function verse_gf25519_propagate  Internal.propagateL;
          function verse_gf25519_addition Internal.addition ;
          function verse_gf25519_addition_assign Internal.addAssign;
          function verse_gf25519_minus Internal.subtraction;
