@@ -738,10 +738,9 @@ Section Subtraction.
 
   Program Definition setB255 (X : feVar progvar) : code progvar :=
     let x := [verse| X[9] |] in
-    ([code| B255 := `toTopBits 26 x`;
-            B255 := `mask B255`
+    ([code| B255 := `toTopBits (64 - len 9) x` |]
+      ++ [keepOnlyLowerUpdate (len 9) x ])%list.
 
-    |]).
 
 
   (** For a field element if we complement all the bits, we get the
@@ -754,7 +753,7 @@ Section Subtraction.
    *)
 
   Program Definition adjustExpr i (_ : i < nLimbs) : expr progvar of type Word64
-      := [verse| `minus18_const` [i] + (B255 & minus19_const [i]) |].
+      := [verse| `minus18_const` [i] + (B255 * minus19_const [i]) |].
 
   Program Definition complement (X : feVar progvar) i (_ : i < nLimbs)  : expr progvar of type Word64
     := keepOnlyLower (len i) [verse| ~ X[i] |].
