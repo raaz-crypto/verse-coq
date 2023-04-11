@@ -209,15 +209,16 @@ Module Config <: CONFIG.
   Definition typs := c_type_system.
   Definition vars := Internals.variables.
 
-  Definition M : mSpecs verse_type_system typs :=
+  Definition M : mSpecs verse_type_system :=
     {|
+      mtypes        := c_type_system;
       mvariables    := Internals.variables;
       mtypeCompiler := verseTranslation Internals.trType Internals.trConst Internals.trOp
     |}.
 
   Definition target_semantics
     : Semantics M (list C.Ast.statement + {TranslationError})
-    := Build_Semantics _ _ M (list C.Ast.statement + {TranslationError})
+    := Build_Semantics _ M (list C.Ast.statement + {TranslationError})
                        _ _ _ Internals.trStatement Internals.trRepeat.
 
   Definition streamOf {k}(block : type k)

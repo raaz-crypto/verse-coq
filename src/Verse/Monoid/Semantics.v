@@ -19,8 +19,7 @@ Require Import Verse.Error.
 Require Import Verse.Monoid.Interface.
 Require Import Verse.Ast.
 
-(* This single field record should possibly be removed *)
-Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
+Record Semantics {types} (M : mSpecs types) line `{Monoid line}
   := {
         denote       : Ast.statement (mvariables M)  -> line;
 
@@ -31,18 +30,18 @@ Record Semantics {types mtypes} (M : mSpecs types mtypes) line `{Monoid line}
         repeater     : nat -> line -> line
      }.
 
-Arguments denote  [types mtypes] [M line] {_ _ _}.
-Arguments repeater [types mtypes] [M line] {_ _ _}.
+Arguments denote  [types] [M line] {_ _ _}.
+Arguments repeater [types] [M line] {_ _ _}.
 
-Definition codeDenote {types mtypes}
-                      (M : mSpecs types mtypes)
+Definition codeDenote {types}
+                      (M : mSpecs types)
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Ast.code (mvariables M) -> line
   := mapMconcat (denote sem).
 
-Definition repCodeDenote {types mtypes}
-                      (M : mSpecs types mtypes)
+Definition repCodeDenote {types}
+                      (M : mSpecs types)
                       line `{Monoid line}
                       (sem : Semantics M line)
   : Repeat (statement (mvariables M)) -> line

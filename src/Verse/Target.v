@@ -70,9 +70,9 @@ Module Type CONFIG.
        system.
    *)
 
-  Parameter typs : typeSystem.
-  Parameter M : mSpecs verse_type_system typs.
+  Parameter M : mSpecs verse_type_system.
 
+  Notation typs := (mtypes M).
   Notation vars := (mvariables M).
 
   Notation typeCompiler := (mtypeCompiler M).
