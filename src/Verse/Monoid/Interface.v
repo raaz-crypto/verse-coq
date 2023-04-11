@@ -1,12 +1,12 @@
 Require Import Verse.Monoid.
 Require Import Verse.TypeSystem.
 
-(* TODO - mtypes can be taken in again *)
-Record mSpecs ltypes mtypes
+Record mSpecs ltypes
   := {
+      mtypes       : typeSystem;
       mvariables   : Variables.U mtypes;
       mtypeCompiler : TypeSystem.compiler ltypes mtypes;
-    }.
-
-Arguments mvariables [ltypes mtypes].
-Arguments mtypeCompiler [ltypes mtypes].
+     }.
+Arguments mtypes [ltypes].
+Arguments mvariables [ltypes].
+Arguments mtypeCompiler [ltypes].
