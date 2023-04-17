@@ -2,7 +2,7 @@
 Require Import Verse.Ast.
 Require Import Verse.Language.Types.
 Require Import Verse.TypeSystem.
-Require        Verse.Language.Pretty.
+Require Import Verse.Language.Pretty.
 Require Import Verse.Language.Macros.Loops.
 Require Import List.
 Require Import Psatz.
