@@ -64,19 +64,19 @@ Section Embedding.
   (** *** Instances of [EXPR]
    *)
 
-  Global Instance expr_to_expr   : EXPR (expr  v (existT _ _ ty))  := @id _.
-  Global Instance v_to_exp       : EXPR (v (existT _ _ ty))        := fun x => valueOf (var x).
-  Global Instance lexp_to_exp    : EXPR (lexpr v (existT _ _ ty))  := valueOf (ty := existT _ _ ty).
-  Global Instance const_to_expr  : EXPR (const ty)    := cval (ty:=ty).
-  Global Instance nat_to_exp     : EXPR nat := fun n => cval (natToConst ty n).
+  #[export] Instance expr_to_expr   : EXPR (expr  v (existT _ _ ty))  := @id _.
+  #[export] Instance v_to_exp       : EXPR (v (existT _ _ ty))        := fun x => valueOf (var x).
+  #[export] Instance lexp_to_exp    : EXPR (lexpr v (existT _ _ ty))  := valueOf (ty := existT _ _ ty).
+  #[export] Instance const_to_expr  : EXPR (const ty)    := cval (ty:=ty).
+  #[export] Instance nat_to_exp     : EXPR nat := fun n => cval (natToConst ty n).
 
-  Global Instance N_to_exp       : EXPR N := fun n => cval (NToConst ty n).
+  #[export] Instance N_to_exp       : EXPR N := fun n => cval (NToConst ty n).
 
   (** Class similar to [EXPR] but creates l-expressions *)
   Class LEXPR t := toLexpr : t -> lexpr v (existT _ _ ty).
 
-  Global Instance lexpr_to_lexpr : LEXPR (lexpr v (existT _ _ ty)) := @id _.
-  Global Instance v_to_lexp      : LEXPR (v (existT _ _ ty))       := var (ty:=ty).
+  #[export] Instance lexpr_to_lexpr : LEXPR (lexpr v (existT _ _ ty)) := @id _.
+  #[export] Instance v_to_lexp      : LEXPR (v (existT _ _ ty))       := var (ty:=ty).
 
 
 
@@ -129,9 +129,12 @@ Section Embedding.
     End Operators.
 End Embedding.
 
-Instance bvec_to_expr v sz : EXPR v (word sz) (BWord sz)
+#[export]
+ Instance bvec_to_expr v sz : EXPR v (word sz) (BWord sz)
   := { toExpr := fun v : const (word sz) => cval v }.
-Instance nibbles_to_exp v sz  : EXPR v (word sz) (Nibble.bytes (2^sz))
+
+#[export]
+ Instance nibbles_to_exp v sz  : EXPR v (word sz) (Nibble.bytes (2^sz))
   := { toExpr := fun nibs => toExpr (toBv nibs) }.
 
 
@@ -155,18 +158,20 @@ give
 Class INDEXING (Ix : Set)(result : Type) t
   := idx : t -> Ix  -> result.
 
-Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < b -> t)
+#[export]
+ Instance indexing_by_function b t : INDEXING {i | i < b} t (forall i : nat, i < b -> t)
   := fun f ix => match ix with
               | @exist _ _ i pf => f i pf
               end.
 
-
-Instance array_indexing v ty b e : INDEXING {i | i < b}
+#[export]
+ Instance array_indexing v ty b e : INDEXING {i | i < b}
                                             (lexpr v (existT _ _ ty))
                                             (v (existT _ _ (array b e ty)))
   := fun a ix =>  deref a ix.
 
-Instance vector_indexing A b : INDEXING {i | i < b} A (Vector.t A b) :=
+#[export]
+ Instance vector_indexing A b : INDEXING {i | i < b} A (Vector.t A b) :=
   fun va ix => Vector.nth_order va (proj2_sig ix).
 (*
 Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < b}
@@ -179,11 +184,13 @@ Delimit Scope verse_scope with verse.
 
 Class AST_maps (A B : Type) := { CODE : A -> list B }.
 
-#[export] Instance code_id (v : VariableT)
+#[export]
+ Instance code_id (v : VariableT)
   : AST_maps (code v) (statement (ts := verse_type_system) v)
   := { CODE := id }.
 
-#[export] Instance code_repeat (v : VariableT)
+#[export]
+ Instance code_repeat (v : VariableT)
   : AST_maps (code v) (repeated (code (ts := verse_type_system) v))
   := { CODE := fun C => [ repeat 1 C ]%list }.
 
