@@ -47,6 +47,7 @@ Import EqNotations.
 
 Section VerseCode.
 
+  (* TODO : Do we need the Verse AST to be parametrized on the typeSystem any more? *)
   Variable ts : typeSystem.
 
   Variable v : Variables.U ts.
