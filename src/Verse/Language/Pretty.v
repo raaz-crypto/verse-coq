@@ -179,8 +179,6 @@ Instance var_array (v : Variables.U verse_type_system) ty b : INDEXING {i | i < 
                                                                        (Vector.t (v ty) b)
   := fun va ix => Vector.nth_order va (proj2_sig ix).
 *)
-Declare Scope verse_scope.
-Delimit Scope verse_scope with verse.
 
 Class AST_maps (A B : Type) := { CODE : A -> list B }.
 
