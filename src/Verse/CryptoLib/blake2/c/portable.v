@@ -144,12 +144,6 @@ Module Blake2 (C : CONFIG).
                v2 v6 v10 v14
                v3 v7 v11 v15 : progvar of type Word.
 
-      Definition state := [ v0 ; v4 ; v8  ; v12;
-                            v1 ; v5 ; v9  ; v13;
-                            v2 ; v6 ; v10 ; v14;
-                            v3 ; v7 ; v11 ; v15
-                          ].
-
       (** *** Variables to maintain byte count
 
           Recall that each of the blake2 blocks is compressed using a
