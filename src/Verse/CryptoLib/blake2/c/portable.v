@@ -139,6 +139,10 @@ Module Blake2 (C : CONFIG).
         applied to either the rows or the diagonals of this matrix.
 
      *)
+
+      (* Note : We are not using a vector of variables here beacuse the
+      vi's tend to get used a lot outside the code/verse custom syntax
+      and our indexing notation is only available inside those *)
       Variable v0 v4 v8  v12
                v1 v5 v9  v13
                v2 v6 v10 v14
