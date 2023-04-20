@@ -64,7 +64,6 @@
 
 
 Require Import Verse.
-Import VerseNotations.
 
 (** * Introduction
 

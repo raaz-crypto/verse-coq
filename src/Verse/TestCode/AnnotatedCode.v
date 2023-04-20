@@ -26,7 +26,7 @@ Section Code.
           [code| B := A; A := `6` |]
           ++
           (ASSERT VAL B = INIT B)
-      )%list%verse.
+      )%list.
   Defined.
 
 End Code.

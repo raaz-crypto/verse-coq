@@ -1,5 +1,4 @@
 Require Import Verse.
-Import VerseNotations.
 Require Import Verse.CryptoLib.blake2.
 Require Import PeanoNat.
 Require Import Bvector.

@@ -28,7 +28,7 @@ Section Code.
     verse ([code| a := b + b |]
                 DOES
           (VAL a = INIT b + INIT b)
-          )%list%verse.
+          )%list.
   Defined.
 
   Definition verF : verFun bvDenote.
@@ -41,7 +41,7 @@ Section Code.
              ++
              (ASSERT VAL B = INIT A)
              ++
-             CALL verF WITH (- A, B -))%list%verse.
+             CALL verF WITH (- A, B -))%list.
   Defined.
 
   Definition test : Repeat (modular bvDenote v).
@@ -56,7 +56,7 @@ Section Code.
         (ASSERT VAL A = INIT B + INIT B + INIT B + INIT B)
         ++
         (ASSERT VAL A = VAL C)
-      )%list%verse.
+      )%list.
   Defined.
 
 End Code.
