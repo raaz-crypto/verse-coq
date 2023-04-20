@@ -315,7 +315,7 @@ Module Variables.
 
     Definition inject   ts : U ts  -> U (result ts)
       := fun v ty => match ty with
-                     | existT _ _ {- good -} => v (existT _ _ good)
+                     | existT _ _ {- good -} => v of type good
                      | existT _ _ (error _)  => Empty_set
                   end.
 
@@ -341,7 +341,7 @@ Module Variables.
     *)
     Definition embed ts : U ts -> U (result ts)
       := fun (v : U ts) ty
-         => forall good, projT2 ty = {- good -} -> v (existT _ _ good).
+         => forall good, projT2 ty = {- good -} -> v of type good.
 
     Arguments embed [ts] v ty.
 

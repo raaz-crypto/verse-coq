@@ -96,9 +96,10 @@ Module Internals.
      generates declaration for the associated pointer and the counter
      variables *)
 
-  Definition decl {k ty} : variables (existT _ k ty) -> list declaration
+  Definition decl {k} {ty : c_type_system k}
+    : variables of type ty -> list declaration
     := match ty as ty0 in type k0
-             return variables (existT _ k0 ty0) -> list declaration
+             return variables of type ty0 -> list declaration
        with
        | ptrToArray _ _
          => fun u => [ declare (ty:=ty)       (blockPtr u);
@@ -234,14 +235,14 @@ Module Config <: CONFIG.
        ptrToArray sz ty0.
 
   Definition dereference {k}{ty : type k}
-    : vars (existT _ _ (streamOf ty)) -> vars (existT _ _ ty)
+    : vars of type (streamOf ty) -> vars of type ty
     :=  match ty with
        | ptrToArray b t => fun x => x (* this branch is not really used *)
        | _ => fun x => Expr.ptrDeref (Internals.blockPtr x)
        end.
 
   Definition mapOverBlocks {block : type memory}
-             (stream : vars (existT _ _ (streamOf block)))
+             (stream : vars of type (streamOf block))
              (body : list statement)
              : list statement
     := (let cond := Expr.gt_zero (Internals.counter stream) in
