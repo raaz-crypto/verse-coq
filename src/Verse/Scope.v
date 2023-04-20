@@ -280,17 +280,20 @@ End Cookup.
 Inductive delimit A := body : A -> delimit A.
 Arguments body [A].
 
-Instance infer_delimited A : Infer (delimit A) | 0
+#[global]
+ Instance infer_delimited A : Infer (delimit A) | 0
   := {| innerType := A;
         inferNesting := fun d => let 'body i := d in ([], i)
      |}.
 
-Instance infer_undelimited A : Infer A | 1
+#[global]
+ Instance infer_undelimited A : Infer A | 1
   := {| innerType := A;
         inferNesting := fun d => ([], d)
      |}.
 
-Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
+#[global]
+ Instance infer_arrow t (sub : Infer t) (ty : some Types.type)
   : Infer (Cookup.var ty -> t)
   := {| inferNesting := fun f => let '(sc, i) := inferNesting (f (Cookup.cookup ty)) in
                                  (ty :: sc, i)
