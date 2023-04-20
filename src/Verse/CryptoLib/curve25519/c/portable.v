@@ -1,5 +1,5 @@
 Require Import Verse.
-Import VerseNotations.
+
 (** * Curve 25519 and its parameters *)
 
 

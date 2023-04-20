@@ -1,7 +1,6 @@
 From Verse Require Import Verse Nibble.
 Require Import Nat.
 Require Import NArith.
-Import VerseNotations.
 Require Import String.
 Open Scope string_scope.
 Import List.ListNotations.
