@@ -52,13 +52,13 @@ Section VerseCode.
   Variable v : Variables.U ts.
 
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : some (typeOf ts) -> Type :=
+  Inductive lexpr : {k & ts k} -> Type :=
   | var   :  forall {ty}, v (existT _ direct ty) -> lexpr (existT _ direct ty)
   | deref :  forall {ty b e}, v (existT _ _ (arrayType ts b e ty)) -> {i | i < b} -> lexpr (existT _ direct ty).
 
   (** The expression type *)
 
-  Inductive expr : some (typeOf ts) -> Type :=
+  Inductive expr : {k & ts k} -> Type :=
   | cval     : forall {ty}, constOf ts ty -> expr (existT _ direct ty)
   | valueOf  : forall {ty}, lexpr ty -> expr ty
   | uniOp    : forall {ty}, operator ts ty 1 -> expr (existT _ direct ty) -> expr (existT _ direct ty)
@@ -93,7 +93,7 @@ Section VerseCode.
 
    *)
 
-  Inductive instruction : some (typeOf ts) -> Type :=
+  Inductive instruction : {k & ts k} -> Type :=
   | assign      kty : lexpr kty -> expr kty  -> instruction kty
   | binopUpdate ty  : lexpr (existT _ direct ty) -> operator ts ty 2 -> expr (existT _ direct ty) -> instruction (existT _ direct ty)
   | uniopUpdate ty  : lexpr (existT _ direct ty) -> operator ts ty 1 -> instruction (existT _ direct ty)
@@ -156,7 +156,7 @@ Require Import Verse.Error.
 Module LExpr.
 
   (** Function for renaming variables *)
-  Definition rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : some (typeOf ts) } (l : lexpr u ty)
+  Definition rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : some ts } (l : lexpr u ty)
   : lexpr v ty
     := match l with
        | var x     => var (rn _ x)
@@ -346,7 +346,7 @@ Module Instruction.
 
   Definition extract tgt
              (v : Variables.U tgt)
-             (ty : some (Types.result tgt))
+             (ty : {k & Types.result tgt k})
     : instruction (Variables.Universe.inject v) ty -> result v ty
     := match ty with
        | existT _ _ (error err) =>  fun i => error (CouldNotTranslateBecause i err)
