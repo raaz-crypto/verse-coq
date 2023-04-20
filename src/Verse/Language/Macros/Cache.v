@@ -47,12 +47,12 @@ Section ArrayUtils.
 
    *)
 
-  Definition indices (arr : v (existT _ _ (array b e ty))) := Loops.Internal.loop b.
+  Definition indices (arr : v of type (array b e ty)) := Loops.Internal.loop b.
 
 
   (** This function is similar to indices but gives the indices in the
       reverse order.  *)
-  Definition indices_reversed (arr : v (existT _ _ (array b e ty))) := List.rev (indices arr).
+  Definition indices_reversed (arr : v of type (array b e ty)) := List.rev (indices arr).
 
 
 
@@ -78,9 +78,9 @@ Section ArrayUtils.
 
    *)
 
-  Definition VarIndex := forall i, i < b  -> v (existT _ _ ty).
+  Definition VarIndex := forall i, i < b  -> v of type ty.
 
-  Definition varIndex (regs : Vector.t (v (existT _ _ ty)) b)
+  Definition varIndex (regs : Vector.t (v of type ty) b)
     : VarIndex := fun _ pf  => Vector.nth_order regs pf.
 
   (** One important use case for uniform indexing is the caching of
@@ -90,8 +90,8 @@ Section ArrayUtils.
 
   (** This macro loads the array to the corresponding chached
       variables *)
-  Definition loadCache (arr : v (existT _ _ (array b e ty)))
-    (ch : Vector.t (v (existT _ _ ty)) b) : Repeat (statement v) :=
+  Definition loadCache (arr : v of type (array b e ty))
+    (ch : Vector.t (v of type ty) b) : Repeat (statement v) :=
     (foreach (indices arr)
             (fun i pf => let ix := @exist _ _ i pf in
                       [ Pretty.assignStmt (Vector.nth_order ch pf) (deref arr ix) ]) : code v
@@ -113,8 +113,8 @@ Section ArrayUtils.
 
    *)
 
-  Definition moveBackCache (arr : v (existT _ _ (array b e ty)))
-    (ch : Vector.t (v (existT _ _ ty)) b)  : Repeat (statement v) :=
+  Definition moveBackCache (arr : v of type (array b e ty))
+    (ch : Vector.t (v of type ty) b)  : Repeat (statement v) :=
     (foreach (indices arr)
               (fun i pf => let ix := @exist _ _ i pf in
                            [ Pretty.moveStmt (deref arr ix) (Vector.nth_order ch pf) ])) : code v.
@@ -123,7 +123,7 @@ Section ArrayUtils.
        preserves the values in the cache variables. The cached
        variables can then be reused in the rest of the program.  *)
 
-    Definition backupCache  (arr : v (existT _ _ (array  b e ty))) (ch : VarIndex) : Repeat (statement v) :=
+    Definition backupCache  (arr : v of type (array  b e ty)) (ch : VarIndex) : Repeat (statement v) :=
       (foreach (indices arr)
               (fun i pf => let ix := @exist _ _ i pf in
                            let arrI := deref arr ix in

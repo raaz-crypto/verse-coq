@@ -58,25 +58,25 @@ Section Embedding.
   Variable ty : type direct.
 
   (** Class of all types [t] that can be converted into expressions *)
-  Class EXPR  t := toExpr  : t -> expr v (existT _ _ ty).
+  Class EXPR  t := toExpr  : t -> expr v of type ty.
 
 
   (** *** Instances of [EXPR]
    *)
 
-  #[export] Instance expr_to_expr   : EXPR (expr  v (existT _ _ ty))  := @id _.
-  #[export] Instance v_to_exp       : EXPR (v (existT _ _ ty))        := fun x => valueOf (var x).
-  #[export] Instance lexp_to_exp    : EXPR (lexpr v (existT _ _ ty))  := valueOf (ty := existT _ _ ty).
+  #[export] Instance expr_to_expr   : EXPR (expr  v of type ty)  := @id _.
+  #[export] Instance v_to_exp       : EXPR (v of type ty)        := fun x => valueOf (var x).
+  #[export] Instance lexp_to_exp    : EXPR (lexpr v of type ty)  := valueOf (ty := existT _ _ ty).
   #[export] Instance const_to_expr  : EXPR (const ty)    := cval (ty:=ty).
   #[export] Instance nat_to_exp     : EXPR nat := fun n => cval (natToConst ty n).
 
   #[export] Instance N_to_exp       : EXPR N := fun n => cval (NToConst ty n).
 
   (** Class similar to [EXPR] but creates l-expressions *)
-  Class LEXPR t := toLexpr : t -> lexpr v (existT _ _ ty).
+  Class LEXPR t := toLexpr : t -> lexpr v of type ty.
 
-  #[export] Instance lexpr_to_lexpr : LEXPR (lexpr v (existT _ _ ty)) := @id _.
-  #[export] Instance v_to_lexp      : LEXPR (v (existT _ _ ty))       := var (ty:=ty).
+  #[export] Instance lexpr_to_lexpr : LEXPR (lexpr v of type ty) := @id _.
+  #[export] Instance v_to_lexp      : LEXPR (v of type ty)       := var (ty:=ty).
 
 
 
@@ -101,7 +101,7 @@ Section Embedding.
     Definition assignStmt : statement v
       := existT _  _ (assign  (toLexpr lhs)  (toExpr e1)).
 
-     Definition moveStmt (x : v (existT _ _ ty)) : statement v
+     Definition moveStmt (x : v of type ty) : statement v
       := existT _ _ (Ast.moveTo (toLexpr lhs) x).
 
     (** Applies the binary operator [o] to two values [e1] and [e2]
@@ -166,8 +166,8 @@ Class INDEXING (Ix : Set)(result : Type) t
 
 #[export]
  Instance array_indexing v ty b e : INDEXING {i | i < b}
-                                            (lexpr v (existT _ _ ty))
-                                            (v (existT _ _ (array b e ty)))
+                                            (lexpr v of type ty)
+                                            (v of type (array b e ty))
   := fun a ix =>  deref a ix.
 
 #[export]

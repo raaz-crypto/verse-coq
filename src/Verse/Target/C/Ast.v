@@ -75,10 +75,10 @@ variables.
 *)
 
 Inductive cvar : some type -> Type :=
-| bPtr   : forall sz t, cvar (existT _ _ (ptrToArray sz t))
-| cTr    : cvar (existT _ _ uint64_t)
-| cTr32  : cvar (existT _ _ uint64_t)
-| repCtr : cvar (existT _ _ uint64_t)
+| bPtr   : forall sz t, cvar of type (ptrToArray sz t)
+| cTr    : cvar of type uint64_t
+| cTr32  : cvar of type uint64_t
+| repCtr : cvar of type uint64_t
 | cVar   : forall (ty : some type), nat -> cvar ty.
 
 Arguments bPtr [sz].

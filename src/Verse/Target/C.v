@@ -1,3 +1,4 @@
+Require Import Verse.TypeSystem.
 Require Import Verse.Target.
 Require Import Verse.Target.C.CodeGen.
 Require Import Verse.Utils.hlist.
@@ -26,12 +27,12 @@ Import List.ListNotations.
 Module Internals.
 
   Program Definition mkVar (alk : nat) (ty : sigT type) : variables ty
-    := match projT2 ty as ty0 return variables (existT _ _ ty0) with
-       | uint8_t  as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
-       | uint16_t as ty0   => cvar2exp (cVar (existT _ _ ty0) alk)
-       | uint32_t as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
-       | uint64_t as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
-       | (array sz t) as ty0  => cvar2exp (cVar (existT _ _ ty0) alk)
+    := match projT2 ty as ty0 return variables of type ty0 with
+       | uint8_t  as ty0  => cvar2exp ((cVar of type ty0) alk)
+       | uint16_t as ty0   => cvar2exp ((cVar of type ty0) alk)
+       | uint32_t as ty0  => cvar2exp ((cVar of type ty0) alk)
+       | uint64_t as ty0  => cvar2exp ((cVar of type ty0) alk)
+       | (array sz t) as ty0  => cvar2exp ((cVar of type ty0) alk)
        | (ptrToArray sz t) as ty0 => let ptrVar := @bPtr sz t in
                            let ctrVar := cTr in
                            (cvar2exp ptrVar, cvar2exp ctrVar)
@@ -96,7 +97,7 @@ Ltac Iterator name memty ifunc
        exact ((fun pfpvt pflvt =>
                  let (pA,n0) := Internals.calloc 0 pvt in
                  let (lA,n1) := Internals.calloc n0 lvt in
-                 let streamVar := Internals.mkVar n1 (existT _ _ (Compile.Config.streamOf memtyTgt)) in
+                 let streamVar := Internals.mkVar n1 of type (Compile.Config.streamOf memtyTgt) in
                  Compile.iterativeFunction name memty
                                            pvs lvs
                                            memtyTgt eq_refl
