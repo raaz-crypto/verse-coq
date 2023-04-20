@@ -30,6 +30,8 @@ Structure typeSystem :=
 *)
 Definition some := @sigT kind.
 
+Global Notation "V 'of' 'type' T" := (V (existT _ _ T)) (at level 50).
+
 (** * Translator and compilers.
 
 A translator between type systems is mapping between their types
