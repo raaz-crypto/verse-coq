@@ -47,22 +47,23 @@ Import EqNotations.
 
 Section VerseCode.
 
+  (* TODO : Do we need the Verse AST to be parametrized on the typeSystem any more? *)
   Variable ts : typeSystem.
 
   Variable v : Variables.U ts.
 
   (** Expressions that can occur on the left of an assignment. *)
-  Inductive lexpr : some (typeOf ts) -> Type :=
-  | var   :  forall {ty}, v (existT _ direct ty) -> lexpr (existT _ direct ty)
-  | deref :  forall {ty b e}, v (existT _ _ (arrayType ts b e ty)) -> {i | i < b} -> lexpr (existT _ direct ty).
+  Inductive lexpr : {k & ts k} -> Type :=
+  | var   :  forall {ty : ts direct}, v of type ty -> lexpr of type ty
+  | deref :  forall {ty b e}, v of type (arrayType ts b e ty) -> {i | i < b} -> lexpr of type ty.
 
   (** The expression type *)
 
-  Inductive expr : some (typeOf ts) -> Type :=
-  | cval     : forall {ty}, constOf ts ty -> expr (existT _ direct ty)
+  Inductive expr : {k & ts k} -> Type :=
+  | cval     : forall {ty : ts direct}, constOf ts ty -> expr of type ty
   | valueOf  : forall {ty}, lexpr ty -> expr ty
-  | uniOp    : forall {ty}, operator ts ty 1 -> expr (existT _ direct ty) -> expr (existT _ direct ty)
-  | binOp    : forall {ty}, operator ts ty 2 -> expr (existT _ direct ty) -> expr (existT _ direct ty) -> expr (existT _ direct ty)
+  | uniOp    : forall {ty : ts direct}, operator ts ty 1 -> expr of type ty -> expr of type ty
+  | binOp    : forall {ty : ts direct}, operator ts ty 2 -> expr of type ty -> expr of type ty -> expr of type ty
   .
 
   (** ** Instructions
@@ -93,10 +94,10 @@ Section VerseCode.
 
    *)
 
-  Inductive instruction : some (typeOf ts) -> Type :=
+  Inductive instruction : {k & ts k} -> Type :=
   | assign      kty : lexpr kty -> expr kty  -> instruction kty
-  | binopUpdate ty  : lexpr (existT _ direct ty) -> operator ts ty 2 -> expr (existT _ direct ty) -> instruction (existT _ direct ty)
-  | uniopUpdate ty  : lexpr (existT _ direct ty) -> operator ts ty 1 -> instruction (existT _ direct ty)
+  | binopUpdate (ty : ts direct)  : lexpr of type ty -> operator ts ty 2 -> expr of type ty -> instruction of type ty
+  | uniopUpdate (ty : ts direct)  : lexpr of type ty -> operator ts ty 1 -> instruction of type ty
   | moveTo      kty : lexpr kty -> v kty  -> instruction kty
   | clobber     kty : v kty -> instruction kty.
 
@@ -115,7 +116,7 @@ Arguments statement [ts].
    be able to use old code
 *)
 Coercion mapRep ts (v : Variables.U ts) (c : code v) : Repeat (statement v)
-  := List.map (fun x => repeat 1 [x]%list) c.
+  := [repeat 1 c]%list.
 
 (**
 
@@ -127,7 +128,7 @@ type [ty].
  *)
 Record iterator ts (v : Variables.U ts) (ty : typeOf ts memory)
   := { setup    : Repeat (statement v);
-       process  : v (existT _ _ ty) -> Repeat (statement v);
+       process  : v of type ty -> Repeat (statement v);
        finalise : Repeat (statement v)
      }.
 
@@ -156,7 +157,7 @@ Require Import Verse.Error.
 Module LExpr.
 
   (** Function for renaming variables *)
-  Definition rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : some (typeOf ts) } (l : lexpr u ty)
+  Definition rename {ts}{u v : Variables.U ts}(rn : Variables.renaming u v) {ty : some ts } (l : lexpr u ty)
   : lexpr v ty
     := match l with
        | var x     => var (rn _ x)
@@ -175,14 +176,14 @@ Module LExpr.
        | @deref _ _ ty b e a i =>
          let compatPf := arrayCompatibility tr b e ty in
          let ap  := Variables.translate tr a in
-         deref (rew [fun t => v (existT tgt memory t)] compatPf in ap) i
+         deref (rew [fun t => v of type t] compatPf in ap) i
        end.
 
   Arguments translate [src tgt] tr [v ty].
 
   Definition result tgt (v : Variables.U tgt) (ty : some (Types.result tgt))
     := match ty with
-       | existT _ _ {- good -} => lexpr v (existT _ _ good)
+       | existT _ _ {- good -} => lexpr v of type good
        | existT _ _ (error _)  => Empty_set + {TranslationError}
        end.
 
@@ -264,7 +265,7 @@ Module Expr.
   Definition result tgt
              (v : Variables.U tgt) (ty : some (Types.result tgt))
     := match ty with
-       | existT _ _ {- good -} => expr v (existT _ _ good)
+       | existT _ _ {- good -} => expr v of type good
        | existT _ _ (error _)  => Empty_set + {TranslationError}
        end.
   Arguments result [tgt].
@@ -338,7 +339,7 @@ Module Instruction.
              (v  : Variables.U tgt)
              (ty : some (Types.result tgt))
     := match ty with
-       | existT _ _ {- tyc -} => instruction v (existT _ _ tyc)
+       | existT _ _ {- tyc -} => instruction v of type tyc
        | existT _ _ (error _) => Empty_set + {TranslationError}
        end.
 
@@ -346,7 +347,7 @@ Module Instruction.
 
   Definition extract tgt
              (v : Variables.U tgt)
-             (ty : some (Types.result tgt))
+             (ty : {k & Types.result tgt k})
     : instruction (Variables.Universe.inject v) ty -> result v ty
     := match ty with
        | existT _ _ (error err) =>  fun i => error (CouldNotTranslateBecause i err)
@@ -543,7 +544,7 @@ Module Iterator.
              (itr : iterator (Variables.Universe.coCompile cr v) memty)
              (good : typeOf tgt memory)
              (pf : Types.compile cr memty = {- good -})
-             (x  : v (existT _ _ good))
+             (x  : v of type good)
     : compiled tgt v + {TranslationError}
     := do stup <- RepCode.compile cr (setup itr) ;;
        do fnls <- RepCode.compile cr (finalise itr) ;;

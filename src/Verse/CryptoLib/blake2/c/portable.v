@@ -1,5 +1,4 @@
 Require Import Verse.
-Import VerseNotations.
 Require Import Verse.CryptoLib.blake2.
 Require Import PeanoNat.
 Require Import Bvector.
@@ -139,16 +138,14 @@ Module Blake2 (C : CONFIG).
         applied to either the rows or the diagonals of this matrix.
 
      *)
+
+      (* Note : We are not using a vector of variables here beacuse the
+      vi's tend to get used a lot outside the code/verse custom syntax
+      and our indexing notation is only available inside those *)
       Variable v0 v4 v8  v12
                v1 v5 v9  v13
                v2 v6 v10 v14
                v3 v7 v11 v15 : progvar of type Word.
-
-      Definition state := [ v0 ; v4 ; v8  ; v12;
-                            v1 ; v5 ; v9  ; v13;
-                            v2 ; v6 ; v10 ; v14;
-                            v3 ; v7 ; v11 ; v15
-                          ].
 
       (** *** Variables to maintain byte count
 

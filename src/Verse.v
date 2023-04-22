@@ -7,10 +7,6 @@ Require        Verse.Scope.
 Export Vector.VectorNotations.
 Delimit Scope vector_scope with vector.
 
-Module VerseNotations.
-  Open Scope verse_scope.
-End VerseNotations.
-
 (* This allows us to use the vector notations for lists as well
 
 <<
@@ -28,7 +24,6 @@ Coercion Vector.to_list : Vector.t >-> list.
 
 Definition VariableT := Variables.U verse_type_system.
 
-Notation "V 'of' 'type' T" := (V (existT _ _ T)) (at level 50).
 
 Definition constant ty := const ty.
 Definition Declaration := Verse.Scope.type verse_type_system.

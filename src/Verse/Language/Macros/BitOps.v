@@ -92,7 +92,7 @@ The difference is illustrated in the picture below.
 (** There is also the update version of these functions that updates a
     given l-expr with the above mentioned operations.  *)
 Section ForAll.
-  Open Scope verse_scope.
+
   Variable v : VariableT.
   Variable ty : type direct.
   Variable E  : Type.

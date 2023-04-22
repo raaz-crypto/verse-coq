@@ -8,7 +8,6 @@
 (** printing oplus  %$\oplus$%   #⊕#  *)
 
 Require Import Verse.
-Import VerseNotations.
 
 (** * SHA-2 hashes
 
