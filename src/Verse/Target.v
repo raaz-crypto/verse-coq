@@ -127,7 +127,7 @@ Module Type CONFIG.
       that is being acted on by the [process] fragment of the iterator
    *)
   Parameter dereference  : forall {k}{block : typeOf typs k},
-      vars (existT _ _ (streamOf block)) -> vars (existT _ _ block).
+      vars of type (streamOf block) -> vars of type block.
 
   (** The [mapOverBlocks] applies a set of instructions on a single
       block and iterates it over all the blocks in the stream. It
@@ -137,7 +137,7 @@ Module Type CONFIG.
 
   Parameter mapOverBlocks :
     forall {block : typeOf typs memory},
-      vars (existT _ _ (streamOf block)) ->
+      vars of type (streamOf block) ->
       list statement       ->
       list statement.
 
@@ -262,7 +262,7 @@ Module CodeGen (T : CONFIG).
       : Types.compile T.typeCompiler block = {- streamElem -}.
 
     Definition streamType := T.streamOf streamElem.
-    Variable   streamVar  : vars (existT _ _ streamType).
+    Variable   streamVar  : vars of type streamType.
 
 
     (** Both iterators and ordinary straight line functions now need
