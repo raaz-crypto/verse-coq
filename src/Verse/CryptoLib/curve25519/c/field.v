@@ -1037,6 +1037,19 @@ Compute snd (inverse cp' z' cp z).
 
 Goal to_print (inverse cp' z' cp z).
   unfold inverse.
+  unfold ibitsRep.
+  lazy [repSteps repStep swapStep repeatIt step2 step multStep squareStep Nat.modulo Nat.div Nat.divmod ibitsRep fst snd Nat.sub swapVar].
+
+  unfold repSteps.
+  unfold repStep.
+  unfold repeatIt.
+  Locate "mod".
+  unfold Nat.modulo.
+  unfold Nat.div.
+  unfold Nat.divmod.
+
+
+  unfold swapStep.
   simpl.
 Abort.
 
