@@ -3,18 +3,18 @@ Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
 Import ArithmInternals.
 
-Global Hint Resolve Bv2N_lt_pow_2_size Bv2N_mod_2_size : bitvector_arithm.
+#[export] Hint Resolve Bv2N_lt_pow_2_size Bv2N_mod_2_size : bitvector_arithm.
 
 (* These rewrites will take care of expressing the bitwise addition
    multiplications in terms of its modulo definitions.
  *)
 
-Hint Rewrite Bv2N_plus_mod Bv2N_mul_mod Bv2N_N2Bv_sized_mod
+#[export] Hint Rewrite Bv2N_plus_mod Bv2N_mul_mod Bv2N_N2Bv_sized_mod
   : bitvector_arithm.
 
 (* This rewrites will take care of pushing the modulo outwards *)
 
-Hint Rewrite
+#[export] Hint Rewrite
      N.add_mod_idemp_r N.add_mod_idemp_l
      N.mul_mod_idemp_l N.mul_mod_idemp_r N.mod_1_l
      N.mod_same
@@ -39,12 +39,12 @@ Ltac arithm_crush :=
 Lemma Bv2N_zero_is_0 :  forall sz, @Bv2N sz 0  = 0%N.
 Proof.
   intros.
-  Hint Rewrite Bv2N_false : bitvector_arithm.
+  #[local] Hint Rewrite Bv2N_false : bitvector_arithm.
   arithm_crush.
 Qed.
 
 
-Hint Rewrite Bv2N_zero_is_0 : bitvector_arithm.
+#[export] Hint Rewrite Bv2N_zero_is_0 : bitvector_arithm.
 
 
 Lemma BVadd_0_l : forall sz (v : Bvector sz), 0 + v = v.
@@ -72,7 +72,7 @@ Lemma Bv2N_le_2_power : forall sz (v : Bvector sz), (Bv2N v <= 2 ^ (N.of_nat sz)
   arithm_crush.
 Qed.
 
-Global Hint Resolve Bv2N_le_2_power : bitvector_arithm.
+#[export] Hint Resolve Bv2N_le_2_power : bitvector_arithm.
 
 Lemma one_lt_2_power : forall sz, (1 < 2 ^ N.of_nat (S sz))%N.
   intros.
@@ -84,14 +84,14 @@ Lemma one_lt_2_power : forall sz, (1 < 2 ^ N.of_nat (S sz))%N.
   apply N.neq_succ_0.
 Qed.
 
-Global Hint Resolve one_lt_2_power : bitvector_arithm.
+#[export] Hint Resolve one_lt_2_power : bitvector_arithm.
 
 Lemma Bv2N_one_is_1 : forall sz, @Bv2N (S sz) 1 = 1%N.
   intro.
   arithm_crush.
 Qed.
 
-Hint Rewrite Bv2N_one_is_1 : bitvector_arithm.
+#[export] Hint Rewrite Bv2N_one_is_1 : bitvector_arithm.
 
 Lemma BVmul_1_l : forall sz (v : Bvector (S sz)), 1 * v = v.
   arithm_crush.
@@ -119,8 +119,8 @@ Qed.
 Lemma BVsub_def : forall sz (v1 v2 : Bvector sz), v1 - v2 = v1 + (- v2).
 Proof.
   intros.
-  Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
-  Local Hint Resolve Bv2N_lt_pow_2_size : bitvector_arithm.
+  #[local] Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag : bitvector_arithm.
+  #[local] Hint Resolve Bv2N_lt_pow_2_size : bitvector_arithm.
   arithm_crush.
   rewrite N.add_sub_assoc;
   arithm_crush.
@@ -129,7 +129,7 @@ Qed.
 
 Lemma BVopp_def : forall sz (v : Bvector sz), v + (- v) = 0.
 Proof.
-  Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag
+  #[local] Hint Rewrite Bv2N_N2Bv_sized_mod N.sub_diag
       N.add_sub_assoc N.add_sub_swap
   : bitvector_arithm.
   arithm_crush.
