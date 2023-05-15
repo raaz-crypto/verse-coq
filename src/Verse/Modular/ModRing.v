@@ -151,7 +151,6 @@ Qed.
 
 Add Parametric Morphism (M : positive) : multiplication  with signature
     (@eqZmod M ==> eqZmod ==> eqZmod) as mul_mor.
-  Unset Ltac Debug.
   local_crush.
 Qed.
 
