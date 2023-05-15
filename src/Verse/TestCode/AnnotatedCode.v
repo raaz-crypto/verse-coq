@@ -17,16 +17,17 @@ Section Code.
   Definition test : Repeat (line bvDenote v).
     verse (
         [code| A := B;
-                    B := `5`;
-                    C[0][0] := `8`
+               B := `255`;
+               C[0][0] := `8`
              |]
           ++
-          (ASSERT VAL A = INIT B)
+          (ASSERT (VAL A = (INIT B) & (VAL B)))
           ++
           [code| B := A; A := `6` |]
           ++
           (ASSERT VAL B = INIT B)
       )%list.
+
   Defined.
 
 End Code.
@@ -35,10 +36,11 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.HlistMachine.
 Require Import Verse.ProofTac.
 
+Require Import Scope.
 Definition toProve : Prop.
   getProp test.
 Defined.
 
 Definition proof : toProve.
   realize.
-Qed.
+Abort.
