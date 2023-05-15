@@ -41,11 +41,6 @@ Definition BVones : forall sz, Bvector sz
 Definition BVzeros : forall sz, Bvector sz
   := Bvect_false.
 
-
-Check BVand. (* Comes directly from Bvector *)
-Check BVor.  (* Comes directly from Bvector *)
-Check BVxor. (* Comes directly from Bvector *)
-
 Definition BVcomp   := Bneg. (* renaming for better naming convention *)
 
 Definition BVshiftL1 sz : Bvector sz -> Bvector sz :=
@@ -186,8 +181,17 @@ Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
 Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
 Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
 Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+Class AND A := and : A -> A -> A.
+Class OR  A := or  : A -> A -> A.
+Class XOR A := xor : A -> A -> A.
+Class NOT A := not : A -> A.
 
 Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
+#[export] Instance BV_and sz : AND (Bvector sz) := @BVand sz.
+#[export] Instance BV_or  sz : OR (Bvector sz)  := @BVor sz.
+#[export] Instance BV_xor sz : XOR (Bvector sz) := @BVxor sz.
+#[export] Instance BV_not sz : NOT (Bvector sz) := @BVcomp sz.
+
 
 (* end hide *)
 Definition of_Z {sz} (z :  Z) : Bvector sz:=
@@ -219,13 +223,19 @@ Infix "+"           := BVplus           (at level 50, left associativity) : bitv
 Infix "-"           := BVminus          (at level 50, left associativity) : bitvector_scope.
 *)
 
+Infix "&" := and (at level 56).
+Infix "⊕" := xor (at level 57).
+Infix "∣"  := or (at level 59, left associativity).
+
+Infix "&" := BVand (at level 56, only printing) : bitvector_scope.
+Infix "⊕" := BVxor (at level 57, only printing) : bitvector_scope.
+Infix "∣"  := BVor (at level 59, left associativity, only printing) : bitvector_scope.
+
+
 (* TODO : `~` should be < level 40. But conformance with some other
           `~` makes it 75 here *)
+Notation "~ E" := (not E)  (at level 75, right associativity).
 
-Notation "~ E"      := (BVcomp E)  (at level 75, right associativity) : bitvector_scope.
-Infix "&"         := BVand         (at level 56, left associativity) : bitvector_scope.
-Infix "⊕"         := BVxor         (at level 57, left associativity) : bitvector_scope.
-Infix "∣"         := BVor          (at level 59, left associativity) : bitvector_scope. (* \shortmid *)
 Notation "A ≫ m" := (BVshiftR m A) (at level 54, left associativity) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (at level 54, left associativity) : bitvector_scope.
 Notation "A ⋘ m" := (BVrotL m A)   (at level 54, left associativity) : bitvector_scope.
