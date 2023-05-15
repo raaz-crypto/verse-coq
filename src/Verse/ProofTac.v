@@ -53,19 +53,23 @@ Ltac unwrap := match goal with
 
 Ltac simplify := unfold getProp;
                  breakStore;
-                 lazy -[
-                   BVplus BVminus BVmul BVquot
-                          BVrotR BVrotL BVshiftL BVshiftR BVcomp
-                          zero one
-                   (*
-                            fromNibbles
-                              numBinOp numUnaryOp numBigargExop numOverflowBinop
-                              Nat.add Nat.sub Nat.mul Nat.div Nat.pow
-                              N.add N.sub N.mul N.div N.div_eucl N.modulo
+                 lazy -[ BVplus BVminus BVmul BVquot
+                         and or xor not BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                         zero one
+                         Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+                         (* -- this does not allow N constants to be
+                            represented as their bitvector
+                            representations because the size parameter
+                            to N2Bv_sized needs these to be
+                            computed. This necessitates the `simpl`
+                            after this computation *)
 
-                              Ox nth replace
-                    *)
-                 ] in *;
+                         (* fromNibbles
+                            N.add N.sub N.mul N.div N.div_eucl N.modulo
+                            Ox nth replace
+                          *)
+                 ]; simpl;
+
                  repeat
                    (match goal with
                     | |- True            => constructor
