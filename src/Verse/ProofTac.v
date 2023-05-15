@@ -6,6 +6,7 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.ModularCode.
 Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
+Require Import Verse.HlistMachine.
 
 Require Import List.
 Import List.ListNotations.
@@ -34,10 +35,12 @@ Definition forallhlist [T] (A : T -> Type) sc f
 Qed.
 
 Ltac breakStore :=
-  match goal with
-  | |- forall _, _  => refine (forallhlist _ _ _ _)
-  end;
-  unfold hlamn; intros.
+  repeat
+  lazymatch goal with
+  | |- forall _ : state _ _, _  => refine (forallhlist _ _ _ _);
+                                   repeat intro
+  | |- forall _, _              => intro
+  end.
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
