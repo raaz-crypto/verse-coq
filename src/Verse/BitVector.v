@@ -136,6 +136,7 @@ macros that we have in the library. Facts about them will help dealing
 with semantics.
 
 *)
+
 Definition selectLower {sz} n (vec : Bvector sz) := BVand vec (lower_ones n).
 Definition selectUpper {sz} n (vec : Bvector sz) := BVand vec (upper_ones n).
 Definition clearUpper {sz}  n  := @selectLower sz (sz -n).
@@ -219,14 +220,8 @@ Fixpoint pow {sz}(eta : Bvector sz)(n : nat) : Bvector sz :=
 Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* begin hide *)
 
-(*Infix "*"           := BVmul            (at level 40, left associativity).*)
-
 Infix "/"           := BVquot      (at level 40, left associativity) : bitvector_scope.
 Infix "%"           := BVrem       (at level 40, left associativity) : bitvector_scope.
-(*
-Infix "+"           := BVplus           (at level 50, left associativity) : bitvector_scope.
-Infix "-"           := BVminus          (at level 50, left associativity) : bitvector_scope.
-*)
 
 Infix "&" := and (at level 56).
 Infix "⊕" := xor (at level 57).
