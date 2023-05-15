@@ -175,12 +175,6 @@ coqdoc's pdf generation does not get stuck.
 (* begin hide *)
 Require Export setoid_ring.Algebra_syntax.
 
-Instance zero_Bvector sz : Zero (Bvector sz)     := N2Bv_sized sz 0.
-Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
-Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
-Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
-Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
-Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
 (* Note : The following typeclasses (somehow) allow operators to be
 used when writing bitvector annotations. Typeclass unification
 allowing delayed unification is the favored theory as to why.
@@ -190,12 +184,19 @@ Class OR  A := or  : A -> A -> A.
 Class XOR A := xor : A -> A -> A.
 Class NOT A := not : A -> A.
 
-Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
 #[export] Instance BV_and sz : AND (Bvector sz) := @BVand sz.
 #[export] Instance BV_or  sz : OR (Bvector sz)  := @BVor sz.
 #[export] Instance BV_xor sz : XOR (Bvector sz) := @BVxor sz.
 #[export] Instance BV_not sz : NOT (Bvector sz) := @BVcomp sz.
 
+#[export] Instance zero_Bvector sz : Zero (Bvector sz)     := N2Bv_sized sz 0.
+#[export] Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
+#[export] Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
+#[export] Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
+#[export] Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
+#[export] Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+
+#[export] Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
 
 (* end hide *)
 Definition of_Z {sz} (z :  Z) : Bvector sz:=
@@ -213,7 +214,7 @@ Fixpoint pow {sz}(eta : Bvector sz)(n : nat) : Bvector sz :=
   | S m => (eta  * (pow eta m))
   end.
 
-Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
+#[export] Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
 
 Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* begin hide *)
