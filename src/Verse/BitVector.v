@@ -181,6 +181,10 @@ Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
 Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
 Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
 Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+(* Note : The following typeclasses (somehow) allow operators to be
+used when writing bitvector annotations. Typeclass unification
+allowing delayed unification is the favored theory as to why.
+ *)
 Class AND A := and : A -> A -> A.
 Class OR  A := or  : A -> A -> A.
 Class XOR A := xor : A -> A -> A.
@@ -236,6 +240,9 @@ Infix "∣"  := BVor (at level 59, left associativity, only printing) : bitvecto
           `~` makes it 75 here *)
 Notation "~ E" := (not E)  (at level 75, right associativity).
 
+(* TODO : Why do we have bitvector_scope at all? These notations don't
+          really overload any existing notations.
+*)
 Notation "A ≫ m" := (BVshiftR m A) (at level 54, left associativity) : bitvector_scope.
 Notation "A ≪ m" := (BVshiftL m A) (at level 54, left associativity) : bitvector_scope.
 Notation "A ⋘ m" := (BVrotL m A)   (at level 54, left associativity) : bitvector_scope.
