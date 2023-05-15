@@ -233,7 +233,7 @@ Notation "E ⋘  N" := (uniOpApp (rotL N)   E)   (in custom verse at level 54, l
 
 
 Notation "E >>>  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity).
-Notation "E ⋙  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity).
+Notation "E ⋙  N" := (uniOpApp (rotR N)   E)   (in custom verse at level 54, left associativity, N constr).
 
 Infix "&"         := (binOpApp bitAnd)         (in custom verse at level 56, left associativity).
 Infix "⊕"         := (binOpApp bitXor)         (in custom verse at level 57, left associativity).
@@ -263,7 +263,7 @@ Notation "A <<<= N"  := (uniOpUpdate (rotL N)   A)   (in custom verse at level 7
 Notation "A ⋘= N"  := (uniOpUpdate (rotL N)   A)   (in custom verse at level 70).
 
 Notation "A >>>= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
-Notation "A ⋙= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70).
+Notation "A ⋙= N"  := (uniOpUpdate (rotR N)   A)   (in custom verse at level 70, N constr).
 
 Notation "'CLOBBER' A" := (existT _ _ (clobber A))   (in custom verse at level 70).
 (*
