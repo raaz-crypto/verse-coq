@@ -63,7 +63,7 @@ Section TestFunction.
         num       :=  tmp     ⋘ `42`;
 
         arr[ 1 ] :=  tmp     >>> `42`;
-        arr[ 1 ] :=  tmp     ⋙  `42`;
+        arr[ 1 ] :=  tmp     ⋙  42;
 
         (* binary update *)
 
@@ -84,7 +84,7 @@ Section TestFunction.
         num      <<<= (`42%nat`);
         num      ⋘= (`42%nat`);
         arr[1] >>>= (`42%nat`);
-        arr[1] ⋙= (`42%nat`)
+        arr[1] ⋙= (42%nat)
     |].
   Defined.
 

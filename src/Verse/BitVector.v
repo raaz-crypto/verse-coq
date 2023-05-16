@@ -41,11 +41,6 @@ Definition BVones : forall sz, Bvector sz
 Definition BVzeros : forall sz, Bvector sz
   := Bvect_false.
 
-
-Check BVand. (* Comes directly from Bvector *)
-Check BVor.  (* Comes directly from Bvector *)
-Check BVxor. (* Comes directly from Bvector *)
-
 Definition BVcomp   := Bneg. (* renaming for better naming convention *)
 
 Definition BVshiftL1 sz : Bvector sz -> Bvector sz :=
@@ -141,6 +136,7 @@ macros that we have in the library. Facts about them will help dealing
 with semantics.
 
 *)
+
 Definition selectLower {sz} n (vec : Bvector sz) := BVand vec (lower_ones n).
 Definition selectUpper {sz} n (vec : Bvector sz) := BVand vec (upper_ones n).
 Definition clearUpper {sz}  n  := @selectLower sz (sz -n).
@@ -180,14 +176,28 @@ coqdoc's pdf generation does not get stuck.
 (* begin hide *)
 Require Export setoid_ring.Algebra_syntax.
 
-Instance zero_Bvector sz : Zero (Bvector sz)     := N2Bv_sized sz 0.
-Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
-Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
-Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
-Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
-Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+(* Note : The following typeclasses (somehow) allow operators to be
+used when writing bitvector annotations. Typeclass unification
+allowing delayed unification is the favored theory as to why.
+ *)
+Class AND A := and : A -> A -> A.
+Class OR  A := or  : A -> A -> A.
+Class XOR A := xor : A -> A -> A.
+Class NOT A := not : A -> A.
 
-Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
+#[export] Instance BV_and sz : AND (Bvector sz) := @BVand sz.
+#[export] Instance BV_or  sz : OR (Bvector sz)  := @BVor sz.
+#[export] Instance BV_xor sz : XOR (Bvector sz) := @BVxor sz.
+#[export] Instance BV_not sz : NOT (Bvector sz) := @BVcomp sz.
+
+#[export] Instance zero_Bvector sz : Zero (Bvector sz)     := N2Bv_sized sz 0.
+#[export] Instance one_Bvector sz  : One (Bvector sz)      := N2Bv_sized sz 1.
+#[export] Instance add_Bvector sz  : Addition (Bvector sz) := @BVplus sz.
+#[export] Instance mul_Bvector sz  : Multiplication  := @BVmul sz.
+#[export] Instance sub_Bvector sz  : Subtraction (Bvector sz) := @BVminus sz.
+#[export] Instance opp_Bvector sz  : Opposite (Bvector sz)   := (@BVnegative sz).
+
+#[export] Instance setoid_bvector sz : Setoid (Bvector sz) := {| SetoidClass.equiv := eq |}.
 
 (* end hide *)
 Definition of_Z {sz} (z :  Z) : Bvector sz:=
@@ -205,33 +215,33 @@ Fixpoint pow {sz}(eta : Bvector sz)(n : nat) : Bvector sz :=
   | S m => (eta  * (pow eta m))
   end.
 
-Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
+#[export] Instance bitvector_power_nat (sz : nat) : Power := @pow sz.
 
 Infix "=?" := (bveq) (at level 70): bitvector_scope.
 (* begin hide *)
 
-Declare Custom Entry bits.
+Infix "/"           := BVquot      (at level 40, left associativity) : bitvector_scope.
+Infix "%"           := BVrem       (at level 40, left associativity) : bitvector_scope.
 
-Notation "[bits| e |]" := e (e custom bits).
-Notation "( x )" := x  (in custom bits at level 0).
-Notation "` x `" := x  (in custom bits at level 0, x constr, format "` x `").
+Infix "&" := and (at level 56).
+Infix "⊕" := xor (at level 57).
+Infix "∣"  := or (at level 59, left associativity).
 
-Infix "*"           := BVmul            (in custom bits at level 40, left associativity).
-
-Infix "/"           := BVquot           (in custom bits at level 40, left associativity).
-Infix "%"           := BVrem            (in custom bits at level 40, left associativity).
-
-Infix "+"           := BVplus           (in custom bits at level 50, left associativity).
-Infix "-"           := BVminus          (in custom bits at level 50, left associativity).
+Infix "&" := BVand (at level 56, only printing) : bitvector_scope.
+Infix "⊕" := BVxor (at level 57, only printing) : bitvector_scope.
+Infix "∣"  := BVor (at level 59, left associativity, only printing) : bitvector_scope.
 
 
-Notation "~ E"      := (BVcomp E)  (in custom bits at level 30, right associativity).
-Infix "&"         := BVand         (in custom bits at level 56, left associativity).
-Infix "⊕"         := BVxor         (in custom bits at level 57, left associativity).
-Infix "|"         := BVor          (in custom bits at level 59, left associativity).
-Notation "A ≫ m" := (BVshiftR m A) (in custom bits at level 54, left associativity).
-Notation "A ≪ m" := (BVshiftL m A) (in custom bits at level 54, left associativity).
-Notation "A ⋘ m" := (BVrotL m A)   (in custom bits at level 54, left associativity).
-Notation "A ⋙ m" := (BVrotR m A)   (in custom bits at level 54, left associativity).
-Notation "⟦ A ⟧"  := (@Bv2N _ A)   (in custom bits).
+(* TODO : `~` should be < level 40. But conformance with some other
+          `~` makes it 75 here *)
+Notation "~ E" := (not E)  (at level 75, right associativity).
+
+(* TODO : Why do we have bitvector_scope at all? These notations don't
+          really overload any existing notations.
+*)
+Notation "A ≫ m" := (BVshiftR m A) (at level 54, left associativity) : bitvector_scope.
+Notation "A ≪ m" := (BVshiftL m A) (at level 54, left associativity) : bitvector_scope.
+Notation "A ⋘ m" := (BVrotL m A)   (at level 54, left associativity) : bitvector_scope.
+Notation "A ⋙ m" := (BVrotR m A)   (at level 54, left associativity) : bitvector_scope.
+Notation "⟦ A ⟧"  := (@Bv2N _ A) : bitvector_scope.
 (* end hide *)

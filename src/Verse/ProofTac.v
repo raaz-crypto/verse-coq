@@ -6,6 +6,7 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.ModularCode.
 Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
+Require Import Verse.HlistMachine.
 
 Require Import List.
 Import List.ListNotations.
@@ -34,10 +35,12 @@ Definition forallhlist [T] (A : T -> Type) sc f
 Qed.
 
 Ltac breakStore :=
-  match goal with
-  | |- forall _, _  => refine (forallhlist _ _ _ _)
-  end;
-  unfold hlamn; intros.
+  repeat
+  lazymatch goal with
+  | |- forall _ : state _ _, _  => refine (forallhlist _ _ _ _);
+                                   repeat intro
+  | |- forall _, _              => intro
+  end.
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
@@ -50,19 +53,23 @@ Ltac unwrap := match goal with
 
 Ltac simplify := unfold getProp;
                  breakStore;
-                 lazy -[
-                   BVplus BVminus BVmul BVquot
-                          BVrotR BVrotL BVshiftL BVshiftR BVcomp
-                          zero one
-                   (*
-                            fromNibbles
-                              numBinOp numUnaryOp numBigargExop numOverflowBinop
-                              Nat.add Nat.sub Nat.mul Nat.div Nat.pow
-                              N.add N.sub N.mul N.div N.div_eucl N.modulo
+                 lazy -[ BVplus BVminus BVmul BVquot
+                         and or xor not BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                         zero one
+                         Nat.add Nat.sub Nat.mul Nat.div Nat.pow
+                         (* -- this does not allow N constants to be
+                            represented as their bitvector
+                            representations because the size parameter
+                            to N2Bv_sized needs these to be
+                            computed. This necessitates the `simpl`
+                            after this computation *)
 
-                              Ox nth replace
-                    *)
-                 ] in *;
+                         (* fromNibbles
+                            N.add N.sub N.mul N.div N.div_eucl N.modulo
+                            Ox nth replace
+                          *)
+                 ]; simpl;
+
                  repeat
                    (match goal with
                     | |- True            => constructor
@@ -106,3 +113,73 @@ Ltac modProof :=
 
 Ltac mrealize := unwrap; modProof;
                  try simplify.
+
+Require Import Verse.Scope.
+Require Import Verse.TypeSystem.
+Require Import Verse.Language.Types.
+
+Fixpoint swapScope [t] [v : Variables.U t]
+         (vT : Scope.type t) [typ C]
+  : (scoped v vT (typ -> C)) -> (typ -> scoped v vT C) :=
+  match vT with
+  | []         => id
+  | (_ :: vTt) => fun s x vty => swapScope _ (s vty) x
+  end.
+
+
+Definition swapGScope [t] (vT : Scope.type t)
+           [typ] [C : Variables.U t -> Type]
+  : (forall v, scoped v vT (typ -> C v)) -> typ -> forall v, scoped v vT (C v)
+    := fun f => fun t v => (swapScope vT (f v) t).
+
+Ltac mapTyOf xt :=
+  match xt with
+  | Cookup.var ?y -> ?z => refine (y :: _)%list; mapTyOf z
+  | ?x                     => exact ([]%list)
+  end.
+
+(* Extract the scope out of a generic function *)
+Ltac getScope x := let xt := type of (x Cookup.var) in mapTyOf xt.
+
+Ltac rearrScope x :=
+  let scp := fresh "scp" in
+  let sc  := fresh "sc"  in
+  let typ := fresh "typ" in
+  let rx  := fresh "rx"  in
+  (* Bring out the leading scope and the scoped Type *)
+  simple refine (let scp : Scope.type verse_type_system := _ in _);
+  [getScope x | idtac];
+  simpl in *;
+  let nx := fresh "nx" in
+  tryif
+    (* Swap out one inner parameter if possible *)
+    pose (nx := swapGScope scp x)
+  then
+    (* Recursively call rearrScope to check for more inner parameters *)
+    let t := fresh "t" in
+    match type of nx with
+    | ?T -> _ => refine (fun t : T => _)
+    end;
+    let nxn := fresh "nxn" in
+    pose (nxn := nx t);
+    simpl in nxn;
+    rearrScope nxn
+  else
+    exact x.
+
+(* Parametrize target Prop on non-variable parameters *)
+Ltac parametrize x :=
+  lazymatch type of x with
+  | Variables.U verse_type_system -> _ => AnnotatedCode.getProp x
+  | ?T -> _                            => let t := fresh "t" in
+                                          refine (forall t : T, _ : Prop);
+                                          parametrize (x t)
+  end.
+
+(* Final tactic to extract a Prop from an annotated code block
+     with mixed scope *)
+Ltac exParamProp x :=
+  let tmp := fresh "tmp" in
+  simple refine (let tmp : _ := _ in _);
+  [shelve | rearrScope x | idtac];
+  simpl in tmp; idtac tmp; parametrize tmp.

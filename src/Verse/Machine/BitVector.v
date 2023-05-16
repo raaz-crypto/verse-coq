@@ -11,6 +11,7 @@ Require Import Verse.Language.Pretty.
 Require Import Verse.BitVector.
 
 Definition wordOfSize : nat -> Type := Types.BWord.
+
 Definition const : forall sz : nat, constOf verse_type_system (word sz) -> wordOfSize sz
   := fun sz x => x.
 
@@ -21,10 +22,10 @@ Definition oper (sz arity : nat) (o : op arity)
      | mul       => @BVmul     _
      | quot      => @BVquot    _
      | rem       => @BVrem     _
-     | bitOr     => @BVor      _
-     | bitAnd    => @BVand     _
-     | bitXor    => @BVxor     _
-     | bitComp   => @BVcomp    _
+     | bitOr     => or
+     | bitAnd    => and
+     | bitXor    => xor
+     | bitComp   => not
      | shiftL  n => @BVshiftL  _ n
      | shiftR  n => @BVshiftR  _ n
      | rotL    n => @BVrotL    _ n
