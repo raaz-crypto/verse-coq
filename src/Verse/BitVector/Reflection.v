@@ -303,9 +303,9 @@ Module Tactics.
     | [ |- context[Bv2N ?E] ] =>
         match E with
         | _ + _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H)
+                  try (assert_arithmetic H E sz; rewrite H; clear H)
         | _ * _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H)
+                  try (assert_arithmetic H E sz; rewrite H; clear H)
         end
     end.
 
