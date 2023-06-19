@@ -132,6 +132,7 @@ work in other modules that import this one.
 #[export] Instance add_N  : Addition N := N.add.
 #[export] Instance mul_N  : Multiplication := N.mul.
 
+#[export] Hint Unfold addition add_N multiplication mul_N : algebra.
 
 (** * Reified expressions of a
 
