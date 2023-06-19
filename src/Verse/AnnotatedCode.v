@@ -74,7 +74,6 @@ Arguments repCodeDenote [tyD sc].
   := {| CODE := fun an => [ Repeat.repeat 1 [ annot an ] ] |}.
 
 
-(*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
 (* Notations for annotations *)
 
 Class Evaluate (v : VariableT) tyD varType
