@@ -74,7 +74,7 @@ Arguments BVxor [n] !_ !_.
 Ltac simplify := unfold getProp;
                  breakStore;
                  lazy -[ BVplus BVminus BVmul BVquot
-                         and or xor not BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                         And Or Xor Not BVrotR BVrotL BVshiftL BVshiftR BVcomp
                          zero one
                          Nat.add Nat.sub Nat.mul Nat.div Nat.pow
                          (* -- this does not allow N constants to be

@@ -22,10 +22,10 @@ Definition oper (sz arity : nat) (o : op arity)
      | mul       => @BVmul     _
      | quot      => @BVquot    _
      | rem       => @BVrem     _
-     | bitOr     => or
-     | bitAnd    => and
-     | bitXor    => xor
-     | bitComp   => not
+     | bitOr     => Or
+     | bitAnd    => And
+     | bitXor    => Xor
+     | bitComp   => Not
      | shiftL  n => @BVshiftL  _ n
      | shiftR  n => @BVshiftR  _ n
      | rotL    n => @BVrotL    _ n
