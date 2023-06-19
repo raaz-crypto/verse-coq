@@ -177,8 +177,10 @@ Module Exp.
     | Mul e1 e2 => denote e1 * denote e2
     end.
 
-  #[export] Instance add_exp A : Addition (t A) := Plus.
-  #[export] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
+  (* The following need global visibility for reflection tactics to work
+  elsewhere without an `Export Exp` *)
+  #[global] Instance add_exp A : Addition (t A) := Plus.
+  #[global] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
 
 End Exp.
 Import Exp.
