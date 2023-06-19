@@ -99,17 +99,17 @@ Ltac simplify := unfold getProp;
 Ltac realize := unwrap; simplify.
 
 Ltac modProof :=
-  let rec inner := try match goal with
-                     | |- context [getProp _ (linesDenote (inline_calls ?l))]
-                       => rewrite (splitEq l); apply modularize;
-                          unfold modularProof; simpl;
-                          repeat match goal with
-                            | |- distinctAll _ /\ _ =>  constructor;
-                                                        [> unfold distinctAll; simpl; easy
-                                                        | breakStore ]
-                            end
-                     end
-  in inner.
+  try match goal with
+      | |- context [getProp _ (linesDenote (inline_calls ?l))]
+        => rewrite (splitEq l); apply modularize;
+           unfold modularProof; simpl;
+           repeat match goal with
+                  | |- distinctAll _ /\ _ =>  constructor;
+                                              [> unfold distinctAll; simpl; easy
+                                              | breakStore ]
+                  end
+      end.
+
 
 Ltac mrealize := unwrap; modProof;
                  try simplify.
