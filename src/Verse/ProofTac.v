@@ -83,24 +83,21 @@ Ltac simplify := unfold getProp;
                             to N2Bv_sized needs these to be
                             computed. This necessitates the `simpl`
                             after this computation *)
-
-                         (* fromNibbles
-                            N.add N.sub N.mul N.div N.div_eucl N.modulo
-                            Ox nth replace
-                          *)
-                 ]; simpl;
-
+                   ] in *;
+                 repeat
+                   (match goal with
+                    | |- _ -> _          => intro
+                    | |- forall _, _     => intro
+                    | H : _ /\ _ |- _    => destruct H
+                    | H : True |- _      => clear H
+                    | H : Datatypes.unit |- _ => clear H
+                    end);
                  repeat
                    (match goal with
                     | |- True            => constructor
                     | |- ?x = ?x         => trivial
                     | |- _ /\ _          => constructor
-                    | |- _ -> _          => intro
-                    | _                  => now trivial
-                    | H : _ /\ _ |- _    => destruct H
-                    | H : True |- _      => clear H
-                    | H : True |- _           => clear H
-                    | H : Datatypes.unit |- _ => clear H
+                    | _                  => try trivial
                     end).
                    (*                 | |- forall _, _ => intro*)
 (* The next should only ever be invoked
