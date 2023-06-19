@@ -23,11 +23,14 @@ Definition map {A B}(f : A -> B) (rp : repeated A) : repeated B :=
   | repeat n a => repeat n (f a)
   end.
 
-Polymorphic Definition Repeat A := list (repeated (list A)).
-
 Definition unroll [A M] `{Setoid M} `{Monoid M} (f : A -> M)
   := mapMconcat (fun rla => let 'repeat n la := rla
-  in ntimes n (f la)).
+                            in ntimes n (f la)).
+
+Polymorphic Definition Repeat A := list (repeated (list A)).
+
+Definition flatR [A] : Repeat A -> list A
+  := unroll id.
 
 Section Repeat.
 
