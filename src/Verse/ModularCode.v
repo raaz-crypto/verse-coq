@@ -28,7 +28,7 @@ Section Call.
   Context [tyD : typeDenote verse_type_system]
           [ v  : VariableT ].
 
-  Record specBlock w := { blck    : Repeat (line tyD w);
+  Record specBlock w := { blck    : lines tyD w;
                           postC   : ann tyD w    }.
 
   Arguments blck [w].
