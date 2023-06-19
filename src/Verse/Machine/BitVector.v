@@ -17,9 +17,9 @@ Definition const : forall sz : nat, constOf verse_type_system (word sz) -> wordO
 
 Definition oper (sz arity : nat) (o : op arity)
   := match o in op arity0 return nary (wordOfSize sz) arity0 with
-     | plus      => @BVplus    _
-     | minus     => @BVminus   _
-     | mul       => @BVmul     _
+     | plus      => addition
+     | minus     => subtraction
+     | mul       => multiplication
      | quot      => @BVquot    _
      | rem       => @BVrem     _
      | bitOr     => Or
