@@ -5,6 +5,9 @@ Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
 Require Import Verse.Modular.Equation.
 
+From Coq Require Import ssreflect ssrfun ssrbool.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
 
 Create HintDb bitvector_reflection.
 Lemma two_power_non_zero : forall n : N, (2^n)%N <> 0%N.
