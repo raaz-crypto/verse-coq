@@ -1,8 +1,12 @@
 (** Tactics for proof goal presentation *)
+Require Import NArith.
+
 Require Import Verse.AnnotatedCode.
 Require Import Verse.BitVector.
 Require Import Verse.BitVector.ArithRing.
+Require Import Verse.BitVector.Reflection.
 Require Import Verse.Machine.BitVector.
+Require Import Verse.Modular.ModRing.
 Require Import Verse.ModularCode.
 Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
@@ -77,9 +81,17 @@ Arguments BVxor [n] !_ !_.
 
 Ltac simplify := unfold getProp;
                  breakStore;
-                 lazy -[ BVplus BVminus BVmul BVquot
-                         And Or Xor Not BVrotR BVrotL BVshiftL BVshiftR BVcomp
+                 lazy -[ subtraction addition multiplication
+                         add_Bvector sub_Bvector mul_Bvector
+                         add_N mul_N
+                         BVplus BVminus BVmul BVquot
+                         And Or Xor Not
+                         BVrotR BVrotL BVshiftL BVshiftR BVcomp
                          zero one
+                         N.add N.sub N.mul N.div N.pow N.div_eucl N.modulo
+                         ModRing.add ModRing.mul eqZmod
+                         Bv2N
+                         N.lt N.le N.ge N.gt
 
                          (*Nat.add Nat.sub Nat.mul Nat.div Nat.pow*)
                          (* Parametric arithmetic of shift parameters
@@ -91,7 +103,6 @@ Ltac simplify := unfold getProp;
                          'for now' is folding these post the
                          expansion. *)
                    ] in *; fold Nat.add Nat.sub Nat.mul Nat.div Nat.pow in *;
-
                  repeat
                    (match goal with
                     | |- _ -> _          => intro
