@@ -34,13 +34,21 @@ Definition forallhlist [T] (A : T -> Type) sc f
   exact f0.
 Qed.
 
+Ltac introHlamn :=
+  repeat lazymatch goal with
+         | |- hlamn _ nil _ => unfold hlamn
+         | |- hlamn _ _ _   => intro
+         end.
+
 Ltac breakStore :=
-  repeat
-  lazymatch goal with
-  | |- forall _ : state _ _, _  => refine (forallhlist _ _ _ _);
-                                   repeat intro
-  | |- forall _, _              => intro
-  end.
+  let rec break :=
+    lazymatch goal with
+    | |- forall _ : state _ _, _          => refine (forallhlist _ _ _ _);
+                                             introHlamn
+    | |- forall _ : Machine.memory _ _, _ => refine (forallhlist _ _ _ _);
+                                             introHlamn
+    | |- forall _, _                      => intro; break
+    end in break.
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
