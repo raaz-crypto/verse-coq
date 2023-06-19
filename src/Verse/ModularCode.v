@@ -46,7 +46,7 @@ Section Call.
 
   Definition funSub sc (fc : func sc) : sub sc
     := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
-       {| transform   := srFst (unroll (linesDenote (sc := sc)) bl);
+       {| transform   := srFst (linesDenote (sc := sc) bl);
           guarantee   := srSnd (lineDenote (annot pc))
        |}.
 
@@ -62,7 +62,7 @@ Section Call.
                      eqprf  : @equiv _ inLine inSc verSub }.
 
   Inductive modular :=
-  | block         : Repeat (line tyD v) -> modular
+  | block         : lines tyD v -> modular
   | inline        : forall vfun, Scope.allocation v (inSc vfun) -> modular.
 
   (* We consider the default interpretation of a `call` to be an
@@ -72,14 +72,14 @@ Section Call.
   inside functions.
    *)
 
-  Definition stripAnn [v] (ls : Repeat (line tyD v))
-    := List.map (Repeat.map (fun x => concat (map (fun l => match l with
-                                                      | inst _ as l0 => [ l0 ]
-                                                      | _            => []
-                                                      end) x
-         ))) ls.
+  Definition stripAnn [v] (ls : lines tyD v)
+    := concat (map (fun l => match l with
+                     | inst _ as l0 => [ l0 ]
+                     | _            => []
+                     end)
+                   ls).
 
-  Definition inline_call (a : modular) : Repeat (line tyD v)
+  Definition inline_call (a : modular) : lines tyD v
     := match a with
        | block i       => i
        | inline sl all => match eqprf sl with
@@ -89,7 +89,7 @@ Section Call.
 
   Definition inline_calls := fun x : list (modular) => concat (PList.map inline_call x).
 
-  Lemma inline_instructions (ls : Repeat (line tyD v))
+  Lemma inline_instructions (ls : lines tyD v)
     : inline_calls [ block ls ] = ls.
   Proof.
     unfold inline_calls.
@@ -113,14 +113,14 @@ Require Verse.Ast.
   := {| CODE := fun ls => [ block (CODE ls) ] |}.
 
 #[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v) | 1
-  := {| CODE := fun an => [ block [ Repeat.repeat 1 [ annot an ] ] ] |}.
+  := {| CODE := fun an => [ block [ annot an ] ] |}.
 
 #[export] Instance statement_repModular tyD (v : VariableT)
   : AST_maps (list (Ast.statement v)) (repeated (list (modular tyD v))) | 0
   := {| CODE := fun ls => [ Repeat.repeat 1 [ block (CODE ls) ] ] |}.
 
 #[export] Instance annot_repModular tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (modular tyD v))) | 0
-  := {| CODE := fun an => [ Repeat.repeat 1 [ block [ Repeat.repeat 1 [ annot an ] ] ] ] |}.
+  := {| CODE := fun an => [ Repeat.repeat 1 [ block [ annot an ] ] ] |}.
 
 #[export] Instance modular_id tyD (v : VariableT) : AST_maps (list (modular tyD v)) (modular tyD v) | 1 := {| CODE := id |}.
 
@@ -221,11 +221,11 @@ Section ModProof.
      application of our meta theorem.
   *)
 
-  Record preCall := { preB    : Repeat (line tyD scv);
+  Record preCall := { preB    : lines tyD scv;
                       procC   : verFun tyD;
                       procAll : Scope.allocation scv (inSc procC) }.
 
-  Definition modCode : Type := list preCall * Repeat (line tyD scv).
+  Definition modCode : Type := list preCall * lines tyD scv.
 
   Coercion getCode (mc : modCode) : list (modular tyD scv)
     := [ block
@@ -255,13 +255,13 @@ Section ModProof.
   Fixpoint modProofAux cpre mpre cs pb
     := match cs with
        | pc :: cst =>
-           let mstep := unroll (linesDenote (sc := sc)) (preB pc) in
+           let mstep := linesDenote (sc := sc) (preB pc) in
            distinctAll (procAll pc) /\
            forall dummyVals, modProofAux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
                                           (mpre ** mstep ** justInst
                                                 (lDummyProc pc dummyVals))
                                           cst pb
-       | []        =>   getProp cpre (mpre ** unroll (linesDenote (sc := sc)) pb)
+       | []        =>   getProp cpre (mpre ** linesDenote (sc := sc) (flatR pb))
        end.
 
   Definition modularProof (mc : modCode)
@@ -270,7 +270,7 @@ Section ModProof.
   Axiom modularize
     : forall mc, modularProof mc
                  ->
-                   getProp (fun _ => True) (unroll (linesDenote (sc := sc)) (inline_calls mc)).
+                   getProp (fun _ => True) (linesDenote (sc := sc) (inline_calls mc)).
 
 End ModProof.
 
@@ -281,7 +281,7 @@ Arguments getCode [tyD sc].
 Fixpoint splitAux [tyD]
   [sc : Scope.type verse_type_system]
   (l1 : list (modular _ (HlistMachine.variable sc)))
-  (l2 : Repeat (line tyD (HlistMachine.variable sc)))
+  (l2 : lines tyD (HlistMachine.variable sc))
   : modCode tyD sc
   := match l1 with
      | []       => ([], l2)
@@ -317,7 +317,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (splitAuxCall : forall f all l1 (l2 : Repeat (line tyD (HlistMachine.variable sc))),
+  assert (splitAuxCall : forall f all l1 (l2 : (lines tyD (HlistMachine.variable sc))),
              splitAux (inline f all :: l1) l2
              = ({| preB := l2;
                   procC := f;
@@ -328,7 +328,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (getCode_cons : forall (b : Repeat (line tyD (HlistMachine.variable sc))) f all cs pb,
+  assert (getCode_cons : forall (b : lines tyD (HlistMachine.variable sc)) f all cs pb,
              inline_calls (getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb))
              = inline_calls (block (b ++ inline_calls [inline f all]) :: getCode (cs, pb))).
   intros.
@@ -347,7 +347,7 @@ Proof.
   now repeat rewrite app_assoc.
   (*Qed*)
 
-  enough (splitAuxEq : forall l1 (l2 : Repeat (line tyD (HlistMachine.variable sc))),
+  enough (splitAuxEq : forall l1 (l2 : lines tyD (HlistMachine.variable sc)),
              l2 ++ inline_calls l1 = inline_calls (splitAux l1 l2)).
   apply (splitAuxEq _ []).
 
@@ -391,8 +391,7 @@ Section CodeGen.
 
   (* TODO: This is really a bad name particularly because it is being used outside (is it ?). *)
   Definition cp
-    := unroll (fun x => unroll (linesDenote (sc := sc)) (inline_calls x))
-              (HlistMachine.specialise sc ac).
+    := linesDenote (sc := sc) (inline_calls (flatR (HlistMachine.specialise sc ac))).
 
   Definition tpt := getProp (fun _ => True) cp.
 
