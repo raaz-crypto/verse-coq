@@ -96,10 +96,10 @@ Definition VecVar n (x : VariableT) [k] ty := Vector.t (x (existT _ k ty)) n.
   : Evaluate v tyD (VecVar n)
   := fun _ _ f x => Vector.map (eval f (Evaluate := eVar)) x.
 
-
 Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at level 100).
 
 Require Import Verse.Scope.
+
 Section CodeGen.
 
   Variable sc : Scope.type verse_type_system.
