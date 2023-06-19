@@ -45,7 +45,7 @@ Section AnnotatedCode.
   Definition repCodeDenote sc (ls : forall v, Scope.scoped v sc (Repeat (line v)))
     : mline sc tyD
     := let srls := HlistMachine.specialise sc ls in
-       unroll (@linesDenote sc) srls.
+       @linesDenote sc (flatR srls).
 
 End AnnotatedCode.
 
