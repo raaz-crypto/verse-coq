@@ -52,7 +52,11 @@ Ltac breakStore :=
 
 Ltac unwrap := match goal with
                | |- ?I => try unfold I
-               end; autounfold with Wrapper; simpl.
+               end; autounfold with Wrapper(*; simpl*).
+               (* This `simpl` breaks field arithmetic proofs and also
+               is a major slowdown for `realize`. If it turns out to
+               be required, an easy fix is to write `modMod_add` for
+               the `simpl`ed obligation that comes out. *)
 
 (* The following directives make sure that `simpl` does not reduce bitvector operators when applied to a single concrete argument (say) which then interferes with presentation and/or applicability of lemmas.
 For instance, shiftL in the subroutine demo for the thesis has a `BVshiftL 4 A` which gets simplified to BshiftL or so.
