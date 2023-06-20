@@ -234,7 +234,9 @@ Infix "∣"  := BVor (at level 59, left associativity, only printing) : bitvecto
 
 (* TODO : `~` should be < level 40. But conformance with some other
           `~` makes it 75 here *)
-Notation "~ E" := (not E)  (at level 75, right associativity).
+Notation "~ E" := (Not E)  (at level 75, right associativity).
+
+Notation "~ E" := (BVcomp E)  (at level 75, right associativity, only printing) : bitvector_scope.
 
 (* TODO : Why do we have bitvector_scope at all? These notations don't
           really overload any existing notations.
