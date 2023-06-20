@@ -412,3 +412,14 @@ Ltac getProp func
       let level1 := constr:(snd level0break) in
       let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
       exact (tpt (pvs ++ lvs)%list cv)).
+
+Module Tactics.
+  (* For simple subroutine proofs, with post-conditions simply giving
+  symbolic executions of the subroutine, this effectively restores the
+  usual full symbolic execution *)
+  Ltac inline :=   repeat match goal with
+                          | _ : ?a = _ |- _ => try (subst a)
+                          end.
+End Tactics.
+
+Export Tactics.
