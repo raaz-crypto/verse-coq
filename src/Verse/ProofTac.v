@@ -80,14 +80,18 @@ Ltac simplify := unfold getProp;
                  lazy -[ BVplus BVminus BVmul BVquot
                          And Or Xor Not BVrotR BVrotL BVshiftL BVshiftR BVcomp
                          zero one
-                         Nat.add Nat.sub Nat.mul Nat.div Nat.pow
-                         (* -- this does not allow N constants to be
-                            represented as their bitvector
-                            representations because the size parameter
-                            to N2Bv_sized needs these to be
-                            computed. This necessitates the `simpl`
-                            after this computation *)
-                   ] in *;
+
+                         (*Nat.add Nat.sub Nat.mul Nat.div Nat.pow*)
+                         (* Parametric arithmetic of shift parameters
+                         is sha need the above to not be
+                         unfolded. However, power computations, N2Bv
+                         implicit parameter computations and len/pos
+                         computations in curve25519 field arithmetic
+                         need these to be computed. The fix that works
+                         'for now' is folding these post the
+                         expansion. *)
+                   ] in *; fold Nat.add Nat.sub Nat.mul Nat.div Nat.pow in *;
+
                  repeat
                    (match goal with
                     | |- _ -> _          => intro
