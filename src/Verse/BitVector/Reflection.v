@@ -291,25 +291,39 @@ Module Tactics.
          apply (N.lt_trans _ _ _ Hineq); simpl; lia
     end.
 
+  Ltac assert_arithmetic_mod H e sz :=
+    let eA := arithm e in
+    assert (H: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz.
+
   Ltac assert_arithmetic H e sz :=
     let eA := arithm e in
     assert(H:Bv2N e = eA) by
-     ( let HM := fresh "HM" in
+      (let HM := fresh "HM" in
        assert (HM: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz;
        try (rewrite HM; apply N.mod_small);
-       try (crush_ineq)).
+       try crush_ineq).
+
+  Ltac arithmetise_mod sz :=
+    match goal with
+    | [ |- context[Bv2N ?E] ] =>
+        match E with
+        | _ + _ => let H := fresh "HA" in
+                   try (assert_arithmetic_mod H E sz; rewrite H; clear H)
+        | _ * _ => let H := fresh "HA" in
+                   try (assert_arithmetic_mod H E sz; rewrite H; clear H)
+        end
+    end.
 
   Ltac arithmetise sz :=
     match goal with
     | [ |- context[Bv2N ?E] ] =>
         match E with
         | _ + _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H; clear H)
+                   try (assert_arithmetic H E sz; rewrite H; clear H)
         | _ * _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H; clear H)
+                   try (assert_arithmetic H E sz; rewrite H; clear H)
         end
     end.
-
 
 End Tactics.
 
