@@ -38,7 +38,7 @@ Require Import Verse.ProofTac.
 
 Require Import Scope.
 Definition toProve : Prop.
-  getProp test.
+  vc_gen test.
 Defined.
 
 Definition proof : toProve.

@@ -38,7 +38,7 @@ End Code.
  *)
 
 Definition toProve : Prop.
-  getProp test.
+  vc_gen test.
 Defined.
 
 Require Import Verse.ProofTac.

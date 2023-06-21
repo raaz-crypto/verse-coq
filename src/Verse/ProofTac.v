@@ -206,7 +206,7 @@ Ltac rearrScope x :=
 (* Parametrize target Prop on non-variable parameters *)
 Ltac parametrize x :=
   lazymatch type of x with
-  | Variables.U verse_type_system -> _ => AnnotatedCode.getProp x
+  | Variables.U verse_type_system -> _ => AnnotatedCode.vc_gen x
   | ?T -> _                            => let t := fresh "t" in
                                           refine (forall t : T, _ : Prop);
                                           parametrize (x t)
