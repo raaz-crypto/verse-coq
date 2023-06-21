@@ -156,7 +156,7 @@ Arguments tpt sc [tyD].
 
 (* Extracting Prop object from annotated code *)
 
-Ltac getProp func
+Ltac vc_gen func
   := let cv := constr:(fun v => curry_vec (func v)) in
      let level0 := constr:(Scope.Cookup.specialise cv) in
      let level0break := (eval hnf in (Scope.inferNesting level0)) in

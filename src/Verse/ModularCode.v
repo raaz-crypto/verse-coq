@@ -404,7 +404,7 @@ Arguments cp sc [tyD].
 Arguments getProp [sc tyD].
 Arguments tpt sc [tyD].
 
-Ltac getProp func
+Ltac vc_gen func
   := (let cv := constr:(fun v => Scope.curry_vec (func v)) in
       let level0 := constr:(Scope.Cookup.specialise cv) in
       let level0break := (eval hnf in (Scope.inferNesting level0)) in
