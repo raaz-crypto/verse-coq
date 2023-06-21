@@ -663,7 +663,14 @@ the bitvector size.
 
 *)
 
-Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz), Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
+(* TODO : Prove this! *)
+Lemma Bv2N_shiftL : forall sz n (vec : Bvector sz),
+    (Bv2N (BVshiftL n vec) = (2^N.of_nat n * Bv2N vec) mod 2^(N.of_nat sz))%N.
+Proof.
+Admitted.
+
+Lemma Bv2N_shiftR : forall sz n (vec : Bvector sz),
+    Bv2N (BVshiftR n vec) = (Bv2N vec / 2^N.of_nat n)%N.
 Proof.
   #[local] Hint Rewrite inj_shiftR : bitvector.
   #[export] Hint Resolve N.shiftr_div_pow2 : bitvector.
