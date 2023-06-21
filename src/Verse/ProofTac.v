@@ -54,6 +54,18 @@ Ltac unwrap := match goal with
                | |- ?I => try unfold I
                end; autounfold with Wrapper; simpl.
 
+(* The following directives make sure that `simpl` does not reduce bitvector operators when applied to a single concrete argument (say) which then interferes with presentation and/or applicability of lemmas.
+For instance, shiftL in the subroutine demo for the thesis has a `BVshiftL 4 A` which gets simplified to BshiftL or so.
+
+We might need to do this for all N, nat operators too in the long term *)
+Arguments BVshiftL [sz] !_ !_.
+Arguments BVshiftR [sz] !_ !_.
+Arguments BVrotR [sz] !_ !_.
+Arguments BVrotL [sz] !_ !_.
+Arguments BVand [n] !_ !_.
+Arguments BVor [n] !_ !_.
+Arguments BVxor [n] !_ !_.
+
 (* TODO : While the following two tactics are fairly generic, they
           don't work without specific BitVector functions. Needs to be
           organized better.
