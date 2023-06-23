@@ -93,7 +93,7 @@ Ltac simplify := unfold getProp;
                          Bv2N
                          N.lt N.le N.ge N.gt
 
-                         (*Nat.add Nat.sub Nat.mul Nat.div Nat.pow*)
+                         (* Nat.add Nat.sub Nat.mul Nat.div Nat.pow *)
                          (* Parametric arithmetic of shift parameters
                          is sha need the above to not be
                          unfolded. However, power computations, N2Bv
@@ -102,7 +102,7 @@ Ltac simplify := unfold getProp;
                          need these to be computed. The fix that works
                          'for now' is folding these post the
                          expansion. *)
-                   ] in *; fold Nat.add Nat.sub Nat.mul Nat.div Nat.pow in *;
+                   ]; fold Nat.add Nat.sub Nat.mul Nat.div Nat.pow in *;
                  repeat
                    (match goal with
                     | |- _ -> _          => intro
@@ -206,7 +206,8 @@ Ltac rearrScope x :=
 (* Parametrize target Prop on non-variable parameters *)
 Ltac parametrize x :=
   lazymatch type of x with
-  | Variables.U verse_type_system -> _ => AnnotatedCode.vc_gen x
+  | forall _ : Variables.U verse_type_system, _ => AnnotatedCode.vc_gen x
+  | forall _ : VariableT, _                     => AnnotatedCode.vc_gen x
   | ?T -> _                            => let t := fresh "t" in
                                           refine (forall t : T, _ : Prop);
                                           parametrize (x t)
@@ -218,4 +219,4 @@ Ltac exParamProp x :=
   let tmp := fresh "tmp" in
   simple refine (let tmp : _ := _ in _);
   [shelve | rearrScope x | idtac];
-  simpl in tmp; idtac tmp; parametrize tmp.
+  simpl in tmp; parametrize tmp.
