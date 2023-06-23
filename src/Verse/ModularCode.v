@@ -134,17 +134,16 @@ Notation "F 'DOES' Post" := ({| blck := F;
                               (at level 60).
 
 Ltac Pack f := let cv := constr:(fun v => Scope.curry_vec (f v)) in
-               refine (
-                       let sc := fst (Scope.inferNesting (Scope.Cookup.specialise cv)) in
-                       {| inTy   := fun sc => forall w, Scope.allocation w sc
-                                                        -> specBlock _ w;
-                          inLine := fun w => Scope.uncurry
-                                               (st := sc)
-                                               (cv%function w);
-                          inSc   := sc;
-                          verSub := _;
-                          eqprf  := call _ _
-                       |}).
+               let sc := constr:(fst (Scope.inferNesting (Scope.Cookup.specialise cv))) in
+               refine {| inTy   := fun sc' => forall w, Scope.allocation w sc'
+                                                       -> specBlock _ w;
+                         inLine := fun w => Scope.uncurry
+                                              (st := sc)
+                                              (cv%function w);
+                         inSc   := sc;
+                         verSub := _;
+                         eqprf  := call _ _
+                      |}.
 
 (* TODO : Might be present in some standard library *)
 Fixpoint distinctL [T] (l : list T)
