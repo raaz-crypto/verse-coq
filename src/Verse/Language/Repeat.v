@@ -1,5 +1,6 @@
 Require Import Verse.Monoid.
 Require Import Verse.Error.
+Import List.ListNotations.
 
 (**
 
@@ -17,23 +18,23 @@ Inductive repeated A : Type :=
 
 Arguments repeat [A].
 
-Polymorphic Definition Repeat A := list (repeated (list A)).
+Definition map {A B}(f : A -> B) (rp : repeated A) : repeated B :=
+  match rp with
+  | repeat n a => repeat n (f a)
+  end.
 
 Definition unroll [A M] `{Setoid M} `{Monoid M} (f : A -> M)
   := mapMconcat (fun rla => let 'repeat n la := rla
-  in ntimes n (f la)).
+                            in ntimes n (f la)).
+
+Polymorphic Definition Repeat A := list (repeated (list A)).
+
+Definition flatR [A] : Repeat A -> list A
+  := unroll id.
 
 Section Repeat.
 
-  Context [A B : Type]
-          (f : A -> B).
-
-  Definition push (rsrc : repeated A) : repeated B
-    := match rsrc with
-       | repeat n s => repeat n (f s)
-       end.
-
-  Context [Err : Prop].
+  Context [A B : Type][Err : Prop].
   Definition pullOutRep (rerr : repeated (A + {Err})) : repeated A + {Err}
     := match rerr with
        | repeat n {- x -}     => {- repeat n x -}
@@ -41,3 +42,7 @@ Section Repeat.
        end.
 
 End Repeat.
+
+Definition once [A] : list A -> Repeat A := fun a => [ repeat 1 a ]%list.
+
+Coercion once : list >-> Repeat.

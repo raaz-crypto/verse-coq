@@ -353,3 +353,46 @@ Section Currying.
        |}.
 
 End Currying.
+
+Require Import Verse.Language.Repeat.
+
+Section Repeating.
+
+  Class REPEAT_IN t := { repeated_type : Type;
+                         repeat_in     : t -> repeated_type
+                       }.
+
+  Global Instance repeat_forall A (B : A -> Type) `{forall a, REPEAT_IN (B a)}
+    : REPEAT_IN (forall a, B a) | 1
+    := {| repeated_type := forall a, repeated_type (t := B a);
+          repeat_in     := fun x => fun a => repeat_in (x a)
+       |}.
+
+  Global Instance repeat_arrow A B `{REPEAT_IN B} : REPEAT_IN (A -> B) | 1
+    := {| repeated_type := A -> repeated_type (t := B);
+          repeat_in     := fun x => fun a => repeat_in (x a)
+       |}.
+
+  Global Instance repeat_repeated B : REPEAT_IN (Repeat B) | 3
+    := {| repeated_type := Repeat B;
+          repeat_in     := id
+       |}.
+
+  Global Instance repeat_undelimited B : REPEAT_IN (list B) | 4
+    := {| repeated_type := Repeat B;
+          repeat_in     := once (A := B)
+       |}.
+
+  Global Instance repeat_delimited B `{REPEAT_IN B} : REPEAT_IN (delimit B) | 2
+    := {| repeated_type := delimit (repeated_type (t := B));
+          repeat_in     := fun x => let 'body b := x in body (repeat_in b)
+       |}.
+
+  Global Instance repeat_scoped ts (CODE : Variables.U ts -> Type) v sc
+         `{REPEAT_IN (CODE v)}
+    : REPEAT_IN (scoped v sc (CODE v))
+    := {| repeated_type := scoped v sc (repeated_type (t := CODE v));
+          repeat_in     := fun x => curry (repeat_in (uncurry x))
+       |}.
+
+End Repeating.

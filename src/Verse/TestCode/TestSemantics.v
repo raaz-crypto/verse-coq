@@ -17,7 +17,7 @@ Section Code.
 
   Variable A B : v of type Word8.
 
-  Definition test : Repeat (line bvDenote v).
+  Definition test : lines bvDenote v.
     verse
       ([code| A := B |]
          ++
@@ -38,7 +38,7 @@ End Code.
  *)
 
 Definition toProve : Prop.
-  getProp test.
+  vc_gen test.
 Defined.
 
 Require Import Verse.ProofTac.

@@ -9,12 +9,14 @@ Import List.ListNotations.
 
 Create HintDb modular.
 
+#[export]
 Hint Resolve
   N.lt_le_incl
   N.mod_lt
   N.mod_le
   : modular.
 
+#[export]
 Hint Rewrite
   N.mod_0_l
   N.mod_same N.add_0_l
@@ -31,7 +33,7 @@ Proof.
   inversion H.
 Qed.
 
-Hint Resolve npos_neq_0 : modular.
+#[export] Hint Resolve npos_neq_0 : modular.
 (* end hide *)
 
 (** * Simple modular arithmetic proofs.
@@ -54,7 +56,7 @@ apply N.mod_mod; eauto with modular.
 Qed.
 
 
-Notation "X ≡ Y  [mod M ]"  := (eqMod M X Y)  (at level 70, format "X  ≡  Y  [mod  M ]").
+Notation "X ≡ Y [mod M ]"  := (eqMod M X Y)  (at level 70, format "X  ≡  Y  [mod  M ]").
 Notation "X ≡? Y [mod M ]"  := (eqModb M X Y) (at level 70, format "X  ≡?  Y  [mod  M ]").
 Notation "X <==[mod M ] Y"  := (redMod M X Y) (at level 70, format "X  <==[mod M ]  Y").
 
@@ -211,7 +213,8 @@ Lemma modMod_idemp : forall M, M <> 0%N -> forall x, modMod M x ≡ x [mod M].
   intros.
   local_crush.
 Qed.
-Hint Rewrite modMod_idemp : modular.
+
+#[export] Hint Rewrite modMod_idemp : modular.
 
 Lemma modMod_le_M : forall M, M <> 0%N -> forall x, (modMod M x <=  M)%N.
   unfold modMod.
@@ -221,7 +224,7 @@ Lemma modMod_le_M : forall M, M <> 0%N -> forall x, (modMod M x <=  M)%N.
   apply N.mod_lt; assumption.
 Qed.
 
-Hint Resolve modMod_le_M : modular.
+#[export] Hint Resolve modMod_le_M : modular.
 Lemma modMod_le : forall M, M<> 0%N -> forall x, (modMod M x <= x)%N.
   unfold modMod.
   simplify; eauto with modular.
@@ -233,7 +236,7 @@ Lemma zero_mod : forall M, M<>0%N -> M ≡ 0%N [mod M].
   intros; local_crush.
 Qed.
 
-Hint Rewrite zero_mod : modular.
+#[export] Hint Rewrite zero_mod : modular.
 
 Lemma mul_M_zero : forall M, M <> 0%N -> forall x, M * x ≡ 0 [mod M]%N.
   unfold eqMod.
@@ -242,7 +245,7 @@ Lemma mul_M_zero : forall M, M <> 0%N -> forall x, M * x ≡ 0 [mod M]%N.
   rewrite N.mul_mod; local_crush.
 Qed.
 
-Hint Rewrite mul_M_zero : modular.
+#[export] Hint Rewrite mul_M_zero : modular.
 
 Lemma modMod_0 : forall M, (M <> 0%N) -> forall x, (x - modMod M x ≡ 0 [mod M])%N.
   intros M H x.

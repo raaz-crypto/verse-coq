@@ -180,10 +180,10 @@ Require Export setoid_ring.Algebra_syntax.
 used when writing bitvector annotations. Typeclass unification
 allowing delayed unification is the favored theory as to why.
  *)
-Class AND A := and : A -> A -> A.
-Class OR  A := or  : A -> A -> A.
-Class XOR A := xor : A -> A -> A.
-Class NOT A := not : A -> A.
+Class AND A := And : A -> A -> A.
+Class OR  A := Or  : A -> A -> A.
+Class XOR A := Xor : A -> A -> A.
+Class NOT A := Not : A -> A.
 
 #[export] Instance BV_and sz : AND (Bvector sz) := @BVand sz.
 #[export] Instance BV_or  sz : OR (Bvector sz)  := @BVor sz.
@@ -223,9 +223,9 @@ Infix "=?" := (bveq) (at level 70): bitvector_scope.
 Infix "/"           := BVquot      (at level 40, left associativity) : bitvector_scope.
 Infix "%"           := BVrem       (at level 40, left associativity) : bitvector_scope.
 
-Infix "&" := and (at level 56).
-Infix "⊕" := xor (at level 57).
-Infix "∣"  := or (at level 59, left associativity).
+Infix "&" := And (at level 56).
+Infix "⊕" := Xor (at level 57).
+Infix "∣"  := Or (at level 59, left associativity).
 
 Infix "&" := BVand (at level 56, only printing) : bitvector_scope.
 Infix "⊕" := BVxor (at level 57, only printing) : bitvector_scope.
@@ -234,7 +234,9 @@ Infix "∣"  := BVor (at level 59, left associativity, only printing) : bitvecto
 
 (* TODO : `~` should be < level 40. But conformance with some other
           `~` makes it 75 here *)
-Notation "~ E" := (not E)  (at level 75, right associativity).
+Notation "~ E" := (Not E)  (at level 75, right associativity).
+
+Notation "~ E" := (BVcomp E)  (at level 75, right associativity, only printing) : bitvector_scope.
 
 (* TODO : Why do we have bitvector_scope at all? These notations don't
           really overload any existing notations.

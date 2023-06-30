@@ -5,6 +5,9 @@ Require Import Verse.BitVector.
 Require Import Verse.BitVector.Facts.
 Require Import Verse.Modular.Equation.
 
+From Coq Require Import ssreflect ssrfun ssrbool.
+Unset Strict Implicit.
+Unset Printing Implicit Defensive.
 
 Create HintDb bitvector_reflection.
 Lemma two_power_non_zero : forall n : N, (2^n)%N <> 0%N.
@@ -129,6 +132,7 @@ work in other modules that import this one.
 #[export] Instance add_N  : Addition N := N.add.
 #[export] Instance mul_N  : Multiplication := N.mul.
 
+#[export] Hint Unfold addition add_N multiplication mul_N : algebra.
 
 (** * Reified expressions of a
 
@@ -174,8 +178,10 @@ Module Exp.
     | Mul e1 e2 => denote e1 * denote e2
     end.
 
-  #[export] Instance add_exp A : Addition (t A) := Plus.
-  #[export] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
+  (* The following need global visibility for reflection tactics to work
+  elsewhere without an `Export Exp` *)
+  #[global] Instance add_exp A : Addition (t A) := Plus.
+  #[global] Instance mul_exp A : @Multiplication (t A) (t A):= Mul.
 
 End Exp.
 Import Exp.
@@ -285,25 +291,39 @@ Module Tactics.
          apply (N.lt_trans _ _ _ Hineq); simpl; lia
     end.
 
+  Ltac assert_arithmetic_mod H e sz :=
+    let eA := arithm e in
+    assert (H: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz.
+
   Ltac assert_arithmetic H e sz :=
     let eA := arithm e in
     assert(H:Bv2N e = eA) by
-     ( let HM := fresh "HM" in
+      (let HM := fresh "HM" in
        assert (HM: Bv2N e <==[mod 2^N.of_nat sz] eA) by crush_modular e eA sz;
        try (rewrite HM; apply N.mod_small);
-       try (crush_ineq)).
+       try crush_ineq).
+
+  Ltac arithmetise_mod sz :=
+    match goal with
+    | [ |- context[Bv2N ?E] ] =>
+        match E with
+        | _ + _ => let H := fresh "HA" in
+                   try (assert_arithmetic_mod H E sz; rewrite H; clear H)
+        | _ * _ => let H := fresh "HA" in
+                   try (assert_arithmetic_mod H E sz; rewrite H; clear H)
+        end
+    end.
 
   Ltac arithmetise sz :=
     match goal with
     | [ |- context[Bv2N ?E] ] =>
         match E with
         | _ + _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H)
+                   try (assert_arithmetic H E sz; rewrite H; clear H)
         | _ * _ => let H := fresh "HA" in
-                  try (assert_arithmetic H E sz; rewrite H)
+                   try (assert_arithmetic H E sz; rewrite H; clear H)
         end
     end.
-
 
 End Tactics.
 

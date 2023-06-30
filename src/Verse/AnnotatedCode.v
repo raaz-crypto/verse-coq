@@ -45,7 +45,7 @@ Section AnnotatedCode.
   Definition repCodeDenote sc (ls : forall v, Scope.scoped v sc (Repeat (line v)))
     : mline sc tyD
     := let srls := HlistMachine.specialise sc ls in
-       unroll (@linesDenote sc) srls.
+       @linesDenote sc (flatR srls).
 
 End AnnotatedCode.
 
@@ -57,16 +57,23 @@ Arguments repCodeDenote [tyD sc].
 
 (* Mapping instances for custom syntax notations *)
 
-#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (repeated (list (line tyD v)))
+#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+  := {|
+    CODE := List.map (@inst _ _)
+  |}.
+
+#[export] Instance statement_repLine tyD (v : VariableT) : AST_maps (list (statement v)) (repeated (list (line tyD v)))
   := {|
     CODE := fun ls => [ Repeat.repeat 1 (List.map (@inst _ _) ls) ]
   |}.
 
-#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (line tyD v)))
+#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+  := {| CODE := fun an => [ annot an ] |}.
+
+#[export] Instance ann_repLine tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (line tyD v)))
   := {| CODE := fun an => [ Repeat.repeat 1 [ annot an ] ] |}.
 
 
-(*Notation "'CODE' c" := (List.map (@inst _ _) c) (at level 58).*)
 (* Notations for annotations *)
 
 Class Evaluate (v : VariableT) tyD varType
@@ -88,10 +95,10 @@ Definition VecVar n (x : VariableT) [k] ty := Vector.t (x (existT _ k ty)) n.
   : Evaluate v tyD (VecVar n)
   := fun _ _ f x => Vector.map (eval f (Evaluate := eVar)) x.
 
-
 Notation "'ASSERT' P" := (CODE ((fun _ : StoreP (Str _ _) => P) : ann _ _)) (at level 100).
 
 Require Import Verse.Scope.
+
 Section CodeGen.
 
   Variable sc : Scope.type verse_type_system.
@@ -149,11 +156,11 @@ Arguments tpt sc [tyD].
 
 (* Extracting Prop object from annotated code *)
 
-Ltac getProp func
-  := (let cv := constr:(fun v => curry_vec (func v)) in
-      let level0 := constr:(Scope.Cookup.specialise cv) in
-      let level0break := (eval hnf in (Scope.inferNesting level0)) in
-      let pvs := constr:(fst level0break) in
-      let level1 := constr:(snd level0break) in
-      let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (tpt (pvs ++ lvs)%list cv)).
+Ltac vc_gen func
+  := let cv := constr:(fun v => curry_vec (func v)) in
+     let level0 := constr:(Scope.Cookup.specialise cv) in
+     let level0break := (eval hnf in (Scope.inferNesting level0)) in
+     let pvs := constr:(fst level0break) in
+     let level1 := constr:(snd level0break) in
+     let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
+     exact (tpt (pvs ++ lvs)%list cv).

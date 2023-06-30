@@ -110,7 +110,7 @@ Module SHA2 (C : CONFIG).
           Vector.map (fun x => Var x) (Vector.append STATE [ t ]%vector).
 
 
-        Definition LOAD_STATE : Repeat (statement v) := loadCache hash STATE.
+        Definition LOAD_STATE : code v := loadCache hash STATE.
 
 
         (** * Message scheduling.
@@ -270,7 +270,7 @@ Module SHA2 (C : CONFIG).
         applicable for that round computed the message schedule, and
         the round constant [K].
          *)
-        Definition STEP (s : State)(M : v of type Word)(K : constant Word) : Repeat (statement v) :=
+        Definition STEP (s : State)(M : v of type Word)(K : constant Word) : code v :=
           [code|
              t := `H s` + K + M + `CH (E s) (F s) (G s)` + `Sigma1 s`;
             `D s` += t;
@@ -308,10 +308,10 @@ Module SHA2 (C : CONFIG).
             | (s, @exist _ _ idx _) => (newState s, nextIdx idx)
             end.
 
-          Variable genCode : Accumulator -> constant Word -> Repeat (statement v).
+          Variable genCode : Accumulator -> constant Word -> code v.
 
           Fixpoint generateRounds (acc : Accumulator) (Ks : list (constant Word))
-            : Repeat (statement v) * Accumulator
+            : code v * Accumulator
             := match Ks with
                | k :: ks =>
                  let cde := genCode acc k in
@@ -340,11 +340,11 @@ Module SHA2 (C : CONFIG).
           cd1 ++ cd2.
 
 
-        Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : Repeat (statement v).
+        Definition UPDATE_ITH (i : nat) (pf : i < HASH_SIZE) : code v.
           verse [code| STATE[ i ] += hash [ i ] |].
         Defined.
 
-        Definition UPDATE : Repeat (statement v)
+        Definition UPDATE : code v
           := foreach (indices hash) UPDATE_ITH ++ moveBackCache hash STATE.
 
         Definition sha2 : iterator v Block :=
