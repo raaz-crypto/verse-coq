@@ -28,21 +28,21 @@ Section Call.
   Context [tyD : typeDenote verse_type_system]
           [ v  : VariableT ].
 
-  Record specBlock w := { blck    : lines tyD w;
+  Record subroutine w := { blck    : lines tyD w;
                           postC   : ann tyD w    }.
 
   Arguments blck [w].
   Arguments postC [w].
 
   Let sub (sc : Scope.type verse_type_system)
-    := subroutine (tyD : Variables.U verse_type_system) sc sc.
+      := Machine.subroutine (tyD : Variables.U verse_type_system) sc sc.
 
   Let vsub (sc : Scope.type verse_type_system)
-    := vsubroutine (tyD : Variables.U verse_type_system) sc sc.
+    := Machine.vsubroutine (tyD : Variables.U verse_type_system) sc sc.
 
   Definition func sc
     := forall w, Scope.allocation w sc
-                 -> specBlock w.
+                 -> subroutine w.
 
   Definition funSub sc (fc : func sc) : sub sc
     := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
@@ -55,11 +55,11 @@ Section Call.
   | call : forall [sc] (fc : func sc)
                   (vc : VC (funSub sc fc)), equiv fc (exist _ _ vc).
 
-  Record verFun := { inTy   : Scope.type verse_type_system -> Type;
-                     inSc   : Scope.type verse_type_system;
-                     inLine : inTy inSc;
-                     verSub : vsub inSc;
-                     eqprf  : @equiv _ inLine inSc verSub }.
+  Record vsubroutine := { inTy   : Scope.type verse_type_system -> Type;
+                          inSc   : Scope.type verse_type_system;
+                          inLine : inTy inSc;
+                          verSub : vsub inSc;
+                          eqprf  : @equiv _ inLine inSc verSub }.
 
   Inductive modular :=
   | block         : lines tyD v -> modular
@@ -99,9 +99,9 @@ Section Call.
 End Call.
 
 Arguments postC [tyD w].
-Arguments specBlock tyD w : clear implicits.
+Arguments subroutine tyD w : clear implicits.
 Arguments modular tyD v : clear implicits.
-Arguments verFun tyD : clear implicits.
+Arguments vsubroutine tyD : clear implicits.
 
 Require Import Verse.Language.Pretty.
 Require Verse.Ast.
@@ -136,7 +136,7 @@ Notation "F 'DOES' Post" := ({| blck := F;
 Ltac Pack f := let cv := constr:(fun v => Scope.curry_vec (f v)) in
                let sc := constr:(fst (Scope.inferNesting (Scope.Cookup.specialise cv))) in
                refine {| inTy   := fun sc' => forall w, Scope.allocation w sc'
-                                                       -> specBlock _ w;
+                                                       -> subroutine _ w;
                          inLine := fun w => Scope.uncurry
                                               (st := sc)
                                               (cv%function w);
@@ -221,7 +221,7 @@ Section ModProof.
   *)
 
   Record preCall := { preB    : lines tyD scv;
-                      procC   : verFun tyD;
+                      procC   : vsubroutine tyD;
                       procAll : Scope.allocation scv (inSc procC) }.
 
   Definition modCode : Type := list preCall * lines tyD scv.
@@ -235,7 +235,7 @@ Section ModProof.
 
   Let Str := HlistMachine.state sc tyD.
 
-  Local Definition PC (vf : verFun tyD) : ann tyD (HlistMachine.variable (inSc vf))
+  Local Definition PC (vf : vsubroutine tyD) : ann tyD (HlistMachine.variable (inSc vf))
     := match eqprf vf with
        | call f _ => postC (f _ (all_membership _))
        end.
