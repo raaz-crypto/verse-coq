@@ -138,7 +138,7 @@ Ltac modProof :=
   try match goal with
       | |- context [getProp _ (linesDenote (inline_calls ?l))]
         => rewrite (splitEq l); apply modularize;
-           unfold modularProof; simpl;
+           unfold blackbox_vc; simpl;
            repeat match goal with
                   | |- distinctAll _ /\ _ =>  constructor;
                                               [> unfold distinctAll; simpl; easy

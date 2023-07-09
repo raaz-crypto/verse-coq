@@ -251,23 +251,23 @@ Section ModProof.
    *)
   Let spec pc dummyVals := guaranteeOn (fSpec pc dummyVals).
 
-  Fixpoint modProofAux cpre mpre cs pb
+  Fixpoint blackbox_vc_aux cpre mpre cs pb
     := match cs with
        | pc :: cst =>
            let mstep := linesDenote (sc := sc) (preB pc) in
            distinctAll (procAll pc) /\
-           forall dummyVals, modProofAux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
+           forall dummyVals, blackbox_vc_aux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
                                           (mpre ** mstep ** justInst
                                                 (lDummyProc pc dummyVals))
                                           cst pb
        | []        =>   getProp cpre (mpre ** linesDenote (sc := sc) (flatR pb))
        end.
 
-  Definition modularProof (mc : modCode)
-    := modProofAux (fun _ => True) ε (fst mc) (snd mc).
+  Definition blackbox_vc (mc : modCode)
+    := blackbox_vc_aux (fun _ => True) ε (fst mc) (snd mc).
 
   Axiom modularize
-    : forall mc, modularProof mc
+    : forall mc, blackbox_vc mc
                  ->
                    getProp (fun _ => True) (linesDenote (sc := sc) (inline_calls mc)).
 
