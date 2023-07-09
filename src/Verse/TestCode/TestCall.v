@@ -23,7 +23,7 @@ Section Code.
   Variable A B C : v of type Word8.
 
   Definition f (w : VariableT) (a b : w of type Word8)
-    : specBlock bvDenote w.
+    : subroutine bvDenote w.
 
     verse ([code| a := b + b |]
                 DOES
@@ -31,7 +31,7 @@ Section Code.
           )%list.
   Defined.
 
-  Definition verF : verFun bvDenote.
+  Definition verF : vsubroutine bvDenote.
     Pack f.
     realize.
   Defined.
