@@ -392,16 +392,16 @@ Section CodeGen.
   Definition cp
     := linesDenote (sc := sc) (inline_calls (flatR (HlistMachine.specialise sc ac))).
 
-  Definition tpt := getProp (fun _ => True) cp.
+  Definition vc := getProp (fun _ => True) cp.
 
 End CodeGen.
 
-Global Hint Unfold tpt : Wrapper.
+Global Hint Unfold vc : Wrapper.
 Global Hint Unfold cp  : Wrapper.
 
 Arguments cp sc [tyD].
 Arguments getProp [sc tyD].
-Arguments tpt sc [tyD].
+Arguments vc sc [tyD].
 
 Ltac vc_gen func
   := (let cv := constr:(fun v => Scope.curry_vec (func v)) in
@@ -410,7 +410,7 @@ Ltac vc_gen func
       let pvs := constr:(fst level0break) in
       let level1 := constr:(snd level0break) in
       let lvs := (eval hnf in (fst (Scope.inferNesting level1))) in
-      exact (tpt (pvs ++ lvs)%list cv)).
+      exact (vc (pvs ++ lvs)%list cv)).
 
 Module Tactics.
   (* For simple subroutine proofs, with post-conditions simply giving
