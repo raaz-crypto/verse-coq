@@ -47,7 +47,7 @@ Lemma to_vs_of_N_spec M : forall n : N, to_N (@of_N M n) = (n mod (Npos M))%N.
   trivial.
 Qed.
 
-Hint Unfold eqZmod : localdb.
+#[local] Hint Unfold eqZmod : localdb.
 #[local] Ltac simplify := repeat (autounfold with localdb; Equation.simplify).
 #[local] Ltac zmod_destruct := repeat (match goal with
                                        | [ x : Zmod _  |- _ ] => destruct x; simpl
@@ -130,7 +130,7 @@ Require Import setoid_ring.Algebra_syntax.
 #[export] Instance eq_Zmod M   : Equality   := @eqZmod M.
 #[export] Instance setoid_Zmod M : Setoid (Zmod M)   := {| SetoidClass.equiv := @eqZmod M; |}.
 
-Hint Unfold addition multiplication subtraction opposite add_Zmod mul_Zmod zero one: localdb.
+#[local] Hint Unfold addition multiplication subtraction opposite add_Zmod mul_Zmod zero one: localdb.
 Add Parametric Morphism (M : positive) : to_N with signature
     @eqZmod M ==> eq as to_N_mor.
 Proof.
@@ -218,7 +218,6 @@ Lemma Zmod_opp_def {M} : forall x : Zmod M, x + opposite x == 0.
 Qed.
 
 
-Print semi_ring_theory.
 Program Definition modular_semi_ring (M : positive)
   : semi_ring_theory
       0

@@ -3,7 +3,7 @@ Require Import Verse.Machine.BitVector.
 Require Import Verse.
 
 Require Import Verse.HlistMachine.
-Require Import Verse.AnnotatedCode.
+Require Import Verse.Annotated.
 
 Set Implicit Arguments.
 
@@ -14,7 +14,7 @@ Section Code.
   Variable A B : v of type Word8.
   Variable C   : Vector.t (v of type (Array 1 bigE Word16)) 1.
 
-  Definition test : lines bvDenote v.
+  Definition test : Annotated.code bvDenote v.
     verse (
         [code| A := B;
                B := `255`;

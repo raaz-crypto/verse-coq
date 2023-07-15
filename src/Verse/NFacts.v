@@ -4,6 +4,8 @@
 
 Require Export BinNat.
 Require Export NArith.
+
+#[export]
 Hint Resolve N.le_refl
        N.le_le_succ_r
        N.lt_succ_diag_r
@@ -20,6 +22,7 @@ Hint Resolve N.le_refl
        N.mul_lt_mono
        N.pow_le_mono_r  : Nfacts.
 
+#[export]
 Hint Rewrite
      N.sub_0_r N.sub_diag N.mod_0_l N.mod_mod
      N.div2_succ_double N.div2_double
@@ -51,11 +54,11 @@ Ltac crush :=
 Lemma of_nat_le_mono: forall a b, a <= b -> (N.of_nat a <= N.of_nat b)%N.
 Proof.
   intros a b aleb.
-  Hint Rewrite Nat2N.inj_succ : Nrewrites.
+  #[export] Hint Rewrite Nat2N.inj_succ : Nrewrites.
   induction aleb; crush.
 Qed.
 
-Hint Resolve of_nat_le_mono : Nfacts.
+#[export] Hint Resolve of_nat_le_mono : Nfacts.
 
 Lemma inj_size : forall x, N.of_nat (N.size_nat x) = N.size x.
 Proof.
@@ -69,7 +72,7 @@ Proof.
   intro Hyp; inversion Hyp.
 Qed.
 
-Hint Resolve N_2_neq_0 : Nfacts.
+#[export] Hint Resolve N_2_neq_0 : Nfacts.
 
 Lemma N_pow_2_neq_0 : forall n, (2^n <> 0)%N.
 Proof.
@@ -86,14 +89,14 @@ Proof.
   crush.
 Qed.
 
-Hint Resolve Npow_2_le_mono : Nfacts.
+#[export] Hint Resolve Npow_2_le_mono : Nfacts.
 
 Lemma Nsize_pow_2 n x : (N.size x <= n -> x < 2^n)%N.
 Proof.
   intros; assert (2^N.size x <= 2^n)%N;assert (x < 2^ N.size x)%N; crush.
 Qed.
 
-Hint Resolve Nsize_pow_2 : Nfacts.
+#[export] Hint Resolve Nsize_pow_2 : Nfacts.
 
 Lemma Nsize_nat_pow_2  n x : N.size_nat x <= n -> (x < 2^(N.of_nat n))%N.
 Proof.
@@ -102,7 +105,7 @@ Proof.
   crush.
 Qed.
 
-Hint Resolve Nsize_nat_pow_2 : Nfacts.
+#[export] Hint Resolve Nsize_nat_pow_2 : Nfacts.
 
 Lemma Ndouble_twice : forall (x : N),  (x + x = 2 *x)%N.
   intro;
@@ -116,7 +119,7 @@ Lemma Nadd_bound n a b :  (N.size a <= n -> N.size b <= n
                            -> (a + b) < 2^(1+n))%N.
 Proof.
   intros.
-  Hint Resolve N.add_le_mono : Nfacts.
+  #[export] Hint Resolve N.add_le_mono : Nfacts.
   autorewrite with Nrewrites.
   rewrite <- Ndouble_twice.
   crush.
@@ -126,9 +129,9 @@ Lemma Nadd_bound_gen n m a b :  (n < m -> N.size a <= n -> N.size b <= n
                             -> (a + b) < 2^m)%N.
 Proof.
   intros.
-  Hint Resolve Npow_2_le_mono : Nfacts.
-  Hint Resolve N.le_succ_l : Nfacts.
-  Hint Resolve Nadd_bound : Nfacts.
+  #[export] Hint Resolve Npow_2_le_mono : Nfacts.
+  #[export] Hint Resolve N.le_succ_l : Nfacts.
+  #[export] Hint Resolve Nadd_bound : Nfacts.
   assert (a + b  < 2^(1+n))%N by eauto with Nfacts.
   assert (1+n <= m)%N by (crush; now apply N.le_succ_l).
   assert (2^(1+n) <= 2^m)%N by now apply (Npow_2_le_mono (1+n) m)%N.
@@ -148,8 +151,8 @@ Lemma Nadd_bound_nat_gen n m a b : n < m -> N.size_nat a <= n -> N.size_nat b <=
                                -> ((a + b) < 2^(N.of_nat m))%N.
 Proof.
   intros.
-  Hint Resolve Npow_2_le_mono_nat : Nfacts.
-  Hint Resolve Nadd_bound_nat : Nfacts.
+  #[export] Hint Resolve Npow_2_le_mono_nat : Nfacts.
+  #[export] Hint Resolve Nadd_bound_nat : Nfacts.
   assert(a+b < 2^N.of_nat (S n))%N; crush.
 Qed.
 
@@ -162,7 +165,7 @@ Qed.
 Lemma Nmul_bound_nat n0 n1 a b :  N.size_nat a <= n0 -> N.size_nat b <= n1
                                -> ((a * b) < 2^(N.of_nat (n0 + n1)))%N.
 Proof.
-  Hint Rewrite Nat2N.inj_add : Nrewrites.
+  #[export] Hint Rewrite Nat2N.inj_add : Nrewrites.
   crush.
 Qed.
 
@@ -196,7 +199,7 @@ Lemma divide_mod_mod : forall (x m n : N), m <> 0%N ->  n <> 0%N -> (n | m)%N ->
 Qed.
 
 (*
-Hint Rewrite divide_mod_mod : localdb.
+#[export] Hint Rewrite divide_mod_mod : localdb.
 *)
 
 Lemma divide_mod_le : forall (x m n : N), m <> 0%N -> n <> 0%N -> (n | m)%N  -> (n < m)%N ->  (x mod n <= x mod m)%N.

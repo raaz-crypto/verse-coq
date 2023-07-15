@@ -10,8 +10,8 @@ Require Import Verse.
    Might have to change `Require Import Verse` and `Require Import
    Verse.Language` to `Require Export`s.
  *)
-Require Import Verse.AnnotatedCode.
-Require Import Verse.ModularCode.
+Require Import Verse.Annotated.
+Require Import Verse.Subroutine.
 Require Import Verse.ProofTac.
 
 Set Implicit Arguments.
@@ -23,7 +23,7 @@ Section Code.
   Variable A B C : v of type Word8.
 
   Definition f (w : VariableT) (a b : w of type Word8)
-    : specBlock bvDenote w.
+    : subroutine bvDenote w.
 
     verse ([code| a := b + b |]
                 DOES
@@ -31,12 +31,12 @@ Section Code.
           )%list.
   Defined.
 
-  Definition verF : verFun bvDenote.
+  Definition verF : vsubroutine bvDenote.
     Pack f.
     realize.
   Defined.
 
-  Definition middle : list (modular bvDenote v).
+  Definition middle : Subroutine.code bvDenote v.
     verse ([code| B := A; A := `6` |]
              ++
              (ASSERT VAL B = INIT A)
@@ -44,7 +44,7 @@ Section Code.
              CALL verF WITH (- A, B -))%list.
   Defined.
 
-  Definition test : Repeat (modular bvDenote v).
+  Definition test : Repeat (Subroutine.statement bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
         [code| A := A; B := B; C := `0` |]
