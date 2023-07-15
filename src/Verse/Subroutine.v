@@ -10,7 +10,7 @@ instructions to package target specific instructions with intended
 state transformations and guarantees will allow for proofs with such
 instructions.  *)
 
-Require Import Verse.AnnotatedCode.
+Require Import Verse.Annotated.
 Require Import Verse.Ast.
 Require Import Verse.HlistMachine.
 Require Import Verse.Language.Types.
@@ -23,12 +23,16 @@ Require Import Verse.Utils.hlist.
 Require Import PList.
 Import ListNotations.
 
-Section Call.
+(* NOTE : Wrapping this section in a module would need many more name
+   changes.  For example, `subroutine` might need to become `t`.  It
+   would be better to do that to avoid hard-to-debug bugs involving
+   innocuous use of wrong `statement` or `code` in other places. *)
+Section Subroutine.
 
   Context [tyD : typeDenote verse_type_system]
           [ v  : VariableT ].
 
-  Record subroutine w := { blck    : lines tyD w;
+  Record subroutine w := { blck   : Annotated.code tyD w;
                           postC   : ann tyD w    }.
 
   Arguments blck [w].
@@ -46,8 +50,8 @@ Section Call.
 
   Definition funSub sc (fc : func sc) : sub sc
     := let (bl, pc)   := fc (HlistMachine.variable sc) (all_membership sc) in
-       {| transform   := srFst (linesDenote (sc := sc) bl);
-          guarantee   := srSnd (lineDenote (annot pc))
+       {| transform   := srFst (Annotated.codeDenote (sc := sc) bl);
+          guarantee   := srSnd (Annotated.statementDenote (annot pc))
        |}.
 
 
@@ -61,9 +65,11 @@ Section Call.
                           verSub : vsub inSc;
                           eqprf  : @equiv _ inLine inSc verSub }.
 
-  Inductive modular :=
-  | block         : lines tyD v -> modular
-  | inline        : forall vfun, Scope.allocation v (inSc vfun) -> modular.
+  Inductive statement :=
+  | block         : Annotated.code tyD v -> statement
+  | inline        : forall vfun, Scope.allocation v (inSc vfun) -> statement.
+
+  Definition code := list statement.
 
   (* We consider the default interpretation of a `call` to be an
   inlining of the text of the function while stripping it of its
@@ -72,14 +78,14 @@ Section Call.
   inside functions.
    *)
 
-  Definition stripAnn [v] (ls : lines tyD v)
+  Definition stripAnn [v] (ls : Annotated.code tyD v)
     := concat (map (fun l => match l with
                      | inst _ as l0 => [ l0 ]
                      | _            => []
                      end)
                    ls).
 
-  Definition inline_call (a : modular) : lines tyD v
+  Definition inline_call (a : statement) : Annotated.code tyD v
     := match a with
        | block i       => i
        | inline sl all => match eqprf sl with
@@ -87,20 +93,21 @@ Section Call.
                           end all
        end.
 
-  Definition inline_calls := fun x : list (modular) => concat (PList.map inline_call x).
+  Definition inline_calls := fun x : code => concat (PList.map inline_call x).
 
-  Lemma inline_instructions (ls : lines tyD v)
+  Lemma inline_instructions (ls : Annotated.code tyD v)
     : inline_calls [ block ls ] = ls.
   Proof.
     unfold inline_calls.
     apply app_nil_r.
   Qed.
 
-End Call.
+End Subroutine.
 
 Arguments postC [tyD w].
 Arguments subroutine tyD w : clear implicits.
-Arguments modular tyD v : clear implicits.
+Arguments statement tyD v : clear implicits.
+Arguments code tyD v : clear implicits.
 Arguments vsubroutine tyD : clear implicits.
 
 Require Import Verse.Language.Pretty.
@@ -109,22 +116,22 @@ Require Verse.Ast.
 (* Mapping instances for custom syntax notations *)
 
 #[export] Instance statement_modular tyD (v : VariableT)
-  : AST_maps (list (Ast.statement v)) (modular tyD v) | 1
+  : AST_maps (list (Ast.statement v)) (statement tyD v) | 1
   := {| CODE := fun ls => [ block (CODE ls) ] |}.
 
-#[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (modular tyD v) | 1
+#[export] Instance annot_modular tyD (v : VariableT) : AST_maps (ann tyD v) (statement tyD v) | 1
   := {| CODE := fun an => [ block [ annot an ] ] |}.
 
 #[export] Instance statement_repModular tyD (v : VariableT)
-  : AST_maps (list (Ast.statement v)) (repeated (list (modular tyD v))) | 0
+  : AST_maps (list (Ast.statement v)) (repeated (list (statement tyD v))) | 0
   := {| CODE := fun ls => [ Repeat.repeat 1 [ block (CODE ls) ] ] |}.
 
-#[export] Instance annot_repModular tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (modular tyD v))) | 0
+#[export] Instance annot_repModular tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (statement tyD v))) | 0
   := {| CODE := fun an => [ Repeat.repeat 1 [ block [ annot an ] ] ] |}.
 
-#[export] Instance modular_id tyD (v : VariableT) : AST_maps (list (modular tyD v)) (modular tyD v) | 1 := {| CODE := id |}.
+#[export] Instance modular_id tyD (v : VariableT) : AST_maps (list (statement tyD v)) (statement tyD v) | 1 := {| CODE := id |}.
 
-#[export] Instance modular_repModular tyD (v : VariableT) : AST_maps (list (modular tyD v)) (repeated (list (modular tyD v))) | 0
+#[export] Instance modular_repModular tyD (v : VariableT) : AST_maps (list (statement tyD v)) (repeated (list (statement tyD v))) | 0
   := {| CODE := fun x => [ Repeat.repeat 1 x ] |}.
 
 Notation "'CALL' f 'WITH' a" := (CODE [ inline f a ]) (at level 60).
@@ -180,7 +187,7 @@ Definition distinctAll [ts] [sc : Scope.type ts]
                                     (alltolist (hlist.tl an))
            end a) ts sc v a).
 
-Import AnnotatedCode.
+Import Annotated.
 
 Section ModProof.
 
@@ -220,13 +227,13 @@ Section ModProof.
      application of our meta theorem.
   *)
 
-  Record preCall := { preB    : lines tyD scv;
+  Record preCall := { preB    : Annotated.code tyD scv;
                       procC   : vsubroutine tyD;
                       procAll : Scope.allocation scv (inSc procC) }.
 
-  Definition modCode : Type := list preCall * lines tyD scv.
+  Definition modCode : Type := list preCall * Annotated.code tyD scv.
 
-  Coercion getCode (mc : modCode) : list (modular tyD scv)
+  Coercion getCode (mc : modCode) : list (Subroutine.statement tyD scv)
     := [ block
            (mapMconcat (fun pc =>
                         (preB pc
@@ -241,7 +248,7 @@ Section ModProof.
        end.
 
   Let fSpec pc dummyVals := {| transform   := dummyProc (procAll pc) dummyVals;
-                               guarantee   := srSnd (lineDenote (annot (PC (procC pc))))
+                               guarantee   := srSnd (Annotated.statementDenote (annot (PC (procC pc))))
                             |}.
 
   Let lDummyProc pc dummyVals := transform (lift (fSpec pc dummyVals) (procAll pc) (procAll pc)).
@@ -254,13 +261,13 @@ Section ModProof.
   Fixpoint blackbox_vc_aux cpre mpre cs pb
     := match cs with
        | pc :: cst =>
-           let mstep := linesDenote (sc := sc) (preB pc) in
+           let mstep := Annotated.codeDenote (sc := sc) (preB pc) in
            distinctAll (procAll pc) /\
            forall dummyVals, blackbox_vc_aux (fun str => cpre str /\ spec pc dummyVals (gets (procAll pc) (srFst (mpre ** mstep) str)))
                                           (mpre ** mstep ** justInst
                                                 (lDummyProc pc dummyVals))
                                           cst pb
-       | []        =>   getProp cpre (mpre ** linesDenote (sc := sc) (flatR pb))
+       | []        =>   getProp cpre (mpre ** Annotated.codeDenote (sc := sc) (flatR pb))
        end.
 
   Definition blackbox_vc (mc : modCode)
@@ -269,7 +276,7 @@ Section ModProof.
   Axiom modularize
     : forall mc, blackbox_vc mc
                  ->
-                   getProp (fun _ => True) (linesDenote (sc := sc) (inline_calls mc)).
+                 getProp (fun _ => True) (Annotated.codeDenote (sc := sc) (inline_calls mc)).
 
 End ModProof.
 
@@ -279,8 +286,8 @@ Arguments getCode [tyD sc].
    `modCode` struct so as to be able to use our modular proof. *)
 Fixpoint splitAux [tyD]
   [sc : Scope.type verse_type_system]
-  (l1 : list (modular _ (HlistMachine.variable sc)))
-  (l2 : lines tyD (HlistMachine.variable sc))
+  (l1 : Subroutine.code _ (HlistMachine.variable sc))
+  (l2 : Annotated.code tyD (HlistMachine.variable sc))
   : modCode tyD sc
   := match l1 with
      | []       => ([], l2)
@@ -298,14 +305,14 @@ Fixpoint splitAux [tyD]
 
 Definition split [tyD]
            [sc : Scope.type verse_type_system]
-           (l : list (modular _ (HlistMachine.variable sc)))
+           (l : Subroutine.code _ (HlistMachine.variable sc))
   : modCode tyD sc
   :=  splitAux l [].
 
 (* Lastly we relate the abstraction created to the original object to
 be able to use it at all *)
 Lemma splitEq  [tyD] [sc : Scope.type verse_type_system]
-      (l : list (modular tyD (HlistMachine.variable sc)))
+      (l : Subroutine.code tyD (HlistMachine.variable sc))
   : inline_calls l = inline_calls (getCode (split l)).
 
 Proof.
@@ -316,7 +323,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (splitAuxCall : forall f all l1 (l2 : (lines tyD (HlistMachine.variable sc))),
+  assert (splitAuxCall : forall f all l1 (l2 : (Annotated.code tyD (HlistMachine.variable sc))),
              splitAux (inline f all :: l1) l2
              = ({| preB := l2;
                   procC := f;
@@ -327,7 +334,7 @@ Proof.
   (*Qed*)
 
   (*Lemma*)
-  assert (getCode_cons : forall (b : lines tyD (HlistMachine.variable sc)) f all cs pb,
+  assert (getCode_cons : forall (b : Annotated.code tyD (HlistMachine.variable sc)) f all cs pb,
              inline_calls (getCode ({| preB := b; procC := f; procAll := all |} :: cs, pb))
              = inline_calls (block (b ++ inline_calls [inline f all]) :: getCode (cs, pb))).
   intros.
@@ -346,7 +353,7 @@ Proof.
   now repeat rewrite app_assoc.
   (*Qed*)
 
-  enough (splitAuxEq : forall l1 (l2 : lines tyD (HlistMachine.variable sc)),
+  enough (splitAuxEq : forall l1 (l2 : Annotated.code tyD (HlistMachine.variable sc)),
              l2 ++ inline_calls l1 = inline_calls (splitAux l1 l2)).
   apply (splitAuxEq _ []).
 
@@ -386,11 +393,11 @@ Section CodeGen.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Variable ac : forall v, Scope.scoped v sc (Repeat (modular tyD v)).
+  Variable ac : forall v, Scope.scoped v sc (Repeat (Subroutine.statement tyD v)).
 
   (* TODO: This is really a bad name particularly because it is being used outside (is it ?). *)
   Definition cp
-    := linesDenote (sc := sc) (inline_calls (flatR (HlistMachine.specialise sc ac))).
+    := Annotated.codeDenote (sc := sc) (inline_calls (flatR (HlistMachine.specialise sc ac))).
 
   Definition vc := getProp (fun _ => True) cp.
 

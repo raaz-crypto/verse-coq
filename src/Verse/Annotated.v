@@ -9,7 +9,7 @@ Require Import Verse.HlistMachine.
 Require Import List.
 Import List.ListNotations.
 
-Section AnnotatedCode.
+Section Annotated.
 
   Variable tyD : typeDenote verse_type_system.
 
@@ -25,52 +25,52 @@ Section AnnotatedCode.
 
   Definition ann v := StoreP (Str v) -> Prop.
 
-  Inductive line (v : Variables.U verse_type_system) :=
-  | inst      : statement v -> line v
-  | annot     : ann v -> line v
+  Inductive statement (v : Variables.U verse_type_system) :=
+  | inst      : Ast.statement v -> statement v
+  | annot     : ann v -> statement v
   .
 
-  Definition lines v := list (line v).
+  Definition code v := list (statement v).
 
-  Definition lineDenote [sc] (l : line (HlistMachine.variable sc))
+  Definition statementDenote [sc] (l : statement (HlistMachine.variable sc))
     : mline sc tyD
     := match l with
        | inst _ s   => justInst (Internals.denoteStmt _ _ _ s)
        | annot _ a => justAssert (fun sp => a ((val (fst sp), val (snd sp)) : Pair _))
        end.
 
-  Definition linesDenote [sc] (ls : lines (HlistMachine.variable sc))
-    := mapMconcat (@lineDenote _) ls.
+  Definition codeDenote [sc] (ls : code (HlistMachine.variable sc))
+    := mapMconcat (@statementDenote _) ls.
 
-  Definition repCodeDenote sc (ls : forall v, Scope.scoped v sc (Repeat (line v)))
+  Definition repCodeDenote sc (ls : forall v, Scope.scoped v sc (Repeat (statement v)))
     : mline sc tyD
     := let srls := HlistMachine.specialise sc ls in
-       @linesDenote sc (flatR srls).
+       @codeDenote sc (flatR srls).
 
-End AnnotatedCode.
+End Annotated.
 
 Arguments inst [tyD v].
 Arguments annot [tyD v].
-Arguments lineDenote [tyD sc].
-Arguments linesDenote [tyD sc].
+Arguments statementDenote [tyD sc].
+Arguments codeDenote [tyD sc].
 Arguments repCodeDenote [tyD sc].
 
 (* Mapping instances for custom syntax notations *)
 
-#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (statement v)) (line tyD v)
+#[export] Instance statement_line tyD (v : VariableT) : AST_maps (list (Ast.statement v)) (statement tyD v)
   := {|
     CODE := List.map (@inst _ _)
   |}.
 
-#[export] Instance statement_repLine tyD (v : VariableT) : AST_maps (list (statement v)) (repeated (list (line tyD v)))
+#[export] Instance statement_repLine tyD (v : VariableT) : AST_maps (list (Ast.statement v)) (repeated (list (statement tyD v)))
   := {|
     CODE := fun ls => [ Repeat.repeat 1 (List.map (@inst _ _) ls) ]
   |}.
 
-#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (line tyD v)
+#[export] Instance ann_line tyD (v : VariableT) : AST_maps (ann tyD v) (statement tyD v)
   := {| CODE := fun an => [ annot an ] |}.
 
-#[export] Instance ann_repLine tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (line tyD v)))
+#[export] Instance ann_repLine tyD (v : VariableT) : AST_maps (ann tyD v) (repeated (list (statement tyD v)))
   := {| CODE := fun an => [ Repeat.repeat 1 [ annot an ] ] |}.
 
 
@@ -105,7 +105,7 @@ Section CodeGen.
 
   Variable tyD : typeDenote verse_type_system.
 
-  Variable ac : forall v, Scope.scoped v sc (Repeat (line tyD v)).
+  Variable ac : forall v, Scope.scoped v sc (Repeat (statement tyD v)).
 
   Definition cp := repCodeDenote ac.
 

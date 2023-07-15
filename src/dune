@@ -6,7 +6,7 @@
           ; Verse.Abstract.Language
 	  Verse.Abstract.Machine
           Verse.Ast
-          Verse.AnnotatedCode
+          Verse.Annotated
 	  Verse.Error
           Verse.FFI.Raaz
           Verse.FFI.Raaz.Target.C
@@ -27,7 +27,7 @@
           Verse.BitVector.Facts
           Verse.BitVector.ArithRing
           Verse.BitVector.Reflection
-	  Verse.ModularCode
+	  Verse.Subroutine
           Verse.Monoid
           Verse.Monoid.Interface
           Verse.Monoid.Semantics
