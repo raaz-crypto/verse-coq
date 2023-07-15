@@ -15,7 +15,7 @@ Lemma two_power_non_zero : forall n : N, (2^n)%N <> 0%N.
   apply N.pow_nonzero; intro H; inversion H.
 Qed.
 
-#[local] Hint Resolve two_power_non_zero @Bv2N_N2Bv_sized_mod : bitvector_reflection.
+#[local] Hint Resolve two_power_non_zero (*@Bv2N_N2Bv_sized_mod*) : bitvector_reflection.
 
 (* end hide *)
 
