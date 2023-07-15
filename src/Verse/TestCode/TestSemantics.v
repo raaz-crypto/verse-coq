@@ -3,7 +3,7 @@ Require Import Verse.Machine.BitVector.
 
 Require Import Verse.
 
-Require Import Verse.AnnotatedCode.
+Require Import Verse.Annotated.
 Require Import Verse.HlistMachine.
 
 Require Import List.
@@ -17,7 +17,7 @@ Section Code.
 
   Variable A B : v of type Word8.
 
-  Definition test : lines bvDenote v.
+  Definition test : Annotated.code bvDenote v.
     verse
       ([code| A := B |]
          ++

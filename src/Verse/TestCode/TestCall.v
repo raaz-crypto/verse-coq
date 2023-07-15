@@ -10,8 +10,8 @@ Require Import Verse.
    Might have to change `Require Import Verse` and `Require Import
    Verse.Language` to `Require Export`s.
  *)
-Require Import Verse.AnnotatedCode.
-Require Import Verse.ModularCode.
+Require Import Verse.Annotated.
+Require Import Verse.Subroutine.
 Require Import Verse.ProofTac.
 
 Set Implicit Arguments.
@@ -36,7 +36,7 @@ Section Code.
     realize.
   Defined.
 
-  Definition middle : list (modular bvDenote v).
+  Definition middle : Subroutine.code bvDenote v.
     verse ([code| B := A; A := `6` |]
              ++
              (ASSERT VAL B = INIT A)
@@ -44,7 +44,7 @@ Section Code.
              CALL verF WITH (- A, B -))%list.
   Defined.
 
-  Definition test : Repeat (modular bvDenote v).
+  Definition test : Repeat (Subroutine.statement bvDenote v).
     (* This actually works without the `verse` tactic *)
     verse (
         [code| A := A; B := B; C := `0` |]

@@ -1,13 +1,13 @@
 (** Tactics for proof goal presentation *)
 Require Import NArith.
 
-Require Import Verse.AnnotatedCode.
+Require Import Verse.Annotated.
 Require Import Verse.BitVector.
 Require Import Verse.BitVector.ArithRing.
 Require Import Verse.BitVector.Reflection.
 Require Import Verse.Machine.BitVector.
 Require Import Verse.Modular.ModRing.
-Require Import Verse.ModularCode.
+Require Import Verse.Subroutine.
 Require Import Verse.Monoid.
 Require Import Verse.Utils.hlist.
 Require Import Verse.HlistMachine.
@@ -136,7 +136,7 @@ Ltac realize := unwrap; simplify.
 
 Ltac modProof :=
   try match goal with
-      | |- context [getProp _ (linesDenote (inline_calls ?l))]
+      | |- context [getProp _ (Annotated.statementDenote (Subroutine.inline_calls ?l))]
         => rewrite (splitEq l); apply modularize;
            unfold blackbox_vc; simpl;
            repeat match goal with
@@ -206,8 +206,8 @@ Ltac rearrScope x :=
 (* Parametrize target Prop on non-variable parameters *)
 Ltac parametrize x :=
   lazymatch type of x with
-  | forall _ : Variables.U verse_type_system, _ => AnnotatedCode.vc_gen x
-  | forall _ : VariableT, _                     => AnnotatedCode.vc_gen x
+  | forall _ : Variables.U verse_type_system, _ => Annotated.vc_gen x
+  | forall _ : VariableT, _                     => Annotated.vc_gen x
   | ?T -> _                            => let t := fresh "t" in
                                           refine (forall t : T, _ : Prop);
                                           parametrize (x t)
